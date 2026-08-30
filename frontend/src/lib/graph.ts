@@ -1,4 +1,4 @@
-import type { BusResult, ElementResult, SolveResult } from '../types/circuit'
+import type { BusResult, ElementResult, SolveResult, TimeSeriesResult } from '../types/circuit'
 
 /** Data prep for the Graph tab: pick an X and a Y quantity, get plottable
  *  rows. Bus quantities give one row per bus; element quantities one row per
@@ -152,4 +152,116 @@ export function computeGraph(
 
   rows.sort((a, b) => a.x - b.x)
   return { rows, segments }
+}
+
+// ---------------------------------------------------------------------------
+// Time-series (Graph tab "Time" mode): one polyline per entity over hours.
+
+export type TsKind = 'system' | 'bus' | 'element'
+
+export interface TsQuantity {
+  key: string
+  label: string
+  kind: TsKind
+}
+
+export const TS_QUANTITIES: TsQuantity[] = [
+  { key: 'totalkw', label: 'Total P (kW)', kind: 'system' },
+  { key: 'losskw', label: 'Losses (kW)', kind: 'system' },
+  { key: 'vmin', label: 'Bus V min (pu)', kind: 'bus' },
+  { key: 'vmax', label: 'Bus V max (pu)', kind: 'bus' },
+  { key: 'kw', label: 'P flow (kW)', kind: 'element' },
+  { key: 'kvar', label: 'Q flow (kvar)', kind: 'element' },
+  { key: 'amps', label: 'Max current (A)', kind: 'element' },
+  { key: 'loading', label: 'Loading (%)', kind: 'element' },
+]
+
+export interface TimeSeriesLine {
+  id: string
+  label: string
+  /** Index into the trace-color cycle. */
+  colorIdx: number
+  points: { x: number; y: number }[]
+}
+
+/** Selectable entities for a quantity kind (buses or elements). */
+export function tsEntities(ts: TimeSeriesResult, kind: TsKind): { id: string; label: string }[] {
+  if (kind === 'bus') return Object.keys(ts.buses).map((b) => ({ id: b, label: b }))
+  if (kind === 'element') return Object.keys(ts.elements).map((e) => ({ id: e, label: e }))
+  return []
+}
+
+/** Sensible default picks: the lowest-voltage buses / most-loaded elements. */
+export function defaultTsEntities(ts: TimeSeriesResult, kind: TsKind, count = 3): string[] {
+  if (kind === 'bus') {
+    return Object.entries(ts.buses)
+      .map(([b, env]) => [b, Math.min(...env.vmin.filter((v) => v > 0.05))] as [string, number])
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, count)
+      .map(([b]) => b)
+  }
+  if (kind === 'element') {
+    return Object.entries(ts.elements)
+      .map(([e, s]) => {
+        const peak = Math.max(...s.loadingPct.map((v) => v ?? -1), ...s.ampsMax)
+        return [e, peak] as [string, number]
+      })
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, count)
+      .map(([e]) => e)
+  }
+  return []
+}
+
+function seriesFor(ts: TimeSeriesResult, key: string, id: string): (number | null)[] | null {
+  switch (key) {
+    case 'totalkw':
+      return ts.totals.kw
+    case 'losskw':
+      return ts.totals.lossKw
+    case 'vmin':
+      return ts.buses[id]?.vmin ?? null
+    case 'vmax':
+      return ts.buses[id]?.vmax ?? null
+    case 'kw':
+      return ts.elements[id]?.kw ?? null
+    case 'kvar':
+      return ts.elements[id]?.kvar ?? null
+    case 'amps':
+      return ts.elements[id]?.ampsMax ?? null
+    case 'loading':
+      return ts.elements[id]?.loadingPct ?? null
+    default:
+      return null
+  }
+}
+
+/** One plottable line per selected entity (system quantities ignore the
+ *  selection). Null samples (e.g. loading with no rating) are dropped. */
+export function computeTimeSeries(
+  ts: TimeSeriesResult,
+  key: string,
+  entityIds: string[],
+): TimeSeriesLine[] {
+  const q = TS_QUANTITIES.find((x) => x.key === key)
+  if (!q) return []
+  const ids = q.kind === 'system' ? [key] : entityIds
+  const lines: TimeSeriesLine[] = []
+  ids.forEach((id, i) => {
+    const values = seriesFor(ts, key, id)
+    if (!values) return
+    const points: { x: number; y: number }[] = []
+    for (let j = 0; j < values.length && j < ts.time.length; j++) {
+      const v = values[j]
+      if (v != null) points.push({ x: ts.time[j], y: v })
+    }
+    if (!points.length) return
+    lines.push({
+      id,
+      label: q.kind === 'system' ? q.label : id,
+      colorIdx: i,
+      points,
+    })
+  })
+  return lines
 }

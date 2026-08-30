@@ -31,6 +31,8 @@ import { BusbarNode } from './nodes/BusbarNode'
 import { CapacitorNode } from './nodes/CapacitorNode'
 import { GeneratorNode } from './nodes/GeneratorNode'
 import { LoadNode } from './nodes/LoadNode'
+import { PVSystemNode } from './nodes/PVSystemNode'
+import { StorageNode } from './nodes/StorageNode'
 import { TransformerNode } from './nodes/TransformerNode'
 import { VsourceNode } from './nodes/VsourceNode'
 import { LineEdge } from './edges/LineEdge'
@@ -44,6 +46,8 @@ const nodeTypes = {
   breaker: BreakerNode,
   capacitor: CapacitorNode,
   generator: GeneratorNode,
+  pvsystem: PVSystemNode,
+  storage: StorageNode,
 }
 
 const edgeTypes = {
@@ -162,6 +166,8 @@ export function EditorCanvas() {
       l: 'load',
       c: 'capacitor',
       g: 'generator',
+      p: 'pvsystem',
+      a: 'storage',
     }
     const onKey = (e: KeyboardEvent) => {
       const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(

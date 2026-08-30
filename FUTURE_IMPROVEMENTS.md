@@ -63,15 +63,36 @@ All frontend-only; the M1 vitest harness covers the store changes.
   Shift+drag zoom box, wheel zoom, and phase toggles. Bottom panel is
   drag-resizable (persisted height).
 
-## M5 — DER pack + time series (~3–4 sessions)
+## M5 — DER pack + time series — ✅ DONE (2026-08-30)
 
-The biggest single milestone; the M3 checklist makes the components mechanical.
-
-- **PV systems** (`PVSystem`) — irradiance/temperature curves, inverter kVA
-- **Storage** (`Storage`) — kWh rating, charge/discharge dispatch
-- **LoadShape editor** (CSV paste + curve editor), assignable to loads/PV/storage
-- **Daily/yearly time series** — energy meters and monitors, progress streaming
-  (websocket/SSE), result plots over time (add a charting dependency here)
+- ~~**PV systems**~~ — inverter kVA/Pmpp/pf/irradiance with canned
+  efficiency + P-T curves; `P` places, panel-in-circle symbol
+- ~~**Storage**~~ — kW/kWh ratings, efficiency, reserve, initial SOC;
+  dispatch = follow-shape (+/− mult) or OpenDSS default-mode triggers;
+  `A` places, battery symbol. (Storage is auto-disabled during fault
+  studies — DSS-Extensions 0.9.4 crashes faultstudy mode with them.)
+- ~~**LoadShape editor**~~ — `Circuit.loadShapes` collection (first non-graph
+  schema field), Shapes bottom-panel tab: CSV paste, draggable curve editor
+  (≤96 pts), peak/avg normalize; `loadshape` field kind gives every
+  load/PV/storage a shape dropdown in properties + spreadsheet
+- **NREL EULP import** (added at Ryan's request) — backend proxy
+  (`core/nrel.py`, disk-cached) for the public End-Use Load Profiles S3
+  aggregates: climate zone × building type (5 residential + 14 commercial),
+  hourly or native 15-min, peak/average normalization
+- **Typed shapes + NSRDB irradiance** (follow-up) — `LoadShapeSpec.kind`
+  ('load' | 'irradiance') splits the Shapes tab into two libraries; element
+  dropdowns filter by kind (loads → load, PV → irradiance, storage → any;
+  mismatches warn). `core/irradiance.py` fetches hourly 2018 GHI from the
+  NLR NSRDB PSM4 API (per-user free API key, place-name geocoding via
+  Open-Meteo, disk-cached, kW/m² or peak-normalized scaling) — 2018 matches
+  the EULP weather year so PV stays correlated with building load
+- ~~**Daily/yearly time series**~~ — step-driven engine loop
+  (`solve_timeseries`) records every bus/element automatically (no
+  monitor elements needed), integrates energy/losses/peaks; SSE progress
+  streaming (`POST /api/timeseries`) with cancel; Toolbar `[Daily|Yearly]
+  [1h|15m] ▶ Run`; Graph tab grew a Time mode (polylines, entity picker,
+  month axis, min/max envelope downsampling >2k steps, summary table) —
+  still zero charting dependencies
 
 ## M6 — Regulation, protection & phases (~2–3 sessions)
 

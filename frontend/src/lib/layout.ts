@@ -5,7 +5,7 @@ import type { CircuitJSON, CircuitNodeJSON } from '../types/circuit'
 const snap = (v: number) => Math.round(v / 10) * 10
 
 /** 1-terminal shunt devices that hang below their busbar like loads. */
-const SHUNT_TYPES = new Set(['load', 'capacitor', 'generator'])
+const SHUNT_TYPES = new Set(['load', 'capacitor', 'generator', 'pvsystem', 'storage'])
 
 /** Lay out an imported circuit hierarchically (mutates in place): source at
  *  the top, power flowing downward, loads hanging directly beneath their

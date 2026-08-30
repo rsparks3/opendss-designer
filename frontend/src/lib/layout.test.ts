@@ -37,6 +37,7 @@ function substation(): CircuitJSON {
       e('e5', 'busB', 'load2', { targetHandle: 't1' }),
     ],
     busNames: {},
+    loadShapes: {},
   }
 }
 

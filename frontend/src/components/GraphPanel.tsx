@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { fmt, ticks } from '../lib/axis'
 import { computeGraph, X_QUANTITIES, Y_QUANTITIES, type GraphRow } from '../lib/graph'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
+import { TimeGraphPanel } from './TimeGraphPanel'
 
 const ML = 60
 const MR = 18
@@ -30,31 +32,44 @@ const PHASE_COLORS: Record<number, string> = { 1: '#1a1a1a', 2: '#d32f2f', 3: '#
 
 type Domain = { x: [number, number]; y: [number, number] }
 
-function niceStep(raw: number): number {
-  const mag = 10 ** Math.floor(Math.log10(Math.abs(raw) || 1))
-  const norm = raw / mag
-  return (norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10) * mag
-}
-
-function fmt(v: number, step: number): string {
-  if (step < 0.005) return v.toFixed(4)
-  if (step < 0.05) return v.toFixed(3)
-  if (step < 0.5) return v.toFixed(2)
-  if (step < 5) return v.toFixed(1)
-  return v.toFixed(0)
-}
-
-function ticks(lo: number, hi: number, count = 5): number[] {
-  const step = niceStep((hi - lo) / count)
-  const out: number[] = []
-  for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) out.push(t)
-  return out
+/** Graph tab: Snapshot mode plots the last power-flow solution; Time mode
+ *  (enabled once a time-series run exists) plots quantities over hours. */
+export function GraphPanel() {
+  const timeseries = useResultsStore((s) => s.timeseries)
+  const [gmode, setGmode] = useState<'snapshot' | 'time'>('snapshot')
+  // A fresh time-series result pulls the tab into Time mode.
+  useEffect(() => {
+    if (timeseries) setGmode('time')
+  }, [timeseries])
+  const effMode = gmode === 'time' && timeseries ? 'time' : 'snapshot'
+  return (
+    <div>
+      <div className="graph-mode">
+        <button
+          className={`bp-subtab${effMode === 'snapshot' ? ' active' : ''}`}
+          title="Last snapshot solve (base case — loadshapes not applied)"
+          onClick={() => setGmode('snapshot')}
+        >
+          Snapshot
+        </button>
+        <button
+          className={`bp-subtab${effMode === 'time' ? ' active' : ''}`}
+          disabled={!timeseries}
+          title={timeseries ? undefined : 'Run a time series (▶ Run in the toolbar) first'}
+          onClick={() => setGmode('time')}
+        >
+          Time
+        </button>
+      </div>
+      {effMode === 'time' ? <TimeGraphPanel ts={timeseries!} /> : <SnapshotGraph />}
+    </div>
+  )
 }
 
 /** OpenDSS-style plot window: per-phase traces in the classic phase colors,
  *  bold red limit lines, framed white plot area, and zoom/pan controls
  *  (buttons, wheel, drag to pan, Shift+drag for a zoom box). */
-export function GraphPanel() {
+function SnapshotGraph() {
   const result = useResultsStore((s) => s.result)
   const stale = useResultsStore((s) => s.stale)
   const nodes = useCircuitStore((s) => s.nodes)

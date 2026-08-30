@@ -86,6 +86,36 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
       </svg>
     ),
   },
+  {
+    type: 'pvsystem',
+    label: 'PV system',
+    kbd: 'P',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="8" className="sym" />
+        <circle cx="16" cy="19" r="10" className="sym" fill="none" />
+        <line x1="2" y1="6" x2="7" y2="11" className="sym" />
+        <line x1="7" y1="3" x2="10" y2="9" className="sym" />
+        <text x="16" y="23" textAnchor="middle" className="sym-text" fontSize="9">
+          PV
+        </text>
+      </svg>
+    ),
+  },
+  {
+    type: 'storage',
+    label: 'Storage',
+    kbd: 'A',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="12" className="sym" />
+        <line x1="6" y1="12" x2="26" y2="12" className="sym" />
+        <line x1="11" y1="17" x2="21" y2="17" className="sym" />
+        <line x1="6" y1="22" x2="26" y2="22" className="sym" />
+        <line x1="11" y1="27" x2="21" y2="27" className="sym" />
+      </svg>
+    ),
+  },
 ]
 
 export function Palette() {

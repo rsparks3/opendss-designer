@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   FIELDS,
   FieldInput,
@@ -11,8 +11,9 @@ import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { Params } from '../types/circuit'
 import { GraphPanel } from './GraphPanel'
+import { ShapesPanel } from './ShapesPanel'
 
-type MainTab = 'problems' | 'elements' | 'losses' | 'graph'
+type MainTab = 'problems' | 'elements' | 'losses' | 'graph' | 'shapes'
 
 const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'vsource', label: 'Sources' },
@@ -23,18 +24,34 @@ const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'load', label: 'Loads' },
   { key: 'capacitor', label: 'Capacitors' },
   { key: 'generator', label: 'Generators' },
+  { key: 'pvsystem', label: 'PV systems' },
+  { key: 'storage', label: 'Storage' },
   { key: 'buses', label: 'Buses (results)' },
 ]
 
 function StatusLine() {
   const result = useResultsStore((s) => s.result)
   const stale = useResultsStore((s) => s.stale)
+  // When shapes are assigned, say what the snapshot actually solved — it is
+  // the unscaled base case, not any hour of the time series.
+  const hasShapes = useCircuitStore((s) => s.nodes.some((n) => !!n.data.params.loadshape))
   if (!result) return null
   return (
-    <span className="status-line" style={{ opacity: stale ? 0.5 : 1 }}>
+    <span
+      className="status-line"
+      style={{ opacity: stale ? 0.5 : 1 }}
+      title={
+        hasShapes
+          ? 'Snapshot solves the unscaled base case: loads at rated kW, PV at ' +
+            'its irradiance parameter, storage idle. Loadshapes only apply to ' +
+            'time-series runs (▶ Run).'
+          : undefined
+      }
+    >
       {result.converged
         ? `✓ Converged in ${result.iterations} iteration${result.iterations === 1 ? '' : 's'}` +
           (result.losses ? ` — losses ${result.losses.kw.toFixed(1)} kW` : '') +
+          (hasShapes ? ' · base case (shapes not applied)' : '') +
           (stale ? ' (stale — re-solve)' : '')
         : '✗ Not converged'}
     </span>
@@ -301,11 +318,20 @@ function initialHeight(): number {
 
 export function BottomPanel() {
   const issues = useResultsStore((s) => s.issues)
+  const graphTabSignal = useResultsStore((s) => s.graphTabSignal)
   const [tab, setTab] = useState<MainTab>('problems')
   const [typeTab, setTypeTab] = useState('load')
   const [open, setOpen] = useState(true)
   const [height, setHeight] = useState(initialHeight)
   const heightRef = useRef(height)
+
+  // A completed time-series run asks for the Graph tab.
+  useEffect(() => {
+    if (graphTabSignal > 0) {
+      setTab('graph')
+      setOpen(true)
+    }
+  }, [graphTabSignal])
 
   // Drag the top edge to resize; height persists across sessions.
   const startResize = (down: React.PointerEvent) => {
@@ -381,6 +407,15 @@ export function BottomPanel() {
         >
           Graph
         </button>
+        <button
+          className={`bp-tab${tab === 'shapes' && open ? ' active' : ''}`}
+          onClick={() => {
+            setTab('shapes')
+            setOpen(tab !== 'shapes' || !open)
+          }}
+        >
+          Shapes
+        </button>
         {tab === 'elements' && open && (
           <span className="bp-subtabs">
             {TYPE_TABS.map((t) => (
@@ -408,6 +443,8 @@ export function BottomPanel() {
             <LossesTab />
           ) : tab === 'graph' ? (
             <GraphPanel />
+          ) : tab === 'shapes' ? (
+            <ShapesPanel />
           ) : typeTab === 'buses' ? (
             <BusesTable />
           ) : (

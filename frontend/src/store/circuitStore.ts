@@ -10,7 +10,7 @@ import {
 import { temporal } from 'zundo'
 import { create } from 'zustand'
 import { defaultLineParams, defaultParams, nextName, NODE_SIZE } from '../lib/defaults'
-import type { CircuitJSON, EdgeKind, NodeType, Params } from '../types/circuit'
+import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params } from '../types/circuit'
 import { useResultsStore } from './resultsStore'
 
 export interface XY {
@@ -26,6 +26,9 @@ export interface CircuitState {
   nodes: AppNode[]
   edges: AppEdge[]
   busNames: Record<string, string>
+  /** Circuit-level loadshape library, keyed by shape name. Always replaced
+   *  wholesale (never mutated) so undo can compare it by reference. */
+  loadShapes: Record<string, LoadShapeJSON>
   placementType: NodeType | null
   connectMode: EdgeKind
   /** True when there are changes not yet saved to a project file. */
@@ -47,6 +50,11 @@ export interface CircuitState {
   setConnectMode: (m: EdgeKind) => void
   selectOnly: (kind: 'node' | 'edge', id: string) => void
   mergeBusNames: (names: Record<string, string>) => void
+  setLoadShape: (name: string, spec: LoadShapeJSON) => void
+  /** Delete a shape and clear any element params still referencing it. */
+  deleteLoadShape: (name: string) => void
+  /** Rename a shape and rewrite element references to it. */
+  renameLoadShape: (oldName: string, newName: string) => void
   loadCircuit: (c: CircuitJSON) => void
   clearAll: () => void
 
@@ -97,6 +105,8 @@ const NAME_PREFIX: Record<string, string> = {
   breaker: 'BRK',
   capacitor: 'CAP',
   generator: 'GEN',
+  pvsystem: 'PV',
+  storage: 'BAT',
 }
 
 const PASTE_OFFSET = 30
@@ -207,7 +217,9 @@ function nodeCenter(n: AppNode): XY {
   return { x: n.position.x + w / 2, y: n.position.y + size.h / 2 }
 }
 
-export function toCircuitJSON(s: Pick<CircuitState, 'name' | 'nodes' | 'edges' | 'busNames'>): CircuitJSON {
+export function toCircuitJSON(
+  s: Pick<CircuitState, 'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes'>,
+): CircuitJSON {
   return {
     version: 1,
     name: s.name,
@@ -229,6 +241,7 @@ export function toCircuitJSON(s: Pick<CircuitState, 'name' | 'nodes' | 'edges' |
       waypoints: e.data?.waypoints?.length ? e.data.waypoints : null,
     })),
     busNames: s.busNames,
+    loadShapes: s.loadShapes,
   }
 }
 
@@ -261,6 +274,7 @@ export const useCircuitStore = create<CircuitState>()(
       nodes: [],
       edges: [],
       busNames: {},
+      loadShapes: {},
       placementType: null,
       connectMode: 'wire',
       dirty: false,
@@ -422,15 +436,54 @@ export const useCircuitStore = create<CircuitState>()(
         })
       },
       mergeBusNames: (names) => set({ busNames: { ...get().busNames, ...names } }),
+      setLoadShape: (name, spec) => {
+        set({ loadShapes: { ...get().loadShapes, [name]: spec }, dirty: true })
+        markStale()
+      },
+      deleteLoadShape: (name) => {
+        const { [name]: _gone, ...rest } = get().loadShapes
+        set({
+          loadShapes: rest,
+          nodes: get().nodes.map((n) =>
+            n.data.params.loadshape === name
+              ? { ...n, data: { params: { ...n.data.params, loadshape: '' } } }
+              : n,
+          ),
+          dirty: true,
+        })
+        markStale()
+      },
+      renameLoadShape: (oldName, newName) => {
+        if (oldName === newName || !newName) return
+        const { [oldName]: spec, ...rest } = get().loadShapes
+        if (!spec) return
+        set({
+          loadShapes: { ...rest, [newName]: spec },
+          nodes: get().nodes.map((n) =>
+            n.data.params.loadshape === oldName
+              ? { ...n, data: { params: { ...n.data.params, loadshape: newName } } }
+              : n,
+          ),
+          dirty: true,
+        })
+        markStale()
+      },
       // Opening a project file leaves the store clean; the autosave-restore
       // path in App re-marks dirty afterward since that work isn't in a file.
       loadCircuit: (c) => {
         const { nodes, edges } = fromCircuitJSON(c)
-        set({ name: c.name, nodes, edges, busNames: c.busNames ?? {}, dirty: false })
+        set({
+          name: c.name,
+          nodes,
+          edges,
+          busNames: c.busNames ?? {},
+          loadShapes: c.loadShapes ?? {},
+          dirty: false,
+        })
         markStale()
       },
       clearAll: () => {
-        set({ nodes: [], edges: [], busNames: {}, dirty: true })
+        set({ nodes: [], edges: [], busNames: {}, loadShapes: {}, dirty: true })
         markStale()
       },
 
@@ -498,11 +551,19 @@ export const useCircuitStore = create<CircuitState>()(
         nodes: s.nodes.map(({ selected: _s, ...n }) => n),
         edges: s.edges.map(({ selected: _s, ...e }) => e),
         busNames: s.busNames,
+        loadShapes: s.loadShapes,
       }),
       limit: 100,
       // Structural compare; fine at editor scale (revisit if circuits reach
-      // thousands of elements).
-      equality: (past, cur) => JSON.stringify(past) === JSON.stringify(cur),
+      // thousands of elements). loadShapes is compared by reference — shape
+      // actions always replace the whole object, and stringifying 8760-point
+      // arrays on every unrelated set would be wasteful.
+      equality: (past, cur) => {
+        if (past.loadShapes !== cur.loadShapes) return false
+        const { loadShapes: _p, ...pastRest } = past
+        const { loadShapes: _c, ...curRest } = cur
+        return JSON.stringify(pastRest) === JSON.stringify(curRest)
+      },
       // One undo entry per gesture (drag/resize), one per discrete action.
       handleSet: (handleSet) => (state) => {
         if (inGesture) {

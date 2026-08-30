@@ -1,7 +1,8 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { autoLayout } from '../lib/layout'
 import { runSolve } from '../lib/solve'
+import { runTimeSeries } from '../lib/timeseries'
 import {
   redo,
   toCircuitJSON,
@@ -35,6 +36,8 @@ export function Toolbar() {
   const markSaved = useCircuitStore((s) => s.markSaved)
 
   const solving = useResultsStore((s) => s.solving)
+  const tsRunning = useResultsStore((s) => s.tsRunning)
+  const tsProgress = useResultsStore((s) => s.tsProgress)
   const overlay = useResultsStore((s) => s.overlay)
   const setOverlay = useResultsStore((s) => s.setOverlay)
   const issues = useResultsStore((s) => s.issues)
@@ -51,6 +54,16 @@ export function Toolbar() {
 
   // runSolve surfaces its own failures via the flash toast.
   const onSolve = () => void runSolve()
+
+  // Time-series runs are explicit (never auto-solved: a yearly run takes
+  // seconds, not milliseconds). Completion opens the Graph tab.
+  const [tsMode, setTsMode] = useState<'daily' | 'yearly'>('daily')
+  const [tsStep, setTsStep] = useState<60 | 15>(60)
+  const onRunTs = () =>
+    void runTimeSeries(tsMode, tsStep).then((ok) => {
+      if (ok) useResultsStore.getState().requestGraphTab()
+    })
+  const tsPct = tsProgress ? Math.round((100 * tsProgress.step) / tsProgress.total) : 0
 
   // The fault study runs lazily when its overlay is first selected (results
   // are cleared on any circuit change, so re-selecting re-runs it).
@@ -152,8 +165,14 @@ export function Toolbar() {
         <button
           className="solve-btn"
           onClick={onSolve}
-          disabled={solving || hasErrors}
-          title={hasErrors ? 'Fix the errors in the problems list first' : 'Run snapshot power flow'}
+          disabled={solving || hasErrors || tsRunning}
+          title={
+            hasErrors
+              ? 'Fix the errors in the problems list first'
+              : 'Run a snapshot power flow of the base case: loads at rated kW, ' +
+                'PV at its irradiance parameter, storage idle. Loadshapes only ' +
+                'apply to time-series runs (▶ Run).'
+          }
         >
           {solving ? 'Solving…' : '▶ Solve'}
         </button>
@@ -167,6 +186,50 @@ export function Toolbar() {
         >
           Auto
         </button>
+      </div>
+      <div className="tb-group">
+        <select
+          className="ts-select"
+          value={tsMode}
+          onChange={(e) => setTsMode(e.target.value as 'daily' | 'yearly')}
+          disabled={tsRunning}
+          title="Time-series horizon"
+        >
+          <option value="daily">Daily</option>
+          <option value="yearly">Yearly</option>
+        </select>
+        <select
+          className="ts-select"
+          value={String(tsStep)}
+          onChange={(e) => setTsStep(Number(e.target.value) as 60 | 15)}
+          disabled={tsRunning}
+          title="Step size"
+        >
+          <option value="60">1 h</option>
+          <option value="15">15 min</option>
+        </select>
+        {tsRunning ? (
+          <button
+            className="ts-run running"
+            onClick={() => useResultsStore.getState().tsAbort?.abort()}
+            title="Cancel the run"
+          >
+            {tsPct}% ✕
+          </button>
+        ) : (
+          <button
+            className="ts-run"
+            onClick={onRunTs}
+            disabled={solving || hasErrors}
+            title={
+              hasErrors
+                ? 'Fix the errors in the problems list first'
+                : 'Run a time-series simulation (assign loadshapes in the Shapes tab first)'
+            }
+          >
+            ▶ Run
+          </button>
+        )}
       </div>
       <div className="tb-group overlay-group">
         <span className="tb-label">Overlay:</span>

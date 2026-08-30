@@ -22,12 +22,12 @@ import opendssdirect as dss
 
 from . import engine
 from .connectivity import sanitize_name
-from .model import Circuit, CircuitNode, CircuitEdge, Position
+from .model import Circuit, CircuitNode, CircuitEdge, LoadShapeSpec, Position
 
 _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
 
 SUPPORTED_PREFIXES = ("vsource.", "transformer.", "line.", "load.",
-                      "capacitor.", "generator.")
+                      "capacitor.", "generator.", "pvsystem.", "storage.")
 
 # Drawing-canvas size that geographic bus coordinates are normalized into.
 _LAYOUT_W, _LAYOUT_H = 1800.0, 1200.0
@@ -159,6 +159,25 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
 
     unsupported: list[str] = []
 
+    # Loadshapes (general DSS objects, not circuit elements — read first so
+    # element `daily=` references can be matched case-insensitively).
+    load_shapes: dict[str, LoadShapeSpec] = {}
+    i = dss.LoadShape.First()
+    while i:
+        shape_name = dss.LoadShape.Name()
+        if shape_name.lower() != "default":  # built-in shape, always present
+            interval = dss.LoadShape.MinInterval() or dss.LoadShape.HrInterval() * 60
+            load_shapes[shape_name] = LoadShapeSpec(
+                intervalMin=round(interval or 60.0, 4),
+                points=[round(v, 6) for v in dss.LoadShape.PMult()])
+        i = dss.LoadShape.Next()
+    shapes_lower = {k.lower(): k for k in load_shapes}
+
+    def daily_shape() -> str | None:
+        """The active element's daily shape, as a loadShapes key (or None)."""
+        raw = dss.Properties.Value("daily").strip()
+        return shapes_lower.get(raw.lower()) if raw else None
+
     # Vsources
     i = dss.Vsources.First()
     while i:
@@ -258,6 +277,9 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                   "conn": "delta" if dss.Loads.IsDelta() else "wye",
                   "phases": dss.CktElement.NumPhases(),
                   "model": dss.Loads.Model()}
+        shape = daily_shape()
+        if shape:
+            params["loadshape"] = shape
         if buses:
             suffix = _node_suffix(buses[0])
             if suffix:
@@ -308,6 +330,70 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
         i = dss.Generators.Next()
 
+    # PV systems (kv/conn have no iterator getters; Properties is the path)
+    i = dss.PVsystems.First()
+    while i:
+        name = dss.PVsystems.Name()
+        dss.Circuit.SetActiveElement(f"pvsystem.{name}")
+        buses = dss.CktElement.BusNames()
+        nid = node_id()
+        params: dict[str, Any] = {
+            "name": name, "kv": float(dss.Properties.Value("kv") or 12.47),
+            "kva": dss.PVsystems.kVARated(), "pmpp": dss.PVsystems.Pmpp(),
+            "pf": dss.PVsystems.pf(), "irradiance": dss.PVsystems.Irradiance(),
+            "conn": "delta" if dss.Properties.Value("conn").lower().startswith("d") else "wye",
+            "phases": dss.CktElement.NumPhases()}
+        shape = daily_shape()
+        if shape:
+            params["loadshape"] = shape
+            # A shape driving a PV system is its irradiance profile.
+            load_shapes[shape].kind = "irradiance"
+        if buses:
+            suffix = _node_suffix(buses[0])
+            if suffix:
+                params["busNodes"] = suffix
+        nodes.append(CircuitNode(id=nid, type="pvsystem", params=params))
+        if buses:
+            wire(nid, "t1", busbar_for(buses[0]), "b0")
+        i = dss.PVsystems.Next()
+
+    # Storage (the Storages iterator has no rating getters at all)
+    i = dss.Storages.First()
+    while i:
+        name = dss.Storages.Name()
+        dss.Circuit.SetActiveElement(f"storage.{name}")
+        buses = dss.CktElement.BusNames()
+        nid = node_id()
+        dispatch = dss.Properties.Value("dispmode").lower()
+        params = {
+            "name": name, "kv": float(dss.Properties.Value("kv") or 12.47),
+            "kwrated": float(dss.Properties.Value("kwrated") or 0),
+            "kwhrated": float(dss.Properties.Value("kwhrated") or 0),
+            "effcharge": float(dss.Properties.Value("%effcharge") or 0),
+            "effdischarge": float(dss.Properties.Value("%effdischarge") or 0),
+            "reserve": float(dss.Properties.Value("%reserve") or 0),
+            "soc": float(dss.Properties.Value("%stored") or 0),
+            "conn": "delta" if dss.Properties.Value("conn").lower().startswith("d") else "wye",
+            "phases": dss.CktElement.NumPhases(),
+            "dispatch": "follow" if dispatch == "follow" else "default"}
+        if params["dispatch"] == "default":
+            params.update({
+                "pctdischarge": float(dss.Properties.Value("%discharge") or 100),
+                "pctcharge": float(dss.Properties.Value("%charge") or 100),
+                "dischargetrigger": float(dss.Properties.Value("dischargetrigger") or 0),
+                "chargetrigger": float(dss.Properties.Value("chargetrigger") or 0)})
+        shape = daily_shape()
+        if shape:
+            params["loadshape"] = shape
+        if buses:
+            suffix = _node_suffix(buses[0])
+            if suffix:
+                params["busNodes"] = suffix
+        nodes.append(CircuitNode(id=nid, type="storage", params=params))
+        if buses:
+            wire(nid, "t1", busbar_for(buses[0]), "b0")
+        i = dss.Storages.Next()
+
     # Anything else in the model is out of v1 scope.
     for full in dss.Circuit.AllElementNames():
         if not full.lower().startswith(SUPPORTED_PREFIXES):
@@ -316,7 +402,8 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     _apply_bus_coords(nodes, bus_node_ids)
 
     circuit_name = sanitize_name(dss.Circuit.Name()) or "imported"
-    circuit = Circuit(name=circuit_name, nodes=nodes, edges=edges)
+    circuit = Circuit(name=circuit_name, nodes=nodes, edges=edges,
+                      loadShapes=load_shapes)
     return {"circuit": circuit.model_dump(), "unsupported": unsupported,
             "warnings": warnings}
 

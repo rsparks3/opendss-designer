@@ -8,6 +8,8 @@ export type NodeType =
   | 'breaker'
   | 'capacitor'
   | 'generator'
+  | 'pvsystem'
+  | 'storage'
 export type EdgeKind = 'wire' | 'line'
 
 export type Params = Record<string, unknown>
@@ -38,12 +40,25 @@ export interface CircuitEdgeJSON {
   waypoints?: { x: number; y: number }[] | null
 }
 
+export interface LoadShapeJSON {
+  /** Library category: drives the Shapes tabs, dropdown filtering, and
+   *  kind-mismatch validation. Absent (older files) means 'load'. */
+  kind?: 'load' | 'irradiance'
+  /** Minutes per point (60 or 15). */
+  intervalMin: number
+  points: number[]
+  /** Provenance tag, e.g. "csv", "nrel:resstock/3a/single-family_detached",
+   *  or "nsrdb:39.74,-104.99/2018". */
+  source?: string | null
+}
+
 export interface CircuitJSON {
   version: number
   name: string
   nodes: CircuitNodeJSON[]
   edges: CircuitEdgeJSON[]
   busNames: Record<string, string>
+  loadShapes: Record<string, LoadShapeJSON>
 }
 
 export interface Issue {
@@ -89,6 +104,36 @@ export interface SolveResult {
   busNames: Record<string, string>
   /** Electrical km from the source to each bus (voltage profile x-axis). */
   busDistances: Record<string, number>
+}
+
+export interface TimeSeriesResult {
+  converged: boolean
+  cancelled: boolean
+  mode: 'daily' | 'yearly'
+  stepMin: number
+  steps: number
+  /** When true, `time` holds [bucketStart, bucketEnd] pairs and every series
+   *  holds [min, max] per bucket (envelope-preserving polyline data). */
+  downsampled: boolean
+  time: number[]
+  totals: { kw: number[]; lossKw: number[] }
+  buses: Record<string, { vmin: number[]; vmax: number[] }>
+  elements: Record<
+    string,
+    { id: string; kw: number[]; kvar: number[]; ampsMax: number[]; loadingPct: (number | null)[] }
+  >
+  summary: {
+    energyKwh: number
+    lossesKwh: number
+    peakKw: number
+    peakHour: number
+    minVpu: { bus: string; hour: number; value: number } | null
+    maxVpu: { bus: string; hour: number; value: number } | null
+  } | null
+  nonConvergedSteps: number[]
+  issues: Issue[]
+  nodeBuses: Record<string, string[]>
+  busNames: Record<string, string>
 }
 
 export interface FaultBusResult {

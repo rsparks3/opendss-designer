@@ -87,6 +87,8 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
     breakers = [n for n in circuit.nodes if n.type == "breaker"]
     capacitors = [n for n in circuit.nodes if n.type == "capacitor"]
     generators = [n for n in circuit.nodes if n.type == "generator"]
+    pvsystems = [n for n in circuit.nodes if n.type == "pvsystem"]
+    storages = [n for n in circuit.nodes if n.type == "storage"]
     line_edges = [e for e in circuit.edges if e.type == "line"]
 
     if not vsources:
@@ -119,6 +121,37 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
             cmds.append(
                 f"new vsource.{name} basekv={basekv:g} pu={pu:g} angle={angle:g} "
                 f"phases={phases} bus1={bus} mvasc3={mvasc3:g} mvasc1={mvasc1:g}")
+
+    # Loadshape library — after `new circuit` (OpenDSS needs an active circuit)
+    # and before any element that references a shape.
+    shape_names: dict[str, str] = {}
+    for key, spec in circuit.loadShapes.items():
+        shape = sanitize_name(key) or "shape"
+        if shape in shape_names.values():
+            res.issues.append(Issue(
+                severity="error", code="duplicate-name",
+                message=f"Two loadshapes share the OpenDSS name '{shape}' "
+                        "after sanitization."))
+            continue
+        shape_names[key] = shape
+        mult = " ".join(f"{float(v):.5g}" for v in spec.points)
+        cmds.append(f"new loadshape.{shape} npts={len(spec.points)} "
+                    f"minterval={spec.intervalMin:g} mult=({mult})")
+
+    def shape_ref(p: dict, ref_id: str) -> str:
+        """' daily=<n> yearly=<n>' for params.loadshape, or '' when unset.
+        The same shape drives both modes; OpenDSS wraps short shapes."""
+        raw = p.get("loadshape")
+        if not raw:
+            return ""
+        shape = shape_names.get(str(raw))
+        if shape is None:
+            res.issues.append(Issue(
+                severity="error", code="missing-loadshape",
+                message=f"Loadshape '{raw}' is not defined in this circuit.",
+                nodeId=ref_id))
+            return ""
+        return f" daily={shape} yearly={shape}"
 
     for n in transformers:
         p = n.params
@@ -197,7 +230,8 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
         kv_bases.add(kv)
         cmds.append(
             f"new load.{name} bus1={bus} phases={phases} conn={load_conn} "
-            f"kv={kv:g} kw={kw:g} pf={pf:g} model={model} vminpu=0.85")
+            f"kv={kv:g} kw={kw:g} pf={pf:g} model={model} vminpu=0.85"
+            + shape_ref(p, n.id))
 
     for n in capacitors:
         p = n.params
@@ -231,6 +265,61 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
         if model == 3:  # constant-V (PV) mode holds this voltage setpoint
             vpu = _num(p, "vpu", 1.0)
             cmd += f" vpu={vpu:g}"
+        cmds.append(cmd)
+
+    if pvsystems:
+        # Canned inverter curves shared by every PV system: power-temperature
+        # derating (per °C above 25) and efficiency vs per-unit output.
+        cmds.append("new xycurve.pv_pt_default npts=4 xarray=[0 25 75 100] "
+                    "yarray=[1.2 1.0 0.8 0.6]")
+        cmds.append("new xycurve.pv_eff_default npts=4 xarray=[0.1 0.2 0.4 1.0] "
+                    "yarray=[0.86 0.9 0.93 0.97]")
+    for n in pvsystems:
+        p = n.params
+        name = element_name("pvsystem", p.get("name"), n.id, n.id)
+        phases = int(_num(p, "phases", 3) or 3)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
+        kv = _num(p, "kv", 12.47) or 12.47
+        kva = _num(p, "kva", 500.0)
+        pmpp = _num(p, "pmpp", 500.0)
+        pf = _num(p, "pf", 1.0)
+        irradiance = _num(p, "irradiance", 1.0)
+        pv_conn = str(p.get("conn", "wye"))
+        kv_bases.add(kv)
+        cmds.append(
+            f"new pvsystem.{name} bus1={bus} phases={phases} conn={pv_conn} "
+            f"kv={kv:g} kva={kva:g} pmpp={pmpp:g} pf={pf:g} "
+            f"irradiance={irradiance:g} temperature=25 %cutin=0.1 %cutout=0.1 "
+            f"effcurve=pv_eff_default p-tcurve=pv_pt_default"
+            + shape_ref(p, n.id))  # shape scales irradiance over time
+
+    for n in storages:
+        p = n.params
+        name = element_name("storage", p.get("name"), n.id, n.id)
+        phases = int(_num(p, "phases", 3) or 3)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
+        kv = _num(p, "kv", 12.47) or 12.47
+        kwrated = _num(p, "kwrated", 250.0)
+        kwhrated = _num(p, "kwhrated", 1000.0)
+        effcharge = _num(p, "effcharge", 95.0)
+        effdischarge = _num(p, "effdischarge", 95.0)
+        reserve = _num(p, "reserve", 20.0)
+        soc = _num(p, "soc", 50.0)
+        stg_conn = str(p.get("conn", "wye"))
+        dispatch = str(p.get("dispatch", "follow"))
+        kv_bases.add(kv)
+        cmd = (f"new storage.{name} bus1={bus} phases={phases} conn={stg_conn} "
+               f"kv={kv:g} kwrated={kwrated:g} kwhrated={kwhrated:g} "
+               f"%effcharge={effcharge:g} %effdischarge={effdischarge:g} "
+               f"%reserve={reserve:g} %stored={soc:g} dispmode={dispatch}")
+        if dispatch == "follow":
+            # Shape drives dispatch: positive mult = discharge, negative = charge.
+            cmd += shape_ref(p, n.id)
+        else:  # "default" mode: triggers compare against the default loadshape
+            cmd += (f" %discharge={_num(p, 'pctdischarge', 100.0):g}"
+                    f" %charge={_num(p, 'pctcharge', 100.0):g}"
+                    f" dischargetrigger={_num(p, 'dischargetrigger', 0.0):g}"
+                    f" chargetrigger={_num(p, 'chargetrigger', 0.0):g}")
         cmds.append(cmd)
 
     for n in circuit.nodes:

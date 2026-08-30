@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { FaultResult, Issue, SolveResult } from '../types/circuit'
+import type { FaultResult, Issue, SolveResult, TimeSeriesResult } from '../types/circuit'
 
 export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'off'
 
@@ -18,6 +18,20 @@ interface ResultsState {
   /** When on, a solve runs automatically after every circuit change. */
   autoSolve: boolean
   setAutoSolve: (b: boolean) => void
+
+  /** Time-series run; cleared on any circuit change like `fault`. Runs are
+   *  explicit (Run button) — never triggered by auto-solve. */
+  timeseries: TimeSeriesResult | null
+  setTimeseries: (r: TimeSeriesResult | null) => void
+  tsRunning: boolean
+  tsProgress: { step: number; total: number } | null
+  setTsProgress: (p: { step: number; total: number } | null) => void
+  tsAbort: AbortController | null
+  setTsRunning: (running: boolean, abort?: AbortController | null) => void
+  /** Bumped to ask the bottom panel to open the Graph tab (e.g. after a
+   *  time-series run completes). */
+  graphTabSignal: number
+  requestGraphTab: () => void
 
   setResult: (r: SolveResult) => void
   markStale: () => void
@@ -42,8 +56,19 @@ export const useResultsStore = create<ResultsState>((set) => ({
   autoSolve: false,
   setAutoSolve: (autoSolve) => set({ autoSolve }),
 
+  timeseries: null,
+  setTimeseries: (timeseries) => set({ timeseries }),
+  tsRunning: false,
+  tsProgress: null,
+  setTsProgress: (tsProgress) => set({ tsProgress }),
+  tsAbort: null,
+  setTsRunning: (tsRunning, tsAbort = null) =>
+    set({ tsRunning, tsAbort, ...(tsRunning ? {} : { tsProgress: null }) }),
+  graphTabSignal: 0,
+  requestGraphTab: () => set((s) => ({ graphTabSignal: s.graphTabSignal + 1 })),
+
   setResult: (result) => set({ result, stale: false }),
-  markStale: () => set({ stale: true, fault: null }),
+  markStale: () => set({ stale: true, fault: null, timeseries: null }),
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),
   setIssues: (issues) => set({ issues }),

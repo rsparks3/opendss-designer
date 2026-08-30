@@ -77,6 +77,36 @@ def validate(circuit: Circuit) -> list[Issue]:
                     message=f"'{label}' is not electrically connected to the source.",
                     nodeId=n.id))
 
+    # Loadshape references and sanity. Loads should follow load shapes and PV
+    # irradiance shapes (storage dispatch may follow either kind).
+    _EXPECTED_KIND = {"load": "load", "pvsystem": "irradiance"}
+    for n in circuit.nodes:
+        shape = n.params.get("loadshape")
+        if not shape:
+            continue
+        label = n.params.get("name") or n.id
+        spec = circuit.loadShapes.get(str(shape))
+        if spec is None:
+            issues.append(Issue(
+                severity="error", code="missing-loadshape",
+                message=f"'{label}' references loadshape '{shape}', "
+                        "which is not defined in this circuit.",
+                nodeId=n.id))
+        else:
+            expected = _EXPECTED_KIND.get(n.type)
+            if expected and spec.kind != expected:
+                issues.append(Issue(
+                    severity="warning", code="shape-kind-mismatch",
+                    message=f"'{label}' ({n.type}) follows '{shape}', which is "
+                            f"a {spec.kind} shape, not {'an' if expected == 'irradiance' else 'a'} "
+                            f"{expected} shape.",
+                    nodeId=n.id))
+    for key, spec in circuit.loadShapes.items():
+        if len(spec.points) < 2:
+            issues.append(Issue(
+                severity="warning", code="empty-loadshape",
+                message=f"Loadshape '{key}' has fewer than 2 points."))
+
     # kV consistency per bus (rough sanity check on declared voltages).
     bus_kvs: dict[str, dict[str, str]] = {}
     for n in circuit.nodes:
@@ -86,7 +116,7 @@ def validate(circuit: Circuit) -> list[Issue]:
             kv = n.params.get("basekv")
             if kv and buses:
                 declared.append((buses[0], float(kv)))
-        elif n.type in ("load", "capacitor", "generator"):
+        elif n.type in ("load", "capacitor", "generator", "pvsystem", "storage"):
             kv = n.params.get("kv")
             if kv and buses:
                 declared.append((buses[0], float(kv)))

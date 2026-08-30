@@ -28,6 +28,18 @@ export function defaultParams(type: NodeType): Params {
       return { name: nextName('CAP'), kv: 12.47, kvar: 600, phases: 3, conn: 'wye', numsteps: 1 }
     case 'generator':
       return { name: nextName('GEN'), kv: 12.47, kw: 1000, pf: 1.0, phases: 3, conn: 'wye', model: 1, vpu: 1.02 }
+    case 'pvsystem':
+      return {
+        name: nextName('PV'), kv: 12.47, kva: 500, pmpp: 500, pf: 1.0,
+        irradiance: 1.0, phases: 3, conn: 'wye', loadshape: '',
+      }
+    case 'storage':
+      return {
+        name: nextName('BAT'), kv: 12.47, kwrated: 250, kwhrated: 1000,
+        effcharge: 95, effdischarge: 95, reserve: 20, soc: 50,
+        phases: 3, conn: 'wye', dispatch: 'follow', loadshape: '',
+        pctdischarge: 100, pctcharge: 100, dischargetrigger: 0, chargetrigger: 0,
+      }
   }
 }
 
@@ -46,4 +58,6 @@ export const NODE_SIZE: Record<NodeType, { w: number; h: number }> = {
   breaker: { w: 36, h: 56 },
   capacitor: { w: 40, h: 56 },
   generator: { w: 44, h: 56 },
+  pvsystem: { w: 44, h: 56 },
+  storage: { w: 44, h: 56 },
 }

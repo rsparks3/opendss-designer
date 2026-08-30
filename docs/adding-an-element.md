@@ -27,7 +27,9 @@ the whole list.
 6. `lib/defaults.ts` — `defaultParams()` case (name prefix + sensible params)
    and `NODE_SIZE` entry.
 7. `lib/fields.tsx` — `FIELDS` entry; drives both the properties panel and the
-   spreadsheet tab.
+   spreadsheet tab. If the element can follow a loadshape, give it a
+   `loadshape` param with `kind: 'loadshape'` (renders the shape-library
+   dropdown) and append `shape_ref(p, n.id)` to its compiler command (M5).
 8. `components/nodes/<X>Node.tsx` — symbol component: use `useSymbolRotation`,
    `rotatedBox`, `SymbolSvg`, `rotatePosition` from `nodes/common.tsx` so
    rotation works; add `VoltageBadge` (bus-connected) or `ElementBadge`
@@ -35,6 +37,7 @@ the whole list.
 9. `components/EditorCanvas.tsx` — register in `nodeTypes` and add a letter to
    `PLACE_KEYS`.
 10. `components/Palette.tsx` — palette item with icon + the same `kbd` letter.
+    (Taken letters: S B T K L C G P A, plus W/E/R for modes.)
 11. `lib/layout.ts` — if it's a 1-terminal shunt device, add it to
     `SHUNT_TYPES` so imports hang it under its busbar; 2-terminal series
     devices need `orientedEdges` / `alignDevicesBetweenBuses` handling.

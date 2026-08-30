@@ -58,7 +58,7 @@
       "type": "load",
       "position": { "x": 520, "y": 480 },
       "width": null,
-      "params": { "name": "LOAD1", "kv": 12.47, "kw": 1000, "pf": 0.95, "phases": 3, "conn": "wye", "model": 1 }
+      "params": { "name": "LOAD1", "kv": 12.47, "kw": 1000, "pf": 0.95, "phases": 3, "conn": "wye", "model": 1, "loadshape": "day24" }
     },
     {
       "id": "n_cap",
@@ -73,6 +73,20 @@
       "position": { "x": 620, "y": 400 },
       "width": null,
       "params": { "name": "GEN1", "kv": 12.47, "kw": 500, "pf": 1.0, "phases": 3, "conn": "wye", "model": 1, "vpu": 1.02 }
+    },
+    {
+      "id": "n_pv",
+      "type": "pvsystem",
+      "position": { "x": 700, "y": 400 },
+      "width": null,
+      "params": { "name": "PV1", "kv": 12.47, "kva": 500, "pmpp": 500, "pf": 1.0, "irradiance": 1.0, "phases": 3, "conn": "wye", "loadshape": "sun24" }
+    },
+    {
+      "id": "n_stg",
+      "type": "storage",
+      "position": { "x": 780, "y": 400 },
+      "width": null,
+      "params": { "name": "BAT1", "kv": 12.47, "kwrated": 250, "kwhrated": 1000, "effcharge": 95, "effdischarge": 95, "reserve": 20, "soc": 50, "phases": 3, "conn": "wye", "dispatch": "follow", "loadshape": "day24" }
     }
   ],
   "edges": [
@@ -166,7 +180,41 @@
       "targetHandle": "t1",
       "params": {},
       "waypoints": null
+    },
+    {
+      "id": "e9",
+      "type": "wire",
+      "source": "n_bus3",
+      "sourceHandle": "c4",
+      "target": "n_pv",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e10",
+      "type": "wire",
+      "source": "n_bus3",
+      "sourceHandle": "c6",
+      "target": "n_stg",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
     }
   ],
-  "busNames": { "n_brk:t2": "tap1" }
+  "busNames": { "n_brk:t2": "tap1" },
+  "loadShapes": {
+    "day24": {
+      "kind": "load",
+      "intervalMin": 60.0,
+      "points": [0.4, 0.38, 0.36, 0.35, 0.36, 0.42, 0.55, 0.7, 0.82, 0.9, 0.95, 0.98, 1.0, 0.98, 0.95, 0.93, 0.94, 0.97, 0.99, 0.92, 0.8, 0.65, 0.52, 0.44],
+      "source": "csv"
+    },
+    "sun24": {
+      "kind": "irradiance",
+      "intervalMin": 60.0,
+      "points": [0, 0, 0, 0, 0, 0.05, 0.2, 0.42, 0.62, 0.78, 0.9, 0.97, 1.0, 0.97, 0.9, 0.78, 0.62, 0.42, 0.2, 0.05, 0, 0, 0, 0],
+      "source": "csv"
+    }
+  }
 }

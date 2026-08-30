@@ -9,7 +9,9 @@ const SOLVE_ISSUE_CODES = new Set(['dss-error', 'not-converged', 'solve-failed']
  *  itself failed (network/server), true otherwise. */
 export async function runSolve(): Promise<boolean> {
   const results = useResultsStore.getState()
-  if (results.solving) return true
+  // Skip while a time-series run holds the engine (the request would just
+  // queue behind it server-side); auto-solve retries on the next edit.
+  if (results.solving || results.tsRunning) return true
   results.setSolving(true)
   try {
     const result = await api.solve(toCircuitJSON(useCircuitStore.getState()))

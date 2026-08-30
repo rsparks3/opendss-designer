@@ -1,5 +1,5 @@
 from opendss_designer.core.compiler import compile_circuit, export_dss
-from opendss_designer.core.model import Circuit, CircuitNode
+from opendss_designer.core.model import Circuit, CircuitNode, LoadShapeSpec
 
 
 def test_substation_commands(substation_circuit):
@@ -45,6 +45,31 @@ def test_open_breaker_emits_open_command(substation_circuit):
     next(n for n in substation_circuit.nodes if n.id == "brk").params["closed"] = False
     res = compile_circuit(substation_circuit)
     assert "open line.brk1 term=1" in res.commands
+
+
+def test_loadshape_emission_and_assignment(substation_circuit):
+    substation_circuit.loadShapes = {
+        "Day Shape": LoadShapeSpec(intervalMin=60, points=[0.4, 1.0, 0.6])}
+    load = next(n for n in substation_circuit.nodes if n.id == "ld")
+    load.params["loadshape"] = "Day Shape"
+    res = compile_circuit(substation_circuit)
+    assert not [i for i in res.issues if i.severity == "error"]
+    shape_cmd = next(c for c in res.commands if c.startswith("new loadshape."))
+    assert shape_cmd == "new loadshape.day_shape npts=3 minterval=60 mult=(0.4 1 0.6)"
+    # Shapes come after `new circuit` and before any element referencing them.
+    idx_circuit = next(i for i, c in enumerate(res.commands) if c.startswith("new circuit."))
+    idx_load = next(i for i, c in enumerate(res.commands) if c.startswith("new load."))
+    assert idx_circuit < res.commands.index(shape_cmd) < idx_load
+    assert "daily=day_shape yearly=day_shape" in res.commands[idx_load]
+
+
+def test_missing_loadshape_is_error(substation_circuit):
+    load = next(n for n in substation_circuit.nodes if n.id == "ld")
+    load.params["loadshape"] = "nope"
+    res = compile_circuit(substation_circuit)
+    issue = next(i for i in res.issues if i.code == "missing-loadshape")
+    assert issue.severity == "error"
+    assert issue.nodeId == "ld"
 
 
 def test_export_contains_solve(substation_circuit):

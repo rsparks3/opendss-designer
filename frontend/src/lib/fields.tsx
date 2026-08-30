@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
+import { useCircuitStore } from '../store/circuitStore'
 import type { Params, Winding } from '../types/circuit'
 
 export interface Field {
   key: string
   label: string
-  kind: 'number' | 'text' | 'select' | 'checkbox'
+  /** 'loadshape' renders a dropdown of the circuit's loadshape library. */
+  kind: 'number' | 'text' | 'select' | 'checkbox' | 'loadshape'
+  /** For kind 'loadshape': which shape category the dropdown offers.
+   *  Default 'load'; 'any' lists both (storage dispatch). */
+  shapeKind?: 'load' | 'irradiance' | 'any'
   options?: string[] | number[]
   unit?: string
 }
@@ -31,6 +36,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'model', label: 'Load model', kind: 'select', options: [1, 2, 3, 4, 5] },
+    { key: 'loadshape', label: 'Loadshape', kind: 'loadshape' },
   ],
   breaker: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -73,6 +79,35 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'model', label: 'Mode', kind: 'select', options: [1, 3] }, // 1=const kW/pf, 3=PV (holds vpu)
     { key: 'vpu', label: 'V setpoint (PV mode)', kind: 'number', unit: 'pu' },
   ],
+  pvsystem: [
+    { key: 'name', label: 'Name', kind: 'text' },
+    { key: 'kv', label: 'Rated kV', kind: 'number', unit: 'kV' },
+    { key: 'kva', label: 'Inverter rating', kind: 'number', unit: 'kVA' },
+    { key: 'pmpp', label: 'Panel Pmpp', kind: 'number', unit: 'kW' },
+    { key: 'pf', label: 'Power factor', kind: 'number' },
+    { key: 'irradiance', label: 'Irradiance', kind: 'number', unit: 'pu' },
+    { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
+    { key: 'loadshape', label: 'Irradiance shape', kind: 'loadshape', shapeKind: 'irradiance' },
+  ],
+  storage: [
+    { key: 'name', label: 'Name', kind: 'text' },
+    { key: 'kv', label: 'Rated kV', kind: 'number', unit: 'kV' },
+    { key: 'kwrated', label: 'Power rating', kind: 'number', unit: 'kW' },
+    { key: 'kwhrated', label: 'Energy rating', kind: 'number', unit: 'kWh' },
+    { key: 'soc', label: 'Initial charge', kind: 'number', unit: '%' },
+    { key: 'reserve', label: 'Reserve', kind: 'number', unit: '%' },
+    { key: 'effcharge', label: 'Charge eff.', kind: 'number', unit: '%' },
+    { key: 'effdischarge', label: 'Discharge eff.', kind: 'number', unit: '%' },
+    { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
+    // 'follow': the shape drives dispatch (+ = discharge, − = charge).
+    // 'default': triggers compare against the circuit default loadshape.
+    { key: 'dispatch', label: 'Dispatch mode', kind: 'select', options: ['follow', 'default'] },
+    { key: 'loadshape', label: 'Dispatch shape', kind: 'loadshape', shapeKind: 'any' },
+    { key: 'dischargetrigger', label: 'Discharge trigger', kind: 'number' },
+    { key: 'chargetrigger', label: 'Charge trigger', kind: 'number' },
+  ],
 }
 
 /** Flattened winding columns for the transformer spreadsheet view.
@@ -100,6 +135,37 @@ export function windingPatch(params: Params, key: string, value: unknown): Param
   return { windings }
 }
 
+function LoadShapeSelect({
+  value,
+  shapeKind = 'load',
+  onCommit,
+}: {
+  value: unknown
+  shapeKind?: 'load' | 'irradiance' | 'any'
+  onCommit: (v: unknown) => void
+}) {
+  const shapes = useCircuitStore((s) => s.loadShapes)
+  const names = Object.keys(shapes).filter(
+    (n) => shapeKind === 'any' || (shapes[n].kind ?? 'load') === shapeKind,
+  )
+  const current = String(value ?? '')
+  return (
+    <select value={current} onChange={(e) => onCommit(e.target.value)}>
+      <option value="">(none)</option>
+      {names.map((n) => (
+        <option key={n} value={n}>
+          {shapeKind === 'any' && (shapes[n].kind ?? 'load') === 'irradiance' ? `${n} (irr)` : n}
+        </option>
+      ))}
+      {current && !names.includes(current) && (
+        <option value={current}>
+          {current} {shapes[current] ? `(${shapes[current].kind ?? 'load'} shape)` : '(missing)'}
+        </option>
+      )}
+    </select>
+  )
+}
+
 export function FieldInput({
   field,
   value,
@@ -112,6 +178,9 @@ export function FieldInput({
   const [draft, setDraft] = useState(value == null ? '' : String(value))
   useEffect(() => setDraft(value == null ? '' : String(value)), [value])
 
+  if (field.kind === 'loadshape') {
+    return <LoadShapeSelect value={value} shapeKind={field.shapeKind} onCommit={onCommit} />
+  }
   if (field.kind === 'checkbox') {
     return (
       <input

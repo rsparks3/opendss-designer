@@ -1,5 +1,56 @@
 import type { CircuitJSON, FaultResult, Issue, SolveResult } from '../types/circuit'
 
+export interface NrelMeta {
+  products: Record<string, { label: string; zones: string[]; buildingTypes: string[] }>
+}
+
+export interface NrelFetchRequest {
+  product: 'resstock' | 'comstock'
+  climateZone: string
+  buildingType: string
+  stepMin: 60 | 15
+  normalize: 'peak' | 'average'
+}
+
+export interface NrelProfile {
+  name: string
+  intervalMin: number
+  points: number[]
+  source: string
+  stats: { peakKw: number; avgKw: number; annualKwh: number; points: number }
+}
+
+export interface GeocodeHit {
+  name: string
+  region: string
+  lat: number
+  lon: number
+}
+
+export interface IrradianceFetchRequest {
+  lat: number
+  lon: number
+  apiKey: string
+  email: string
+  scaling: 'kwm2' | 'peak'
+  label?: string
+}
+
+export interface IrradianceProfile {
+  name: string
+  kind: 'irradiance'
+  intervalMin: number
+  points: number[]
+  source: string
+  stats: {
+    peakWm2: number
+    annualKwhM2: number
+    resolvedLat: number
+    resolvedLon: number
+    points: number
+  }
+}
+
 async function post<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
@@ -40,4 +91,21 @@ export const api = {
   importDss: (files: { name: string; text: string }[]) =>
     post<{ circuit: CircuitJSON; unsupported: string[]; warnings: string[] }>(
       '/api/import/dss', { files }),
+
+  nrelMeta: async (): Promise<NrelMeta> => {
+    const res = await fetch('/api/nrel/meta')
+    if (!res.ok) throw new Error(`nrel/meta failed: ${res.status}`)
+    return res.json()
+  },
+
+  nrelFetch: (req: NrelFetchRequest) => post<NrelProfile>('/api/nrel/fetch', req),
+
+  irradianceGeocode: async (q: string): Promise<GeocodeHit[]> => {
+    const res = await fetch(`/api/irradiance/geocode?q=${encodeURIComponent(q)}`)
+    if (!res.ok) throw new Error(`geocode failed: ${res.status}`)
+    return (await res.json()).results
+  },
+
+  irradianceFetch: (req: IrradianceFetchRequest) =>
+    post<IrradianceProfile>('/api/irradiance/fetch', req),
 }

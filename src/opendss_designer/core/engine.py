@@ -8,10 +8,11 @@ between requests, so the diagram can never drift from the model.
 from __future__ import annotations
 
 import heapq
+import math
 import tempfile
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import opendssdirect as dss
 
@@ -220,6 +221,205 @@ def solve(circuit: Circuit) -> dict[str, Any]:
     }
 
 
+# Above this many steps the response is bucketed to a min/max envelope so a
+# yearly run doesn't ship (or plot) tens of thousands of raw samples.
+_DOWNSAMPLE_ABOVE = 2000
+_TARGET_BUCKETS = 720
+
+
+def _downsample_minmax(series: list[float | None], k: int) -> list[float | None]:
+    """[min, max] per bucket of k samples (envelope-preserving, plottable as a
+    plain polyline). None samples (e.g. loading with no rating) stay None."""
+    out: list[float | None] = []
+    for i in range(0, len(series), k):
+        bucket = [v for v in series[i:i + k] if v is not None]
+        if bucket:
+            out.append(min(bucket))
+            out.append(max(bucket))
+        else:
+            out.extend((None, None))
+    return out
+
+
+def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
+                     progress_cb: Callable[[int, int], None] | None = None,
+                     cancel: threading.Event | None = None) -> dict[str, Any]:
+    """Step-driven daily/yearly simulation with automatic recording: per-step
+    bus voltage envelopes, per-element P/Q/current/loading, system totals and
+    integrated energy. Driving the solution one step at a time (instead of one
+    blocking `solve`) is what makes progress reporting and cancel possible."""
+    compiled: CompileResult = compile_circuit(circuit)
+    issues = list(compiled.issues)
+    if any(i.severity == "error" for i in issues):
+        return {"converged": False, "issues": [i.model_dump() for i in issues],
+                "buses": {}, "elements": {}, "totals": {}, "summary": None}
+
+    hours_per_pass = 24 if mode == "daily" else 8760
+    total = hours_per_pass * (60 // step_min)
+    dt_h = step_min / 60.0
+
+    with _lock:
+        _ensure_init()
+        built = _run_commands(compiled.commands, compiled.element_map, issues)
+        if not built:
+            return {"converged": False, "issues": [i.model_dump() for i in issues],
+                    "buses": {}, "elements": {}, "totals": {}, "summary": None}
+
+        dss.Text.Command(f"set mode={mode}")
+        dss.Text.Command(f"set stepsize={step_min}m")
+        dss.Text.Command("set number=1")
+        dss.Text.Command("set hour=0 sec=0")
+
+        # One AllBusMagPu() call per step covers every bus; precompute each
+        # bus's slice into the flat all-nodes array.
+        node_names = [n.lower() for n in dss.Circuit.AllNodeNames()]
+        bus_slices: dict[str, list[int]] = {}
+        for idx, node in enumerate(node_names):
+            bus_slices.setdefault(node.split(".", 1)[0], []).append(idx)
+
+        # Static per-element facts, captured once.
+        elem_static: list[tuple[str, str, int, int, float | None]] = []
+        for full_name, diagram_id in compiled.element_map.items():
+            idx = dss.Circuit.SetActiveElement(full_name)
+            if idx < 0 or dss.CktElement.Name().lower() != full_name:
+                continue
+            elem_static.append((full_name, diagram_id, dss.CktElement.NumPhases(),
+                                dss.CktElement.NumConductors(),
+                                dss.CktElement.NormalAmps() or None))
+
+        times: list[float] = []
+        total_kw: list[float] = []
+        loss_kw: list[float] = []
+        bus_vmin: dict[str, list[float]] = {b: [] for b in bus_slices}
+        bus_vmax: dict[str, list[float]] = {b: [] for b in bus_slices}
+        elem_series: dict[str, dict[str, list]] = {
+            fn: {"kw": [], "kvar": [], "ampsMax": [], "loadingPct": []}
+            for fn, *_ in elem_static}
+        non_converged: list[int] = []
+        energy_kwh = 0.0
+        losses_kwh = 0.0
+        peak_kw = 0.0
+        peak_hour = 0.0
+        vmin_rec = {"bus": None, "hour": 0.0, "value": math.inf}
+        vmax_rec = {"bus": None, "hour": 0.0, "value": -math.inf}
+
+        report_every = max(1, total // 200)
+        steps_done = 0
+        cancelled = False
+        try:
+            for step in range(total):
+                if cancel is not None and cancel.is_set():
+                    cancelled = True
+                    break
+                dss.Solution.Solve()
+                hour = dss.Solution.DblHour()
+                times.append(round(hour, 4))
+                if not dss.Solution.Converged():
+                    if len(non_converged) < 50:
+                        non_converged.append(step)
+                    # Record placeholders so every series stays aligned.
+                    total_kw.append(0.0)
+                    loss_kw.append(0.0)
+                    for b in bus_slices:
+                        bus_vmin[b].append(0.0)
+                        bus_vmax[b].append(0.0)
+                    for fn, *_ in elem_static:
+                        s = elem_series[fn]
+                        s["kw"].append(0.0)
+                        s["kvar"].append(0.0)
+                        s["ampsMax"].append(0.0)
+                        s["loadingPct"].append(None)
+                    steps_done += 1
+                    continue
+
+                p_total = dss.Circuit.TotalPower()  # source injection, negative
+                kw_now = -p_total[0]
+                total_kw.append(round(kw_now, 2))
+                lw = dss.Circuit.Losses()
+                loss_kw.append(round(lw[0] / 1000.0, 3))
+                energy_kwh += kw_now * dt_h
+                losses_kwh += lw[0] / 1000.0 * dt_h
+                if kw_now > peak_kw:
+                    peak_kw = kw_now
+                    peak_hour = hour
+
+                mags = dss.Circuit.AllBusMagPu()
+                for b, idxs in bus_slices.items():
+                    vals = [mags[i] for i in idxs]
+                    lo, hi = min(vals), max(vals)
+                    bus_vmin[b].append(round(lo, 5))
+                    bus_vmax[b].append(round(hi, 5))
+                    if 0.05 < lo < vmin_rec["value"]:  # ignore de-energized buses
+                        vmin_rec = {"bus": b, "hour": hour, "value": round(lo, 5)}
+                    if hi > vmax_rec["value"]:
+                        vmax_rec = {"bus": b, "hour": hour, "value": round(hi, 5)}
+
+                for fn, _id, nphases, ncond, norm_amps in elem_static:
+                    dss.Circuit.SetActiveElement(fn)
+                    powers = dss.CktElement.Powers()
+                    currents = dss.CktElement.CurrentsMagAng()
+                    t1_amps = currents[0:2 * nphases:2]
+                    amps = max(t1_amps) if t1_amps else 0.0
+                    s = elem_series[fn]
+                    s["kw"].append(round(sum(powers[0:2 * ncond:2]), 2))
+                    s["kvar"].append(round(sum(powers[1:2 * ncond:2]), 2))
+                    s["ampsMax"].append(round(amps, 2))
+                    s["loadingPct"].append(
+                        round(100.0 * amps / norm_amps, 1) if norm_amps else None)
+
+                steps_done += 1
+                if progress_cb and (step + 1) % report_every == 0:
+                    progress_cb(step + 1, total)
+        except Exception as exc:
+            issues.append(Issue(severity="error", code="solve-failed",
+                                message=f"Time series failed at step {steps_done}: {exc}"))
+            return {"converged": False, "issues": [i.model_dump() for i in issues],
+                    "buses": {}, "elements": {}, "totals": {}, "summary": None}
+
+    downsampled = steps_done > _DOWNSAMPLE_ABOVE
+    if downsampled:
+        k = math.ceil(steps_done / _TARGET_BUCKETS)
+        ds = lambda s: _downsample_minmax(s, k)  # noqa: E731
+        time_pairs: list[float] = []
+        for i in range(0, steps_done, k):
+            time_pairs.extend((times[i], times[min(i + k, steps_done) - 1]))
+        times = time_pairs
+        total_kw = ds(total_kw)
+        loss_kw = ds(loss_kw)
+        bus_vmin = {b: ds(v) for b, v in bus_vmin.items()}
+        bus_vmax = {b: ds(v) for b, v in bus_vmax.items()}
+        for s in elem_series.values():
+            for key in s:
+                s[key] = ds(s[key])
+
+    conn = compiled.connectivity
+    return {
+        "converged": not non_converged and not cancelled and steps_done > 0,
+        "cancelled": cancelled,
+        "mode": mode,
+        "stepMin": step_min,
+        "steps": steps_done,
+        "downsampled": downsampled,
+        "time": times,
+        "totals": {"kw": total_kw, "lossKw": loss_kw},
+        "buses": {b: {"vmin": bus_vmin[b], "vmax": bus_vmax[b]} for b in bus_slices},
+        "elements": {fn: {"id": _id, **elem_series[fn]}
+                     for fn, _id, *_ in elem_static},
+        "summary": {
+            "energyKwh": round(energy_kwh, 1),
+            "lossesKwh": round(losses_kwh, 1),
+            "peakKw": round(peak_kw, 1),
+            "peakHour": round(peak_hour, 2),
+            "minVpu": vmin_rec if vmin_rec["bus"] else None,
+            "maxVpu": vmax_rec if vmax_rec["bus"] else None,
+        },
+        "nonConvergedSteps": non_converged,
+        "issues": [i.model_dump() for i in issues],
+        "nodeBuses": conn.node_buses if conn else {},
+        "busNames": conn.bus_names if conn else {},
+    }
+
+
 def fault_study(circuit: Circuit) -> dict[str, Any]:
     """Short-circuit study (`solve mode=faultstudy`): per-bus Thevenin
     impedances and prospective 3-phase / single-phase fault currents."""
@@ -236,6 +436,12 @@ def fault_study(circuit: Circuit) -> dict[str, Any]:
         built = _run_commands(compiled.commands, compiled.element_map, issues)
         if built:
             try:
+                # Storage elements crash faultstudy mode with an access
+                # violation (DSS-Extensions 0.9.4 bug). Inverter-based storage
+                # contributes negligible fault current, so drop them here.
+                for full_name in compiled.element_map:
+                    if full_name.startswith("storage."):
+                        dss.Text.Command(f"disable {full_name}")
                 dss.Text.Command("set mode=faultstudy")
                 dss.Text.Command("solve")
                 converged = True

@@ -26,6 +26,7 @@ function resetStores() {
     nodes: [],
     edges: [],
     busNames: {},
+    loadShapes: {},
     placementType: null,
     connectMode: 'wire',
     dirty: false,
@@ -110,9 +111,55 @@ describe('circuit JSON round trip', () => {
       nodes,
       edges,
       busNames: FIXTURE.busNames,
+      loadShapes: FIXTURE.loadShapes,
     })
     // Serialize both so undefined-vs-absent differences disappear.
     expect(JSON.parse(JSON.stringify(out))).toEqual(JSON.parse(JSON.stringify(FIXTURE)))
+  })
+})
+
+describe('loadShapes', () => {
+  const shape = { intervalMin: 60, points: [0.5, 1.0, 0.75] }
+
+  it('setLoadShape stores a shape and records one undo step', () => {
+    useCircuitStore.getState().setLoadShape('day3', shape)
+    expect(useCircuitStore.getState().loadShapes.day3).toEqual(shape)
+    expect(useCircuitStore.temporal.getState().pastStates).toHaveLength(1)
+    useCircuitStore.temporal.getState().undo()
+    expect(useCircuitStore.getState().loadShapes.day3).toBeUndefined()
+  })
+
+  it('deleteLoadShape clears element references to the deleted shape', () => {
+    useCircuitStore.setState({
+      nodes: [{ ...node('ld', 'load'), data: { params: { loadshape: 'day3' } } }],
+      loadShapes: { day3: shape },
+    })
+    useCircuitStore.getState().deleteLoadShape('day3')
+    const s = useCircuitStore.getState()
+    expect(s.loadShapes.day3).toBeUndefined()
+    expect(s.nodes[0].data.params.loadshape).toBe('')
+  })
+
+  it('renameLoadShape rewrites element references', () => {
+    useCircuitStore.setState({
+      nodes: [{ ...node('ld', 'load'), data: { params: { loadshape: 'day3' } } }],
+      loadShapes: { day3: shape },
+    })
+    useCircuitStore.getState().renameLoadShape('day3', 'weekday')
+    const s = useCircuitStore.getState()
+    expect(s.loadShapes.weekday).toEqual(shape)
+    expect(s.loadShapes.day3).toBeUndefined()
+    expect(s.nodes[0].data.params.loadshape).toBe('weekday')
+  })
+
+  it('survives the JSON round trip and clearAll', () => {
+    useCircuitStore.getState().setLoadShape('day3', shape)
+    const json = toCircuitJSON(useCircuitStore.getState())
+    expect(json.loadShapes.day3).toEqual(shape)
+    useCircuitStore.getState().clearAll()
+    expect(useCircuitStore.getState().loadShapes).toEqual({})
+    useCircuitStore.getState().loadCircuit(json)
+    expect(useCircuitStore.getState().loadShapes.day3).toEqual(shape)
   })
 })
 

@@ -102,3 +102,73 @@ describe('computeGraph — element quantities', () => {
     expect(loading.map((r) => r.id)).toEqual(['line.ln1']) // load has null loading
   })
 })
+
+// ---------------------------------------------------------------------------
+import type { TimeSeriesResult } from '../types/circuit'
+import { computeTimeSeries, defaultTsEntities, tsEntities } from './graph'
+
+const ts = {
+  converged: true,
+  cancelled: false,
+  mode: 'daily',
+  stepMin: 60,
+  steps: 4,
+  downsampled: false,
+  time: [1, 2, 3, 4],
+  totals: { kw: [100, 200, 150, 120], lossKw: [1, 2, 1.5, 1.2] },
+  buses: {
+    src: { vmin: [1, 1, 1, 1], vmax: [1, 1, 1, 1] },
+    end: { vmin: [0.97, 0.94, 0.95, 0.96], vmax: [0.99, 0.98, 0.98, 0.99] },
+  },
+  elements: {
+    'line.ln1': { id: 'e1', kw: [100, 200, 150, 120], kvar: [10, 20, 15, 12],
+                  ampsMax: [50, 100, 75, 60], loadingPct: [12.5, 25, 18.8, 15] },
+    'load.ld1': { id: 'n1', kw: [99, 199, 149, 119], kvar: [9, 19, 14, 11],
+                  ampsMax: [50, 100, 75, 60], loadingPct: [null, null, null, null] },
+  },
+  summary: null,
+  nonConvergedSteps: [],
+  issues: [],
+  nodeBuses: {},
+  busNames: {},
+} as unknown as TimeSeriesResult
+
+describe('computeTimeSeries', () => {
+  it('system quantities give one line regardless of selection', () => {
+    const lines = computeTimeSeries(ts, 'totalkw', [])
+    expect(lines).toHaveLength(1)
+    expect(lines[0].points.map((p) => p.y)).toEqual([100, 200, 150, 120])
+    expect(lines[0].points.map((p) => p.x)).toEqual([1, 2, 3, 4])
+  })
+
+  it('bus and element quantities give one line per selected entity', () => {
+    const lines = computeTimeSeries(ts, 'vmin', ['src', 'end'])
+    expect(lines.map((l) => l.id)).toEqual(['src', 'end'])
+    expect(lines[1].points[1].y).toBe(0.94)
+    const kw = computeTimeSeries(ts, 'kw', ['line.ln1'])
+    expect(kw[0].points.map((p) => p.y)).toEqual([100, 200, 150, 120])
+  })
+
+  it('drops null samples (loading with no rating) instead of plotting them', () => {
+    const lines = computeTimeSeries(ts, 'loading', ['load.ld1', 'line.ln1'])
+    expect(lines.map((l) => l.id)).toEqual(['line.ln1']) // ld1 all-null → no line
+  })
+
+  it('ignores unknown entities and quantities', () => {
+    expect(computeTimeSeries(ts, 'vmin', ['ghost'])).toHaveLength(0)
+    expect(computeTimeSeries(ts, 'nope', ['src'])).toHaveLength(0)
+  })
+})
+
+describe('ts entity helpers', () => {
+  it('tsEntities lists buses or elements', () => {
+    expect(tsEntities(ts, 'bus').map((e) => e.id)).toEqual(['src', 'end'])
+    expect(tsEntities(ts, 'element')).toHaveLength(2)
+    expect(tsEntities(ts, 'system')).toEqual([])
+  })
+
+  it('defaultTsEntities picks the lowest-voltage buses and hottest elements', () => {
+    expect(defaultTsEntities(ts, 'bus', 1)).toEqual(['end'])
+    expect(defaultTsEntities(ts, 'element', 1)).toEqual(['line.ln1'])
+  })
+})
