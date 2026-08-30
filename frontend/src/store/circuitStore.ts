@@ -28,6 +28,9 @@ export interface CircuitState {
   busNames: Record<string, string>
   placementType: NodeType | null
   connectMode: EdgeKind
+  /** True when there are changes not yet saved to a project file. */
+  dirty: boolean
+  markSaved: () => void
 
   onNodesChange: (changes: NodeChange<AppNode>[]) => void
   onEdgesChange: (changes: EdgeChange<AppEdge>[]) => void
@@ -152,14 +155,22 @@ export const useCircuitStore = create<CircuitState>()(
       busNames: {},
       placementType: null,
       connectMode: 'wire',
+      dirty: false,
+      markSaved: () => set({ dirty: false }),
 
       onNodesChange: (changes) => {
         set({ nodes: applyNodeChanges(changes, get().nodes) })
-        if (changes.some((ch) => ch.type !== 'select' && ch.type !== 'dimensions')) markStale()
+        if (changes.some((ch) => ch.type !== 'select' && ch.type !== 'dimensions')) {
+          set({ dirty: true })
+          markStale()
+        }
       },
       onEdgesChange: (changes) => {
         set({ edges: applyEdgeChanges(changes, get().edges) })
-        if (changes.some((ch) => ch.type !== 'select')) markStale()
+        if (changes.some((ch) => ch.type !== 'select')) {
+          set({ dirty: true })
+          markStale()
+        }
       },
       onConnect: (conn) => {
         const reason = validateConnection(conn, get())
@@ -177,7 +188,7 @@ export const useCircuitStore = create<CircuitState>()(
           targetHandle: conn.targetHandle ?? undefined,
           data: { params: kind === 'line' ? defaultLineParams() : {} },
         }
-        set({ edges: [...get().edges, edge] })
+        set({ edges: [...get().edges, edge], dirty: true })
         markStale()
       },
       // Placement mode is sticky: keep dropping elements until Escape or the
@@ -191,7 +202,7 @@ export const useCircuitStore = create<CircuitState>()(
           data: { params: defaultParams(type) },
           ...(type === 'busbar' ? { width: size.w, height: size.h } : {}),
         }
-        set({ nodes: [...get().nodes, node] })
+        set({ nodes: [...get().nodes, node], dirty: true })
         markStale()
       },
       // Drag-sized busbar: pos is the LEFT edge of the bar (vertically centered).
@@ -204,7 +215,7 @@ export const useCircuitStore = create<CircuitState>()(
           height: NODE_SIZE.busbar.h,
           data: { params: defaultParams('busbar') },
         }
-        set({ nodes: [...get().nodes, node] })
+        set({ nodes: [...get().nodes, node], dirty: true })
         markStale()
       },
       updateNodeParams: (id, patch) => {
@@ -212,6 +223,7 @@ export const useCircuitStore = create<CircuitState>()(
           nodes: get().nodes.map((n) =>
             n.id === id ? { ...n, data: { params: { ...n.data.params, ...patch } } } : n,
           ),
+          dirty: true,
         })
         markStale()
       },
@@ -222,10 +234,11 @@ export const useCircuitStore = create<CircuitState>()(
               ? { ...e, data: { ...e.data, params: { ...(e.data?.params ?? {}), ...patch } } }
               : e,
           ),
+          dirty: true,
         })
         markStale()
       },
-      // Waypoints are routing cosmetics only — no markStale.
+      // Waypoints are routing cosmetics only — unsaved, but no markStale.
       setEdgeWaypoints: (id, waypoints) => {
         set({
           edges: get().edges.map((e) =>
@@ -233,6 +246,7 @@ export const useCircuitStore = create<CircuitState>()(
               ? { ...e, data: { params: e.data?.params ?? {}, waypoints } }
               : e,
           ),
+          dirty: true,
         })
       },
       addEdgeWaypoint: (id, pos) => {
@@ -284,10 +298,11 @@ export const useCircuitStore = create<CircuitState>()(
             sourceHandle: rehome(e.sourceHandle, e.source),
             targetHandle: rehome(e.targetHandle, e.target),
           })),
+          dirty: true,
         })
         markStale()
       },
-      setName: (name) => set({ name }),
+      setName: (name) => set({ name, dirty: true }),
       setPlacement: (t) => set({ placementType: t }),
       setConnectMode: (m) => set({ connectMode: m }),
       selectOnly: (kind, id) => {
@@ -297,13 +312,15 @@ export const useCircuitStore = create<CircuitState>()(
         })
       },
       mergeBusNames: (names) => set({ busNames: { ...get().busNames, ...names } }),
+      // Opening a project file leaves the store clean; the autosave-restore
+      // path in App re-marks dirty afterward since that work isn't in a file.
       loadCircuit: (c) => {
         const { nodes, edges } = fromCircuitJSON(c)
-        set({ name: c.name, nodes, edges, busNames: c.busNames ?? {} })
+        set({ name: c.name, nodes, edges, busNames: c.busNames ?? {}, dirty: false })
         markStale()
       },
       clearAll: () => {
-        set({ nodes: [], edges: [], busNames: {} })
+        set({ nodes: [], edges: [], busNames: {}, dirty: true })
         markStale()
       },
     }),

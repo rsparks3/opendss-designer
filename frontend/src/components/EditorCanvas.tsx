@@ -55,6 +55,7 @@ export function EditorCanvas() {
   const setPlacement = useCircuitStore((s) => s.setPlacement)
   const addEdgeWaypoint = useCircuitStore((s) => s.addEdgeWaypoint)
   const flash = useResultsStore((s) => s.flash)
+  const flashKind = useResultsStore((s) => s.flashKind)
   const { screenToFlowPosition } = useReactFlow()
 
   // Busbars are placed by click-dragging to the desired width; a transparent
@@ -211,7 +212,7 @@ export function EditorCanvas() {
             : `Click to place a ${placementType} — keep clicking to add more, Esc to stop`}
         </div>
       )}
-      {flash && <div className="flash-toast">{flash}</div>}
+      {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
     </div>
   )
 }

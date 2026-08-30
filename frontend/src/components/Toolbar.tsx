@@ -29,6 +29,8 @@ export function Toolbar() {
   const setName = useCircuitStore((s) => s.setName)
   const mergeBusNames = useCircuitStore((s) => s.mergeBusNames)
   const loadCircuit = useCircuitStore((s) => s.loadCircuit)
+  const dirty = useCircuitStore((s) => s.dirty)
+  const markSaved = useCircuitStore((s) => s.markSaved)
 
   const solving = useResultsStore((s) => s.solving)
   const overlay = useResultsStore((s) => s.overlay)
@@ -61,6 +63,7 @@ export function Toolbar() {
 
   const onSaveProject = () => {
     download(`${name || 'circuit'}.oneline.json`, JSON.stringify(circuit(), null, 2))
+    markSaved()
   }
 
   const onOpenProject = async (file: File) => {
@@ -130,7 +133,12 @@ export function Toolbar() {
       </div>
       <div className="tb-spacer" />
       <div className="tb-group">
-        <button onClick={onSaveProject} title="Save project as JSON (Ctrl+S)">Save</button>
+        <button
+          onClick={onSaveProject}
+          title={dirty ? 'You have unsaved changes — save project as JSON' : 'Save project as JSON'}
+        >
+          Save{dirty ? ' •' : ''}
+        </button>
         <button onClick={() => projectInput.current?.click()}>Open</button>
         <button onClick={onExportDss} title="Export as a runnable OpenDSS .dss file">Export .dss</button>
         <button onClick={() => dssInput.current?.click()} title="Import an OpenDSS .dss file">Import .dss</button>
