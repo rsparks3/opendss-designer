@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+frontend/node_modules/
+frontend/dist/
+
+# built frontend copied into the package (regenerate with scripts/build_frontend.py)
+src/opendss_designer/static/
+frontend/*.tsbuildinfo

@@ -1,0 +1,219 @@
+:root {
+  --ink: #263238;
+  --paper: #fafaf7;
+  --panel: #ffffff;
+  --border: #d7d7d2;
+  --accent: #1976d2;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: var(--ink);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; }
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--paper);
+}
+
+/* ---------- toolbar ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.app-title { font-weight: 700; font-size: 15px; margin-right: 6px; }
+.circuit-name {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  width: 160px;
+}
+.tb-group { display: flex; align-items: center; gap: 4px; }
+.tb-spacer { flex: 1; }
+.tb-label { font-size: 12px; color: #667; }
+.toolbar button {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.toolbar button:hover { background: #f0f0ec; }
+.toolbar button.active { background: var(--accent); color: white; border-color: var(--accent); }
+.toolbar button:disabled { opacity: 0.45; cursor: not-allowed; }
+.solve-btn {
+  background: #2e7d32 !important;
+  color: white;
+  border-color: #2e7d32 !important;
+  font-weight: 600;
+}
+.solve-btn:disabled { background: #9e9e9e !important; border-color: #9e9e9e !important; }
+
+/* ---------- layout ---------- */
+.main-row { display: flex; flex: 1; min-height: 0; }
+
+.palette {
+  width: 170px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 10px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.palette-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #778;
+  margin-bottom: 8px;
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.palette-item:hover { background: #f0f4f8; }
+.palette-item.active { border-color: var(--accent); background: #e3f0fb; }
+.palette-icon { width: 28px; height: 28px; display: inline-flex; }
+.palette-icon svg { width: 100%; height: 100%; }
+.palette-hint { font-size: 12px; color: var(--accent); margin-top: 8px; }
+
+.properties {
+  width: 250px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  padding: 10px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.props-empty { font-size: 12.5px; color: #889; line-height: 1.5; }
+.props-form { display: flex; flex-direction: column; gap: 6px; }
+.prop-row { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #556; }
+.prop-row input[type='text'], .prop-row select {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.winding { border: 1px solid var(--border); border-radius: 6px; margin-top: 6px; padding: 6px 8px; }
+.winding legend { font-size: 11px; color: #778; padding: 0 4px; }
+.winding label { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 12px; margin: 4px 0; }
+.winding input, .winding select { width: 110px; border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; }
+
+/* ---------- canvas ---------- */
+.canvas-wrap { flex: 1; min-width: 0; }
+.canvas-wrap.placing .react-flow__pane { cursor: crosshair; }
+
+/* ---------- symbols ---------- */
+.sym { stroke: var(--ink); stroke-width: 1.8; fill: none; stroke-linecap: round; }
+.sym-fill { stroke: var(--ink); stroke-width: 1.8; fill: var(--ink); }
+
+.symbol-node { position: relative; }
+.react-flow__node.selected .symbol-node { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.symbol-node.issue-error { outline: 2px solid #d32f2f; outline-offset: 3px; border-radius: 4px; }
+.symbol-node.issue-warning { outline: 2px dashed #ed6c02; outline-offset: 3px; border-radius: 4px; }
+
+.node-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: center;
+  pointer-events: none;
+}
+.sub-label { font-size: 10px; font-weight: 400; color: #667; }
+
+.result-badge {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 3px;
+  color: white;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.busbar-node .result-badge { margin-bottom: 8px; }
+
+.busbar-bar {
+  width: 100%;
+  height: 6px;
+  margin-top: 4px;
+  background: var(--ink);
+  border-radius: 2px;
+}
+
+.term {
+  width: 9px !important;
+  height: 9px !important;
+  background: #90a4ae !important;
+  border: 1.5px solid var(--ink) !important;
+  border-radius: 50%;
+}
+.term:hover { background: var(--accent) !important; }
+.busbar-term { opacity: 0.45; }
+.busbar-term:hover { opacity: 1; }
+
+/* ---------- edges ---------- */
+.edge-label {
+  position: absolute;
+  background: rgba(250, 250, 247, 0.9);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 10.5px;
+  pointer-events: all;
+  display: flex;
+  gap: 6px;
+}
+.edge-name { font-weight: 600; }
+.edge-result { font-weight: 700; }
+
+/* ---------- problems panel ---------- */
+.problems-panel {
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 4px 12px;
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 12.5px;
+}
+.status-line { color: #2e7d32; font-weight: 600; padding: 2px 0; }
+.problems-toggle {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 2px 0;
+}
+.err-count { color: #d32f2f; font-weight: 700; margin-right: 8px; }
+.warn-count { color: #ed6c02; font-weight: 700; }
+.problems-list { margin: 2px 0 6px; padding-left: 18px; }
+.problems-list li.error { color: #d32f2f; }
+.problems-list li.warning { color: #b45309; }

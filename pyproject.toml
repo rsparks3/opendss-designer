@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "opendss-designer"
+version = "0.1.0"
+description = "Browser-based one-line diagram designer and power flow interface for OpenDSS"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Ryan Sparks", email = "ryan@ryanmsparks.com" }]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "opendssdirect.py>=0.9",
+    "pydantic>=2.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx"]
+
+[project.scripts]
+opendss-designer = "opendss_designer.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/opendss_designer"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/opendss_designer/static" = "opendss_designer/static"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

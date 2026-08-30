@@ -1,0 +1,59 @@
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+  type EdgeProps,
+} from '@xyflow/react'
+import { loadingColor, NEUTRAL } from '../../lib/colorScale'
+import type { AppEdge } from '../../store/circuitStore'
+import { useResultsStore } from '../../store/resultsStore'
+
+export function LineEdge(props: EdgeProps<AppEdge>) {
+  const [path, labelX, labelY] = getSmoothStepPath({ ...props, borderRadius: 0 })
+  const overlay = useResultsStore((s) => s.overlay)
+  const result = useResultsStore((s) => s.result)
+  const stale = useResultsStore((s) => s.stale)
+
+  const el = result?.converged
+    ? Object.values(result.elements).find((e) => e.id === props.id)
+    : null
+
+  let stroke = props.selected ? '#1976d2' : '#263238'
+  let resultText: string | null = null
+  if (el && !stale) {
+    if (overlay === 'loading' && el.loadingPct != null) {
+      stroke = loadingColor(el.loadingPct)
+      resultText = `${el.loadingPct.toFixed(0)}%`
+    } else if (overlay === 'power') {
+      stroke = NEUTRAL
+      resultText = `${el.kw.toFixed(0)} kW / ${el.kvar.toFixed(0)} kvar`
+    }
+  }
+
+  const name = String(props.data?.params?.name ?? '')
+  return (
+    <>
+      <BaseEdge
+        id={props.id}
+        path={path}
+        style={{ stroke, strokeWidth: props.selected ? 3.5 : 2.5 }}
+      />
+      <EdgeLabelRenderer>
+        <div
+          className="edge-label nodrag nopan"
+          style={{
+            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            opacity: stale ? 0.4 : 1,
+          }}
+        >
+          <span className="edge-name">{name}</span>
+          {resultText && (
+            <span className="edge-result" style={{ color: stroke }}>
+              {resultText}
+            </span>
+          )}
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  )
+}

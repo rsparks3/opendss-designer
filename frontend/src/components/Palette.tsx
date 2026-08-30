@@ -1,0 +1,109 @@
+import { useCircuitStore } from '../store/circuitStore'
+import type { NodeType } from '../types/circuit'
+
+const ITEMS: { type: NodeType; label: string; icon: React.ReactNode }[] = [
+  {
+    type: 'vsource',
+    label: 'Source',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="10" className="sym" fill="none" />
+        <path d="M 10 16 q 3 -6 6 0 q 3 6 6 0" className="sym" fill="none" />
+      </svg>
+    ),
+  },
+  {
+    type: 'busbar',
+    label: 'Busbar',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <rect x="2" y="13" width="28" height="6" className="sym-fill" />
+      </svg>
+    ),
+  },
+  {
+    type: 'transformer',
+    label: 'Transformer',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <circle cx="16" cy="11" r="8" className="sym" fill="none" />
+        <circle cx="16" cy="21" r="8" className="sym" fill="none" />
+      </svg>
+    ),
+  },
+  {
+    type: 'breaker',
+    label: 'Breaker',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="10" className="sym" />
+        <rect x="10" y="10" width="12" height="12" className="sym-fill" />
+        <line x1="16" y1="22" x2="16" y2="30" className="sym" />
+      </svg>
+    ),
+  },
+  {
+    type: 'load',
+    label: 'Load',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="12" className="sym" />
+        <polygon points="9,12 23,12 16,28" className="sym-fill" />
+      </svg>
+    ),
+  },
+]
+
+export function Palette() {
+  const placementType = useCircuitStore((s) => s.placementType)
+  const setPlacement = useCircuitStore((s) => s.setPlacement)
+  const connectMode = useCircuitStore((s) => s.connectMode)
+  const setConnectMode = useCircuitStore((s) => s.setConnectMode)
+
+  return (
+    <div className="palette">
+      <div className="palette-title">Components</div>
+      {ITEMS.map((item) => (
+        <button
+          key={item.type}
+          className={`palette-item${placementType === item.type ? ' active' : ''}`}
+          onClick={() => setPlacement(placementType === item.type ? null : item.type)}
+          title={`Click, then click the canvas to place a ${item.label.toLowerCase()}`}
+        >
+          <span className="palette-icon">{item.icon}</span>
+          {item.label}
+        </button>
+      ))}
+      <div className="palette-title" style={{ marginTop: 16 }}>
+        Drag to connect
+      </div>
+      <button
+        className={`palette-item${connectMode === 'wire' ? ' active' : ''}`}
+        onClick={() => setConnectMode('wire')}
+        title="New connections are ideal wires (same electrical bus)"
+      >
+        <span className="palette-icon">
+          <svg viewBox="0 0 32 32">
+            <line x1="2" y1="16" x2="30" y2="16" className="sym" />
+          </svg>
+        </span>
+        Wire
+      </button>
+      <button
+        className={`palette-item${connectMode === 'line' ? ' active' : ''}`}
+        onClick={() => setConnectMode('line')}
+        title="New connections are OpenDSS Line elements (impedance + length)"
+      >
+        <span className="palette-icon">
+          <svg viewBox="0 0 32 32">
+            <line x1="2" y1="16" x2="30" y2="16" className="sym" strokeWidth="3" />
+          </svg>
+        </span>
+        Line (impedance)
+      </button>
+      {placementType && (
+        <div className="palette-hint">Click the canvas to place. Esc to cancel.</div>
+      )}
+    </div>
+  )
+}
