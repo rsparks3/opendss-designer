@@ -42,11 +42,15 @@ Issues = "https://github.com/rsparks3/opendss-designer/issues"
 [project.scripts]
 opendss-designer = "opendss_designer.cli:main"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/opendss_designer"]
 # The packaged frontend build is gitignored; artifacts (unlike force-include)
 # bundles it when present without failing on a fresh checkout where it isn't.
+# Set at build level (not per-target): `python -m build` builds the wheel FROM
+# the sdist, so the sdist must carry static/ too or the wheel loses it.
+[tool.hatch.build]
 artifacts = ["src/opendss_designer/static/"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/opendss_designer"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
