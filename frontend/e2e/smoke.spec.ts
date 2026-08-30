@@ -1,0 +1,74 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { expect, test, type Page } from '@playwright/test'
+
+// The schema fixture doubles as the e2e circuit: every node type, both edge
+// types, and it solves cleanly.
+const fixturePath = fileURLToPath(
+  new URL('../../tests/fixtures/full-circuit.oneline.json', import.meta.url),
+)
+const fixture = JSON.parse(readFileSync(fixturePath, 'utf-8'))
+
+async function openEditor(page: Page) {
+  // Start every test from a clean slate (no autosave restore).
+  await page.addInitScript(() => localStorage.clear())
+  await page.goto('/')
+  await page.waitForFunction(() => !!(window as any).opendssDesigner)
+}
+
+async function loadFixture(page: Page) {
+  await page.evaluate(
+    (c) => (window as any).opendssDesigner.circuit.getState().loadCircuit(c),
+    fixture,
+  )
+  await expect(page.locator('.react-flow__node')).toHaveCount(fixture.nodes.length)
+}
+
+test('place a source from the palette onto the canvas', async ({ page }) => {
+  await openEditor(page)
+  await page.getByRole('button', { name: 'Source' }).click()
+  await page.locator('.react-flow__pane').click({ position: { x: 300, y: 200 } })
+  await expect(page.locator('.react-flow__node-vsource')).toHaveCount(1)
+  // Placement is sticky until Escape.
+  await page.locator('.react-flow__pane').click({ position: { x: 420, y: 200 } })
+  await expect(page.locator('.react-flow__node-vsource')).toHaveCount(2)
+  await page.keyboard.press('Escape')
+  await page.locator('.react-flow__pane').click({ position: { x: 500, y: 300 } })
+  await expect(page.locator('.react-flow__node-vsource')).toHaveCount(2)
+})
+
+test('solve the fixture circuit and see voltage results', async ({ page }) => {
+  await openEditor(page)
+  await loadFixture(page)
+  const solve = page.getByRole('button', { name: /Solve/ })
+  await expect(solve).toBeEnabled() // validation found no errors
+  await solve.click()
+  // Voltage overlay is the default — badges like "0.998 pu" appear per bus.
+  await expect(
+    page.locator('.result-badge').filter({ hasText: 'pu' }).first(),
+  ).toBeVisible({ timeout: 20_000 })
+  // No error toast.
+  await expect(page.locator('.flash-toast.error')).toHaveCount(0)
+})
+
+test('export .dss, start new, and re-import the exported file', async ({ page }) => {
+  await openEditor(page)
+  await loadFixture(page)
+  page.on('dialog', (d) => void d.accept())
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export .dss' }).click()
+  const download = await downloadPromise
+  const dssPath = test.info().outputPath('exported.dss')
+  await download.saveAs(dssPath)
+
+  await page.getByRole('button', { name: 'New', exact: true }).click()
+  await expect(page.locator('.react-flow__node')).toHaveCount(0)
+
+  await page.locator('input[accept*=".dss"]').setInputFiles(dssPath)
+  // The importer reads the model back through OpenDSS itself; exact node
+  // counts depend on bus synthesis, so assert the key elements returned.
+  await expect(page.locator('.react-flow__node-vsource')).toHaveCount(1, { timeout: 20_000 })
+  await expect(page.locator('.react-flow__node-load')).toHaveCount(1)
+  await expect(page.locator('.react-flow__node-transformer')).toHaveCount(1)
+})

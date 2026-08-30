@@ -20,7 +20,7 @@ interface ResultsState {
   setSolving: (b: boolean) => void
   setOverlay: (m: OverlayMode) => void
   setIssues: (issues: Issue[]) => void
-  setFlash: (msg: string, kind?: 'error' | 'info') => void
+  setFlash: (msg: string, kind?: 'error' | 'info', durationMs?: number) => void
 }
 
 let flashTimer: ReturnType<typeof setTimeout> | undefined
@@ -41,10 +41,10 @@ export const useResultsStore = create<ResultsState>((set) => ({
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),
   setIssues: (issues) => set({ issues }),
-  setFlash: (msg, kind = 'error') => {
+  setFlash: (msg, kind = 'error', durationMs = 4000) => {
     clearTimeout(flashTimer)
     set({ flash: msg, flashKind: kind })
-    flashTimer = setTimeout(() => set({ flash: null }), 4000)
+    flashTimer = setTimeout(() => set({ flash: null }), durationMs)
   },
 }))
 

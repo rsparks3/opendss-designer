@@ -11,3 +11,7 @@ frontend/dist/
 # built frontend copied into the package (regenerate with scripts/build_frontend.py)
 src/opendss_designer/static/
 frontend/*.tsbuildinfo
+
+# Playwright output
+frontend/test-results/
+frontend/playwright-report/

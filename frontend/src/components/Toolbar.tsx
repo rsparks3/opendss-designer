@@ -45,11 +45,11 @@ export function Toolbar() {
 
   const hasErrors = issues.some((i) => i.severity === 'error')
   const circuit = () => toCircuitJSON(useCircuitStore.getState())
+  const flash = (msg: string, kind?: 'error' | 'info', durationMs?: number) =>
+    useResultsStore.getState().setFlash(msg, kind, durationMs)
 
-  const onSolve = async () => {
-    const ok = await runSolve()
-    if (!ok) alert('Solve request failed — is the backend still running?')
-  }
+  // runSolve surfaces its own failures via the flash toast.
+  const onSolve = () => void runSolve()
 
   const onNew = () => {
     const st = useCircuitStore.getState()
@@ -76,7 +76,7 @@ export function Toolbar() {
     try {
       loadCircuit(JSON.parse(await file.text()))
     } catch (err) {
-      alert(`Could not open project: ${err}`)
+      flash(`Could not open project: ${err instanceof Error ? err.message : err}`)
     }
   }
 
@@ -84,7 +84,7 @@ export function Toolbar() {
     try {
       download(`${name || 'circuit'}.dss`, await api.exportDss(circuit()), 'text/plain')
     } catch (err) {
-      alert(`Export failed: ${err}`)
+      flash(`Export failed: ${err instanceof Error ? err.message : err}`)
     }
   }
 
@@ -98,18 +98,20 @@ export function Toolbar() {
       loadCircuit(imported)
       const notes = [...(warnings ?? [])]
       if (unsupported.length) {
-        notes.push(`${unsupported.length} unsupported element(s) skipped:\n` +
-          unsupported.join('\n'))
+        const shown = unsupported.slice(0, 5)
+        const more = unsupported.length - shown.length
+        notes.push(`${unsupported.length} unsupported element(s) skipped: ` +
+          shown.join(', ') + (more > 0 ? ` … and ${more} more` : ''))
       }
-      if (notes.length) alert(notes.join('\n\n'))
+      if (notes.length) flash(notes.join('\n'), 'info', 8000)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       let tip = ''
       if (/references other files|not found/i.test(msg)) {
-        tip = '\n\nTip: in the file dialog, Ctrl+click to select the main .dss file ' +
+        tip = '\nTip: in the file dialog, Ctrl+click to select the main .dss file ' +
           'together with every file it references (line codes, bus coordinates, redirects).'
       }
-      alert(`Import failed: ${msg}${tip}`)
+      flash(`Import failed: ${msg}${tip}`, 'error', 8000)
     }
   }
 

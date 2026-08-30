@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "name": "schema-fixture",
+  "nodes": [
+    {
+      "id": "n_src",
+      "type": "vsource",
+      "position": { "x": 200, "y": 0 },
+      "width": null,
+      "params": { "name": "SRC1", "basekv": 115, "pu": 1.0, "angle": 0, "phases": 3, "mvasc3": 2000, "mvasc1": 2100 }
+    },
+    {
+      "id": "n_bus1",
+      "type": "busbar",
+      "position": { "x": 100, "y": 120 },
+      "width": 240,
+      "params": { "name": "BUS-HV", "basekv": 115 }
+    },
+    {
+      "id": "n_xfmr",
+      "type": "transformer",
+      "position": { "x": 200, "y": 200 },
+      "width": null,
+      "params": {
+        "name": "T1",
+        "phases": 3,
+        "xhl": 8.0,
+        "pctloadloss": 0.5,
+        "windings": [
+          { "kv": 115, "kva": 10000, "conn": "delta" },
+          { "kv": 12.47, "kva": 10000, "conn": "wye" }
+        ]
+      }
+    },
+    {
+      "id": "n_bus2",
+      "type": "busbar",
+      "position": { "x": 100, "y": 320 },
+      "width": 240,
+      "params": { "name": "BUS-MV", "basekv": 12.47 }
+    },
+    {
+      "id": "n_bus3",
+      "type": "busbar",
+      "position": { "x": 500, "y": 320 },
+      "width": 160,
+      "params": { "name": "BUS-FDR", "basekv": 12.47 }
+    },
+    {
+      "id": "n_brk",
+      "type": "breaker",
+      "position": { "x": 520, "y": 400 },
+      "width": null,
+      "params": { "name": "BRK1", "closed": true, "normamps": 600, "phases": 3 }
+    },
+    {
+      "id": "n_load",
+      "type": "load",
+      "position": { "x": 520, "y": 480 },
+      "width": null,
+      "params": { "name": "LOAD1", "kv": 12.47, "kw": 1000, "pf": 0.95, "phases": 3, "conn": "wye", "model": 1 }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "type": "wire",
+      "source": "n_src",
+      "sourceHandle": "t1",
+      "target": "n_bus1",
+      "targetHandle": "b2",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e2",
+      "type": "wire",
+      "source": "n_bus1",
+      "sourceHandle": "c5",
+      "target": "n_xfmr",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e3",
+      "type": "wire",
+      "source": "n_xfmr",
+      "sourceHandle": "t2",
+      "target": "n_bus2",
+      "targetHandle": "b5",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e4",
+      "type": "line",
+      "source": "n_bus2",
+      "sourceHandle": "c9",
+      "target": "n_bus3",
+      "targetHandle": "b0",
+      "params": {
+        "name": "LN1",
+        "length": 2.5,
+        "units": "km",
+        "r1": 0.12,
+        "x1": 0.38,
+        "r0": 0.4,
+        "x0": 1.2,
+        "normamps": 400,
+        "phases": 3
+      },
+      "waypoints": [{ "x": 400, "y": 420 }]
+    },
+    {
+      "id": "e5",
+      "type": "wire",
+      "source": "n_bus3",
+      "sourceHandle": "c1",
+      "target": "n_brk",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e6",
+      "type": "wire",
+      "source": "n_brk",
+      "sourceHandle": "t2",
+      "target": "n_load",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    }
+  ],
+  "busNames": { "n_brk:t2": "tap1" }
+}

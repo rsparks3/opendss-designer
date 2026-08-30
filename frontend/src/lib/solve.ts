@@ -24,7 +24,13 @@ export async function runSolve(): Promise<boolean> {
       ...solveIssues.filter((i) => SOLVE_ISSUE_CODES.has(i.code)),
     ])
     return true
-  } catch {
+  } catch (err) {
+    // TypeError from fetch means the request never reached the server.
+    const msg =
+      err instanceof TypeError
+        ? 'Solve request failed — is the backend still running?'
+        : `Solve failed: ${err instanceof Error ? err.message : String(err)}`
+    useResultsStore.getState().setFlash(msg)
     return false
   } finally {
     useResultsStore.getState().setSolving(false)

@@ -43,6 +43,6 @@ def import_file(payload: dict = Body(...)) -> dict:
             return importer.import_dss_files(payload["files"])
         return importer.import_dss(str(payload.get("text", "")))
     except importer.ImportFailure as exc:
+        # Bad input (the importer wraps OpenDSS compile errors in ImportFailure);
+        # anything else propagates as a 500 so genuine bugs aren't masked as 400s.
         raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:  # engine errors should read as bad input, not a crash
-        raise HTTPException(status_code=400, detail=f"Import failed: {exc}")
