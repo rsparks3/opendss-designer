@@ -178,7 +178,9 @@ export const useCircuitStore = create<CircuitState>()(
           useResultsStore.getState().setFlash(reason)
           return
         }
-        const kind = get().connectMode
+        // Connections drawn while a placement mode is active default to plain
+        // wire — you're dropping components and hooking them up as you go.
+        const kind = get().placementType ? 'wire' : get().connectMode
         const edge: AppEdge = {
           id: newId('e'),
           type: kind,

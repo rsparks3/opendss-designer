@@ -78,8 +78,10 @@ export function PropertiesPanel() {
           Plain wires have no parameters — they merge terminals into one bus.
           <br />
           <br />
-          Tip: double-click a wire or line to add a routing point; double-click a
-          breaker to open/close it.
+          Tips: drag on empty canvas to box-select several elements and move
+          them together (pan with the right or middle mouse button; scroll to
+          zoom). Double-click a wire or line to add a routing point;
+          double-click a breaker to open/close it.
         </div>
       </div>
     )

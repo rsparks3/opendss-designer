@@ -5,6 +5,7 @@ import {
   Controls,
   MiniMap,
   ReactFlow,
+  SelectionMode,
   useReactFlow,
   ViewportPortal,
   type FinalConnectionState,
@@ -59,7 +60,8 @@ export function EditorCanvas() {
   const { screenToFlowPosition } = useReactFlow()
 
   // Busbars are placed by click-dragging to the desired width; a transparent
-  // overlay captures the gesture (other components place on pointer-up).
+  // overlay captures that gesture. Other components place on pane clicks so
+  // handles stay live — you can wire things up without leaving placement mode.
   const [busbarDraft, setBusbarDraft] = useState<{ start: { x: number; y: number }; cur: { x: number; y: number } } | null>(null)
 
   const flowPos = useCallback(
@@ -90,23 +92,27 @@ export function EditorCanvas() {
 
   const onOverlayUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!placementType) return
+      if (placementType !== 'busbar') return
       const p = flowPos(e)
-      if (placementType === 'busbar') {
-        const start = busbarDraft?.start ?? p
-        const width = Math.abs(p.x - start.x)
-        if (width < 40) {
-          // A plain click drops a default-size bar centered on the click.
-          addNodeAt('busbar', start)
-        } else {
-          addBusbarAt({ x: Math.min(start.x, p.x), y: start.y }, width)
-        }
-        setBusbarDraft(null)
+      const start = busbarDraft?.start ?? p
+      const width = Math.abs(p.x - start.x)
+      if (width < 40) {
+        // A plain click drops a default-size bar centered on the click.
+        addNodeAt('busbar', start)
       } else {
-        addNodeAt(placementType, p)
+        addBusbarAt({ x: Math.min(start.x, p.x), y: start.y }, width)
       }
+      setBusbarDraft(null)
     },
     [placementType, busbarDraft, flowPos, addNodeAt, addBusbarAt],
+  )
+
+  const onPaneClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (!placementType || placementType === 'busbar') return
+      addNodeAt(placementType, flowPos(event))
+    },
+    [placementType, flowPos, addNodeAt],
   )
 
   // Surface WHY a dropped connection was refused.
@@ -168,10 +174,14 @@ export function EditorCanvas() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
+        onPaneClick={onPaneClick}
         onEdgeDoubleClick={onEdgeDoubleClick}
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
         connectionRadius={30}
+        selectionOnDrag
+        selectionMode={SelectionMode.Partial}
+        panOnDrag={[1, 2]}
         snapToGrid
         snapGrid={[10, 10]}
         deleteKeyCode={['Delete', 'Backspace']}
@@ -197,7 +207,7 @@ export function EditorCanvas() {
           </ViewportPortal>
         )}
       </ReactFlow>
-      {placementType && (
+      {placementType === 'busbar' && (
         <div
           className="placement-overlay"
           onPointerDown={onOverlayDown}
@@ -209,7 +219,7 @@ export function EditorCanvas() {
         <div className="canvas-hint">
           {placementType === 'busbar'
             ? 'Click and drag to size the busbar (or just click for a default one) — Esc to stop'
-            : `Click to place a ${placementType} — keep clicking to add more, Esc to stop`}
+            : `Click to place a ${placementType} — drag from a connection dot to wire it up, Esc to stop`}
         </div>
       )}
       {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
