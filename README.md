@@ -1,9 +1,14 @@
 # OpenDSS Designer
 
-A browser-based one-line diagram designer for [OpenDSS](https://www.epri.com/pages/sa/opendss),
-built on [OpenDSSDirect.py](https://github.com/dss-extensions/OpenDSSDirect.py).
-Draw a substation-style single-line diagram — the drawing **is** the circuit model —
-then run a power flow and see voltages and loading right on the diagram.
+A free, open-source **graphical user interface (GUI) for
+[OpenDSS](https://www.epri.com/pages/sa/opendss)**, EPRI's distribution system
+simulator — built on [OpenDSSDirect.py](https://github.com/dss-extensions/OpenDSSDirect.py).
+Draw a substation-style one-line (single-line) diagram in your browser — the
+drawing **is** the circuit model — then run a power flow and see voltages,
+loading, and violations right on the diagram. Import existing `.dss` files,
+edit visually or in a spreadsheet view, and export runnable OpenDSS scripts.
+
+📖 **Documentation: [opendssdesigner.ryanmsparks.com](https://opendssdesigner.ryanmsparks.com)**
 
 ![screenshot](docs/screenshot.png)
 
@@ -37,12 +42,15 @@ then run a power flow and see voltages and loading right on the diagram.
 
 ## Install & run
 
-Requires Python 3.10+. From the repo root:
+Requires Python 3.10+.
 
 ```bash
-pip install -e .
+pip install opendss-designer
 opendss-designer            # starts a local server and opens your browser
 ```
+
+(Or from a clone of this repo: `pip install -e .` — see Development below for
+building the frontend.)
 
 Options: `--port 8721`, `--no-browser`.
 

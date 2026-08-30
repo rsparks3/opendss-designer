@@ -12,6 +12,9 @@ frontend/dist/
 src/opendss_designer/static/
 frontend/*.tsbuildinfo
 
+# MkDocs build output
+site/
+
 # Playwright output
 frontend/test-results/
 frontend/playwright-report/

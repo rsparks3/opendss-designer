@@ -1,0 +1,75 @@
+# Getting started
+
+## Install
+
+OpenDSS Designer is a Python package; it needs Python 3.10 or newer.
+
+```bash
+pip install opendss-designer
+opendss-designer
+```
+
+This starts a local web server and opens the editor in your browser. Useful
+flags: `--port 8721` (it picks the next free port if busy) and `--no-browser`.
+
+The app is fully local: the server binds to `127.0.0.1`, and your circuits
+never leave your machine.
+
+!!! tip "Try the demo circuit"
+    Click **Open** and load
+    [`examples/demo-substation.oneline.json`](https://github.com/rsparks3/opendss-designer/tree/main/examples)
+    from the repository, then press **Solve** to see the result overlays
+    immediately.
+
+## Draw your first circuit
+
+1. **Place elements** — click an element in the palette (Source, Busbar,
+   Transformer, Breaker, Load, Capacitor, Generator…), then click the canvas to
+   drop it. Placement is *sticky*: keep clicking to drop several; press
+   ++esc++ to stop. Each palette item also has a keyboard shortcut letter.
+2. **Wire them up** — drag from one terminal to another. You'll be asked
+   whether the connection is a **Wire** (an ideal connection that merges the
+   two buses) or a **Line** (a real OpenDSS `Line` with impedance and length).
+   Illegal connections are refused with an explanation.
+3. **Set parameters** — select an element and edit its OpenDSS parameters in
+   the properties panel: kV, kVA, impedances, phases (1/2/3), wye/delta
+   connection, load model, and so on. Lines can start from conductor presets.
+4. **Watch the validation** — unconnected terminals, a missing source,
+   islands, duplicate names, and kV mismatches are flagged live; errors halo
+   the offending element and disable Solve until fixed.
+
+## Solve
+
+Press **Solve** to run a snapshot power flow through the real OpenDSS engine.
+The results overlay the diagram:
+
+- bus voltages in per-unit at every busbar,
+- element loading as pie charts with percentages,
+- power flows, and total losses in the status bar,
+- violations color-coded: undervoltage blue, overvoltage/overload red.
+
+Toggle **Auto** to re-solve automatically after every change. The **Graph**
+tab in the bottom panel plots solved results — pick your axes to get, for
+example, a classic voltage-profile plot along the feeder.
+
+## Save, export, import
+
+- **Save/Open** stores the whole project (diagram + parameters) as a
+  `.oneline.json` file.
+- **Export** writes a runnable `.dss` script — the exact commands the built-in
+  solver uses — so anything you draw also runs in stock OpenDSS.
+- **Import** loads existing `.dss` files; see
+  [Importing DSS files](importing-dss.md).
+
+## Editor essentials
+
+|  |  |
+|---|---|
+| Undo / redo | ++ctrl+z++ / ++ctrl+y++ |
+| Copy / paste | ++ctrl+c++ / ++ctrl+v++ |
+| Delete selection | ++delete++ |
+| Stop placing | ++esc++ |
+
+Plus: grid snapping, pan/zoom with a minimap, box-select and group-move,
+right-click context menu, rotation, and double-click actions — double-click a
+breaker to open/close it, or a wire/line to add a draggable routing point.
