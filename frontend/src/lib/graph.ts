@@ -17,6 +17,7 @@ export const X_QUANTITIES: Quantity[] = [
 ]
 
 export const Y_QUANTITIES: Quantity[] = [
+  { key: 'vphase', label: 'V per phase (pu)', kind: 'bus' },
   { key: 'vmin', label: 'V min (pu)', kind: 'bus' },
   { key: 'vmax', label: 'V max (pu)', kind: 'bus' },
   { key: 'kw', label: 'P flow (kW)', kind: 'element' },
@@ -28,11 +29,14 @@ export const Y_QUANTITIES: Quantity[] = [
 ]
 
 export interface GraphRow {
-  /** Bus name (bus rows) or element full name (element rows). */
+  /** Bus name (bus rows, suffixed .<phase> for per-phase), or element full
+   *  name (element rows). */
   id: string
   bus: string
   x: number
   y: number
+  /** OpenDSS phase number (1/2/3), set only for per-phase quantities. */
+  phase?: number
   violation?: string
 }
 
@@ -40,6 +44,7 @@ export interface GraphSegment {
   from: string
   to: string
   dashed: boolean
+  phase?: number
 }
 
 function busValue(key: string, name: string, b: BusResult | undefined,
@@ -88,21 +93,47 @@ export function computeGraph(
   const segments: GraphSegment[] = []
 
   if (!yq || yq.kind === 'bus') {
+    const perPhase = yKey === 'vphase'
     for (const [name, b] of Object.entries(result.buses)) {
       const x = busValue(xKey, name, b, dist)
-      const y = busValue(yKey, name, b, dist)
-      if (x == null || y == null) continue
-      rows.push({ id: name, bus: name, x, y, violation: b.violation })
+      if (x == null) continue
+      if (perPhase) {
+        b.vmagPu.forEach((v, i) => {
+          const phase = b.nodes[i] ?? i + 1
+          rows.push({ id: `${name}.${phase}`, bus: name, x, y: v, phase, violation: b.violation })
+        })
+      } else {
+        const y = busValue(yKey, name, b, dist)
+        if (y == null) continue
+        rows.push({ id: name, bus: name, x, y, violation: b.violation })
+      }
     }
     const have = new Set(rows.map((r) => r.id))
-    const ok = (a?: string, b?: string) => a && b && a !== b && have.has(a) && have.has(b)
+    const pairs: { a: string; b: string; dashed: boolean }[] = []
     for (const buses of Object.values(result.lineBuses ?? {})) {
-      if (ok(buses[0], buses[1])) segments.push({ from: buses[0], to: buses[1], dashed: false })
+      if (buses[0] && buses[1] && buses[0] !== buses[1]) {
+        pairs.push({ a: buses[0], b: buses[1], dashed: false })
+      }
     }
     for (const n of nodes) {
       if (n.type !== 'transformer' && n.type !== 'breaker') continue
       const buses = result.nodeBuses[n.id] ?? []
-      if (ok(buses[0], buses[1])) segments.push({ from: buses[0], to: buses[1], dashed: true })
+      if (buses[0] && buses[1] && buses[0] !== buses[1]) {
+        pairs.push({ a: buses[0], b: buses[1], dashed: true })
+      }
+    }
+    for (const p of pairs) {
+      if (perPhase) {
+        for (const phase of [1, 2, 3]) {
+          const fa = `${p.a}.${phase}`
+          const fb = `${p.b}.${phase}`
+          if (have.has(fa) && have.has(fb)) {
+            segments.push({ from: fa, to: fb, dashed: p.dashed, phase })
+          }
+        }
+      } else if (have.has(p.a) && have.has(p.b)) {
+        segments.push({ from: p.a, to: p.b, dashed: p.dashed })
+      }
     }
   } else {
     for (const [name, e] of Object.entries(result.elements)) {

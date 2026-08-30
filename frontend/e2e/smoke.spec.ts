@@ -95,15 +95,20 @@ test('fault overlay, losses tab, and voltage profile', async ({ page }) => {
   await expect(page.getByRole('cell', { name: 'line.ln1' })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Total' })).toBeVisible()
 
-  // Graph tab: defaults to the voltage profile (one point per bus).
+  // Graph tab: defaults to the classic per-phase voltage profile.
   await page.getByRole('button', { name: 'Graph' }).click()
   await expect(page.locator('.vp-chart')).toBeVisible()
-  expect(await page.locator('.vp-point').count()).toBeGreaterThanOrEqual(3)
+  expect(await page.locator('.vp-dot').count()).toBeGreaterThanOrEqual(3)
+  // Toggling a phase off removes its traces.
+  const allDots = await page.locator('.vp-dot').count()
+  await page.getByText('ph2', { exact: true }).click()
+  expect(await page.locator('.vp-dot').count()).toBeLessThan(allDots)
+  await page.getByText('ph2', { exact: true }).click()
 
   // Switching the Y axis to an element quantity re-plots.
   await page.getByLabel('Y axis').selectOption({ label: 'Loading (%)' })
   await expect(page.locator('.vp-chart')).toBeVisible()
-  expect(await page.locator('.vp-point').count()).toBeGreaterThanOrEqual(2)
+  expect(await page.locator('.vp-dot').count()).toBeGreaterThanOrEqual(2)
 })
 
 test('export .dss, start new, and re-import the exported file', async ({ page }) => {

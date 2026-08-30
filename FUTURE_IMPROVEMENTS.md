@@ -57,9 +57,11 @@ All frontend-only; the M1 vitest harness covers the store changes.
   deliberately report none) in a sortable Losses tab with % of total
 - ~~**Voltage profile plot**~~ — grew into a general **Graph tab**: pick Y
   (bus V min/max, or per-element P/Q flow, current, loading, losses) vs X
-  (km from source via solver `busDistances`, or bus voltage); voltage plots
-  keep the feeder segments + 0.95–1.05 pu band; hover detail. Bottom panel
-  is drag-resizable (persisted height).
+  (km from source via solver `busDistances`, or bus voltage); classic
+  OpenDSS plot styling — per-phase traces (black/red/blue), bold red
+  0.95/1.05 limit lines, framed white plot — with zoom buttons, drag-pan,
+  Shift+drag zoom box, wheel zoom, and phase toggles. Bottom panel is
+  drag-resizable (persisted height).
 
 ## M5 — DER pack + time series (~3–4 sessions)
 

@@ -295,9 +295,35 @@ html, body, #root { margin: 0; height: 100%; }
 .result-tooltip table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .result-tooltip td { padding: 1px 8px 1px 0; white-space: nowrap; }
 
-/* Graph tab (pick-your-axes chart) */
+/* Graph tab (pick-your-axes chart, classic OpenDSS plot-window styling) */
 .vp-wrap { position: relative; padding: 4px 8px; }
 .vp-chart { width: 100%; max-width: 1100px; height: auto; display: block; }
+.vp-chart.classic { cursor: grab; user-select: none; touch-action: none; }
+.vp-chart.classic:active { cursor: grabbing; }
+.vp-paper { fill: #fff; stroke: #ccd; }
+.vp-frame { fill: none; stroke: #1a1a1a; stroke-width: 1.4; }
+.vp-frame-tick { stroke: #1a1a1a; stroke-width: 1; }
+.vp-title { font: 700 13px system-ui, sans-serif; fill: #1a1a1a; }
+.vp-tick.classic { font-weight: 600; fill: #1a1a1a; }
+.vp-axis-label.classic { font: 700 12px system-ui, sans-serif; fill: #1a1a1a; }
+.vp-limit { stroke: #e53935; stroke-width: 3; }
+.vp-trace { stroke-width: 1.7; fill: none; }
+.vp-trace.dashed { stroke-dasharray: 5 4; }
+.vp-dot { stroke: none; }
+.vp-zoombox { fill: rgba(21, 101, 192, 0.08); stroke: #d32f2f; stroke-dasharray: 4 3; }
+.phase-toggles { display: flex; gap: 8px; font-weight: 700; }
+.phase-toggles label { display: flex; gap: 3px; align-items: center; }
+.graph-zoom { display: flex; gap: 2px; margin-left: 8px; }
+.graph-zoom button {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 4px;
+  padding: 1px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.graph-zoom button:hover { background: #eef2f8; }
+.graph-hint { color: #99a; font-weight: 400; font-size: 11px; margin-left: auto; }
 .graph-controls {
   display: flex;
   gap: 14px;
