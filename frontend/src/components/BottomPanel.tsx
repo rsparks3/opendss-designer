@@ -10,9 +10,9 @@ import {
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { Params } from '../types/circuit'
-import { VoltageProfile } from './VoltageProfile'
+import { GraphPanel } from './GraphPanel'
 
-type MainTab = 'problems' | 'elements' | 'losses' | 'profile'
+type MainTab = 'problems' | 'elements' | 'losses' | 'graph'
 
 const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'vsource', label: 'Sources' },
@@ -285,17 +285,63 @@ function LossesTab() {
   )
 }
 
+const HEIGHT_KEY = 'opendss-designer.bpHeight'
+const DEFAULT_HEIGHT = 210
+const MIN_HEIGHT = 100
+
+function initialHeight(): number {
+  try {
+    const v = Number(localStorage.getItem(HEIGHT_KEY))
+    if (v >= MIN_HEIGHT && v <= 900) return v
+  } catch {
+    // storage unavailable
+  }
+  return DEFAULT_HEIGHT
+}
+
 export function BottomPanel() {
   const issues = useResultsStore((s) => s.issues)
   const [tab, setTab] = useState<MainTab>('problems')
   const [typeTab, setTypeTab] = useState('load')
   const [open, setOpen] = useState(true)
+  const [height, setHeight] = useState(initialHeight)
+  const heightRef = useRef(height)
+
+  // Drag the top edge to resize; height persists across sessions.
+  const startResize = (down: React.PointerEvent) => {
+    down.preventDefault()
+    const startY = down.clientY
+    const startH = heightRef.current
+    const move = (e: PointerEvent) => {
+      const h = Math.min(
+        Math.max(startH + (startY - e.clientY), MIN_HEIGHT),
+        Math.max(200, window.innerHeight - 260),
+      )
+      heightRef.current = h
+      setHeight(h)
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      try {
+        localStorage.setItem(HEIGHT_KEY, String(heightRef.current))
+      } catch {
+        // storage unavailable — resize still works for this session
+      }
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
 
   const errors = issues.filter((i) => i.severity === 'error').length
   const warnings = issues.length - errors
 
   return (
     <div className="bottom-panel">
+      {open && (
+        <div className="bp-resizer" onPointerDown={startResize}
+             title="Drag to resize the panel" />
+      )}
       <div className="bp-header">
         <button
           className={`bp-tab${tab === 'problems' && open ? ' active' : ''}`}
@@ -327,13 +373,13 @@ export function BottomPanel() {
           Losses
         </button>
         <button
-          className={`bp-tab${tab === 'profile' && open ? ' active' : ''}`}
+          className={`bp-tab${tab === 'graph' && open ? ' active' : ''}`}
           onClick={() => {
-            setTab('profile')
-            setOpen(tab !== 'profile' || !open)
+            setTab('graph')
+            setOpen(tab !== 'graph' || !open)
           }}
         >
-          Profile
+          Graph
         </button>
         {tab === 'elements' && open && (
           <span className="bp-subtabs">
@@ -355,13 +401,13 @@ export function BottomPanel() {
         </button>
       </div>
       {open && (
-        <div className="bp-content">
+        <div className="bp-content" style={{ height, maxHeight: 'none' }}>
           {tab === 'problems' ? (
             <ProblemsTab />
           ) : tab === 'losses' ? (
             <LossesTab />
-          ) : tab === 'profile' ? (
-            <VoltageProfile />
+          ) : tab === 'graph' ? (
+            <GraphPanel />
           ) : typeTab === 'buses' ? (
             <BusesTable />
           ) : (

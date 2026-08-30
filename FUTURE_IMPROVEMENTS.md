@@ -55,9 +55,11 @@ All frontend-only; the M1 vitest harness covers the store changes.
   runs lazily on overlay select, invalidated by any circuit edit
 - ~~**Losses breakdown**~~ — per-series-element kW/kvar losses (shunt elements
   deliberately report none) in a sortable Losses tab with % of total
-- ~~**Voltage profile plot**~~ — Profile tab: SVG distance-vs-voltage chart;
-  `busDistances` (Dijkstra over line lengths, devices = 0 km) from the solver,
-  solid line segments / dashed device drops, 0.95–1.05 pu band, hover detail
+- ~~**Voltage profile plot**~~ — grew into a general **Graph tab**: pick Y
+  (bus V min/max, or per-element P/Q flow, current, loading, losses) vs X
+  (km from source via solver `busDistances`, or bus voltage); voltage plots
+  keep the feeder segments + 0.95–1.05 pu band; hover detail. Bottom panel
+  is drag-resizable (persisted height).
 
 ## M5 — DER pack + time series (~3–4 sessions)
 

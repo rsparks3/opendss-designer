@@ -30,11 +30,13 @@ test('place a source from the palette onto the canvas', async ({ page }) => {
   await page.getByRole('button', { name: 'Source' }).click()
   await page.locator('.react-flow__pane').click({ position: { x: 300, y: 200 } })
   await expect(page.locator('.react-flow__node-vsource')).toHaveCount(1)
-  // Placement is sticky until Escape.
-  await page.locator('.react-flow__pane').click({ position: { x: 420, y: 200 } })
+  // Placement is sticky until Escape. (Click far from the pane center: the
+  // initial fitView centers the first node there, and clicking a node
+  // selects it instead of placing.)
+  await page.locator('.react-flow__pane').click({ position: { x: 150, y: 330 } })
   await expect(page.locator('.react-flow__node-vsource')).toHaveCount(2)
   await page.keyboard.press('Escape')
-  await page.locator('.react-flow__pane').click({ position: { x: 500, y: 300 } })
+  await page.locator('.react-flow__pane').click({ position: { x: 620, y: 90 } })
   await expect(page.locator('.react-flow__node-vsource')).toHaveCount(2)
 })
 
@@ -93,10 +95,15 @@ test('fault overlay, losses tab, and voltage profile', async ({ page }) => {
   await expect(page.getByRole('cell', { name: 'line.ln1' })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Total' })).toBeVisible()
 
-  // Profile tab: an SVG with one point per bus.
-  await page.getByRole('button', { name: 'Profile' }).click()
+  // Graph tab: defaults to the voltage profile (one point per bus).
+  await page.getByRole('button', { name: 'Graph' }).click()
   await expect(page.locator('.vp-chart')).toBeVisible()
   expect(await page.locator('.vp-point').count()).toBeGreaterThanOrEqual(3)
+
+  // Switching the Y axis to an element quantity re-plots.
+  await page.getByLabel('Y axis').selectOption({ label: 'Loading (%)' })
+  await expect(page.locator('.vp-chart')).toBeVisible()
+  expect(await page.locator('.vp-point').count()).toBeGreaterThanOrEqual(2)
 })
 
 test('export .dss, start new, and re-import the exported file', async ({ page }) => {
