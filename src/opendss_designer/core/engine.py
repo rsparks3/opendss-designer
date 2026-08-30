@@ -20,15 +20,16 @@ from .model import Circuit, Issue
 _lock = threading.Lock()
 _initialized = False
 
+# OpenDSS writes side files (error logs, exports) to its data path;
+# keep them out of the user's CWD.
+WORKDIR = Path(tempfile.gettempdir()) / "opendss_designer"
+
 
 def _ensure_init() -> None:
     global _initialized
     if not _initialized:
-        # OpenDSS writes side files (error logs, exports) to its data path;
-        # keep them out of the user's CWD.
-        workdir = Path(tempfile.gettempdir()) / "opendss_designer"
-        workdir.mkdir(exist_ok=True)
-        dss.Basic.DataPath(str(workdir))
+        WORKDIR.mkdir(exist_ok=True)
+        dss.Basic.DataPath(str(WORKDIR))
         dss.Basic.AllowForms(False)
         _initialized = True
 

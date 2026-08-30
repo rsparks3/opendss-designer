@@ -6,7 +6,16 @@ async function post<T>(url: string, body: unknown): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`${url} failed: ${res.status} ${await res.text()}`)
+  if (!res.ok) {
+    const text = await res.text()
+    let detail = text
+    try {
+      detail = JSON.parse(text).detail ?? text
+    } catch {
+      // not JSON — use raw text
+    }
+    throw new Error(detail || `${url} failed: ${res.status}`)
+  }
   return res.json() as Promise<T>
 }
 
@@ -26,6 +35,7 @@ export const api = {
     return res.text()
   },
 
-  importDss: (text: string) =>
-    post<{ circuit: CircuitJSON; unsupported: string[] }>('/api/import/dss', { text }),
+  importDss: (files: { name: string; text: string }[]) =>
+    post<{ circuit: CircuitJSON; unsupported: string[]; warnings: string[] }>(
+      '/api/import/dss', { files }),
 }

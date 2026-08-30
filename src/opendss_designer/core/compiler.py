@@ -5,6 +5,7 @@ export is exactly what was solved.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from .connectivity import ConnectivityResult, sanitize_name, synthesize
@@ -42,6 +43,17 @@ def _phase_suffix(phases: int) -> str:
     if phases == 2:
         return ".1.2"
     return ""  # 3-phase implies .1.2.3
+
+
+_SUFFIX_RE = re.compile(r"^(\.\d+)+$")
+
+
+def _bus_suffix(explicit, phases: int) -> str:
+    """Explicit node connection (e.g. '.1.2' for a delta spot load, set by
+    the .dss importer) when valid, else the default for the phase count."""
+    if isinstance(explicit, str) and _SUFFIX_RE.match(explicit):
+        return explicit
+    return _phase_suffix(phases)
 
 
 def compile_circuit(circuit: Circuit) -> CompileResult:
@@ -115,8 +127,10 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
             {"kv": 12.47, "kva": 10000, "conn": "wye"},
         ]
         buses = conn.node_buses[n.id]
-        sfx = _phase_suffix(phases)
-        bus_list = ", ".join(b + sfx for b in buses[: len(windings)])
+        bus_nodes = p.get("busNodes") or []
+        bus_list = ", ".join(
+            b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None, phases)
+            for i, b in enumerate(buses[: len(windings)]))
         conns = ", ".join(str(w.get("conn", "wye")) for w in windings)
         kvs = ", ".join(f"{float(w.get('kv', 12.47)):g}" for w in windings)
         kvas = ", ".join(f"{float(w.get('kva', 10000)):g}" for w in windings)
@@ -134,7 +148,8 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
         name = element_name("line", p.get("name"), e.id, e.id)
         phases = int(_num(p, "phases", 3) or 3)
         b1, b2 = conn.line_buses[e.id]
-        sfx = _phase_suffix(phases)
+        sfx1 = _bus_suffix(p.get("nodes1"), phases)
+        sfx2 = _bus_suffix(p.get("nodes2"), phases)
         length = _num(p, "length", 1.0)
         units = str(p.get("units", "km"))
         r1 = _num(p, "r1", 0.12)
@@ -150,7 +165,7 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
                         f"{DEFAULT_LINE_NORMAMPS:g} A for loading %.",
                 edgeId=e.id))
         cmds.append(
-            f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
+            f"new line.{name} bus1={b1}{sfx1} bus2={b2}{sfx2} phases={phases} "
             f"length={length:g} units={units} r1={r1:g} x1={x1:g} r0={r0:g} x0={x0:g} "
             f"normamps={normamps:g}")
 
@@ -171,7 +186,7 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
         p = n.params
         name = element_name("load", p.get("name"), n.id, n.id)
         phases = int(_num(p, "phases", 3) or 3)
-        bus = conn.node_buses[n.id][0] + _phase_suffix(phases)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
         kv = _num(p, "kv", 12.47) or 12.47
         kw = _num(p, "kw", 100.0)
         pf = _num(p, "pf", 0.95)

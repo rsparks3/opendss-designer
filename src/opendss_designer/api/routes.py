@@ -1,7 +1,7 @@
 """REST API for the designer frontend."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import PlainTextResponse
 
 import opendssdirect as dss
@@ -38,4 +38,11 @@ def export(circuit: Circuit) -> str:
 
 @router.post("/import/dss")
 def import_file(payload: dict = Body(...)) -> dict:
-    return importer.import_dss(str(payload.get("text", "")))
+    try:
+        if isinstance(payload.get("files"), list):
+            return importer.import_dss_files(payload["files"])
+        return importer.import_dss(str(payload.get("text", "")))
+    except importer.ImportFailure as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:  # engine errors should read as bad input, not a crash
+        raise HTTPException(status_code=400, detail=f"Import failed: {exc}")

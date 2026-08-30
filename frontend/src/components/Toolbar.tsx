@@ -98,17 +98,28 @@ export function Toolbar() {
     }
   }
 
-  const onImportDss = async (file: File) => {
+  const onImportDss = async (fileList: File[]) => {
     try {
-      const { circuit: imported, unsupported } = await api.importDss(await file.text())
+      const files = await Promise.all(
+        fileList.map(async (f) => ({ name: f.name, text: await f.text() })),
+      )
+      const { circuit: imported, unsupported, warnings } = await api.importDss(files)
       autoLayout(imported)
       loadCircuit(imported)
+      const notes = [...(warnings ?? [])]
       if (unsupported.length) {
-        alert(`Imported with ${unsupported.length} unsupported element(s) skipped:\n` +
+        notes.push(`${unsupported.length} unsupported element(s) skipped:\n` +
           unsupported.join('\n'))
       }
+      if (notes.length) alert(notes.join('\n\n'))
     } catch (err) {
-      alert(`Import failed: ${err}`)
+      const msg = err instanceof Error ? err.message : String(err)
+      let tip = ''
+      if (/references other files|not found/i.test(msg)) {
+        tip = '\n\nTip: in the file dialog, Ctrl+click to select the main .dss file ' +
+          'together with every file it references (line codes, bus coordinates, redirects).'
+      }
+      alert(`Import failed: ${msg}${tip}`)
     }
   }
 
@@ -158,7 +169,12 @@ export function Toolbar() {
         </button>
         <button onClick={() => projectInput.current?.click()}>Open</button>
         <button onClick={onExportDss} title="Export as a runnable OpenDSS .dss file">Export .dss</button>
-        <button onClick={() => dssInput.current?.click()} title="Import an OpenDSS .dss file">Import .dss</button>
+        <button
+          onClick={() => dssInput.current?.click()}
+          title="Import OpenDSS .dss file(s) — select the main file plus anything it references (line codes, BusCoords csv)"
+        >
+          Import .dss
+        </button>
       </div>
       <input
         ref={projectInput}
@@ -174,11 +190,12 @@ export function Toolbar() {
       <input
         ref={dssInput}
         type="file"
-        accept=".dss,.txt"
+        accept=".dss,.txt,.csv"
+        multiple
         hidden
         onChange={(e) => {
-          const f = e.target.files?.[0]
-          if (f) onImportDss(f)
+          const files = Array.from(e.target.files ?? [])
+          if (files.length) onImportDss(files)
           e.target.value = ''
         }}
       />
