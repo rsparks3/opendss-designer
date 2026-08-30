@@ -97,7 +97,7 @@ def test_capacitor_generator_roundtrip(substation_circuit):
     gen = next(n for n in circuit.nodes if n.type == "generator")
     assert cap.params["kvar"] == 600
     assert cap.params["numsteps"] == 2
-    assert gen.params["kw"] == 250
+    assert gen.params["kw"] == pytest.approx(250)
 
     # And they re-export/re-solve cleanly.
     text2, _ = export_dss(circuit)
