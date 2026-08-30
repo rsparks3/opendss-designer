@@ -428,7 +428,10 @@ export const useCircuitStore = create<CircuitState>()(
       },
       setName: (name) => set({ name, dirty: true }),
       setPlacement: (t) => set({ placementType: t }),
-      setConnectMode: (m) => set({ connectMode: m }),
+      // Choosing a connect mode is an explicit "I'm drawing wires/lines now",
+      // so it exits placement mode — otherwise onConnect's while-placing
+      // wire default would silently override a freshly picked Line mode.
+      setConnectMode: (m) => set({ connectMode: m, placementType: null }),
       selectOnly: (kind, id) => {
         set({
           nodes: get().nodes.map((n) => ({ ...n, selected: kind === 'node' && n.id === id })),

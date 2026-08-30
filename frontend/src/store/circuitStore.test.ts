@@ -331,6 +331,26 @@ describe('onConnect', () => {
     expect(edges[0].data?.params.r1).toBeDefined() // seeded with line defaults
   })
 
+  it('choosing a connect mode exits placement, so Line immediately draws lines', () => {
+    // Regression: place a component (placement is sticky), then pick Line —
+    // the next connection must be a line, not the while-placing wire default.
+    useCircuitStore.setState({
+      nodes: [node('b1', 'busbar'), node('b2', 'busbar')],
+      placementType: 'load',
+    })
+    useCircuitStore.getState().setConnectMode('line')
+    expect(useCircuitStore.getState().placementType).toBeNull()
+    useCircuitStore.getState().onConnect({
+      source: 'b1',
+      sourceHandle: 'c0',
+      target: 'b2',
+      targetHandle: 'b0',
+    })
+    const edge = useCircuitStore.getState().edges[0]
+    expect(edge.type).toBe('line')
+    expect(edge.data?.params.r1).toBeDefined()
+  })
+
   it('forces plain wire while a placement mode is active', () => {
     useCircuitStore.setState({
       nodes: [node('b1', 'busbar'), node('ld', 'load')],
