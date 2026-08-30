@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
+import { loadingColor } from '../../lib/colorScale'
 import { useResultsStore } from '../../store/resultsStore'
+import { LoadingPie } from '../LoadingPie'
 
 export function useNodeIssueClass(id: string): string {
   const issues = useResultsStore((s) => s.issues)
@@ -39,6 +41,17 @@ function VBadgeInner({ v }: { v: number }) {
   return <Badge color={color}>{v.toFixed(3)} pu</Badge>
 }
 
+/** Loading pie in a light pill, dark text — shared by node badges. */
+export function PieBadge({ pct }: { pct: number }) {
+  const stale = useResultsStore((s) => s.stale)
+  return (
+    <div className="result-badge pie-badge" style={{ opacity: stale ? 0.35 : 1 }}>
+      <LoadingPie pct={pct} />
+      <span style={{ color: loadingColor(pct) }}>{pct.toFixed(0)}%</span>
+    </div>
+  )
+}
+
 /** Loading/power badge for series elements (transformer, breaker). */
 export function ElementBadge({ nodeId }: { nodeId: string }) {
   const overlay = useResultsStore((s) => s.overlay)
@@ -50,6 +63,5 @@ export function ElementBadge({ nodeId }: { nodeId: string }) {
     return <Badge color="#455a64">{el.kw.toFixed(0)} kW</Badge>
   }
   if (el.loadingPct == null) return null
-  const color = el.loadingPct >= 100 ? '#d32f2f' : el.loadingPct >= 80 ? '#ed6c02' : '#2e7d32'
-  return <Badge color={color}>{el.loadingPct.toFixed(0)}%</Badge>
+  return <PieBadge pct={el.loadingPct} />
 }

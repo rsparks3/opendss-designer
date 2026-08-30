@@ -2,6 +2,7 @@ import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
 import type { AppEdge } from '../../store/circuitStore'
 import { useResultsStore } from '../../store/resultsStore'
+import { LoadingPie } from '../LoadingPie'
 import { useEdgePath, WaypointDots } from './waypoints'
 
 export function LineEdge(props: EdgeProps<AppEdge>) {
@@ -16,9 +17,11 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
 
   let stroke = props.selected ? '#1976d2' : '#263238'
   let resultText: string | null = null
+  let loadingPct: number | null = null
   if (el && !stale) {
     if (overlay === 'loading' && el.loadingPct != null) {
       stroke = loadingColor(el.loadingPct)
+      loadingPct = el.loadingPct
       resultText = `${el.loadingPct.toFixed(0)}%`
     } else if (overlay === 'power') {
       stroke = NEUTRAL
@@ -45,6 +48,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
           <span className="edge-name">{name}</span>
           {resultText && (
             <span className="edge-result" style={{ color: stroke }}>
+              {loadingPct != null && <LoadingPie pct={loadingPct} size={15} />}
               {resultText}
             </span>
           )}
