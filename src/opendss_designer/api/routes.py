@@ -7,7 +7,7 @@ from fastapi.responses import PlainTextResponse
 import opendssdirect as dss
 
 from .. import __version__
-from ..core import engine, importer
+from ..core import engine, importer, linecodes
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.validate import validate
@@ -18,6 +18,13 @@ router = APIRouter(prefix="/api")
 @router.get("/health")
 def health() -> dict:
     return {"version": __version__, "opendssVersion": dss.Basic.Version()}
+
+
+@router.get("/linecodes")
+def line_codes() -> dict:
+    """Conductor preset library from config/linecodes.csv (re-read each call
+    so the user can edit the file without restarting the server)."""
+    return linecodes.load_line_codes()
 
 
 @router.post("/solve")

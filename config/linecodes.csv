@@ -1,0 +1,26 @@
+# OpenDSS Designer - line conductor preset library
+#
+# Each row becomes a "Conductor preset" option on Line elements. Edit freely
+# (add, remove, or tune rows); the server re-reads this file on every request,
+# so changes appear after a browser refresh - no rebuild or restart needed.
+#
+# Columns:
+#   code     - short unique id (stored on the line as a reference tag)
+#   label    - text shown in the preset dropdown
+#   units    - length unit for the impedances (km, m, mi, kft, ft)
+#   r1,x1    - positive-sequence resistance/reactance, ohms per unit length
+#   r0,x0    - zero-sequence resistance/reactance, ohms per unit length
+#   normamps - normal ampacity rating, amps
+#
+# Values shipped here are REPRESENTATIVE of typical distribution construction
+# (overhead: flat crossarm spacing; UG: 3-1/c XLPE, trefoil). Replace with
+# your utility's data for real studies.
+code,label,units,r1,x1,r0,x0,normamps
+acsr-1/0,OH ACSR 1/0 (Raven),km,0.696,0.494,0.874,1.482,230
+acsr-4/0,OH ACSR 4/0 (Penguin),km,0.35,0.468,0.528,1.456,340
+acsr-336,OH ACSR 336.4 (Linnet),km,0.19,0.451,0.368,1.439,530
+acsr-556,OH ACSR 556.5 (Dove),km,0.118,0.427,0.296,1.415,730
+acsr-795,OH ACSR 795 (Drake),km,0.084,0.412,0.262,1.4,900
+ug-1/0-al,UG XLPE 1/0 Al,km,0.552,0.156,1.06,0.52,175
+ug-4/0-al,UG XLPE 4/0 Al,km,0.277,0.14,0.6,0.44,260
+ug-750-al,UG XLPE 750 Al,km,0.081,0.122,0.28,0.35,475

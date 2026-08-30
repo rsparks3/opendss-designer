@@ -1,6 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import { useEffect, useRef } from 'react'
 import { api } from './lib/api'
+import { loadLineCodes } from './lib/lineCodes'
 import { runSolve } from './lib/solve'
 import { toCircuitJSON, useCircuitStore } from './store/circuitStore'
 import { useResultsStore } from './store/resultsStore'
@@ -103,6 +104,10 @@ function useUnsavedWorkProtection() {
 export default function App() {
   useValidation()
   useUnsavedWorkProtection()
+  // Conductor preset library (config/linecodes.csv via the backend).
+  useEffect(() => {
+    void loadLineCodes()
+  }, [])
   return (
     <ReactFlowProvider>
       <div className="app">

@@ -1,5 +1,5 @@
 import { FIELDS, FieldInput } from '../lib/fields'
-import { detachesPreset, LINE_CODE_PRESETS, presetPatch } from '../lib/lineCodes'
+import { detachesPreset, presetPatch, useLineCodeStore } from '../lib/lineCodes'
 import { useCircuitStore, type AppEdge, type AppNode } from '../store/circuitStore'
 import type { Params, Winding } from '../types/circuit'
 
@@ -49,6 +49,7 @@ function WindingEditor({
 export function PropertiesPanel() {
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
+  const lineCodePresets = useLineCodeStore((s) => s.presets)
   const updateNodeParams = useCircuitStore((s) => s.updateNodeParams)
   const updateEdgeParams = useCircuitStore((s) => s.updateEdgeParams)
 
@@ -109,17 +110,17 @@ export function PropertiesPanel() {
                 if (patch) commit!(patch)
                 else commit!({ linecode: '' })
               }}
-              title="Stamps typical impedances (Ω/km) into the fields below — still editable afterward"
+              title="Stamps the preset's impedances into the fields below (editable afterward). Presets come from config/linecodes.csv — edit that file to customize."
             >
               <option value="">— custom R/X —</option>
-              {LINE_CODE_PRESETS.map((p) => (
+              {lineCodePresets.map((p) => (
                 <option key={p.code} value={p.code}>
                   {p.label}
                 </option>
               ))}
               {typeof params.linecode === 'string' &&
                 params.linecode !== '' &&
-                !LINE_CODE_PRESETS.some((p) => p.code === params.linecode) && (
+                !lineCodePresets.some((p) => p.code === params.linecode) && (
                   <option value={params.linecode}>{params.linecode} (imported)</option>
                 )}
             </select>
