@@ -1,6 +1,13 @@
 // TypeScript mirror of the backend Pydantic schema (src/opendss_designer/core/model.py)
 
-export type NodeType = 'vsource' | 'busbar' | 'transformer' | 'load' | 'breaker'
+export type NodeType =
+  | 'vsource'
+  | 'busbar'
+  | 'transformer'
+  | 'load'
+  | 'breaker'
+  | 'capacitor'
+  | 'generator'
 export type EdgeKind = 'wire' | 'line'
 
 export type Params = Record<string, unknown>

@@ -1,4 +1,5 @@
 import { FIELDS, FieldInput } from '../lib/fields'
+import { detachesPreset, LINE_CODE_PRESETS, presetPatch } from '../lib/lineCodes'
 import { useCircuitStore, type AppEdge, type AppNode } from '../store/circuitStore'
 import type { Params, Winding } from '../types/circuit'
 
@@ -64,7 +65,12 @@ export function PropertiesPanel() {
   } else if (selEdge && selEdge.type === 'line') {
     kind = 'line'
     params = selEdge.data?.params ?? {}
-    commit = (patch) => updateEdgeParams(selEdge.id, patch)
+    commit = (patch) =>
+      // Hand-editing an impedance detaches the line from its conductor preset.
+      updateEdgeParams(
+        selEdge.id,
+        detachesPreset(patch) && params?.linecode ? { ...patch, linecode: '' } : patch,
+      )
   }
 
   if (!kind || !params || !commit) {
@@ -93,6 +99,32 @@ export function PropertiesPanel() {
     <div className="properties">
       <div className="palette-title">{title}</div>
       <div className="props-form">
+        {kind === 'line' && (
+          <label className="prop-row">
+            <span>Conductor preset</span>
+            <select
+              value={String(params.linecode ?? '')}
+              onChange={(e) => {
+                const patch = presetPatch(e.target.value)
+                if (patch) commit!(patch)
+                else commit!({ linecode: '' })
+              }}
+              title="Stamps typical impedances (Ω/km) into the fields below — still editable afterward"
+            >
+              <option value="">— custom R/X —</option>
+              {LINE_CODE_PRESETS.map((p) => (
+                <option key={p.code} value={p.code}>
+                  {p.label}
+                </option>
+              ))}
+              {typeof params.linecode === 'string' &&
+                params.linecode !== '' &&
+                !LINE_CODE_PRESETS.some((p) => p.code === params.linecode) && (
+                  <option value={params.linecode}>{params.linecode} (imported)</option>
+                )}
+            </select>
+          </label>
+        )}
         {fields.map((f) => (
           <label key={f.key} className="prop-row">
             <span>

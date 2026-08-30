@@ -86,7 +86,7 @@ def validate(circuit: Circuit) -> list[Issue]:
             kv = n.params.get("basekv")
             if kv and buses:
                 declared.append((buses[0], float(kv)))
-        elif n.type == "load":
+        elif n.type in ("load", "capacitor", "generator"):
             kv = n.params.get("kv")
             if kv and buses:
                 declared.append((buses[0], float(kv)))

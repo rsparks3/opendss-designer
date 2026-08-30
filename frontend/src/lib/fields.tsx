@@ -55,6 +55,24 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'xhl', label: 'Reactance X(H-L)', kind: 'number', unit: '%' },
     { key: 'pctloadloss', label: 'Load loss', kind: 'number', unit: '%' },
   ],
+  capacitor: [
+    { key: 'name', label: 'Name', kind: 'text' },
+    { key: 'kv', label: 'Rated kV', kind: 'number', unit: 'kV' },
+    { key: 'kvar', label: 'Size', kind: 'number', unit: 'kvar' },
+    { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
+    { key: 'numsteps', label: 'Steps', kind: 'number' },
+  ],
+  generator: [
+    { key: 'name', label: 'Name', kind: 'text' },
+    { key: 'kv', label: 'Rated kV', kind: 'number', unit: 'kV' },
+    { key: 'kw', label: 'Output', kind: 'number', unit: 'kW' },
+    { key: 'pf', label: 'Power factor', kind: 'number' },
+    { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
+    { key: 'model', label: 'Mode', kind: 'select', options: [1, 3] }, // 1=const kW/pf, 3=PV (holds vpu)
+    { key: 'vpu', label: 'V setpoint (PV mode)', kind: 'number', unit: 'pu' },
+  ],
 }
 
 /** Flattened winding columns for the transformer spreadsheet view.

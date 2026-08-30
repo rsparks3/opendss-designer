@@ -28,6 +28,8 @@ import { ContextMenu, type MenuTarget } from './ContextMenu'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
 import { BreakerNode } from './nodes/BreakerNode'
 import { BusbarNode } from './nodes/BusbarNode'
+import { CapacitorNode } from './nodes/CapacitorNode'
+import { GeneratorNode } from './nodes/GeneratorNode'
 import { LoadNode } from './nodes/LoadNode'
 import { TransformerNode } from './nodes/TransformerNode'
 import { VsourceNode } from './nodes/VsourceNode'
@@ -40,6 +42,8 @@ const nodeTypes = {
   transformer: TransformerNode,
   load: LoadNode,
   breaker: BreakerNode,
+  capacitor: CapacitorNode,
+  generator: GeneratorNode,
 }
 
 const edgeTypes = {
@@ -156,6 +160,8 @@ export function EditorCanvas() {
       t: 'transformer',
       k: 'breaker',
       l: 'load',
+      c: 'capacitor',
+      g: 'generator',
     }
     const onKey = (e: KeyboardEvent) => {
       const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(

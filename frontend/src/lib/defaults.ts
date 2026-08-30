@@ -24,6 +24,10 @@ export function defaultParams(type: NodeType): Params {
       return { name: nextName('LOAD'), kv: 12.47, kw: 1000, pf: 0.95, phases: 3, conn: 'wye', model: 1 }
     case 'breaker':
       return { name: nextName('BRK'), closed: true, normamps: 600, phases: 3 }
+    case 'capacitor':
+      return { name: nextName('CAP'), kv: 12.47, kvar: 600, phases: 3, conn: 'wye', numsteps: 1 }
+    case 'generator':
+      return { name: nextName('GEN'), kv: 12.47, kw: 1000, pf: 1.0, phases: 3, conn: 'wye', model: 1, vpu: 1.02 }
   }
 }
 
@@ -40,4 +44,6 @@ export const NODE_SIZE: Record<NodeType, { w: number; h: number }> = {
   transformer: { w: 48, h: 72 },
   load: { w: 40, h: 52 },
   breaker: { w: 36, h: 56 },
+  capacitor: { w: 40, h: 56 },
+  generator: { w: 44, h: 56 },
 }

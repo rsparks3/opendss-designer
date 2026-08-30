@@ -95,6 +95,8 @@ const NAME_PREFIX: Record<string, string> = {
   transformer: 'T',
   load: 'LOAD',
   breaker: 'BRK',
+  capacitor: 'CAP',
+  generator: 'GEN',
 }
 
 const PASTE_OFFSET = 30

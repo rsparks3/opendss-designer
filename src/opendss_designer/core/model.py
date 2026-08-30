@@ -11,7 +11,8 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker"]
+NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker",
+                   "capacitor", "generator"]
 EdgeType = Literal["wire", "line"]
 
 
@@ -67,4 +68,6 @@ NODE_TERMINALS: dict[str, list[str]] = {
     "load": ["t1"],
     "transformer": ["t1", "t2"],
     "breaker": ["t1", "t2"],
+    "capacitor": ["t1"],
+    "generator": ["t1"],
 }

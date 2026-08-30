@@ -38,17 +38,15 @@ All frontend-only; the M1 vitest harness covers the store changes.
 - Still open from this bucket: **multi-select property editing** (deferred to a later
   milestone; single-element editing plus spreadsheet fill-down covers most of it)
 
-## M3 — Component pack 1: real-feeder essentials (~2 sessions)
+## M3 — Component pack 1: real-feeder essentials — ✅ DONE (2026-08-30)
 
-Static power-flow elements — no time-series infrastructure needed. The first component
-should produce a written `docs/adding-an-element.md` checklist (adding one type touches
-~8 files today) so the remaining component types become mechanical.
-
-- **Capacitor banks** (`Capacitor`) — shunt kvar, delta/wye, switched steps
-- **Generators** (`Generator`) — kW/kvar or PV-mode, classic circle-G symbol
-- **Line codes** (`LineCode`) — impedance libraries instead of per-line R/X entry, with a
-  built-in library of common conductors
-- Importer support for all three
+- ~~**Capacitor banks**~~ — shunt kvar, delta/wye, numsteps; imports/exports/solves
+- ~~**Generators**~~ — kW/pf with model 1 (const PQ) or 3 (PV, holds vpu); circle-G symbol
+- ~~**Line codes**~~ — built-in conductor preset library (`lib/lineCodes.ts`, 8 typical
+  OH/UG constructions) that stamps editable Ω/km values; imported linecode names kept
+  as reference tags. True LineCode entity round-trip stays in M7.
+- ~~Importer support~~ — capacitors and generators read back; `docs/adding-an-element.md`
+  checklist written so remaining component types are mechanical
 
 ## M4 — Analysis pack 1 (~2 sessions)
 

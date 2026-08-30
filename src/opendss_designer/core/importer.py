@@ -26,7 +26,8 @@ from .model import Circuit, CircuitNode, CircuitEdge, Position
 
 _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
 
-SUPPORTED_PREFIXES = ("vsource.", "transformer.", "line.", "load.")
+SUPPORTED_PREFIXES = ("vsource.", "transformer.", "line.", "load.",
+                      "capacitor.", "generator.")
 
 # Drawing-canvas size that geographic bus coordinates are normalized into.
 _LAYOUT_W, _LAYOUT_H = 1800.0, 1200.0
@@ -228,6 +229,11 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                       "r0": dss.Lines.R0(), "x0": dss.Lines.X0(),
                       "normamps": dss.Lines.NormAmps(),
                       "phases": dss.Lines.Phases()}
+            # Impedances above are already resolved from the linecode; keep
+            # the code name as a reference tag.
+            linecode = dss.Lines.LineCode()
+            if linecode:
+                params["linecode"] = linecode
             n1, n2 = _node_suffix(raw1), _node_suffix(raw2)
             if n1:
                 params["nodes1"] = n1
@@ -260,6 +266,47 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         if buses:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
         i = dss.Loads.Next()
+
+    # Capacitors (shunt only; series caps are exotic enough to report)
+    i = dss.Capacitors.First()
+    while i:
+        name = dss.Capacitors.Name()
+        dss.Circuit.SetActiveElement(f"capacitor.{name}")
+        buses = dss.CktElement.BusNames()
+        nid = node_id()
+        params = {"name": name, "kv": dss.Capacitors.kV(),
+                  "kvar": dss.Capacitors.kvar(),
+                  "conn": "delta" if dss.Capacitors.IsDelta() else "wye",
+                  "phases": dss.CktElement.NumPhases(),
+                  "numsteps": dss.Capacitors.NumSteps()}
+        if buses:
+            suffix = _node_suffix(buses[0])
+            if suffix:
+                params["busNodes"] = suffix
+        nodes.append(CircuitNode(id=nid, type="capacitor", params=params))
+        if buses:
+            wire(nid, "t1", busbar_for(buses[0]), "b0")
+        i = dss.Capacitors.Next()
+
+    # Generators
+    i = dss.Generators.First()
+    while i:
+        name = dss.Generators.Name()
+        dss.Circuit.SetActiveElement(f"generator.{name}")
+        buses = dss.CktElement.BusNames()
+        nid = node_id()
+        params = {"name": name, "kv": dss.Generators.kV(),
+                  "kw": dss.Generators.kW(), "pf": dss.Generators.PF(),
+                  "phases": dss.CktElement.NumPhases(),
+                  "model": dss.Generators.Model()}
+        if buses:
+            suffix = _node_suffix(buses[0])
+            if suffix:
+                params["busNodes"] = suffix
+        nodes.append(CircuitNode(id=nid, type="generator", params=params))
+        if buses:
+            wire(nid, "t1", busbar_for(buses[0]), "b0")
+        i = dss.Generators.Next()
 
     # Anything else in the model is out of v1 scope.
     for full in dss.Circuit.AllElementNames():

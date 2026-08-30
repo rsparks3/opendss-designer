@@ -57,6 +57,35 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
       </svg>
     ),
   },
+  {
+    type: 'capacitor',
+    label: 'Capacitor',
+    kbd: 'C',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="12" className="sym" />
+        <line x1="7" y1="12" x2="25" y2="12" className="sym" />
+        <line x1="7" y1="18" x2="25" y2="18" className="sym" />
+        <line x1="16" y1="18" x2="16" y2="26" className="sym" />
+        <line x1="10" y1="26" x2="22" y2="26" className="sym" />
+        <line x1="13" y1="30" x2="19" y2="30" className="sym" />
+      </svg>
+    ),
+  },
+  {
+    type: 'generator',
+    label: 'Generator',
+    kbd: 'G',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="8" className="sym" />
+        <circle cx="16" cy="19" r="10" className="sym" fill="none" />
+        <text x="16" y="24" textAnchor="middle" className="sym-text" fontSize="11">
+          G
+        </text>
+      </svg>
+    ),
+  },
 ]
 
 export function Palette() {

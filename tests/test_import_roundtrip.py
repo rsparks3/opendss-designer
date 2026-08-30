@@ -76,7 +76,32 @@ def test_export_import_roundtrip(substation_circuit):
 def test_import_reports_unsupported(substation_circuit):
     text, _ = export_dss(substation_circuit)
     text = text.replace("set mode=snapshot",
-                        "new capacitor.c1 bus1=main_bus kv=12.47 kvar=600\n"
+                        "new reactor.r1 bus1=main_bus kv=12.47 kvar=300\n"
                         "set mode=snapshot")
     imported = import_dss(text)
-    assert any("capacitor" in u.lower() for u in imported["unsupported"])
+    assert any("reactor" in u.lower() for u in imported["unsupported"])
+
+
+def test_capacitor_generator_roundtrip(substation_circuit):
+    text, _ = export_dss(substation_circuit)
+    text = text.replace(
+        "set mode=snapshot",
+        "new capacitor.c1 bus1=main_bus kv=12.47 kvar=600 numsteps=2\n"
+        "new generator.g1 bus1=main_bus kv=12.47 kw=250 pf=0.98 model=1\n"
+        "set mode=snapshot")
+    imported = import_dss(text)
+    assert not imported["unsupported"]
+
+    circuit = Circuit.model_validate(imported["circuit"])
+    cap = next(n for n in circuit.nodes if n.type == "capacitor")
+    gen = next(n for n in circuit.nodes if n.type == "generator")
+    assert cap.params["kvar"] == 600
+    assert cap.params["numsteps"] == 2
+    assert gen.params["kw"] == 250
+
+    # And they re-export/re-solve cleanly.
+    text2, _ = export_dss(circuit)
+    assert "new capacitor.c1" in text2.lower()
+    assert "new generator.g1" in text2.lower()
+    solved = engine.solve(circuit)
+    assert solved["converged"], solved["issues"]

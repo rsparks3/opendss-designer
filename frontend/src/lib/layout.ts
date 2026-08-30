@@ -4,6 +4,9 @@ import type { CircuitJSON, CircuitNodeJSON } from '../types/circuit'
 
 const snap = (v: number) => Math.round(v / 10) * 10
 
+/** 1-terminal shunt devices that hang below their busbar like loads. */
+const SHUNT_TYPES = new Set(['load', 'capacitor', 'generator'])
+
 /** Lay out an imported circuit hierarchically (mutates in place): source at
  *  the top, power flowing downward, loads hanging directly beneath their
  *  busbars, transformers/breakers centered between the buses they join.
@@ -31,8 +34,8 @@ function orientedEdges(circuit: CircuitJSON): [string, string][] {
   return circuit.edges.map((e): [string, string] => {
     const s = byId.get(e.source)
     const t = byId.get(e.target)
-    if (s?.type === 'load') return [e.target, e.source]
-    if (t?.type === 'load') return [e.source, e.target]
+    if (s && SHUNT_TYPES.has(s.type)) return [e.target, e.source]
+    if (t && SHUNT_TYPES.has(t.type)) return [e.source, e.target]
     if (s?.type === 'vsource') return [e.source, e.target]
     if (t?.type === 'vsource') return [e.target, e.source]
     if (s && (s.type === 'transformer' || s.type === 'breaker')) {
@@ -88,13 +91,14 @@ function alignDevicesBetweenBuses(circuit: CircuitJSON): void {
   }
 }
 
-/** Loads sit in a row directly beneath their busbar, spread across its
- *  width so their drops land on distinct bottom handles. */
+/** Shunt devices (loads, capacitors, generators) sit in a row directly
+ *  beneath their busbar, spread across its width so their drops land on
+ *  distinct bottom handles. */
 function hangLoadsUnderBuses(circuit: CircuitJSON): void {
   const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
   const perBus = new Map<string, CircuitNodeJSON[]>()
   for (const n of circuit.nodes) {
-    if (n.type !== 'load') continue
+    if (!SHUNT_TYPES.has(n.type)) continue
     for (const e of circuit.edges) {
       const other =
         e.source === n.id ? byId.get(e.target) : e.target === n.id ? byId.get(e.source) : null

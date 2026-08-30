@@ -85,6 +85,8 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
     transformers = [n for n in circuit.nodes if n.type == "transformer"]
     loads = [n for n in circuit.nodes if n.type == "load"]
     breakers = [n for n in circuit.nodes if n.type == "breaker"]
+    capacitors = [n for n in circuit.nodes if n.type == "capacitor"]
+    generators = [n for n in circuit.nodes if n.type == "generator"]
     line_edges = [e for e in circuit.edges if e.type == "line"]
 
     if not vsources:
@@ -196,6 +198,40 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
         cmds.append(
             f"new load.{name} bus1={bus} phases={phases} conn={load_conn} "
             f"kv={kv:g} kw={kw:g} pf={pf:g} model={model} vminpu=0.85")
+
+    for n in capacitors:
+        p = n.params
+        name = element_name("capacitor", p.get("name"), n.id, n.id)
+        phases = int(_num(p, "phases", 3) or 3)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
+        kv = _num(p, "kv", 12.47) or 12.47
+        kvar = _num(p, "kvar", 600.0)
+        cap_conn = str(p.get("conn", "wye"))
+        numsteps = int(_num(p, "numsteps", 1) or 1)
+        kv_bases.add(kv)
+        cmd = (f"new capacitor.{name} bus1={bus} phases={phases} conn={cap_conn} "
+               f"kv={kv:g} kvar={kvar:g}")
+        if numsteps > 1:
+            cmd += f" numsteps={numsteps}"
+        cmds.append(cmd)
+
+    for n in generators:
+        p = n.params
+        name = element_name("generator", p.get("name"), n.id, n.id)
+        phases = int(_num(p, "phases", 3) or 3)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
+        kv = _num(p, "kv", 12.47) or 12.47
+        kw = _num(p, "kw", 1000.0)
+        pf = _num(p, "pf", 1.0)
+        gen_conn = str(p.get("conn", "wye"))
+        model = int(_num(p, "model", 1) or 1)
+        kv_bases.add(kv)
+        cmd = (f"new generator.{name} bus1={bus} phases={phases} conn={gen_conn} "
+               f"kv={kv:g} kw={kw:g} pf={pf:g} model={model}")
+        if model == 3:  # constant-V (PV) mode holds this voltage setpoint
+            vpu = _num(p, "vpu", 1.0)
+            cmd += f" vpu={vpu:g}"
+        cmds.append(cmd)
 
     for n in circuit.nodes:
         if n.type == "busbar":

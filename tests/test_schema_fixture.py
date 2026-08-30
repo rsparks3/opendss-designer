@@ -60,7 +60,8 @@ def test_fixture_compiles_cleanly(fixture_json):
     # line, breaker (as a switch line), load.
     joined = "\n".join(res.commands)
     for fragment in ("new circuit.", "new transformer.t1", "new line.ln1",
-                     "new line.brk1", "new load.load1"):
+                     "new line.brk1", "new load.load1",
+                     "new capacitor.cap1", "new generator.gen1"):
         assert fragment in joined.lower()
 
 

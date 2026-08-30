@@ -162,6 +162,12 @@ html, body, #root { margin: 0; height: 100%; }
 }
 .busbar-node .result-badge { margin-bottom: 8px; }
 
+.sym-text {
+  font: 700 16px system-ui, sans-serif;
+  fill: var(--ink);
+  stroke: none;
+}
+
 .busbar-bar {
   width: 100%;
   height: 6px;

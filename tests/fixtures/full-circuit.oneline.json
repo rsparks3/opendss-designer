@@ -59,6 +59,20 @@
       "position": { "x": 520, "y": 480 },
       "width": null,
       "params": { "name": "LOAD1", "kv": 12.47, "kw": 1000, "pf": 0.95, "phases": 3, "conn": "wye", "model": 1 }
+    },
+    {
+      "id": "n_cap",
+      "type": "capacitor",
+      "position": { "x": 440, "y": 400 },
+      "width": null,
+      "params": { "name": "CAP1", "kv": 12.47, "kvar": 600, "phases": 3, "conn": "wye", "numsteps": 1 }
+    },
+    {
+      "id": "n_gen",
+      "type": "generator",
+      "position": { "x": 620, "y": 400 },
+      "width": null,
+      "params": { "name": "GEN1", "kv": 12.47, "kw": 500, "pf": 1.0, "phases": 3, "conn": "wye", "model": 1, "vpu": 1.02 }
     }
   ],
   "edges": [
@@ -101,6 +115,7 @@
       "targetHandle": "b0",
       "params": {
         "name": "LN1",
+        "linecode": "acsr-336",
         "length": 2.5,
         "units": "km",
         "r1": 0.12,
@@ -128,6 +143,26 @@
       "source": "n_brk",
       "sourceHandle": "t2",
       "target": "n_load",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e7",
+      "type": "wire",
+      "source": "n_bus3",
+      "sourceHandle": "c0",
+      "target": "n_cap",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e8",
+      "type": "wire",
+      "source": "n_bus3",
+      "sourceHandle": "c3",
+      "target": "n_gen",
       "targetHandle": "t1",
       "params": {},
       "waypoints": null
