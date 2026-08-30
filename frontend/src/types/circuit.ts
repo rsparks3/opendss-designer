@@ -72,6 +72,9 @@ export interface ElementResult {
   normAmps: number | null
   loadingPct: number | null
   violations: string[]
+  /** Series elements (lines, transformers) only; null for shunt elements. */
+  lossKw: number | null
+  lossKvar: number | null
 }
 
 export interface SolveResult {
@@ -84,4 +87,22 @@ export interface SolveResult {
   nodeBuses: Record<string, string[]>
   lineBuses: Record<string, string[]>
   busNames: Record<string, string>
+  /** Electrical km from the source to each bus (voltage profile x-axis). */
+  busDistances: Record<string, number>
+}
+
+export interface FaultBusResult {
+  kvBase: number
+  if3phA: number | null
+  if1phA: number | null
+  scMva3: number | null
+  zsc1: { r: number; x: number }
+  zsc0: { r: number; x: number }
+}
+
+export interface FaultResult {
+  converged: boolean
+  buses: Record<string, FaultBusResult>
+  nodeBuses: Record<string, string[]>
+  issues: Issue[]
 }

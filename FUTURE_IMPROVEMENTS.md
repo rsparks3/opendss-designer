@@ -48,14 +48,16 @@ All frontend-only; the M1 vitest harness covers the store changes.
 - ~~Importer support~~ — capacitors and generators read back; `docs/adding-an-element.md`
   checklist written so remaining component types are mechanical
 
-## M4 — Analysis pack 1 (~2 sessions)
+## M4 — Analysis pack 1 — ✅ DONE (2026-08-30)
 
-Self-contained analysis wins; no LoadShape/streaming infrastructure needed.
-
-- **Fault study** (`solve mode=faultstudy`) — short-circuit MVA / fault currents at each
-  bus (bus overlay mode + bottom-panel table); single-phase and three-phase
-- **Losses breakdown** panel per element
-- **Voltage profile plot** — distance-vs-voltage chart along a feeder path
+- ~~**Fault study**~~ — `/api/faultstudy` (mode=faultstudy → per-bus Zsc1/Zsc0);
+  "Fault" overlay shows 3φ kA badges on busbars, tooltip adds 1φ/SC-MVA/Z1;
+  runs lazily on overlay select, invalidated by any circuit edit
+- ~~**Losses breakdown**~~ — per-series-element kW/kvar losses (shunt elements
+  deliberately report none) in a sortable Losses tab with % of total
+- ~~**Voltage profile plot**~~ — Profile tab: SVG distance-vs-voltage chart;
+  `busDistances` (Dijkstra over line lengths, devices = 0 km) from the solver,
+  solid line segments / dashed device drops, 0.95–1.05 pu band, hover detail
 
 ## M5 — DER pack + time series (~3–4 sessions)
 

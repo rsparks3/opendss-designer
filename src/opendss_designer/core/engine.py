@@ -7,6 +7,7 @@ between requests, so the diagram can never drift from the model.
 """
 from __future__ import annotations
 
+import heapq
 import tempfile
 import threading
 from pathlib import Path
@@ -15,6 +16,7 @@ from typing import Any
 import opendssdirect as dss
 
 from .compiler import CompileResult, compile_circuit
+from .connectivity import ConnectivityResult
 from .model import Circuit, Issue
 
 _lock = threading.Lock()
@@ -98,6 +100,11 @@ def _extract_elements(element_map: dict[str, str]) -> dict[str, Any]:
             loading = round(100.0 * max(t1_amps) / norm_amps, 1)
             if loading >= 100.0:
                 violations.append("overload")
+        # Losses are meaningful only for series elements — for shunt elements
+        # (loads, generators, capacitors, sources) CktElement.Losses() reports
+        # their power injection, not network loss.
+        loss_w = (dss.CktElement.Losses()
+                  if full_name.startswith(("line.", "transformer.")) else None)
         elements[full_name] = {
             "id": diagram_id,
             "currents": [round(a, 2) for a in t1_amps],
@@ -106,8 +113,56 @@ def _extract_elements(element_map: dict[str, str]) -> dict[str, Any]:
             "normAmps": norm_amps or None,
             "loadingPct": loading,
             "violations": violations,
+            "lossKw": round(loss_w[0] / 1000.0, 4) if loss_w is not None else None,
+            "lossKvar": round(loss_w[1] / 1000.0, 4) if loss_w is not None else None,
         }
     return elements
+
+
+_KM_PER_UNIT = {"km": 1.0, "m": 0.001, "mi": 1.609344, "kft": 0.3048,
+                "ft": 0.0003048, "in": 0.0000254, "cm": 0.00001, "none": 0.0}
+
+
+def _bus_distances(circuit: Circuit, conn: ConnectivityResult) -> dict[str, float]:
+    """Shortest electrical distance (km) from any source to each bus, over
+    line edges (their length) and closed 2-terminal devices (zero length).
+    Feeds the voltage-profile plot."""
+    adjacency: dict[str, list[tuple[str, float]]] = {}
+
+    def link(a: str, b: str, w: float) -> None:
+        adjacency.setdefault(a, []).append((b, w))
+        adjacency.setdefault(b, []).append((a, w))
+
+    edge_by_id = {e.id: e for e in circuit.edges}
+    for eid, (b1, b2) in conn.line_buses.items():
+        p = edge_by_id[eid].params if eid in edge_by_id else {}
+        try:
+            length = float(p.get("length") or 0.0)
+        except (TypeError, ValueError):
+            length = 0.0
+        km = max(length, 0.0) * _KM_PER_UNIT.get(str(p.get("units", "km")), 1.0)
+        link(b1, b2, km)
+    for n in circuit.nodes:
+        if n.type in ("transformer", "breaker"):
+            if n.type == "breaker" and not n.params.get("closed", True):
+                continue
+            buses = conn.node_buses.get(n.id, [])
+            for b in buses[1:]:
+                link(buses[0], b, 0.0)
+
+    dist: dict[str, float] = {}
+    pq = [(0.0, conn.node_buses[n.id][0]) for n in circuit.nodes
+          if n.type == "vsource" and n.id in conn.node_buses]
+    heapq.heapify(pq)
+    while pq:
+        d, b = heapq.heappop(pq)
+        if b in dist:
+            continue
+        dist[b] = d
+        for nb, w in adjacency.get(b, ()):
+            if nb not in dist:
+                heapq.heappush(pq, (d + w, nb))
+    return {b: round(d, 4) for b, d in dist.items()}
 
 
 def solve(circuit: Circuit) -> dict[str, Any]:
@@ -161,4 +216,57 @@ def solve(circuit: Circuit) -> dict[str, Any]:
         "nodeBuses": conn.node_buses if conn else {},
         "lineBuses": {k: list(v) for k, v in conn.line_buses.items()} if conn else {},
         "busNames": conn.bus_names if conn else {},
+        "busDistances": _bus_distances(circuit, conn) if conn else {},
+    }
+
+
+def fault_study(circuit: Circuit) -> dict[str, Any]:
+    """Short-circuit study (`solve mode=faultstudy`): per-bus Thevenin
+    impedances and prospective 3-phase / single-phase fault currents."""
+    compiled: CompileResult = compile_circuit(circuit)
+    issues = list(compiled.issues)
+    if any(i.severity == "error" for i in issues):
+        return {"converged": False, "buses": {}, "nodeBuses": {},
+                "issues": [i.model_dump() for i in issues]}
+
+    buses: dict[str, Any] = {}
+    converged = False
+    with _lock:
+        _ensure_init()
+        built = _run_commands(compiled.commands, compiled.element_map, issues)
+        if built:
+            try:
+                dss.Text.Command("set mode=faultstudy")
+                dss.Text.Command("solve")
+                converged = True
+            except Exception as exc:
+                issues.append(Issue(severity="error", code="solve-failed",
+                                    message=f"Fault study failed: {exc}"))
+        if converged:
+            for name in dss.Circuit.AllBusNames():
+                dss.Circuit.SetActiveBus(name)
+                kv_ln = dss.Bus.kVBase()  # line-to-neutral
+                z1_raw = dss.Bus.Zsc1()
+                z0_raw = dss.Bus.Zsc0()
+                z1 = complex(float(z1_raw[0]), float(z1_raw[1]))
+                z0 = complex(float(z0_raw[0]), float(z0_raw[1]))
+                v_ln = kv_ln * 1000.0
+                if3 = v_ln / abs(z1) if abs(z1) > 1e-9 else None
+                loop = 2 * z1 + z0
+                if1 = 3 * v_ln / abs(loop) if abs(loop) > 1e-9 else None
+                buses[name] = {
+                    "kvBase": round(kv_ln, 5),
+                    "if3phA": round(if3, 1) if if3 else None,
+                    "if1phA": round(if1, 1) if if1 else None,
+                    "scMva3": round(3 * v_ln * if3 / 1e6, 2) if if3 else None,
+                    "zsc1": {"r": round(z1.real, 5), "x": round(z1.imag, 5)},
+                    "zsc0": {"r": round(z0.real, 5), "x": round(z0.imag, 5)},
+                }
+
+    conn = compiled.connectivity
+    return {
+        "converged": converged and bool(buses),
+        "buses": buses,
+        "nodeBuses": conn.node_buses if conn else {},
+        "issues": [i.model_dump() for i in issues],
     }

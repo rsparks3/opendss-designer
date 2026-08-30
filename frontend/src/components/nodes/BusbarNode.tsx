@@ -7,7 +7,7 @@ import {
 } from '@xyflow/react'
 import { useEffect } from 'react'
 import { beginGesture, busbarHandleCount, endGesture, useCircuitStore, type AppNode } from '../../store/circuitStore'
-import { NodeLabel, useNodeIssueClass, VoltageBadge } from './common'
+import { FaultBadge, NodeLabel, useNodeIssueClass, VoltageBadge } from './common'
 
 const BAR_H = 14
 
@@ -61,6 +61,7 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
       ))}
       <NodeLabel>{String(data.params.name ?? '')}</NodeLabel>
       <VoltageBadge nodeId={id} />
+      <FaultBadge nodeId={id} />
     </div>
   )
 }

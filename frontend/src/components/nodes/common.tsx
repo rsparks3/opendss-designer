@@ -98,6 +98,17 @@ function VBadgeInner({ v }: { v: number }) {
   return <Badge color={color}>{v.toFixed(3)} pu</Badge>
 }
 
+/** 3-phase prospective fault current at the node's bus ('fault' overlay). */
+export function FaultBadge({ nodeId }: { nodeId: string }) {
+  const overlay = useResultsStore((s) => s.overlay)
+  const fault = useResultsStore((s) => s.fault)
+  if (overlay !== 'fault' || !fault?.converged) return null
+  const bus = fault.nodeBuses[nodeId]?.[0]
+  const data = bus ? fault.buses[bus] : null
+  if (!data?.if3phA) return null
+  return <Badge color="#5e35b1">{(data.if3phA / 1000).toFixed(1)} kA</Badge>
+}
+
 /** Loading pie in a light pill, dark text — shared by node badges. */
 export function PieBadge({ pct }: { pct: number }) {
   const stale = useResultsStore((s) => s.stale)

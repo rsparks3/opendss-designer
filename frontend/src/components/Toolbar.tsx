@@ -22,6 +22,7 @@ const OVERLAYS: { mode: OverlayMode; label: string }[] = [
   { mode: 'voltage', label: 'Voltages' },
   { mode: 'loading', label: 'Loading' },
   { mode: 'power', label: 'Power' },
+  { mode: 'fault', label: 'Fault' },
   { mode: 'off', label: 'Off' },
 ]
 
@@ -50,6 +51,25 @@ export function Toolbar() {
 
   // runSolve surfaces its own failures via the flash toast.
   const onSolve = () => void runSolve()
+
+  // The fault study runs lazily when its overlay is first selected (results
+  // are cleared on any circuit change, so re-selecting re-runs it).
+  const onOverlay = (mode: OverlayMode) => {
+    setOverlay(mode)
+    if (mode === 'fault' && !useResultsStore.getState().fault) {
+      void (async () => {
+        try {
+          const f = await api.faultStudy(circuit())
+          useResultsStore.getState().setFault(f)
+          if (!f.converged) {
+            flash('Fault study failed — check the problems list')
+          }
+        } catch (err) {
+          flash(`Fault study failed: ${err instanceof Error ? err.message : err}`)
+        }
+      })()
+    }
+  }
 
   const onNew = () => {
     const st = useCircuitStore.getState()
@@ -154,7 +174,8 @@ export function Toolbar() {
           <button
             key={o.mode}
             className={overlay === o.mode ? 'active' : ''}
-            onClick={() => setOverlay(o.mode)}
+            onClick={() => onOverlay(o.mode)}
+            title={o.mode === 'fault' ? 'Short-circuit study: prospective fault current at each bus' : undefined}
           >
             {o.label}
           </button>

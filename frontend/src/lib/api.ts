@@ -1,4 +1,4 @@
-import type { CircuitJSON, Issue, SolveResult } from '../types/circuit'
+import type { CircuitJSON, FaultResult, Issue, SolveResult } from '../types/circuit'
 
 async function post<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -21,6 +21,8 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 
 export const api = {
   solve: (circuit: CircuitJSON) => post<SolveResult>('/api/solve', circuit),
+
+  faultStudy: (circuit: CircuitJSON) => post<FaultResult>('/api/faultstudy', circuit),
 
   validate: (circuit: CircuitJSON) =>
     post<{ issues: Issue[] }>('/api/validate', circuit),

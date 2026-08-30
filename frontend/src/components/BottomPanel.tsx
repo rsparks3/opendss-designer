@@ -10,8 +10,9 @@ import {
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { Params } from '../types/circuit'
+import { VoltageProfile } from './VoltageProfile'
 
-type MainTab = 'problems' | 'elements'
+type MainTab = 'problems' | 'elements' | 'losses' | 'profile'
 
 const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'vsource', label: 'Sources' },
@@ -20,6 +21,8 @@ const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'line', label: 'Lines' },
   { key: 'breaker', label: 'Breakers' },
   { key: 'load', label: 'Loads' },
+  { key: 'capacitor', label: 'Capacitors' },
+  { key: 'generator', label: 'Generators' },
   { key: 'buses', label: 'Buses (results)' },
 ]
 
@@ -223,6 +226,65 @@ function BusesTable() {
   )
 }
 
+function LossesTab() {
+  const result = useResultsStore((s) => s.result)
+  const stale = useResultsStore((s) => s.stale)
+  const selectOnly = useCircuitStore((s) => s.selectOnly)
+  if (!result?.converged)
+    return <div className="bp-empty">Solve the circuit to see the losses breakdown.</div>
+  const rows = Object.entries(result.elements)
+    .filter(([, e]) => e.lossKw != null)
+    .sort(([, a], [, b]) => (b.lossKw ?? 0) - (a.lossKw ?? 0))
+  const total = result.losses
+  if (!rows.length) return <div className="bp-empty">No series elements with losses.</div>
+  return (
+    <table className="bp-table" style={{ opacity: stale ? 0.5 : 1 }}>
+      <thead>
+        <tr>
+          <th />
+          <th>Element</th>
+          <th>Loss (kW)</th>
+          <th>Loss (kvar)</th>
+          <th>% of total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(([name, e]) => (
+          <tr key={name}>
+            <td>
+              <button
+                className="bp-locate"
+                title="Select on diagram"
+                onClick={() => {
+                  const isEdge = useCircuitStore.getState().edges.some((ed) => ed.id === e.id)
+                  selectOnly(isEdge ? 'edge' : 'node', e.id)
+                }}
+              >
+                ⌖
+              </button>
+            </td>
+            <td className="bp-ro">{name}</td>
+            <td className="bp-ro">{e.lossKw!.toFixed(3)}</td>
+            <td className="bp-ro">{e.lossKvar!.toFixed(3)}</td>
+            <td className="bp-ro">
+              {total && total.kw ? `${((e.lossKw! / total.kw) * 100).toFixed(1)}%` : '—'}
+            </td>
+          </tr>
+        ))}
+        {total && (
+          <tr className="bp-total">
+            <td />
+            <td className="bp-ro">Total</td>
+            <td className="bp-ro">{total.kw.toFixed(3)}</td>
+            <td className="bp-ro">{total.kvar.toFixed(3)}</td>
+            <td className="bp-ro">100%</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  )
+}
+
 export function BottomPanel() {
   const issues = useResultsStore((s) => s.issues)
   const [tab, setTab] = useState<MainTab>('problems')
@@ -255,6 +317,24 @@ export function BottomPanel() {
         >
           Elements
         </button>
+        <button
+          className={`bp-tab${tab === 'losses' && open ? ' active' : ''}`}
+          onClick={() => {
+            setTab('losses')
+            setOpen(tab !== 'losses' || !open)
+          }}
+        >
+          Losses
+        </button>
+        <button
+          className={`bp-tab${tab === 'profile' && open ? ' active' : ''}`}
+          onClick={() => {
+            setTab('profile')
+            setOpen(tab !== 'profile' || !open)
+          }}
+        >
+          Profile
+        </button>
         {tab === 'elements' && open && (
           <span className="bp-subtabs">
             {TYPE_TABS.map((t) => (
@@ -278,6 +358,10 @@ export function BottomPanel() {
         <div className="bp-content">
           {tab === 'problems' ? (
             <ProblemsTab />
+          ) : tab === 'losses' ? (
+            <LossesTab />
+          ) : tab === 'profile' ? (
+            <VoltageProfile />
           ) : typeTab === 'buses' ? (
             <BusesTable />
           ) : (

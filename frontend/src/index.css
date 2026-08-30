@@ -295,6 +295,20 @@ html, body, #root { margin: 0; height: 100%; }
 .result-tooltip table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .result-tooltip td { padding: 1px 8px 1px 0; white-space: nowrap; }
 
+/* Voltage profile chart */
+.vp-wrap { position: relative; padding: 4px 8px; }
+.vp-chart { width: 100%; max-width: 900px; height: auto; display: block; }
+.vp-band { fill: rgba(46, 125, 50, 0.06); }
+.vp-grid { stroke: #dde3ea; stroke-width: 1; }
+.vp-ref { stroke: #b9c4d0; stroke-width: 1; stroke-dasharray: 5 4; }
+.vp-tick { font-size: 10px; fill: #667; }
+.vp-axis-label { font-size: 10.5px; fill: #667; font-weight: 600; }
+.vp-segment { stroke: #7d94ad; stroke-width: 1.6; }
+.vp-segment.dashed { stroke-dasharray: 4 4; }
+.vp-point { fill: #1565c0; stroke: #fff; stroke-width: 1.5; }
+.vp-point.violation { fill: #d32f2f; }
+.bp-total td { font-weight: 700; border-top: 2px solid #ccd; }
+
 /* Palette shortcut hints */
 .palette-kbd {
   margin-left: auto;

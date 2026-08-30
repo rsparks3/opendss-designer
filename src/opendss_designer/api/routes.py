@@ -32,6 +32,11 @@ def solve(circuit: Circuit) -> dict:
     return engine.solve(circuit)
 
 
+@router.post("/faultstudy")
+def fault_study(circuit: Circuit) -> dict:
+    return engine.fault_study(circuit)
+
+
 @router.post("/validate")
 def validate_circuit(circuit: Circuit) -> dict:
     return {"issues": [i.model_dump() for i in validate(circuit)]}

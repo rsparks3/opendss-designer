@@ -14,6 +14,8 @@ export interface HoverTarget {
  *  Only shown when fresh results exist. */
 export function ResultTooltip({ target }: { target: HoverTarget }) {
   const result = useResultsStore((s) => s.result)
+  const fault = useResultsStore((s) => s.fault)
+  const overlay = useResultsStore((s) => s.overlay)
   const stale = useResultsStore((s) => s.stale)
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
@@ -32,6 +34,11 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
   const element = Object.entries(result.elements).find(([, el]) => el.id === target.id) as
     | [string, ElementResult]
     | undefined
+  // Fault section only in fault-overlay mode, for the element's first bus.
+  const faultData =
+    overlay === 'fault' && fault?.converged && target.kind === 'node'
+      ? fault.buses[fault.nodeBuses[target.id]?.[0] ?? '']
+      : undefined
 
   if (!buses.length && !element) return null
 
@@ -57,6 +64,34 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
           </table>
         </div>
       ))}
+      {faultData && (
+        <div className="rt-section">
+          <div className="rt-heading">short circuit</div>
+          <table>
+            <tbody>
+              <tr>
+                <td>3φ fault</td>
+                <td colSpan={3}>
+                  {faultData.if3phA != null ? `${(faultData.if3phA / 1000).toFixed(2)} kA` : '—'}
+                  {faultData.scMva3 != null ? ` · ${faultData.scMva3.toFixed(0)} MVA` : ''}
+                </td>
+              </tr>
+              <tr>
+                <td>1φ fault</td>
+                <td colSpan={3}>
+                  {faultData.if1phA != null ? `${(faultData.if1phA / 1000).toFixed(2)} kA` : '—'}
+                </td>
+              </tr>
+              <tr>
+                <td>Z1</td>
+                <td colSpan={3}>
+                  {faultData.zsc1.r.toFixed(3)} + j{faultData.zsc1.x.toFixed(3)} Ω
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
       {element && (
         <div className="rt-section">
           <div className="rt-heading">{element[0]}</div>

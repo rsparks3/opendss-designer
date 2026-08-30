@@ -1,10 +1,14 @@
 import { create } from 'zustand'
-import type { Issue, SolveResult } from '../types/circuit'
+import type { FaultResult, Issue, SolveResult } from '../types/circuit'
 
-export type OverlayMode = 'voltage' | 'loading' | 'power' | 'off'
+export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'off'
 
 interface ResultsState {
   result: SolveResult | null
+  /** Fault study result; cleared on any circuit change (it can't go stale —
+   *  it's either for the current circuit or gone). */
+  fault: FaultResult | null
+  setFault: (f: FaultResult | null) => void
   stale: boolean
   solving: boolean
   overlay: OverlayMode
@@ -27,6 +31,8 @@ let flashTimer: ReturnType<typeof setTimeout> | undefined
 
 export const useResultsStore = create<ResultsState>((set) => ({
   result: null,
+  fault: null,
+  setFault: (fault) => set({ fault }),
   stale: false,
   solving: false,
   overlay: 'voltage',
@@ -37,7 +43,7 @@ export const useResultsStore = create<ResultsState>((set) => ({
   setAutoSolve: (autoSolve) => set({ autoSolve }),
 
   setResult: (result) => set({ result, stale: false }),
-  markStale: () => set({ stale: true }),
+  markStale: () => set({ stale: true, fault: null }),
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),
   setIssues: (issues) => set({ issues }),

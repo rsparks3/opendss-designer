@@ -74,6 +74,31 @@ test('solve the fixture circuit and see voltage results', async ({ page }) => {
   await expect(page.locator('.flash-toast.error')).toHaveCount(0)
 })
 
+test('fault overlay, losses tab, and voltage profile', async ({ page }) => {
+  await openEditor(page)
+  await loadFixture(page)
+  await page.getByRole('button', { name: /Solve/ }).click()
+  await expect(
+    page.locator('.result-badge').filter({ hasText: 'pu' }).first(),
+  ).toBeVisible({ timeout: 20_000 })
+
+  // Fault overlay triggers the fault study lazily and shows kA badges.
+  await page.getByRole('button', { name: 'Fault' }).click()
+  await expect(
+    page.locator('.result-badge').filter({ hasText: 'kA' }).first(),
+  ).toBeVisible({ timeout: 20_000 })
+
+  // Losses tab: series elements with a total row.
+  await page.getByRole('button', { name: 'Losses' }).click()
+  await expect(page.getByRole('cell', { name: 'line.ln1' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Total' })).toBeVisible()
+
+  // Profile tab: an SVG with one point per bus.
+  await page.getByRole('button', { name: 'Profile' }).click()
+  await expect(page.locator('.vp-chart')).toBeVisible()
+  expect(await page.locator('.vp-point').count()).toBeGreaterThanOrEqual(3)
+})
+
 test('export .dss, start new, and re-import the exported file', async ({ page }) => {
   await openEditor(page)
   await loadFixture(page)
