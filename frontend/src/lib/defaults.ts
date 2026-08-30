@@ -35,7 +35,7 @@ export function defaultLineParams(): Params {
 }
 
 export const NODE_SIZE: Record<NodeType, { w: number; h: number }> = {
-  vsource: { w: 48, h: 64 },
+  vsource: { w: 48, h: 48 },
   busbar: { w: 240, h: 14 },
   transformer: { w: 48, h: 72 },
   load: { w: 40, h: 52 },
