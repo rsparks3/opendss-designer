@@ -13,13 +13,19 @@ import {
 } from '@xyflow/react'
 import { useCallback, useEffect, useState } from 'react'
 import {
+  beginGesture,
+  endGesture,
   redo,
   undo,
   useCircuitStore,
   validateConnection,
   type AppEdge,
+  type AppNode,
 } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
+import type { NodeType } from '../types/circuit'
+import { ContextMenu, type MenuTarget } from './ContextMenu'
+import { ResultTooltip, type HoverTarget } from './ResultTooltip'
 import { BreakerNode } from './nodes/BreakerNode'
 import { BusbarNode } from './nodes/BusbarNode'
 import { LoadNode } from './nodes/LoadNode'
@@ -63,6 +69,8 @@ export function EditorCanvas() {
   // overlay captures that gesture. Other components place on pane clicks so
   // handles stay live — you can wire things up without leaving placement mode.
   const [busbarDraft, setBusbarDraft] = useState<{ start: { x: number; y: number }; cur: { x: number; y: number } } | null>(null)
+  const [menu, setMenu] = useState<MenuTarget | null>(null)
+  const [hover, setHover] = useState<HoverTarget | null>(null)
 
   const flowPos = useCallback(
     (e: { clientX: number; clientY: number }) => {
@@ -140,6 +148,15 @@ export function EditorCanvas() {
   )
 
   useEffect(() => {
+    // Palette placement shortcuts (no modifier). Same letters shown in the
+    // palette; W/E switch the connect mode, R rotates the selection.
+    const PLACE_KEYS: Record<string, NodeType> = {
+      s: 'vsource',
+      b: 'busbar',
+      t: 'transformer',
+      k: 'breaker',
+      l: 'load',
+    }
     const onKey = (e: KeyboardEvent) => {
       const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(
         (e.target as HTMLElement)?.tagName,
@@ -147,21 +164,66 @@ export function EditorCanvas() {
       if (e.key === 'Escape') {
         setPlacement(null)
         setBusbarDraft(null)
+        setMenu(null)
       }
       if (inField) return
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-        e.preventDefault()
-        if (e.shiftKey) redo()
-        else undo()
+      const st = useCircuitStore.getState()
+      const key = e.key.toLowerCase()
+      if (e.ctrlKey || e.metaKey) {
+        if (key === 'z') {
+          e.preventDefault()
+          if (e.shiftKey) redo()
+          else undo()
+        } else if (key === 'y') {
+          e.preventDefault()
+          redo()
+        } else if (key === 'c') {
+          const n = st.copySelection()
+          if (n) useResultsStore.getState().setFlash(`Copied ${n} element${n > 1 ? 's' : ''}`, 'info', 1500)
+        } else if (key === 'v') {
+          st.pasteClipboard()
+        } else if (key === 'd') {
+          e.preventDefault()
+          st.duplicateSelection()
+        }
+        return
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
-        e.preventDefault()
-        redo()
+      if (e.altKey) return
+      if (PLACE_KEYS[key]) {
+        setPlacement(st.placementType === PLACE_KEYS[key] ? null : PLACE_KEYS[key])
+      } else if (key === 'w') {
+        st.setConnectMode('wire')
+      } else if (key === 'e') {
+        st.setConnectMode('line')
+      } else if (key === 'r') {
+        st.rotateSelection()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [setPlacement])
+
+  const onNodeContextMenu = useCallback((e: React.MouseEvent, n: AppNode) => {
+    e.preventDefault()
+    setHover(null)
+    setMenu({ kind: 'node', id: n.id, x: e.clientX, y: e.clientY })
+  }, [])
+  const onEdgeContextMenu = useCallback((e: React.MouseEvent, ed: AppEdge) => {
+    e.preventDefault()
+    setHover(null)
+    setMenu({ kind: 'edge', id: ed.id, x: e.clientX, y: e.clientY })
+  }, [])
+  const onNodeMouseEnter = useCallback((e: React.MouseEvent, n: AppNode) => {
+    setHover({ kind: 'node', id: n.id, x: e.clientX, y: e.clientY })
+  }, [])
+  const onEdgeMouseEnter = useCallback((e: React.MouseEvent, ed: AppEdge) => {
+    setHover({ kind: 'edge', id: ed.id, x: e.clientX, y: e.clientY })
+  }, [])
+  const clearHover = useCallback(() => setHover(null), [])
+  const onDragStart = useCallback(() => {
+    setHover(null)
+    beginGesture()
+  }, [])
 
   return (
     <div className={`canvas-wrap${placementType ? ' placing' : ''}`}>
@@ -176,6 +238,17 @@ export function EditorCanvas() {
         onConnectEnd={onConnectEnd}
         onPaneClick={onPaneClick}
         onEdgeDoubleClick={onEdgeDoubleClick}
+        onNodeContextMenu={onNodeContextMenu}
+        onEdgeContextMenu={onEdgeContextMenu}
+        onPaneContextMenu={(e) => e.preventDefault()}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={clearHover}
+        onEdgeMouseEnter={onEdgeMouseEnter}
+        onEdgeMouseLeave={clearHover}
+        onNodeDragStart={onDragStart}
+        onNodeDragStop={endGesture}
+        onSelectionDragStart={onDragStart}
+        onSelectionDragStop={endGesture}
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
         connectionRadius={30}
@@ -223,6 +296,8 @@ export function EditorCanvas() {
         </div>
       )}
       {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
+      {menu && <ContextMenu target={menu} onClose={() => setMenu(null)} />}
+      {hover && !menu && !busbarDraft && <ResultTooltip target={hover} />}
     </div>
   )
 }

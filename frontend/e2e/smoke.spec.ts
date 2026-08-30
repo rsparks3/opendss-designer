@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { Buffer } from 'node:buffer'
 import { expect, test, type Page } from '@playwright/test'
 
 // The schema fixture doubles as the e2e circuit: every node type, both edge
@@ -37,6 +38,28 @@ test('place a source from the palette onto the canvas', async ({ page }) => {
   await expect(page.locator('.react-flow__node-vsource')).toHaveCount(2)
 })
 
+test('keyboard: place with S, copy/paste with Ctrl+C/V', async ({ page }) => {
+  await openEditor(page)
+  await page.keyboard.press('s')
+  await page.locator('.react-flow__pane').click({ position: { x: 300, y: 200 } })
+  await expect(page.locator('.react-flow__node-vsource')).toHaveCount(1)
+  await page.keyboard.press('Escape')
+  await page.locator('.react-flow__node-vsource').click()
+  await page.keyboard.press('Control+c')
+  await page.keyboard.press('Control+v')
+  await expect(page.locator('.react-flow__node-vsource')).toHaveCount(2)
+})
+
+test('right-click context menu duplicates a node', async ({ page }) => {
+  await openEditor(page)
+  await page.keyboard.press('l')
+  await page.locator('.react-flow__pane').click({ position: { x: 300, y: 200 } })
+  await page.keyboard.press('Escape')
+  await page.locator('.react-flow__node-load').click({ button: 'right' })
+  await page.getByRole('button', { name: /Duplicate/ }).click()
+  await expect(page.locator('.react-flow__node-load')).toHaveCount(2)
+})
+
 test('solve the fixture circuit and see voltage results', async ({ page }) => {
   await openEditor(page)
   await loadFixture(page)
@@ -59,13 +82,20 @@ test('export .dss, start new, and re-import the exported file', async ({ page })
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export .dss' }).click()
   const download = await downloadPromise
-  const dssPath = test.info().outputPath('exported.dss')
-  await download.saveAs(dssPath)
+  expect(download.suggestedFilename()).toBe('schema-fixture.dss')
+  // Read the exported text through the same endpoint the button used — the
+  // Windows sandbox forbids opening Chromium's download artifact directly.
+  const dssText = await (await page.request.post('/api/export/dss', { data: fixture })).text()
+  expect(dssText).toContain('new circuit.')
 
   await page.getByRole('button', { name: 'New', exact: true }).click()
   await expect(page.locator('.react-flow__node')).toHaveCount(0)
 
-  await page.locator('input[accept*=".dss"]').setInputFiles(dssPath)
+  await page.locator('input[accept*=".dss"]').setInputFiles({
+    name: 'exported.dss',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(dssText, 'utf-8'),
+  })
   // The importer reads the model back through OpenDSS itself; exact node
   // counts depend on bus synthesis, so assert the key elements returned.
   await expect(page.locator('.react-flow__node-vsource')).toHaveCount(1, { timeout: 20_000 })

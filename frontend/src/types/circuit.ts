@@ -49,6 +49,7 @@ export interface Issue {
 
 export interface BusResult {
   vmagPu: number[]
+  vangDeg: number[]
   vminPu: number | null
   vmaxPu: number | null
   kvBase: number

@@ -1,5 +1,5 @@
 import { EdgeLabelRenderer, getSmoothStepPath, useReactFlow, type EdgeProps } from '@xyflow/react'
-import { useCircuitStore, type AppEdge, type XY } from '../../store/circuitStore'
+import { beginGesture, endGesture, useCircuitStore, type AppEdge, type XY } from '../../store/circuitStore'
 
 const snap = (v: number) => Math.round(v / 10) * 10
 
@@ -43,6 +43,7 @@ export function WaypointDots({ edgeId, waypoints }: { edgeId: string; waypoints:
   const startDrag = (index: number, down: React.PointerEvent) => {
     down.stopPropagation()
     down.preventDefault()
+    beginGesture() // one undo step for the whole waypoint drag
     const move = (e: PointerEvent) => {
       const p = screenToFlowPosition({ x: e.clientX, y: e.clientY })
       const next = waypoints.map((w, i) =>
@@ -51,6 +52,7 @@ export function WaypointDots({ edgeId, waypoints }: { edgeId: string; waypoints:
       setEdgeWaypoints(edgeId, next)
     }
     const up = () => {
+      endGesture()
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
     }

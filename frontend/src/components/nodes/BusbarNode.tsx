@@ -6,7 +6,7 @@ import {
   type NodeProps,
 } from '@xyflow/react'
 import { useEffect } from 'react'
-import { busbarHandleCount, useCircuitStore, type AppNode } from '../../store/circuitStore'
+import { beginGesture, busbarHandleCount, endGesture, useCircuitStore, type AppNode } from '../../store/circuitStore'
 import { NodeLabel, useNodeIssueClass, VoltageBadge } from './common'
 
 const BAR_H = 14
@@ -29,7 +29,11 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
         minWidth={60}
         minHeight={BAR_H}
         maxHeight={BAR_H}
-        onResizeEnd={(_e, p) => setBusbarWidth(id, p.width)}
+        onResizeStart={beginGesture}
+        onResizeEnd={(_e, p) => {
+          setBusbarWidth(id, p.width)
+          endGesture()
+        }}
       />
       <div className="busbar-bar" />
       {/* Two handle rows: b<i> route edges upward, c<i> route them downward,

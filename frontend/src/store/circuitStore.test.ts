@@ -3,7 +3,9 @@ import fixture from '../../../tests/fixtures/full-circuit.oneline.json'
 import type { CircuitJSON } from '../types/circuit'
 import { useResultsStore } from './resultsStore'
 import {
+  beginGesture,
   busbarHandleCount,
+  endGesture,
   fromCircuitJSON,
   toCircuitJSON,
   useCircuitStore,
@@ -29,6 +31,8 @@ function resetStores() {
     dirty: false,
   })
   useResultsStore.setState({ flash: null, issues: [], result: null })
+  useCircuitStore.temporal.getState().clear()
+  endGesture()
 }
 
 beforeEach(resetStores)
@@ -127,6 +131,138 @@ describe('setBusbarWidth handle re-homing', () => {
     expect(edges.find((e) => e.id === 'e1')?.targetHandle).toBe('c2')
     expect(edges.find((e) => e.id === 'e2')?.sourceHandle).toBe('b1') // still valid, untouched
     expect(useCircuitStore.getState().nodes.find((n) => n.id === 'bus')?.width).toBe(60)
+  })
+})
+
+describe('copy / paste / duplicate', () => {
+  function seedSelected() {
+    const a: AppNode = {
+      ...node('a', 'load'),
+      selected: true,
+      data: { params: { name: 'LOAD1', kw: 500 } },
+    }
+    const b: AppNode = {
+      ...node('b', 'busbar'),
+      selected: true,
+      data: { params: { name: 'BUS1' } },
+    }
+    const e1 = {
+      id: 'e1',
+      type: 'wire',
+      source: 'a',
+      sourceHandle: 't1',
+      target: 'b',
+      targetHandle: 'c0',
+      data: { params: {} },
+    } as AppEdge
+    useCircuitStore.setState({ nodes: [a, b], edges: [e1] })
+  }
+
+  it('pastes clones with new ids, remapped edges, and fresh names', () => {
+    seedSelected()
+    expect(useCircuitStore.getState().copySelection()).toBe(2)
+    useCircuitStore.getState().pasteClipboard()
+    const s = useCircuitStore.getState()
+    expect(s.nodes).toHaveLength(4)
+    expect(s.edges).toHaveLength(2)
+
+    const pasted = s.nodes.filter((n) => n.selected)
+    expect(pasted).toHaveLength(2) // pasted content becomes the selection
+    expect(s.nodes.find((n) => n.id === 'a')?.selected).toBe(false)
+
+    const newEdge = s.edges.find((e) => e.id !== 'e1')!
+    const pastedIds = new Set(pasted.map((n) => n.id))
+    expect(pastedIds.has(newEdge.source)).toBe(true)
+    expect(pastedIds.has(newEdge.target)).toBe(true)
+    expect(newEdge.sourceHandle).toBe('t1') // handles survive the remap
+
+    const newLoad = pasted.find((n) => n.type === 'load')!
+    expect(newLoad.position).toEqual({ x: 30, y: 30 })
+    expect(newLoad.data.params.name).not.toBe('LOAD1') // no OpenDSS name clash
+    expect(newLoad.data.params.kw).toBe(500)
+  })
+
+  it('cascades the offset on repeated paste', () => {
+    seedSelected()
+    useCircuitStore.getState().copySelection()
+    useCircuitStore.getState().pasteClipboard()
+    useCircuitStore.getState().pasteClipboard()
+    const loads = useCircuitStore.getState().nodes.filter((n) => n.type === 'load')
+    expect(loads.map((n) => n.position.x).sort((x, y) => x - y)).toEqual([0, 30, 60])
+  })
+
+  it('copies only edges whose both endpoints are selected', () => {
+    seedSelected()
+    // Deselect the busbar: the wire to it must not be copied.
+    useCircuitStore.setState({
+      nodes: useCircuitStore.getState().nodes.map((n) =>
+        n.id === 'b' ? { ...n, selected: false } : n,
+      ),
+    })
+    expect(useCircuitStore.getState().copySelection()).toBe(1)
+    useCircuitStore.getState().pasteClipboard()
+    expect(useCircuitStore.getState().edges).toHaveLength(1)
+    expect(useCircuitStore.getState().nodes).toHaveLength(3)
+  })
+
+  it('duplicateSelection does not disturb the clipboard', () => {
+    seedSelected()
+    useCircuitStore.getState().copySelection() // clipboard: load + busbar
+    useCircuitStore.getState().selectOnly('node', 'b')
+    useCircuitStore.getState().duplicateSelection() // duplicates just the busbar
+    expect(useCircuitStore.getState().nodes).toHaveLength(3)
+    useCircuitStore.getState().pasteClipboard() // still pastes both
+    expect(useCircuitStore.getState().nodes).toHaveLength(5)
+  })
+})
+
+describe('rotateNodes', () => {
+  it('cycles rotation in 90° steps and skips busbars', () => {
+    useCircuitStore.setState({ nodes: [node('ld', 'load'), node('bus', 'busbar')] })
+    const rot = (id: string) =>
+      Number(useCircuitStore.getState().nodes.find((n) => n.id === id)?.data.params.rotation) || 0
+    useCircuitStore.getState().rotateNodes(['ld', 'bus'])
+    expect(rot('ld')).toBe(90)
+    expect(rot('bus')).toBe(0)
+    useCircuitStore.getState().rotateNodes(['ld'])
+    useCircuitStore.getState().rotateNodes(['ld'])
+    useCircuitStore.getState().rotateNodes(['ld'])
+    expect(rot('ld')).toBe(0) // full circle
+  })
+})
+
+describe('undo gestures', () => {
+  const past = () => useCircuitStore.temporal.getState().pastStates
+
+  it('groups every change inside a gesture into one undo step', () => {
+    useCircuitStore.setState({ nodes: [node('a', 'load')] })
+    useCircuitStore.temporal.getState().clear()
+    const move = (x: number) =>
+      useCircuitStore.getState().onNodesChange([{ type: 'position', id: 'a', position: { x, y: 0 } }])
+    beginGesture()
+    move(10)
+    move(20)
+    move(30)
+    endGesture()
+    expect(past()).toHaveLength(1)
+    useCircuitStore.temporal.getState().undo()
+    expect(useCircuitStore.getState().nodes[0].position.x).toBe(0)
+  })
+
+  it('records discrete actions as separate steps', () => {
+    useCircuitStore.setState({ nodes: [node('a', 'load')] })
+    useCircuitStore.temporal.getState().clear()
+    useCircuitStore.getState().updateNodeParams('a', { kw: 1 })
+    useCircuitStore.getState().updateNodeParams('a', { kw: 2 })
+    expect(past()).toHaveLength(2)
+  })
+
+  it('ignores selection-only changes', () => {
+    useCircuitStore.setState({ nodes: [node('a', 'load'), node('b', 'load')] })
+    useCircuitStore.temporal.getState().clear()
+    useCircuitStore.getState().selectOnly('node', 'a')
+    useCircuitStore.getState().selectOnly('node', 'b')
+    expect(past()).toHaveLength(0)
   })
 })
 

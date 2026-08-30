@@ -238,6 +238,69 @@ html, body, #root { margin: 0; height: 100%; }
   text-align: center;
 }
 .flash-toast.info { background: #2e7d32; }
+/* Right-click context menu */
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.context-menu {
+  position: fixed;
+  z-index: 41;
+  min-width: 180px;
+  background: white;
+  border: 1px solid #ccd;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.context-menu button {
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.context-menu button:hover { background: #eef2f8; }
+.context-menu button.danger { color: #d32f2f; }
+.context-menu button kbd,
+.context-menu button .kbd-hint { float: right; color: #99a; font-size: 11px; }
+
+/* Hover result tooltip */
+.result-tooltip {
+  position: fixed;
+  z-index: 30;
+  background: rgba(28, 32, 40, 0.95);
+  color: #eef;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  max-width: 320px;
+}
+.result-tooltip .rt-title { font-weight: 700; margin-bottom: 4px; }
+.result-tooltip .rt-section { margin-top: 6px; }
+.result-tooltip .rt-heading { font-weight: 600; color: #aac4e8; margin-bottom: 2px; }
+.result-tooltip table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.result-tooltip td { padding: 1px 8px 1px 0; white-space: nowrap; }
+
+/* Palette shortcut hints */
+.palette-kbd {
+  margin-left: auto;
+  font-family: inherit;
+  font-size: 10px;
+  color: #99a;
+  border: 1px solid #ccd;
+  border-radius: 3px;
+  padding: 0 4px;
+  line-height: 14px;
+}
+
 .placement-overlay {
   position: absolute;
   inset: 0;

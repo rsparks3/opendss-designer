@@ -68,6 +68,7 @@ def _extract_buses() -> dict[str, Any]:
         vmags = mag_ang[0::2]
         buses[name] = {
             "vmagPu": [round(v, 5) for v in vmags],
+            "vangDeg": [round(a, 2) for a in mag_ang[1::2]],
             "vminPu": round(min(vmags), 5) if vmags else None,
             "vmaxPu": round(max(vmags), 5) if vmags else None,
             "kvBase": round(dss.Bus.kVBase(), 5),  # line-to-neutral kV

@@ -1,10 +1,11 @@
 import { useCircuitStore } from '../store/circuitStore'
 import type { NodeType } from '../types/circuit'
 
-const ITEMS: { type: NodeType; label: string; icon: React.ReactNode }[] = [
+const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode }[] = [
   {
     type: 'vsource',
     label: 'Source',
+    kbd: 'S',
     icon: (
       <svg viewBox="0 0 32 32">
         <circle cx="16" cy="16" r="10" className="sym" fill="none" />
@@ -15,6 +16,7 @@ const ITEMS: { type: NodeType; label: string; icon: React.ReactNode }[] = [
   {
     type: 'busbar',
     label: 'Busbar',
+    kbd: 'B',
     icon: (
       <svg viewBox="0 0 32 32">
         <rect x="2" y="13" width="28" height="6" className="sym-fill" />
@@ -24,6 +26,7 @@ const ITEMS: { type: NodeType; label: string; icon: React.ReactNode }[] = [
   {
     type: 'transformer',
     label: 'Transformer',
+    kbd: 'T',
     icon: (
       <svg viewBox="0 0 32 32">
         <circle cx="16" cy="11" r="8" className="sym" fill="none" />
@@ -34,6 +37,7 @@ const ITEMS: { type: NodeType; label: string; icon: React.ReactNode }[] = [
   {
     type: 'breaker',
     label: 'Breaker',
+    kbd: 'K',
     icon: (
       <svg viewBox="0 0 32 32">
         <line x1="16" y1="2" x2="16" y2="10" className="sym" />
@@ -45,6 +49,7 @@ const ITEMS: { type: NodeType; label: string; icon: React.ReactNode }[] = [
   {
     type: 'load',
     label: 'Load',
+    kbd: 'L',
     icon: (
       <svg viewBox="0 0 32 32">
         <line x1="16" y1="2" x2="16" y2="12" className="sym" />
@@ -68,10 +73,11 @@ export function Palette() {
           key={item.type}
           className={`palette-item${placementType === item.type ? ' active' : ''}`}
           onClick={() => setPlacement(placementType === item.type ? null : item.type)}
-          title={`Click, then click the canvas to place a ${item.label.toLowerCase()}`}
+          title={`Click (or press ${item.kbd}), then click the canvas to place a ${item.label.toLowerCase()}`}
         >
           <span className="palette-icon">{item.icon}</span>
           {item.label}
+          <kbd className="palette-kbd">{item.kbd}</kbd>
         </button>
       ))}
       <div className="palette-title" style={{ marginTop: 16 }}>
@@ -88,6 +94,7 @@ export function Palette() {
           </svg>
         </span>
         Wire
+        <kbd className="palette-kbd">W</kbd>
       </button>
       <button
         className={`palette-item${connectMode === 'line' ? ' active' : ''}`}
@@ -100,6 +107,7 @@ export function Palette() {
           </svg>
         </span>
         Line (impedance)
+        <kbd className="palette-kbd">E</kbd>
       </button>
       {placementType && (
         <div className="palette-hint">Click the canvas to place. Esc to cancel.</div>

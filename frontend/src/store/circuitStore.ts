@@ -9,7 +9,7 @@ import {
 } from '@xyflow/react'
 import { temporal } from 'zundo'
 import { create } from 'zustand'
-import { defaultLineParams, defaultParams, NODE_SIZE } from '../lib/defaults'
+import { defaultLineParams, defaultParams, nextName, NODE_SIZE } from '../lib/defaults'
 import type { CircuitJSON, EdgeKind, NodeType, Params } from '../types/circuit'
 import { useResultsStore } from './resultsStore'
 
@@ -49,6 +49,14 @@ export interface CircuitState {
   mergeBusNames: (names: Record<string, string>) => void
   loadCircuit: (c: CircuitJSON) => void
   clearAll: () => void
+
+  /** Copy the selection to the in-memory clipboard; returns elements copied. */
+  copySelection: () => number
+  pasteClipboard: () => void
+  duplicateSelection: () => void
+  /** Rotate the given symbol nodes 90° clockwise (busbars are skipped). */
+  rotateNodes: (ids: string[]) => void
+  rotateSelection: () => void
 }
 
 let idSeq = 0
@@ -56,6 +64,104 @@ const newId = (p: string) => `${p}_${Date.now().toString(36)}_${++idSeq}`
 
 function markStale() {
   useResultsStore.getState().markStale()
+}
+
+// ---------------------------------------------------------------------------
+// Undo gestures: while a continuous gesture (drag, resize) is in progress the
+// temporal store records only the first change, so the whole gesture undoes
+// as one step. Everything outside a gesture records per action.
+let inGesture = false
+let gestureRecorded = false
+export function beginGesture(): void {
+  inGesture = true
+  gestureRecorded = false
+}
+export function endGesture(): void {
+  inGesture = false
+}
+
+// ---------------------------------------------------------------------------
+// Clipboard for copy/paste/duplicate — in-memory, survives circuit switches.
+interface Clipboard {
+  nodes: AppNode[]
+  edges: AppEdge[]
+}
+let clipboard: Clipboard | null = null
+let pasteCount = 0
+
+const NAME_PREFIX: Record<string, string> = {
+  vsource: 'SRC',
+  busbar: 'BUS',
+  transformer: 'T',
+  load: 'LOAD',
+  breaker: 'BRK',
+}
+
+const PASTE_OFFSET = 30
+
+/** Every element name currently in use on the canvas. */
+function takenNames(s: Pick<CircuitState, 'nodes' | 'edges'>): Set<string> {
+  const names = new Set<string>()
+  for (const n of s.nodes) if (typeof n.data.params.name === 'string') names.add(n.data.params.name)
+  for (const e of s.edges) {
+    const nm = e.data?.params?.name
+    if (typeof nm === 'string') names.add(nm)
+  }
+  return names
+}
+
+function uniqueName(prefix: string, taken: Set<string>): string {
+  let name = nextName(prefix)
+  while (taken.has(name)) name = nextName(prefix)
+  taken.add(name)
+  return name
+}
+
+/** Fresh copies of a node/edge set: new ids, remapped endpoints, regenerated
+ *  names (so OpenDSS never sees duplicates), positions shifted by offset. */
+function materializeClones(clip: Clipboard, offset: XY, taken: Set<string>): Clipboard {
+  const idMap = new Map<string, string>()
+  const nodes: AppNode[] = clip.nodes.map((n) => {
+    const id = newId('n')
+    idMap.set(n.id, id)
+    const params: Params = { ...n.data.params }
+    if (typeof params.name === 'string') {
+      params.name = uniqueName(NAME_PREFIX[n.type as string] ?? 'EL', taken)
+    }
+    return {
+      ...n,
+      id,
+      selected: true,
+      position: { x: n.position.x + offset.x, y: n.position.y + offset.y },
+      data: { params },
+    }
+  })
+  const edges: AppEdge[] = clip.edges.map((e) => {
+    const params: Params = { ...(e.data?.params ?? {}) }
+    if (typeof params.name === 'string') params.name = uniqueName('LN', taken)
+    return {
+      ...e,
+      id: newId('e'),
+      selected: true,
+      source: idMap.get(e.source)!,
+      target: idMap.get(e.target)!,
+      data: {
+        params,
+        waypoints: e.data?.waypoints?.map((w) => ({ x: w.x + offset.x, y: w.y + offset.y })),
+      },
+    }
+  })
+  return { nodes, edges }
+}
+
+/** Selected nodes plus the edges whose BOTH endpoints are selected. */
+function selectionClipboard(s: Pick<CircuitState, 'nodes' | 'edges'>): Clipboard | null {
+  const ids = new Set(s.nodes.filter((n) => n.selected).map((n) => n.id))
+  if (!ids.size) return null
+  return structuredClone({
+    nodes: s.nodes.filter((n) => ids.has(n.id)),
+    edges: s.edges.filter((e) => ids.has(e.source) && ids.has(e.target)),
+  })
 }
 
 /** Number of connection handles per row a busbar of a given width exposes.
@@ -325,20 +431,83 @@ export const useCircuitStore = create<CircuitState>()(
         set({ nodes: [], edges: [], busNames: {}, dirty: true })
         markStale()
       },
+
+      copySelection: () => {
+        const clip = selectionClipboard(get())
+        if (!clip) return 0
+        clipboard = clip
+        pasteCount = 0
+        return clip.nodes.length
+      },
+      pasteClipboard: () => {
+        if (!clipboard) return
+        pasteCount += 1
+        const off = PASTE_OFFSET * pasteCount
+        const { nodes, edges } = materializeClones(clipboard, { x: off, y: off }, takenNames(get()))
+        set({
+          nodes: [...get().nodes.map((n) => ({ ...n, selected: false })), ...nodes],
+          edges: [...get().edges.map((e) => ({ ...e, selected: false })), ...edges],
+          dirty: true,
+        })
+        markStale()
+      },
+      duplicateSelection: () => {
+        const clip = selectionClipboard(get())
+        if (!clip) return
+        const { nodes, edges } = materializeClones(clip, { x: PASTE_OFFSET, y: PASTE_OFFSET }, takenNames(get()))
+        set({
+          nodes: [...get().nodes.map((n) => ({ ...n, selected: false })), ...nodes],
+          edges: [...get().edges.map((e) => ({ ...e, selected: false })), ...edges],
+          dirty: true,
+        })
+        markStale()
+      },
+      // Rotation is diagram cosmetics (stored in params, ignored by the
+      // compiler) — dirty for saving, but results stay valid.
+      rotateNodes: (ids) => {
+        const idSet = new Set(ids)
+        if (!idSet.size) return
+        set({
+          nodes: get().nodes.map((n) =>
+            idSet.has(n.id) && n.type !== 'busbar'
+              ? {
+                  ...n,
+                  data: {
+                    params: {
+                      ...n.data.params,
+                      rotation: ((Number(n.data.params.rotation) || 0) + 90) % 360,
+                    },
+                  },
+                }
+              : n,
+          ),
+          dirty: true,
+        })
+      },
+      rotateSelection: () => {
+        get().rotateNodes(get().nodes.filter((n) => n.selected).map((n) => n.id))
+      },
     }),
     {
-      partialize: (s) => ({ name: s.name, nodes: s.nodes, edges: s.edges, busNames: s.busNames }),
+      // Selection flags are stripped so clicking around never pollutes the
+      // undo history (equality below then sees those states as identical).
+      partialize: (s) => ({
+        name: s.name,
+        nodes: s.nodes.map(({ selected: _s, ...n }) => n),
+        edges: s.edges.map(({ selected: _s, ...e }) => e),
+        busNames: s.busNames,
+      }),
       limit: 100,
-      // Group rapid-fire changes (drags) into one undo step.
-      handleSet: (handleSet) => {
-        let last = 0
-        return (state) => {
-          const now = Date.now()
-          if (now - last > 300) {
-            last = now
-            handleSet(state)
-          }
+      // Structural compare; fine at editor scale (revisit if circuits reach
+      // thousands of elements).
+      equality: (past, cur) => JSON.stringify(past) === JSON.stringify(cur),
+      // One undo entry per gesture (drag/resize), one per discrete action.
+      handleSet: (handleSet) => (state) => {
+        if (inGesture) {
+          if (gestureRecorded) return
+          gestureRecorded = true
         }
+        handleSet(state)
       },
     },
   ),

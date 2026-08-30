@@ -1,7 +1,64 @@
-import type { ReactNode } from 'react'
+import { Position, useUpdateNodeInternals } from '@xyflow/react'
+import { useEffect, type ReactNode } from 'react'
 import { loadingColor } from '../../lib/colorScale'
 import { useResultsStore } from '../../store/resultsStore'
+import type { Params } from '../../types/circuit'
 import { LoadingPie } from '../LoadingPie'
+
+// ---------------------------------------------------------------------------
+// Symbol rotation (R key / context menu): params.rotation ∈ {0, 90, 180, 270}.
+// The SVG rotates; the container swaps width/height at 90/270 so handles,
+// labels and badges stay attached to the right container edges.
+
+const POS_ORDER = [Position.Top, Position.Right, Position.Bottom, Position.Left]
+
+/** Where a handle's base position ends up after rotating clockwise. */
+export function rotatePosition(base: Position, rotation: number): Position {
+  const steps = ((Math.round(rotation / 90) % 4) + 4) % 4
+  return POS_ORDER[(POS_ORDER.indexOf(base) + steps) % 4]
+}
+
+/** Current rotation for a node; re-measures handles when it changes. */
+export function useSymbolRotation(id: string, params: Params): number {
+  const rotation = Number(params.rotation) || 0
+  const updateNodeInternals = useUpdateNodeInternals()
+  useEffect(() => updateNodeInternals(id), [rotation, id, updateNodeInternals])
+  return rotation
+}
+
+/** Outer container size for a w×h symbol at the given rotation. */
+export function rotatedBox(w: number, h: number, rotation: number): { w: number; h: number } {
+  return rotation % 180 ? { w: h, h: w } : { w, h }
+}
+
+/** Renders the symbol SVG rotated about the container center. */
+export function SymbolSvg({
+  rotation,
+  w,
+  h,
+  children,
+}: {
+  rotation: number
+  w: number
+  h: number
+  children: ReactNode
+}) {
+  const box = rotatedBox(w, h, rotation)
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: (box.w - w) / 2,
+        top: (box.h - h) / 2,
+        width: w,
+        height: h,
+        transform: rotation ? `rotate(${rotation}deg)` : undefined,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
 
 export function useNodeIssueClass(id: string): string {
   const issues = useResultsStore((s) => s.issues)

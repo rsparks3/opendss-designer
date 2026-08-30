@@ -22,18 +22,21 @@ No visible features; protects everything after.
   so server bugs return 500, not 400
 - Housekeeping: remove stray root screenshot, drop unused `react-hook-form`
 
-## M2 — Editor UX quick wins (~1–2 sessions)
+## M2 — Editor UX quick wins — ✅ DONE (2026-08-30)
 
 All frontend-only; the M1 vitest harness covers the store changes.
 
-- **Copy/paste** and duplicate (Ctrl+C/V/D), multi-select property editing
-- **Keyboard palette shortcuts** (S=source, B=busbar, T=transformer…)
-- **Rotate symbols** (R key) for horizontal feeder layouts
-- **Right-click context menus** (open/close breaker without the properties panel)
-- **Result tooltips** on hover with full detail (per-phase V, angles, currents, powers —
-  the backend already returns per-node arrays)
-- **Finer undo granularity**: replace the 300 ms history throttle with per-gesture
-  grouping (`temporal.pause()/resume()` around drags)
+- ~~**Copy/paste** and duplicate (Ctrl+C/V/D)~~ — collision-safe renaming, cascading offsets
+- ~~**Keyboard palette shortcuts**~~ — S/B/T/K/L place, W/E switch wire/line mode
+- ~~**Rotate symbols** (R key)~~ — params.rotation, handles follow; busbars excluded
+- ~~**Right-click context menus**~~ — open/close breaker, rotate, duplicate, delete,
+  straighten edge
+- ~~**Result tooltips** on hover~~ — per-phase V/angle (backend now returns `vangDeg`),
+  currents, power, loading
+- ~~**Finer undo granularity**~~ — per-gesture grouping via begin/endGesture; selection
+  changes excluded from history
+- Still open from this bucket: **multi-select property editing** (deferred to a later
+  milestone; single-element editing plus spreadsheet fill-down covers most of it)
 
 ## M3 — Component pack 1: real-feeder essentials (~2 sessions)
 
