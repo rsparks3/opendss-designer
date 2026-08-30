@@ -89,10 +89,17 @@ All frontend-only; the M1 vitest harness covers the store changes.
 - ~~**Daily/yearly time series**~~ — step-driven engine loop
   (`solve_timeseries`) records every bus/element automatically (no
   monitor elements needed), integrates energy/losses/peaks; SSE progress
-  streaming (`POST /api/timeseries`) with cancel; Toolbar `[Daily|Yearly]
-  [1h|15m] ▶ Run`; Graph tab grew a Time mode (polylines, entity picker,
-  month axis, min/max envelope downsampling >2k steps, summary table) —
-  still zero charting dependencies
+  streaming (`POST /api/timeseries`) with cancel; Graph tab grew a Time
+  mode (polylines, entity picker, month axis, min/max envelope
+  downsampling >2k steps, summary table) — still zero charting dependencies
+- **Time-series analysis mode + scrubbing** (follow-up) — Snapshot/Time
+  series toolbar toggle; TS mode grays out Solve/Auto and shows a transport
+  bar (`TimeBar.tsx`): run controls, play/pause, and a scrubber that drives
+  the canvas overlays (voltage/loading/power badges, line colors, tooltips)
+  through the recorded run via `tsSlice` (recorded step reshaped as a
+  SolveResult; scrubber parks at the peak hour). Downsampled yearly runs
+  pop an envelope-explanation dialog and keep an "envelope ≈12 h" chip;
+  the Time chart draws a synced cursor line
 
 ## M6 — Regulation, protection & phases (~2–3 sessions)
 

@@ -117,7 +117,7 @@ export interface TimeSeriesResult {
   downsampled: boolean
   time: number[]
   totals: { kw: number[]; lossKw: number[] }
-  buses: Record<string, { vmin: number[]; vmax: number[] }>
+  buses: Record<string, { vmin: number[]; vmax: number[]; kvBase: number }>
   elements: Record<
     string,
     { id: string; kw: number[]; kvar: number[]; ampsMax: number[]; loadingPct: (number | null)[] }
@@ -133,6 +133,7 @@ export interface TimeSeriesResult {
   nonConvergedSteps: number[]
   issues: Issue[]
   nodeBuses: Record<string, string[]>
+  lineBuses: Record<string, string[]>
   busNames: Record<string, string>
 }
 

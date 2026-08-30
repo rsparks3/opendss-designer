@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { fmt, ticks } from '../lib/axis'
+import { fmt, fmtSimHour, MONTH_NAMES, MONTH_STARTS, ticks } from '../lib/axis'
 import {
   computeTimeSeries,
   defaultTsEntities,
@@ -28,11 +28,6 @@ const MAX_SERIES = 8
 const TRACE_COLORS = ['#1a1a1a', '#d32f2f', '#1565c0', '#2e7d32', '#ef6c00',
   '#6a1b9a', '#5d4037', '#00838f']
 
-/** Hour of year at each month start (non-leap), for yearly-axis labels. */
-const MONTH_STARTS = [0, 744, 1416, 2160, 2880, 3624, 4344, 5088, 5832, 6552, 7296, 8016]
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
 type Domain = { x: [number, number]; y: [number, number] }
 
 function initialSize(): { w: number; h: number } {
@@ -43,13 +38,6 @@ function initialSize(): { w: number; h: number } {
     // unset or corrupt
   }
   return DEFAULT_SIZE
-}
-
-function fmtHour(h: number, mode: 'daily' | 'yearly'): string {
-  if (mode === 'daily') return `${h.toFixed(2)} h`
-  const m = MONTH_STARTS.filter((s) => s <= h).length - 1
-  const day = Math.floor((h - MONTH_STARTS[Math.max(m, 0)]) / 24) + 1
-  return `${MONTH_NAMES[Math.max(m, 0)]} ${day}, h ${h.toFixed(1)}`
 }
 
 function SummaryTable({ ts }: { ts: TimeSeriesResult }) {
@@ -69,17 +57,17 @@ function SummaryTable({ ts }: { ts: TimeSeriesResult }) {
           </td>
           <td>Peak</td>
           <td>
-            {(s.peakKw / 1000).toFixed(2)} MW @ {fmtHour(s.peakHour, ts.mode)}
+            {(s.peakKw / 1000).toFixed(2)} MW @ {fmtSimHour(s.peakHour, ts.mode)}
           </td>
         </tr>
         <tr>
           <td>Min V</td>
           <td>
-            {s.minVpu ? `${s.minVpu.value} pu @ ${busName(s.minVpu.bus)}, ${fmtHour(s.minVpu.hour, ts.mode)}` : '—'}
+            {s.minVpu ? `${s.minVpu.value} pu @ ${busName(s.minVpu.bus)}, ${fmtSimHour(s.minVpu.hour, ts.mode)}` : '—'}
           </td>
           <td>Max V</td>
           <td>
-            {s.maxVpu ? `${s.maxVpu.value} pu @ ${busName(s.maxVpu.bus)}, ${fmtHour(s.maxVpu.hour, ts.mode)}` : '—'}
+            {s.maxVpu ? `${s.maxVpu.value} pu @ ${busName(s.maxVpu.bus)}, ${fmtSimHour(s.maxVpu.hour, ts.mode)}` : '—'}
           </td>
           <td>Steps</td>
           <td>
@@ -98,6 +86,8 @@ function SummaryTable({ ts }: { ts: TimeSeriesResult }) {
  *  selected bus/element, with the snapshot chart's zoom/pan interactions. */
 export function TimeGraphPanel({ ts }: { ts: TimeSeriesResult }) {
   const stale = useResultsStore((s) => s.stale)
+  // Transport-bar scrub position, drawn as a cursor line on the chart.
+  const tsIdx = useResultsStore((s) => s.tsIndex)
   const [quantity, setQuantity] = useState('totalkw')
   const [picked, setPicked] = useState<Record<string, string[]>>({})
   const [domain, setDomain] = useState<Domain | null>(null)
@@ -407,6 +397,15 @@ export function TimeGraphPanel({ ts }: { ts: TimeSeriesResult }) {
                 className="vp-trace"
               />
             ))}
+            {tsIdx != null && ts.time[tsIdx] >= xLo && ts.time[tsIdx] <= xHi && (
+              <line
+                x1={x(ts.time[tsIdx])}
+                x2={x(ts.time[tsIdx])}
+                y1={MT}
+                y2={MT + PLOT_H}
+                className="ts-cursor"
+              />
+            )}
             {hover && (
               <circle cx={x(hover.pt.x)} cy={y(hover.pt.y)} r={4.5}
                       fill={TRACE_COLORS[hover.line.colorIdx % TRACE_COLORS.length]}
@@ -451,7 +450,7 @@ export function TimeGraphPanel({ ts }: { ts: TimeSeriesResult }) {
           <div className="rt-title">{ts.busNames[hover.line.label] ?? hover.line.label}</div>
           <table>
             <tbody>
-              <tr><td>time</td><td>{fmtHour(hover.pt.x, ts.mode)}</td></tr>
+              <tr><td>time</td><td>{fmtSimHour(hover.pt.x, ts.mode)}</td></tr>
               <tr><td>{q.label}</td><td>{hover.pt.y.toFixed(isVoltage ? 4 : 1)}</td></tr>
             </tbody>
           </table>

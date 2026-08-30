@@ -107,24 +107,62 @@ test('a remembered NLR key shows masked with a change option', async ({ page }) 
   await expect(credLine).toContainText('••••5678')
 })
 
-test('daily time-series run: progress, Time-mode graph, summary', async ({ page }) => {
+test('time-series mode: disabled snapshot buttons, run, graph, scrubbing', async ({ page }) => {
   await openWithFixture(page)
-  const run = page.getByRole('button', { name: '▶ Run', exact: true })
-  await expect(run).toBeEnabled()
-  await run.click()
+  await page.locator('.toolbar').getByRole('button', { name: 'Time series' }).click()
+
+  // Individual snapshot runs are grayed out with an explanatory tooltip.
+  const solve = page.getByRole('button', { name: /Solve/ })
+  await expect(solve).toBeDisabled()
+  await expect(solve).toHaveAttribute('title', 'Individual runs disabled in time series mode')
+  await expect(page.getByRole('button', { name: 'Auto' })).toBeDisabled()
+
+  // The transport bar owns the run controls; scrubber waits for a run.
+  const bar = page.locator('.time-bar')
+  await expect(bar.locator('.tb-scrub')).toBeDisabled()
+  await bar.getByRole('button', { name: '▶ Run', exact: true }).click()
 
   // Completion opens the Graph tab in Time mode with a summary + polyline.
   await expect(page.locator('.ts-summary')).toBeVisible({ timeout: 30_000 })
   await expect(page.locator('.ts-summary')).toContainText('MWh')
   await expect(page.locator('.vp-trace').first()).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Time' })).toHaveClass(/active/)
+  await expect(page.getByRole('button', { name: 'Time', exact: true })).toHaveClass(/active/)
+
+  // Scrubber parks at the system peak hour and drives the voltage overlay.
+  await expect(bar.locator('.tb-readout')).toContainText('h')
+  await expect(page.locator('.result-badge').filter({ hasText: 'pu' }).first()).toBeVisible()
+  await bar.locator('.tb-scrub').fill('0')
+  await expect(bar.locator('.tb-readout')).toContainText('1.00 h')
+  // The time chart shows the scrub cursor. (A vertical SVG line has a
+  // zero-width bounding box, which Playwright's visibility check rejects —
+  // assert presence instead.)
+  await expect(page.locator('.ts-cursor')).toHaveCount(1)
 
   // Switch to a bus quantity: default picks the lowest-voltage buses.
   await page.getByLabel('Quantity').selectOption({ label: 'Bus V min (pu)' })
   await expect(page.locator('.vp-trace').first()).toBeVisible()
   await expect(page.locator('.ts-picker summary')).toContainText('Buses')
 
-  // Snapshot mode still works after a run.
-  await page.getByRole('button', { name: 'Snapshot' }).click()
+  // Back in snapshot mode: transport bar hides, Solve re-enables.
+  await page.locator('.toolbar').getByRole('button', { name: 'Snapshot' }).click()
+  await expect(bar).toHaveCount(0)
+  await expect(solve).toBeEnabled()
+  await page.locator('.graph-mode').getByRole('button', { name: 'Snapshot' }).click()
   await expect(page.locator('.graph-controls').getByLabel('Y axis')).toBeVisible()
+})
+
+test('yearly run warns that scrubbing shows a downsampled envelope', async ({ page }) => {
+  await openWithFixture(page)
+  await page.locator('.toolbar').getByRole('button', { name: 'Time series' }).click()
+  const bar = page.locator('.time-bar')
+  await bar.locator('select').first().selectOption('yearly')
+  await bar.getByRole('button', { name: '▶ Run', exact: true }).click()
+
+  const modal = page.locator('.modal-box')
+  await expect(modal).toContainText('downsampled', { timeout: 60_000 })
+  await expect(modal).toContainText('not the exact network state')
+  await modal.getByRole('button', { name: 'Got it' }).click()
+  await expect(modal).toHaveCount(0)
+  // A persistent chip stays on the bar as a reminder (reopens the dialog).
+  await expect(bar.locator('.tb-envelope')).toContainText('envelope')
 })

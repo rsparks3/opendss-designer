@@ -732,3 +732,51 @@ html, body, #root { margin: 0; height: 100%; }
 .modal-actions button:disabled { opacity: 0.5; cursor: default; }
 .nsrdb-cred-line { color: #778; font-size: 11.5px; }
 .nsrdb-cred-line .nrel-toggle { font-size: 11.5px; padding: 0; }
+
+/* ---- Time-series transport bar ---- */
+.time-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: #f3f6fa;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.time-bar select {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 4px;
+  padding: 3px 4px;
+  font-size: 12.5px;
+}
+.time-bar .ts-run, .tb-play {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.time-bar .ts-run:hover:not(:disabled), .tb-play:hover:not(:disabled) { background: #eef2f8; }
+.time-bar .ts-run:disabled, .tb-play:disabled { opacity: 0.45; cursor: default; }
+.tb-play { min-width: 38px; }
+.tb-scrub { flex: 1; min-width: 120px; accent-color: var(--accent); }
+.tb-scrub:disabled { opacity: 0.4; }
+.tb-readout {
+  min-width: 120px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #445;
+}
+.tb-envelope {
+  border: 1px solid #ef6c00;
+  background: #fff3e0;
+  color: #e65100;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.ts-cursor { stroke: #ef6c00; stroke-width: 1.3; stroke-dasharray: 5 3; }
+.rt-hour { font-weight: 400; color: #667; }

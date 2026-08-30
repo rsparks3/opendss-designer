@@ -1,14 +1,14 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
 import type { AppEdge } from '../../store/circuitStore'
-import { useResultsStore } from '../../store/resultsStore'
+import { activeResult, useResultsStore } from '../../store/resultsStore'
 import { LoadingPie } from '../LoadingPie'
 import { useEdgePath, WaypointDots } from './waypoints'
 
 export function LineEdge(props: EdgeProps<AppEdge>) {
   const [path, labelX, labelY] = useEdgePath(props)
   const overlay = useResultsStore((s) => s.overlay)
-  const result = useResultsStore((s) => s.result)
+  const result = useResultsStore(activeResult)
   const stale = useResultsStore((s) => s.stale)
 
   const el = result?.converged

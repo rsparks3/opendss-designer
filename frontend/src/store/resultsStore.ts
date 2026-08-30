@@ -1,5 +1,8 @@
 import { create } from 'zustand'
+import { tsIndexNearHour, tsSlice } from '../lib/tsSlice'
 import type { FaultResult, Issue, SolveResult, TimeSeriesResult } from '../types/circuit'
+
+export type AnalysisMode = 'snapshot' | 'timeseries'
 
 export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'off'
 
@@ -18,6 +21,17 @@ interface ResultsState {
   /** When on, a solve runs automatically after every circuit change. */
   autoSolve: boolean
   setAutoSolve: (b: boolean) => void
+
+  /** Snapshot vs time-series analysis. In time-series mode the canvas
+   *  overlays show the scrubbed step of the recorded run, and manual
+   *  Solve/Auto snapshot runs are disabled. */
+  analysisMode: AnalysisMode
+  setAnalysisMode: (m: AnalysisMode) => void
+  /** Scrub position (index into the recorded run's arrays) and the recorded
+   *  step reshaped as a SolveResult for the overlays. */
+  tsIndex: number | null
+  setTsIndex: (i: number | null) => void
+  scrubResult: SolveResult | null
 
   /** Time-series run; cleared on any circuit change like `fault`. Runs are
    *  explicit (Run button) — never triggered by auto-solve. */
@@ -56,8 +70,32 @@ export const useResultsStore = create<ResultsState>((set) => ({
   autoSolve: false,
   setAutoSolve: (autoSolve) => set({ autoSolve }),
 
+  analysisMode: 'snapshot',
+  setAnalysisMode: (analysisMode) => set({ analysisMode }),
+  tsIndex: null,
+  setTsIndex: (tsIndex) =>
+    set((s) => ({
+      tsIndex,
+      scrubResult:
+        tsIndex != null && s.timeseries ? tsSlice(s.timeseries, tsIndex) : null,
+    })),
+  scrubResult: null,
+
   timeseries: null,
-  setTimeseries: (timeseries) => set({ timeseries }),
+  // A fresh run lands with the scrubber parked at the system peak hour.
+  setTimeseries: (timeseries) => {
+    const tsIndex =
+      timeseries?.summary != null
+        ? tsIndexNearHour(timeseries, timeseries.summary.peakHour)
+        : timeseries
+          ? 0
+          : null
+    set({
+      timeseries,
+      tsIndex,
+      scrubResult: timeseries && tsIndex != null ? tsSlice(timeseries, tsIndex) : null,
+    })
+  },
   tsRunning: false,
   tsProgress: null,
   setTsProgress: (tsProgress) => set({ tsProgress }),
@@ -68,7 +106,8 @@ export const useResultsStore = create<ResultsState>((set) => ({
   requestGraphTab: () => set((s) => ({ graphTabSignal: s.graphTabSignal + 1 })),
 
   setResult: (result) => set({ result, stale: false }),
-  markStale: () => set({ stale: true, fault: null, timeseries: null }),
+  markStale: () =>
+    set({ stale: true, fault: null, timeseries: null, tsIndex: null, scrubResult: null }),
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),
   setIssues: (issues) => set({ issues }),
@@ -78,6 +117,12 @@ export const useResultsStore = create<ResultsState>((set) => ({
     flashTimer = setTimeout(() => set({ flash: null }), durationMs)
   },
 }))
+
+/** What the canvas overlays should render: the scrubbed time-series step in
+ *  time-series mode, the last snapshot solve otherwise. */
+export function activeResult(s: ResultsState): SolveResult | null {
+  return s.analysisMode === 'timeseries' ? s.scrubResult : s.result
+}
 
 /** Bus result for a node (its first terminal), respecting staleness. */
 export function busForNode(state: ResultsState, nodeId: string) {

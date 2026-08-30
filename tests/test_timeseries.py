@@ -39,9 +39,12 @@ def test_daily_run_records_everything(substation_circuit):
     assert r["summary"]["lossesKwh"] > 0
     assert 8 <= r["summary"]["peakHour"] <= 18
 
-    # Bus voltage envelopes recorded for every bus, every step.
+    # Bus voltage envelopes recorded for every bus, every step, with the
+    # static kvBase the scrub view needs.
     for b, env in r["buses"].items():
         assert len(env["vmin"]) == 24, b
+        assert env["kvBase"] > 0, b
+    assert r["lineBuses"], "line->buses map needed for scrub tooltips"
     assert r["summary"]["minVpu"]["value"] < 1.0
     assert r["nonConvergedSteps"] == []
 

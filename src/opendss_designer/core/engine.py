@@ -276,6 +276,10 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
         bus_slices: dict[str, list[int]] = {}
         for idx, node in enumerate(node_names):
             bus_slices.setdefault(node.split(".", 1)[0], []).append(idx)
+        bus_kv_base: dict[str, float] = {}
+        for b in bus_slices:
+            dss.Circuit.SetActiveBus(b)
+            bus_kv_base[b] = round(dss.Bus.kVBase(), 5)  # line-to-neutral
 
         # Static per-element facts, captured once.
         elem_static: list[tuple[str, str, int, int, float | None]] = []
@@ -402,7 +406,8 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
         "downsampled": downsampled,
         "time": times,
         "totals": {"kw": total_kw, "lossKw": loss_kw},
-        "buses": {b: {"vmin": bus_vmin[b], "vmax": bus_vmax[b]} for b in bus_slices},
+        "buses": {b: {"vmin": bus_vmin[b], "vmax": bus_vmax[b],
+                      "kvBase": bus_kv_base.get(b, 0.0)} for b in bus_slices},
         "elements": {fn: {"id": _id, **elem_series[fn]}
                      for fn, _id, *_ in elem_static},
         "summary": {
@@ -416,6 +421,7 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
         "nonConvergedSteps": non_converged,
         "issues": [i.model_dump() for i in issues],
         "nodeBuses": conn.node_buses if conn else {},
+        "lineBuses": {k: list(v) for k, v in conn.line_buses.items()} if conn else {},
         "busNames": conn.bus_names if conn else {},
     }
 

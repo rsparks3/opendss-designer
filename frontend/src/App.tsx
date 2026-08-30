@@ -10,6 +10,7 @@ import { BottomPanel } from './components/BottomPanel'
 import { EditorCanvas } from './components/EditorCanvas'
 import { Palette } from './components/Palette'
 import { PropertiesPanel } from './components/PropertiesPanel'
+import { TimeBar } from './components/TimeBar'
 import { Toolbar } from './components/Toolbar'
 
 /** Re-validate the circuit (debounced) whenever it changes. */
@@ -30,9 +31,12 @@ function useValidation() {
         const { issues } = await api.validate(toCircuitJSON(useCircuitStore.getState()))
         setIssues(issues)
         // Auto-solve rides on the validation debounce: once the circuit
-        // settles and has no errors, re-run the power flow.
+        // settles and has no errors, re-run the power flow. Suppressed in
+        // time-series mode, where snapshot runs are disabled.
+        const rs = useResultsStore.getState()
         if (
-          useResultsStore.getState().autoSolve &&
+          rs.autoSolve &&
+          rs.analysisMode !== 'timeseries' &&
           !issues.some((i) => i.severity === 'error')
         ) {
           void runSolve()
@@ -112,6 +116,7 @@ export default function App() {
     <ReactFlowProvider>
       <div className="app">
         <Toolbar />
+        <TimeBar />
         <div className="main-row">
           <Palette />
           <EditorCanvas />

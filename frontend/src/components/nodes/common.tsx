@@ -1,7 +1,7 @@
 import { Position, useUpdateNodeInternals } from '@xyflow/react'
 import { useEffect, type ReactNode } from 'react'
 import { loadingColor } from '../../lib/colorScale'
-import { useResultsStore } from '../../store/resultsStore'
+import { activeResult, useResultsStore } from '../../store/resultsStore'
 import type { Params } from '../../types/circuit'
 import { LoadingPie } from '../LoadingPie'
 
@@ -81,10 +81,11 @@ export function Badge({ color, children }: { color: string; children: ReactNode 
   )
 }
 
-/** Voltage badge for any node sitting on a bus, shown in 'voltage' overlay mode. */
+/** Voltage badge for any node sitting on a bus, shown in 'voltage' overlay
+ *  mode. In time-series mode it reads the scrubbed step of the recorded run. */
 export function VoltageBadge({ nodeId }: { nodeId: string }) {
   const overlay = useResultsStore((s) => s.overlay)
-  const result = useResultsStore((s) => s.result)
+  const result = useResultsStore(activeResult)
   if (overlay !== 'voltage' || !result?.converged) return null
   const bus = result.nodeBuses[nodeId]?.[0]
   const data = bus ? result.buses[bus] : null
@@ -123,7 +124,7 @@ export function PieBadge({ pct }: { pct: number }) {
 /** Loading/power badge for series elements (transformer, breaker). */
 export function ElementBadge({ nodeId }: { nodeId: string }) {
   const overlay = useResultsStore((s) => s.overlay)
-  const result = useResultsStore((s) => s.result)
+  const result = useResultsStore(activeResult)
   if ((overlay !== 'loading' && overlay !== 'power') || !result?.converged) return null
   const el = Object.values(result.elements).find((e) => e.id === nodeId)
   if (!el) return null

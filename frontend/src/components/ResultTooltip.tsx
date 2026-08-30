@@ -1,5 +1,6 @@
+import { fmtSimHour } from '../lib/axis'
 import { useCircuitStore } from '../store/circuitStore'
-import { useResultsStore } from '../store/resultsStore'
+import { activeResult, useResultsStore } from '../store/resultsStore'
 import type { BusResult, ElementResult } from '../types/circuit'
 
 export interface HoverTarget {
@@ -13,10 +14,18 @@ export interface HoverTarget {
  *  bus the element touches, plus currents/power/loading for series elements.
  *  Only shown when fresh results exist. */
 export function ResultTooltip({ target }: { target: HoverTarget }) {
-  const result = useResultsStore((s) => s.result)
+  const result = useResultsStore(activeResult)
   const fault = useResultsStore((s) => s.fault)
   const overlay = useResultsStore((s) => s.overlay)
   const stale = useResultsStore((s) => s.stale)
+  // In time-series mode the tooltip reads the scrubbed step; note its hour.
+  // (Primitive selectors so re-renders only happen when the values change.)
+  const scrubHour = useResultsStore((s) =>
+    s.analysisMode === 'timeseries' && s.timeseries && s.tsIndex != null
+      ? s.timeseries.time[s.tsIndex]
+      : null,
+  )
+  const scrubMode = useResultsStore((s) => s.timeseries?.mode ?? 'daily')
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
   if (!result?.converged || stale) return null
@@ -44,7 +53,12 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
 
   return (
     <div className="result-tooltip" style={{ left: target.x + 14, top: target.y + 14 }}>
-      <div className="rt-title">{String(params?.name ?? target.id)}</div>
+      <div className="rt-title">
+        {String(params?.name ?? target.id)}
+        {scrubHour != null && (
+          <span className="rt-hour"> @ {fmtSimHour(scrubHour, scrubMode)}</span>
+        )}
+      </div>
       {buses.map(([busName, data]) => (
         <div key={busName} className="rt-section">
           <div className="rt-heading">
@@ -60,6 +74,23 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
                   <td>{data!.vangDeg?.[i] != null ? `${data!.vangDeg[i].toFixed(1)}°` : ''}</td>
                 </tr>
               ))}
+              {/* Time-series steps record only the per-bus voltage envelope. */}
+              {data!.vmagPu.length === 0 && data!.vminPu != null && (
+                <>
+                  <tr>
+                    <td>V min</td>
+                    <td>{data!.vminPu.toFixed(4)} pu</td>
+                    <td>{(data!.vminPu * data!.kvBase).toFixed(3)} kV</td>
+                    <td />
+                  </tr>
+                  <tr>
+                    <td>V max</td>
+                    <td>{data!.vmaxPu?.toFixed(4)} pu</td>
+                    <td>{((data!.vmaxPu ?? 0) * data!.kvBase).toFixed(3)} kV</td>
+                    <td />
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
         </div>
