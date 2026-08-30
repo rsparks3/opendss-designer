@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   FIELDS,
   FieldInput,
@@ -68,6 +68,12 @@ function ElementTable({ type }: { type: string }) {
   const updateEdgeParams = useCircuitStore((s) => s.updateEdgeParams)
   const selectOnly = useCircuitStore((s) => s.selectOnly)
 
+  // Excel-style fill handle: the focused cell shows a corner dot; dragging it
+  // over other rows copies the value down (or up) through them.
+  const [active, setActive] = useState<{ row: number; key: string } | null>(null)
+  const [fillTo, setFillTo] = useState<number | null>(null)
+  const fillToRef = useRef<number | null>(null)
+
   const isEdgeTable = type === 'line'
   const fields: Field[] =
     type === 'transformer'
@@ -80,11 +86,55 @@ function ElementTable({ type }: { type: string }) {
 
   if (!rows.length) return <div className="bp-empty">No {type} elements in the circuit yet.</div>
 
+  const cellValue = (row: { params: Params }, key: string) =>
+    type === 'transformer' ? windingGet(row.params, key) : row.params[key]
+
   const commit = (id: string, params: Params, key: string, value: unknown) => {
     const patch = type === 'transformer' ? windingPatch(params, key, value) : { [key]: value }
     if (isEdgeTable) updateEdgeParams(id, patch)
     else updateNodeParams(id, patch)
   }
+
+  const startFill = (e: React.PointerEvent) => {
+    if (!active) return
+    e.preventDefault()
+    e.stopPropagation()
+    const { row: startRow, key } = active
+    const value = cellValue(rows[startRow], key)
+    const move = (ev: PointerEvent) => {
+      const hit = document
+        .elementsFromPoint(ev.clientX, ev.clientY)
+        .find((el): el is HTMLElement => el instanceof HTMLElement && el.dataset.rowIdx != null)
+      if (hit) {
+        const idx = Number(hit.dataset.rowIdx)
+        fillToRef.current = idx
+        setFillTo(idx)
+      }
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      const end = fillToRef.current
+      if (end != null && end !== startRow) {
+        const [lo, hi] = [Math.min(startRow, end), Math.max(startRow, end)]
+        for (let i = lo; i <= hi; i++) {
+          if (i !== startRow) commit(rows[i].id, rows[i].params, key, value)
+        }
+      }
+      fillToRef.current = null
+      setFillTo(null)
+    }
+    fillToRef.current = startRow
+    setFillTo(startRow)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  const inFillRange = (idx: number) =>
+    active != null &&
+    fillTo != null &&
+    idx >= Math.min(active.row, fillTo) &&
+    idx <= Math.max(active.row, fillTo)
 
   return (
     <table className="bp-table">
@@ -100,9 +150,9 @@ function ElementTable({ type }: { type: string }) {
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
-          <tr key={row.id}>
-            <td>
+        {rows.map((row, rowIdx) => (
+          <tr key={row.id} data-row-idx={rowIdx} className={inFillRange(rowIdx) ? 'fill-range' : ''}>
+            <td data-row-idx={rowIdx}>
               <button
                 className="bp-locate"
                 title="Select on diagram"
@@ -112,12 +162,24 @@ function ElementTable({ type }: { type: string }) {
               </button>
             </td>
             {fields.map((f) => (
-              <td key={f.key}>
+              <td
+                key={f.key}
+                data-row-idx={rowIdx}
+                className="bp-cell"
+                onFocusCapture={() => setActive({ row: rowIdx, key: f.key })}
+              >
                 <FieldInput
                   field={f}
-                  value={type === 'transformer' ? windingGet(row.params, f.key) : row.params[f.key]}
+                  value={cellValue(row, f.key)}
                   onCommit={(v) => commit(row.id, row.params, f.key, v)}
                 />
+                {active?.row === rowIdx && active.key === f.key && f.key !== 'name' && (
+                  <div
+                    className="fill-handle"
+                    title="Drag to fill this value through other rows"
+                    onPointerDown={startFill}
+                  />
+                )}
               </td>
             ))}
           </tr>

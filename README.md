@@ -5,7 +5,7 @@ built on [OpenDSSDirect.py](https://github.com/dss-extensions/OpenDSSDirect.py).
 Draw a substation-style single-line diagram — the drawing **is** the circuit model —
 then run a power flow and see voltages and loading right on the diagram.
 
-![screenshot](docs/screenshot.jpg)
+![screenshot](docs/screenshot.png)
 
 ## Features (v1)
 
@@ -21,16 +21,19 @@ then run a power flow and see voltages and loading right on the diagram.
 - **Properties panel** with the OpenDSS parameters for each element (kV, kVA, impedances,
   phases 1/2/3, wye/delta, load model…)
 - **Solve** button → snapshot power flow → overlays on the diagram:
-  bus voltages (pu), element loading %, power flows, with color-coded violations
-  (undervoltage blue, overvoltage/overload red) and total losses in the status bar
+  bus voltages (pu), element loading as pie charts + %, power flows, with color-coded
+  violations (undervoltage blue, overvoltage/overload red) and total losses in the
+  status bar — or toggle **Auto** to re-solve automatically on every circuit change
 - **Live validation**: unconnected terminals, missing source, islands, duplicate names,
   kV mismatches — errors disable Solve and halo the offending element
 - **Spreadsheet view**: an Elements tab in the bottom panel lists every source, busbar,
   transformer, line, breaker, and load in an editable table (plus a read-only bus-results
-  table after a solve) — edit values in bulk, click ⌖ to locate an element on the diagram
+  table after a solve) — edit values in bulk with an Excel-style fill-down handle,
+  click ⌖ to locate an element on the diagram
 - **Undo/redo** (Ctrl+Z / Ctrl+Y), delete key, grid snapping, pan/zoom, minimap
 - **Save/Open** projects as JSON; **Export** a runnable `.dss` file;
-  **Import** existing `.dss` files with automatic layout (tidy it up by dragging)
+  **Import** existing `.dss` files (select the main file plus anything it redirects to)
+  with a hierarchical auto-layout — source at top, loads beneath their buses
 
 ## Install & run
 

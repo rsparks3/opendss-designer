@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { api } from '../lib/api'
 import { autoLayout } from '../lib/layout'
+import { runSolve } from '../lib/solve'
 import {
   redo,
   toCircuitJSON,
@@ -36,9 +37,8 @@ export function Toolbar() {
   const overlay = useResultsStore((s) => s.overlay)
   const setOverlay = useResultsStore((s) => s.setOverlay)
   const issues = useResultsStore((s) => s.issues)
-  const setSolving = useResultsStore((s) => s.setSolving)
-  const setResult = useResultsStore((s) => s.setResult)
-  const setIssues = useResultsStore((s) => s.setIssues)
+  const autoSolve = useResultsStore((s) => s.autoSolve)
+  const setAutoSolve = useResultsStore((s) => s.setAutoSolve)
 
   const projectInput = useRef<HTMLInputElement>(null)
   const dssInput = useRef<HTMLInputElement>(null)
@@ -47,18 +47,8 @@ export function Toolbar() {
   const circuit = () => toCircuitJSON(useCircuitStore.getState())
 
   const onSolve = async () => {
-    setSolving(true)
-    try {
-      const result = await api.solve(circuit())
-      setResult(result)
-      if (result.busNames) mergeBusNames(result.busNames)
-      const solveIssues = result.issues.filter((i) => i.code !== 'default-rating')
-      if (solveIssues.length) setIssues([...issues.filter((i) => i.code === 'client'), ...solveIssues])
-    } catch (err) {
-      alert(`Solve request failed: ${err}`)
-    } finally {
-      setSolving(false)
-    }
+    const ok = await runSolve()
+    if (!ok) alert('Solve request failed — is the backend still running?')
   }
 
   const onNew = () => {
@@ -144,6 +134,16 @@ export function Toolbar() {
           title={hasErrors ? 'Fix the errors in the problems list first' : 'Run snapshot power flow'}
         >
           {solving ? 'Solving…' : '▶ Solve'}
+        </button>
+        <button
+          className={autoSolve ? 'active' : ''}
+          onClick={() => {
+            setAutoSolve(!autoSolve)
+            if (!autoSolve && !hasErrors) void runSolve()
+          }}
+          title="Auto-solve: re-run the power flow automatically whenever the circuit changes"
+        >
+          Auto
         </button>
       </div>
       <div className="tb-group overlay-group">

@@ -342,3 +342,17 @@ html, body, #root { margin: 0; height: 100%; }
   color: var(--accent);
   padding: 0 4px;
 }
+.bp-cell { position: relative; }
+.fill-handle {
+  position: absolute;
+  right: 4px;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border: 1px solid white;
+  border-radius: 1px;
+  cursor: crosshair;
+  z-index: 2;
+}
+.bp-table tr.fill-range td { background: #e3f0fb; }

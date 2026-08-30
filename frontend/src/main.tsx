@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import '@xyflow/react/dist/style.css'
 import './index.css'
 import App from './App'
+import { autoLayout } from './lib/layout'
 import { redo, undo, useCircuitStore } from './store/circuitStore'
 import { useResultsStore } from './store/resultsStore'
 
@@ -14,10 +15,11 @@ declare global {
       results: typeof useResultsStore
       undo: typeof undo
       redo: typeof redo
+      autoLayout: typeof autoLayout
     }
   }
 }
-window.opendssDesigner = { circuit: useCircuitStore, results: useResultsStore, undo, redo }
+window.opendssDesigner = { circuit: useCircuitStore, results: useResultsStore, undo, redo, autoLayout }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

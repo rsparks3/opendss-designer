@@ -11,6 +11,9 @@ interface ResultsState {
   issues: Issue[]
   flash: string | null
   flashKind: 'error' | 'info'
+  /** When on, a solve runs automatically after every circuit change. */
+  autoSolve: boolean
+  setAutoSolve: (b: boolean) => void
 
   setResult: (r: SolveResult) => void
   markStale: () => void
@@ -30,6 +33,8 @@ export const useResultsStore = create<ResultsState>((set) => ({
   issues: [],
   flash: null,
   flashKind: 'error',
+  autoSolve: false,
+  setAutoSolve: (autoSolve) => set({ autoSolve }),
 
   setResult: (result) => set({ result, stale: false }),
   markStale: () => set({ stale: true }),

@@ -1,6 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import { useEffect, useRef } from 'react'
 import { api } from './lib/api'
+import { runSolve } from './lib/solve'
 import { toCircuitJSON, useCircuitStore } from './store/circuitStore'
 import { useResultsStore } from './store/resultsStore'
 import type { CircuitJSON } from './types/circuit'
@@ -27,6 +28,14 @@ function useValidation() {
       try {
         const { issues } = await api.validate(toCircuitJSON(useCircuitStore.getState()))
         setIssues(issues)
+        // Auto-solve rides on the validation debounce: once the circuit
+        // settles and has no errors, re-run the power flow.
+        if (
+          useResultsStore.getState().autoSolve &&
+          !issues.some((i) => i.severity === 'error')
+        ) {
+          void runSolve()
+        }
       } catch {
         // backend unreachable; leave existing issues alone
       }

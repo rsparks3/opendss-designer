@@ -4,20 +4,16 @@ import type { CircuitJSON, CircuitNodeJSON } from '../types/circuit'
 
 const snap = (v: number) => Math.round(v / 10) * 10
 
-/** Assign positions to an imported circuit (mutates in place).
- *
- *  If the model came with bus coordinates (BusCoords), the busbars are
- *  already positioned by the backend — element nodes are then placed
- *  around their buses. Otherwise everything gets a tree-ish top-down
- *  dagre layout. Either way, busbar connections are finally distributed
- *  across the top/bottom handle rows. */
+/** Lay out an imported circuit hierarchically (mutates in place): source at
+ *  the top, power flowing downward, loads hanging directly beneath their
+ *  busbars, transformers/breakers centered between the buses they join.
+ *  Finally, busbar connections are distributed across the top/bottom handle
+ *  rows so wires never loop over a bar. */
 export function autoLayout(circuit: CircuitJSON): void {
-  const positionedBusbars = circuit.nodes.filter((n) => n.type === 'busbar' && n.position)
-  if (positionedBusbars.length >= 2) {
-    placeAroundCoordinates(circuit)
-  } else {
-    dagreLayout(circuit)
-  }
+  rankWithDagre(circuit)
+  alignDevicesBetweenBuses(circuit)
+  hangLoadsUnderBuses(circuit)
+  centerSourcesAboveBuses(circuit)
   distributeBusbarHandles(circuit)
 }
 
@@ -27,70 +23,120 @@ function center(n: CircuitNodeJSON): { x: number; y: number } {
   return { x: (n.position?.x ?? 0) + w / 2, y: (n.position?.y ?? 0) + size.h / 2 }
 }
 
-/** Place unpositioned element nodes near the buses they connect to. */
-function placeAroundCoordinates(circuit: CircuitJSON): void {
+/** Edges oriented in the direction power flows, so dagre's ranks read
+ *  top-down: sources above buses, loads below, and the t1 (primary) side of
+ *  a transformer/breaker upstream of its t2 side. */
+function orientedEdges(circuit: CircuitJSON): [string, string][] {
   const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
-  const perAnchor = new Map<string, number>() // crowding counter per anchor node
-
-  for (const n of circuit.nodes) {
-    if (n.position) continue
-    const anchors: CircuitNodeJSON[] = []
-    for (const e of circuit.edges) {
-      const other =
-        e.source === n.id ? byId.get(e.target) : e.target === n.id ? byId.get(e.source) : null
-      if (other?.position) anchors.push(other)
+  return circuit.edges.map((e): [string, string] => {
+    const s = byId.get(e.source)
+    const t = byId.get(e.target)
+    if (s?.type === 'load') return [e.target, e.source]
+    if (t?.type === 'load') return [e.source, e.target]
+    if (s?.type === 'vsource') return [e.source, e.target]
+    if (t?.type === 'vsource') return [e.target, e.source]
+    if (s && (s.type === 'transformer' || s.type === 'breaker')) {
+      return e.sourceHandle === 't1' ? [e.target, e.source] : [e.source, e.target]
     }
-    const size = NODE_SIZE[n.type]
-    if (anchors.length >= 2) {
-      // Two-terminal device (transformer/breaker) between two placed buses.
-      const a = center(anchors[0])
-      const b = center(anchors[1])
-      n.position = {
-        x: snap((a.x + b.x) / 2 - size.w / 2),
-        y: snap((a.y + b.y) / 2 - size.h / 2),
-      }
-    } else if (anchors.length === 1) {
-      const a = center(anchors[0])
-      const k = perAnchor.get(anchors[0].id) ?? 0
-      perAnchor.set(anchors[0].id, k + 1)
-      const col = (k % 3) - 1
-      const row = Math.floor(k / 3)
-      const below = n.type !== 'vsource'
-      n.position = {
-        x: snap(a.x + col * 90 - size.w / 2),
-        y: snap(a.y + (below ? 90 + row * 90 : -(140 + row * 90))),
-      }
-    } else {
-      const k = perAnchor.get('__orphan__') ?? 0
-      perAnchor.set('__orphan__', k + 1)
-      n.position = { x: -200, y: k * 120 }
+    if (t && (t.type === 'transformer' || t.type === 'breaker')) {
+      return e.targetHandle === 't1' ? [e.source, e.target] : [e.target, e.source]
     }
-  }
+    return [e.source, e.target]
+  })
 }
 
-function dagreLayout(circuit: CircuitJSON): void {
+function rankWithDagre(circuit: CircuitJSON): void {
   const g = new dagre.graphlib.Graph()
-  g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 80 })
+  g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 90 })
   g.setDefaultEdgeLabel(() => ({}))
 
   for (const n of circuit.nodes) {
     const size = NODE_SIZE[n.type]
     g.setNode(n.id, {
-      width: n.type === 'busbar' ? (n.width ?? size.w) : size.w,
-      height: size.h + 24, // room for labels
+      width: (n.type === 'busbar' ? (n.width ?? size.w) : size.w) + 20,
+      height: size.h + 30, // room for labels
     })
   }
-  for (const e of circuit.edges) {
-    g.setEdge(e.source, e.target)
+  for (const [a, b] of orientedEdges(circuit)) {
+    g.setEdge(a, b)
   }
   dagre.layout(g)
 
   for (const n of circuit.nodes) {
     const pos = g.node(n.id)
     if (pos) {
-      n.position = {
-        x: snap(pos.x - pos.width / 2),
-        y: snap(pos.y - pos.height / 2),
+      n.position = { x: snap(pos.x - pos.width / 2), y: snap(pos.y - pos.height / 2) }
+    }
+  }
+}
+
+/** Put each two-terminal device (transformer/breaker) horizontally midway
+ *  between the two buses it connects, for straight vertical drops. */
+function alignDevicesBetweenBuses(circuit: CircuitJSON): void {
+  const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
+  for (const n of circuit.nodes) {
+    if (n.type !== 'transformer' && n.type !== 'breaker') continue
+    const neighbors: CircuitNodeJSON[] = []
+    for (const e of circuit.edges) {
+      const other =
+        e.source === n.id ? byId.get(e.target) : e.target === n.id ? byId.get(e.source) : null
+      if (other && other.type === 'busbar') neighbors.push(other)
+    }
+    if (!neighbors.length) continue
+    const cx = neighbors.reduce((sum, b) => sum + center(b).x, 0) / neighbors.length
+    n.position = { x: snap(cx - NODE_SIZE[n.type].w / 2), y: n.position?.y ?? 0 }
+  }
+}
+
+/** Loads sit in a row directly beneath their busbar, spread across its
+ *  width so their drops land on distinct bottom handles. */
+function hangLoadsUnderBuses(circuit: CircuitJSON): void {
+  const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
+  const perBus = new Map<string, CircuitNodeJSON[]>()
+  for (const n of circuit.nodes) {
+    if (n.type !== 'load') continue
+    for (const e of circuit.edges) {
+      const other =
+        e.source === n.id ? byId.get(e.target) : e.target === n.id ? byId.get(e.source) : null
+      if (other?.type === 'busbar') {
+        perBus.set(other.id, [...(perBus.get(other.id) ?? []), n])
+        break
+      }
+    }
+  }
+  const size = NODE_SIZE.load
+  for (const [busId, loads] of perBus) {
+    const bus = byId.get(busId)!
+    const width = bus.width ?? NODE_SIZE.busbar.w
+    const bx = bus.position?.x ?? 0
+    const by = bus.position?.y ?? 0
+    const perRow = Math.max(1, Math.floor(width / 70))
+    loads.forEach((ld, i) => {
+      const row = Math.floor(i / perRow)
+      const inRow = Math.min(perRow, loads.length - row * perRow)
+      const col = i % perRow
+      ld.position = {
+        x: snap(bx + ((col + 0.5) * width) / inRow - size.w / 2),
+        y: snap(by + 80 + row * 110),
+      }
+    })
+  }
+}
+
+/** Sources sit directly above the bus they feed. */
+function centerSourcesAboveBuses(circuit: CircuitJSON): void {
+  const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
+  for (const n of circuit.nodes) {
+    if (n.type !== 'vsource') continue
+    for (const e of circuit.edges) {
+      const other =
+        e.source === n.id ? byId.get(e.target) : e.target === n.id ? byId.get(e.source) : null
+      if (other?.type === 'busbar') {
+        n.position = {
+          x: snap(center(other).x - NODE_SIZE.vsource.w / 2),
+          y: snap((other.position?.y ?? 0) - 150),
+        }
+        break
       }
     }
   }
