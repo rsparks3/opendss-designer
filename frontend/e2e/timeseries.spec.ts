@@ -133,6 +133,13 @@ test('time-series mode: disabled snapshot buttons, run, graph, scrubbing', async
   await expect(page.locator('.result-badge').filter({ hasText: 'pu' }).first()).toBeVisible()
   await bar.locator('.tb-scrub').fill('0')
   await expect(bar.locator('.tb-readout')).toContainText('1.00 h')
+  // Regression: loading the circuit marked results stale; the fresh run must
+  // still render loading pies on line edges (activeStale, not the snapshot
+  // stale flag, governs the scrub view).
+  await page.getByRole('button', { name: 'Loading' }).click()
+  await expect(page.locator('.edge-result').first()).toBeVisible()
+  await expect(page.locator('.edge-result').first()).toContainText('%')
+  await page.getByRole('button', { name: 'Voltages' }).click()
   // The time chart shows the scrub cursor. (A vertical SVG line has a
   // zero-width bounding box, which Playwright's visibility check rejects —
   // assert presence instead.)

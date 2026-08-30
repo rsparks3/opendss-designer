@@ -124,6 +124,15 @@ export function activeResult(s: ResultsState): SolveResult | null {
   return s.analysisMode === 'timeseries' ? s.scrubResult : s.result
 }
 
+/** Staleness for whatever activeResult returns. The scrubbed time-series
+ *  view is never stale — any circuit edit clears the run outright — while
+ *  the `stale` flag itself describes the last snapshot solve. (Without this
+ *  distinction, editing the circuit and then running a time series left the
+ *  overlays suppressed/dimmed by the snapshot's staleness.) */
+export function activeStale(s: ResultsState): boolean {
+  return s.analysisMode === 'timeseries' ? false : s.stale
+}
+
 /** Bus result for a node (its first terminal), respecting staleness. */
 export function busForNode(state: ResultsState, nodeId: string) {
   const r = state.result

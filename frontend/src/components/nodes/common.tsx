@@ -1,7 +1,7 @@
 import { Position, useUpdateNodeInternals } from '@xyflow/react'
 import { useEffect, type ReactNode } from 'react'
 import { loadingColor } from '../../lib/colorScale'
-import { activeResult, useResultsStore } from '../../store/resultsStore'
+import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import type { Params } from '../../types/circuit'
 import { LoadingPie } from '../LoadingPie'
 
@@ -73,7 +73,7 @@ export function NodeLabel({ children }: { children: ReactNode }) {
 }
 
 export function Badge({ color, children }: { color: string; children: ReactNode }) {
-  const stale = useResultsStore((s) => s.stale)
+  const stale = useResultsStore(activeStale)
   return (
     <div className="result-badge" style={{ background: color, opacity: stale ? 0.35 : 1 }}>
       {children}
@@ -112,7 +112,7 @@ export function FaultBadge({ nodeId }: { nodeId: string }) {
 
 /** Loading pie in a light pill, dark text — shared by node badges. */
 export function PieBadge({ pct }: { pct: number }) {
-  const stale = useResultsStore((s) => s.stale)
+  const stale = useResultsStore(activeStale)
   return (
     <div className="result-badge pie-badge" style={{ opacity: stale ? 0.35 : 1 }}>
       <LoadingPie pct={pct} />

@@ -1,6 +1,6 @@
 import { fmtSimHour } from '../lib/axis'
 import { useCircuitStore } from '../store/circuitStore'
-import { activeResult, useResultsStore } from '../store/resultsStore'
+import { activeResult, activeStale, useResultsStore } from '../store/resultsStore'
 import type { BusResult, ElementResult } from '../types/circuit'
 
 export interface HoverTarget {
@@ -17,7 +17,7 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
   const result = useResultsStore(activeResult)
   const fault = useResultsStore((s) => s.fault)
   const overlay = useResultsStore((s) => s.overlay)
-  const stale = useResultsStore((s) => s.stale)
+  const stale = useResultsStore(activeStale)
   // In time-series mode the tooltip reads the scrubbed step; note its hour.
   // (Primitive selectors so re-renders only happen when the values change.)
   const scrubHour = useResultsStore((s) =>
