@@ -1,9 +1,9 @@
 import { BaseEdge, type EdgeProps } from '@xyflow/react'
 import type { AppEdge } from '../../store/circuitStore'
-import { edgePath, WaypointDots } from './waypoints'
+import { useEdgePath, WaypointDots } from './waypoints'
 
 export function WireEdge(props: EdgeProps<AppEdge>) {
-  const [path] = edgePath(props)
+  const [path] = useEdgePath(props)
   return (
     <>
       <BaseEdge

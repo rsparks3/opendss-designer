@@ -33,6 +33,7 @@ export interface CircuitState {
   onEdgesChange: (changes: EdgeChange<AppEdge>[]) => void
   onConnect: (conn: Connection) => void
   addNodeAt: (type: NodeType, pos: XY) => void
+  addBusbarAt: (pos: XY, width: number) => void
   updateNodeParams: (id: string, patch: Params) => void
   updateEdgeParams: (id: string, patch: Params) => void
   setEdgeWaypoints: (id: string, waypoints: XY[]) => void
@@ -189,6 +190,19 @@ export const useCircuitStore = create<CircuitState>()(
           position: { x: pos.x - size.w / 2, y: pos.y - size.h / 2 },
           data: { params: defaultParams(type) },
           ...(type === 'busbar' ? { width: size.w, height: size.h } : {}),
+        }
+        set({ nodes: [...get().nodes, node] })
+        markStale()
+      },
+      // Drag-sized busbar: pos is the LEFT edge of the bar (vertically centered).
+      addBusbarAt: (pos, width) => {
+        const node: AppNode = {
+          id: newId('n'),
+          type: 'busbar',
+          position: { x: pos.x, y: pos.y - NODE_SIZE.busbar.h / 2 },
+          width: Math.max(60, Math.round(width / 20) * 20),
+          height: NODE_SIZE.busbar.h,
+          data: { params: defaultParams('busbar') },
         }
         set({ nodes: [...get().nodes, node] })
         markStale()

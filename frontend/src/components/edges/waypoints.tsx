@@ -3,17 +3,31 @@ import { useCircuitStore, type AppEdge, type XY } from '../../store/circuitStore
 
 const snap = (v: number) => Math.round(v / 10) * 10
 
+// Vertical center of the bar graphic inside a busbar node (bar spans y 4–10
+// of the 14px-tall node — see BusbarNode/index.css).
+const BAR_CENTER_Y = 7
+
 /** Path + label anchor for an edge, honoring user waypoints when present.
  *  Without waypoints: React Flow's smoothstep. With waypoints: straight
  *  polyline segments through them (snap them to the grid for orthogonal
- *  routing). */
-export function edgePath(props: EdgeProps<AppEdge>): [string, number, number] {
+ *  routing). Endpoints that land on a busbar handle are pulled onto the
+ *  bar's centerline so the wire always visually meets the bar. */
+export function useEdgePath(props: EdgeProps<AppEdge>): [string, number, number] {
+  const nodes = useCircuitStore((s) => s.nodes)
+
+  const anchorY = (nodeId: string, y: number): number => {
+    const n = nodes.find((nd) => nd.id === nodeId)
+    return n?.type === 'busbar' ? n.position.y + BAR_CENTER_Y : y
+  }
+  const sourceY = anchorY(props.source, props.sourceY)
+  const targetY = anchorY(props.target, props.targetY)
+
   const wps = props.data?.waypoints
   if (!wps?.length) {
-    const [path, lx, ly] = getSmoothStepPath({ ...props, borderRadius: 0 })
+    const [path, lx, ly] = getSmoothStepPath({ ...props, sourceY, targetY, borderRadius: 0 })
     return [path, lx, ly]
   }
-  const pts: XY[] = [{ x: props.sourceX, y: props.sourceY }, ...wps, { x: props.targetX, y: props.targetY }]
+  const pts: XY[] = [{ x: props.sourceX, y: sourceY }, ...wps, { x: props.targetX, y: targetY }]
   const path = `M ${pts[0].x},${pts[0].y} ` + pts.slice(1).map((p) => `L ${p.x},${p.y}`).join(' ')
   const mid = wps[Math.floor((wps.length - 1) / 2)]
   return [path, mid.x, mid.y]

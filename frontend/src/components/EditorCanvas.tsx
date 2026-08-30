@@ -6,10 +6,11 @@ import {
   MiniMap,
   ReactFlow,
   useReactFlow,
+  ViewportPortal,
   type FinalConnectionState,
   type IsValidConnection,
 } from '@xyflow/react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   redo,
   undo,
@@ -50,21 +51,61 @@ export function EditorCanvas() {
   const onConnect = useCircuitStore((s) => s.onConnect)
   const placementType = useCircuitStore((s) => s.placementType)
   const addNodeAt = useCircuitStore((s) => s.addNodeAt)
+  const addBusbarAt = useCircuitStore((s) => s.addBusbarAt)
   const setPlacement = useCircuitStore((s) => s.setPlacement)
   const addEdgeWaypoint = useCircuitStore((s) => s.addEdgeWaypoint)
   const flash = useResultsStore((s) => s.flash)
   const { screenToFlowPosition } = useReactFlow()
 
-  const onPaneClick = useCallback(
-    (event: React.MouseEvent) => {
-      if (!placementType) return
-      const pos = screenToFlowPosition({ x: event.clientX, y: event.clientY })
-      addNodeAt(placementType, {
-        x: Math.round(pos.x / 10) * 10,
-        y: Math.round(pos.y / 10) * 10,
-      })
+  // Busbars are placed by click-dragging to the desired width; a transparent
+  // overlay captures the gesture (other components place on pointer-up).
+  const [busbarDraft, setBusbarDraft] = useState<{ start: { x: number; y: number }; cur: { x: number; y: number } } | null>(null)
+
+  const flowPos = useCallback(
+    (e: { clientX: number; clientY: number }) => {
+      const p = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      return { x: Math.round(p.x / 10) * 10, y: Math.round(p.y / 10) * 10 }
     },
-    [placementType, screenToFlowPosition, addNodeAt],
+    [screenToFlowPosition],
+  )
+
+  const onOverlayDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (placementType === 'busbar') {
+        const p = flowPos(e)
+        setBusbarDraft({ start: p, cur: p })
+        e.currentTarget.setPointerCapture(e.pointerId)
+      }
+    },
+    [placementType, flowPos],
+  )
+
+  const onOverlayMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (busbarDraft) setBusbarDraft({ start: busbarDraft.start, cur: flowPos(e) })
+    },
+    [busbarDraft, flowPos],
+  )
+
+  const onOverlayUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!placementType) return
+      const p = flowPos(e)
+      if (placementType === 'busbar') {
+        const start = busbarDraft?.start ?? p
+        const width = Math.abs(p.x - start.x)
+        if (width < 40) {
+          // A plain click drops a default-size bar centered on the click.
+          addNodeAt('busbar', start)
+        } else {
+          addBusbarAt({ x: Math.min(start.x, p.x), y: start.y }, width)
+        }
+        setBusbarDraft(null)
+      } else {
+        addNodeAt(placementType, p)
+      }
+    },
+    [placementType, busbarDraft, flowPos, addNodeAt, addBusbarAt],
   )
 
   // Surface WHY a dropped connection was refused.
@@ -96,7 +137,10 @@ export function EditorCanvas() {
       const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(
         (e.target as HTMLElement)?.tagName,
       )
-      if (e.key === 'Escape') setPlacement(null)
+      if (e.key === 'Escape') {
+        setPlacement(null)
+        setBusbarDraft(null)
+      }
       if (inField) return
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault()
@@ -123,7 +167,6 @@ export function EditorCanvas() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
-        onPaneClick={onPaneClick}
         onEdgeDoubleClick={onEdgeDoubleClick}
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
@@ -141,10 +184,31 @@ export function EditorCanvas() {
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
         <Controls />
         <MiniMap pannable zoomable />
+        {busbarDraft && (
+          <ViewportPortal>
+            <div
+              className="busbar-preview"
+              style={{
+                transform: `translate(${Math.min(busbarDraft.start.x, busbarDraft.cur.x)}px, ${busbarDraft.start.y - 3}px)`,
+                width: Math.max(20, Math.abs(busbarDraft.cur.x - busbarDraft.start.x)),
+              }}
+            />
+          </ViewportPortal>
+        )}
       </ReactFlow>
       {placementType && (
+        <div
+          className="placement-overlay"
+          onPointerDown={onOverlayDown}
+          onPointerMove={onOverlayMove}
+          onPointerUp={onOverlayUp}
+        />
+      )}
+      {placementType && (
         <div className="canvas-hint">
-          Click to place a {placementType} — keep clicking to add more, Esc to stop
+          {placementType === 'busbar'
+            ? 'Click and drag to size the busbar (or just click for a default one) — Esc to stop'
+            : `Click to place a ${placementType} — keep clicking to add more, Esc to stop`}
         </div>
       )}
       {flash && <div className="flash-toast">{flash}</div>}
