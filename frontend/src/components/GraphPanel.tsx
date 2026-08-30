@@ -3,14 +3,27 @@ import { computeGraph, X_QUANTITIES, Y_QUANTITIES, type GraphRow } from '../lib/
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 
-const W = 800
-const H = 340
 const ML = 60
 const MR = 18
 const MT = 30
 const MB = 36
-const PLOT_W = W - ML - MR
-const PLOT_H = H - MT - MB
+
+const SIZE_KEY = 'opendss-designer.graphSize'
+const DEFAULT_SIZE = { w: 800, h: 340 }
+const MIN_W = 360
+const MAX_W = 1800
+const MIN_H = 200
+const MAX_H = 1000
+
+function initialSize(): { w: number; h: number } {
+  try {
+    const v = JSON.parse(localStorage.getItem(SIZE_KEY) ?? '')
+    if (v && v.w >= MIN_W && v.w <= MAX_W && v.h >= MIN_H && v.h <= MAX_H) return v
+  } catch {
+    // unset or corrupt
+  }
+  return DEFAULT_SIZE
+}
 
 /** OpenDSS phase color convention: 1 = black, 2 = red, 3 = blue. */
 const PHASE_COLORS: Record<number, string> = { 1: '#1a1a1a', 2: '#d32f2f', 3: '#1565c0' }
@@ -51,8 +64,43 @@ export function GraphPanel() {
   const [domain, setDomain] = useState<Domain | null>(null) // null = auto-fit
   const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null)
   const [hover, setHover] = useState<{ r: GraphRow; x: number; y: number } | null>(null)
+  const [size, setSize] = useState(initialSize)
+  const sizeRef = useRef(size)
   const svgRef = useRef<SVGSVGElement>(null)
   const dragRef = useRef<{ mode: 'pan' | 'box'; px: number; py: number; dom: Domain } | null>(null)
+
+  const W = size.w
+  const H = size.h
+  const PLOT_W = W - ML - MR
+  const PLOT_H = H - MT - MB
+
+  // Corner grip: drag to change the chart's size (and so its aspect ratio).
+  const startSizeDrag = (down: React.PointerEvent) => {
+    down.preventDefault()
+    down.stopPropagation()
+    const startX = down.clientX
+    const startY = down.clientY
+    const start = sizeRef.current
+    const move = (e: PointerEvent) => {
+      const next = {
+        w: Math.min(Math.max(start.w + (e.clientX - startX), MIN_W), MAX_W),
+        h: Math.min(Math.max(start.h + (e.clientY - startY), MIN_H), MAX_H),
+      }
+      sizeRef.current = next
+      setSize(next)
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      try {
+        localStorage.setItem(SIZE_KEY, JSON.stringify(sizeRef.current))
+      } catch {
+        // storage unavailable
+      }
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
 
   // A new quantity gets a fresh auto-fit.
   useEffect(() => setDomain(null), [xKey, yKey])
@@ -230,7 +278,9 @@ export function GraphPanel() {
   return (
     <div className="vp-wrap" style={{ opacity: stale ? 0.5 : 1 }}>
       {controls}
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="vp-chart classic" role="img"
+      <div className="vp-frame-box">
+      <svg ref={svgRef} width={W} height={H} viewBox={`0 0 ${W} ${H}`}
+           className="vp-chart classic" role="img"
            aria-label={`${yq.label} versus ${xq.label} for the solved circuit`}
            onPointerDown={onPointerDown} onPointerMove={onPointerMove}
            onPointerUp={onPointerUp} onDoubleClick={() => setDomain(null)}
@@ -300,6 +350,23 @@ export function GraphPanel() {
                 className="vp-zoombox" />
         )}
       </svg>
+      <div
+        className="vp-resize-grip"
+        title="Drag to resize the chart · double-click to reset"
+        onPointerDown={startSizeDrag}
+        onDoubleClick={() => {
+          sizeRef.current = DEFAULT_SIZE
+          setSize(DEFAULT_SIZE)
+          try {
+            localStorage.removeItem(SIZE_KEY)
+          } catch {
+            // storage unavailable
+          }
+        }}
+      >
+        ◢
+      </div>
+      </div>
       {hover && (
         <div className="result-tooltip" style={{ left: hover.x + 14, top: hover.y + 14 }}>
           <div className="rt-title">
