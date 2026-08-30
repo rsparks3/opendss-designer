@@ -1,15 +1,11 @@
-import {
-  BaseEdge,
-  EdgeLabelRenderer,
-  getSmoothStepPath,
-  type EdgeProps,
-} from '@xyflow/react'
+import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
 import type { AppEdge } from '../../store/circuitStore'
 import { useResultsStore } from '../../store/resultsStore'
+import { edgePath, WaypointDots } from './waypoints'
 
 export function LineEdge(props: EdgeProps<AppEdge>) {
-  const [path, labelX, labelY] = getSmoothStepPath({ ...props, borderRadius: 0 })
+  const [path, labelX, labelY] = edgePath(props)
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore((s) => s.result)
   const stale = useResultsStore((s) => s.stale)
@@ -42,7 +38,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
         <div
           className="edge-label nodrag nopan"
           style={{
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY - 12}px)`,
             opacity: stale ? 0.4 : 1,
           }}
         >
@@ -54,6 +50,9 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
           )}
         </div>
       </EdgeLabelRenderer>
+      {props.selected && (
+        <WaypointDots edgeId={props.id} waypoints={props.data?.waypoints ?? []} />
+      )}
     </>
   )
 }

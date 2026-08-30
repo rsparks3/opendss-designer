@@ -32,6 +32,9 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
         onResizeEnd={(_e, p) => setBusbarWidth(id, p.width)}
       />
       <div className="busbar-bar" />
+      {/* Two handle rows: b<i> route edges upward, c<i> route them downward,
+          so elements below the bar connect from beneath instead of looping
+          over the top. Electrically every handle is the same bus. */}
       {Array.from({ length: count }, (_, i) => (
         <Handle
           key={`b${i}`}
@@ -39,7 +42,17 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
           type="source"
           position={Position.Top}
           className="term busbar-term"
-          style={{ left: `${((i + 0.5) * 100) / count}%`, top: BAR_H / 2 }}
+          style={{ left: `${((i + 0.5) * 100) / count}%`, top: 2 }}
+        />
+      ))}
+      {Array.from({ length: count }, (_, i) => (
+        <Handle
+          key={`c${i}`}
+          id={`c${i}`}
+          type="source"
+          position={Position.Bottom}
+          className="term busbar-term"
+          style={{ left: `${((i + 0.5) * 100) / count}%`, bottom: -2 }}
         />
       ))}
       <NodeLabel>{String(data.params.name ?? '')}</NodeLabel>

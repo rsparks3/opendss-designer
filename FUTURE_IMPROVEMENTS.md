@@ -31,7 +31,10 @@ Roadmap of features intentionally deferred from v1, roughly in priority order.
 - **Copy/paste** and duplicate (Ctrl+C/V/D), multi-select property editing
 - **Split line**: drop a bus in the middle of an existing Line edge
 - **Rotate symbols** (R key) for horizontal feeder layouts
-- **Better wire routing**: obstacle avoidance (libavoid/elkjs edge routing)
+- **Automatic wire routing**: obstacle avoidance (libavoid/elkjs edge routing) — manual
+  waypoints exist today; auto-routing would keep runs tidy without them
+- **Finer undo granularity**: the 300 ms history throttle groups rapid distinct actions
+  (e.g. a toggle plus a placement) into one undo step; group per gesture instead
 - **Right-click context menus** (open/close breaker without the properties panel)
 - **Per-phase display**: phase labels on wires, per-phase voltage readouts (the backend
   already returns per-node arrays; the UI shows the min)

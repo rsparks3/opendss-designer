@@ -20,9 +20,9 @@
   "edges": [
     { "id": "w1", "type": "wire", "source": "src", "sourceHandle": "t1", "target": "xf1", "targetHandle": "t1", "params": {} },
     { "id": "w2", "type": "wire", "source": "xf1", "sourceHandle": "t2", "target": "bus1", "targetHandle": "b7", "params": {} },
-    { "id": "w3", "type": "wire", "source": "bus1", "sourceHandle": "b3", "target": "brk1", "targetHandle": "t1", "params": {} },
+    { "id": "w3", "type": "wire", "source": "bus1", "sourceHandle": "c3", "target": "brk1", "targetHandle": "t1", "params": {} },
     { "id": "ln1", "type": "line", "source": "brk1", "sourceHandle": "t2", "target": "ld1", "targetHandle": "t1",
       "params": { "name": "LN1", "length": 0.8, "units": "km", "r1": 0.12, "x1": 0.38, "r0": 0.4, "x0": 1.2, "normamps": 400, "phases": 3 } },
-    { "id": "w4", "type": "wire", "source": "bus1", "sourceHandle": "b12", "target": "ld2", "targetHandle": "t1", "params": {} }
+    { "id": "w4", "type": "wire", "source": "bus1", "sourceHandle": "c12", "target": "ld2", "targetHandle": "t1", "params": {} }
   ]
 }

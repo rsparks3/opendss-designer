@@ -1,12 +1,21 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import type { AppNode } from '../../store/circuitStore'
+import { useCircuitStore, type AppNode } from '../../store/circuitStore'
 import { ElementBadge, NodeLabel, useNodeIssueClass } from './common'
 
 export function BreakerNode({ id, data }: NodeProps<AppNode>) {
   const issueClass = useNodeIssueClass(id)
+  const updateNodeParams = useCircuitStore((s) => s.updateNodeParams)
   const closed = data.params.closed !== false
   return (
-    <div className={`symbol-node${issueClass}`} style={{ width: 36, height: 56 }}>
+    <div
+      className={`symbol-node${issueClass}`}
+      style={{ width: 36, height: 56 }}
+      onDoubleClick={(e) => {
+        e.stopPropagation()
+        updateNodeParams(id, { closed: !closed })
+      }}
+      title={`Double-click to ${closed ? 'open' : 'close'}`}
+    >
       <svg width="36" height="56" viewBox="0 0 36 56">
         <line x1="18" y1="0" x2="18" y2="18" className="sym" />
         <rect x="8" y="18" width="20" height="20" className={closed ? 'sym-fill' : 'sym'} fill={closed ? undefined : 'none'} />

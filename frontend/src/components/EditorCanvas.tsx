@@ -6,9 +6,18 @@ import {
   MiniMap,
   ReactFlow,
   useReactFlow,
+  type FinalConnectionState,
+  type IsValidConnection,
 } from '@xyflow/react'
 import { useCallback, useEffect } from 'react'
-import { redo, undo, useCircuitStore } from '../store/circuitStore'
+import {
+  redo,
+  undo,
+  useCircuitStore,
+  validateConnection,
+  type AppEdge,
+} from '../store/circuitStore'
+import { useResultsStore } from '../store/resultsStore'
 import { BreakerNode } from './nodes/BreakerNode'
 import { BusbarNode } from './nodes/BusbarNode'
 import { LoadNode } from './nodes/LoadNode'
@@ -30,6 +39,9 @@ const edgeTypes = {
   line: LineEdge,
 }
 
+const isValidConnection: IsValidConnection<AppEdge> = (conn) =>
+  validateConnection(conn) === null
+
 export function EditorCanvas() {
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
@@ -39,6 +51,8 @@ export function EditorCanvas() {
   const placementType = useCircuitStore((s) => s.placementType)
   const addNodeAt = useCircuitStore((s) => s.addNodeAt)
   const setPlacement = useCircuitStore((s) => s.setPlacement)
+  const addEdgeWaypoint = useCircuitStore((s) => s.addEdgeWaypoint)
+  const flash = useResultsStore((s) => s.flash)
   const { screenToFlowPosition } = useReactFlow()
 
   const onPaneClick = useCallback(
@@ -51,6 +65,30 @@ export function EditorCanvas() {
       })
     },
     [placementType, screenToFlowPosition, addNodeAt],
+  )
+
+  // Surface WHY a dropped connection was refused.
+  const onConnectEnd = useCallback(
+    (_event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+      if (state.isValid !== false || !state.toHandle || !state.fromNode || !state.toNode) return
+      const reason = validateConnection({
+        source: state.fromNode.id,
+        sourceHandle: state.fromHandle?.id,
+        target: state.toNode.id,
+        targetHandle: state.toHandle?.id,
+      })
+      if (reason) useResultsStore.getState().setFlash(reason)
+    },
+    [],
+  )
+
+  const onEdgeDoubleClick = useCallback(
+    (event: React.MouseEvent, edge: AppEdge) => {
+      event.stopPropagation()
+      const p = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      addEdgeWaypoint(edge.id, { x: Math.round(p.x / 10) * 10, y: Math.round(p.y / 10) * 10 })
+    },
+    [screenToFlowPosition, addEdgeWaypoint],
   )
 
   useEffect(() => {
@@ -84,7 +122,10 @@ export function EditorCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
         onPaneClick={onPaneClick}
+        onEdgeDoubleClick={onEdgeDoubleClick}
+        isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
         connectionRadius={30}
         snapToGrid
@@ -92,6 +133,7 @@ export function EditorCanvas() {
         deleteKeyCode={['Delete', 'Backspace']}
         fitView
         fitViewOptions={{ maxZoom: 1.5, padding: 0.2 }}
+        zoomOnDoubleClick={false}
         minZoom={0.2}
         maxZoom={4}
         proOptions={{ hideAttribution: false }}
@@ -100,6 +142,12 @@ export function EditorCanvas() {
         <Controls />
         <MiniMap pannable zoomable />
       </ReactFlow>
+      {placementType && (
+        <div className="canvas-hint">
+          Click to place a {placementType} — keep clicking to add more, Esc to stop
+        </div>
+      )}
+      {flash && <div className="flash-toast">{flash}</div>}
     </div>
   )
 }

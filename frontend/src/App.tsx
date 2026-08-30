@@ -3,9 +3,9 @@ import { useEffect, useRef } from 'react'
 import { api } from './lib/api'
 import { toCircuitJSON, useCircuitStore } from './store/circuitStore'
 import { useResultsStore } from './store/resultsStore'
+import { BottomPanel } from './components/BottomPanel'
 import { EditorCanvas } from './components/EditorCanvas'
 import { Palette } from './components/Palette'
-import { ProblemsPanel } from './components/ProblemsPanel'
 import { PropertiesPanel } from './components/PropertiesPanel'
 import { Toolbar } from './components/Toolbar'
 
@@ -45,7 +45,7 @@ export default function App() {
           <EditorCanvas />
           <PropertiesPanel />
         </div>
-        <ProblemsPanel />
+        <BottomPanel />
       </div>
     </ReactFlowProvider>
   )

@@ -9,11 +9,15 @@ then run a power flow and see voltages and loading right on the diagram.
 
 ## Features (v1)
 
-- **Click-and-place palette**: Source (Vsource), Busbar, 2-winding Transformer, Breaker/Switch, Load
+- **Click-and-place palette**: Source (Vsource), Busbar, 2-winding Transformer, Breaker/Switch, Load —
+  placement is sticky, so keep clicking to drop several; Esc to stop
 - **Drag-to-wire**: drag between terminals; choose **Wire** (ideal connection, merges buses) or
-  **Line** (a real OpenDSS Line with impedance and length)
-- **Stretchable busbars** with connection points along their length, plus implicit junction buses
-  when you wire elements directly together
+  **Line** (a real OpenDSS Line with impedance and length). Illegal connections (busbar-to-busbar
+  wires, self-connections, duplicates) are refused with an explanation
+- **Stretchable busbars** with connection points along both edges (top and bottom rows), plus
+  implicit junction buses when you wire elements directly together
+- **Double-click a breaker** to open/close it; **double-click a wire or line** to add a draggable
+  routing point and shape the run yourself (double-click a point to remove it)
 - **Properties panel** with the OpenDSS parameters for each element (kV, kVA, impedances,
   phases 1/2/3, wye/delta, load model…)
 - **Solve** button → snapshot power flow → overlays on the diagram:
@@ -21,6 +25,9 @@ then run a power flow and see voltages and loading right on the diagram.
   (undervoltage blue, overvoltage/overload red) and total losses in the status bar
 - **Live validation**: unconnected terminals, missing source, islands, duplicate names,
   kV mismatches — errors disable Solve and halo the offending element
+- **Spreadsheet view**: an Elements tab in the bottom panel lists every source, busbar,
+  transformer, line, breaker, and load in an editable table (plus a read-only bus-results
+  table after a solve) — edit values in bulk, click ⌖ to locate an element on the diagram
 - **Undo/redo** (Ctrl+Z / Ctrl+Y), delete key, grid snapping, pan/zoom, minimap
 - **Save/Open** projects as JSON; **Export** a runnable `.dss` file;
   **Import** existing `.dss` files with automatic layout (tidy it up by dragging)

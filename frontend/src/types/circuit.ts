@@ -28,6 +28,7 @@ export interface CircuitEdgeJSON {
   target: string
   targetHandle?: string | null
   params: Params
+  waypoints?: { x: number; y: number }[] | null
 }
 
 export interface CircuitJSON {

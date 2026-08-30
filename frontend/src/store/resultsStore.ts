@@ -9,13 +9,17 @@ interface ResultsState {
   solving: boolean
   overlay: OverlayMode
   issues: Issue[]
+  flash: string | null
 
   setResult: (r: SolveResult) => void
   markStale: () => void
   setSolving: (b: boolean) => void
   setOverlay: (m: OverlayMode) => void
   setIssues: (issues: Issue[]) => void
+  setFlash: (msg: string) => void
 }
+
+let flashTimer: ReturnType<typeof setTimeout> | undefined
 
 export const useResultsStore = create<ResultsState>((set) => ({
   result: null,
@@ -23,12 +27,18 @@ export const useResultsStore = create<ResultsState>((set) => ({
   solving: false,
   overlay: 'voltage',
   issues: [],
+  flash: null,
 
   setResult: (result) => set({ result, stale: false }),
   markStale: () => set({ stale: true }),
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),
   setIssues: (issues) => set({ issues }),
+  setFlash: (msg) => {
+    clearTimeout(flashTimer)
+    set({ flash: msg })
+    flashTimer = setTimeout(() => set({ flash: null }), 3000)
+  },
 }))
 
 /** Bus result for a node (its first terminal), respecting staleness. */

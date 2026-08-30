@@ -37,6 +37,8 @@ class CircuitEdge(BaseModel):
     target: str
     targetHandle: Optional[str] = None
     params: dict[str, Any] = Field(default_factory=dict)
+    # User-placed routing points (diagram cosmetics only; no electrical meaning).
+    waypoints: Optional[list[Position]] = None
 
 
 class Circuit(BaseModel):
