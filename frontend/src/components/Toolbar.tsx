@@ -61,6 +61,22 @@ export function Toolbar() {
     }
   }
 
+  const onNew = () => {
+    const st = useCircuitStore.getState()
+    if (
+      st.nodes.length > 0 &&
+      st.dirty &&
+      !window.confirm('Discard unsaved changes and start a new circuit?')
+    ) {
+      return
+    }
+    st.clearAll()
+    st.setName('my-circuit')
+    useCircuitStore.setState({ dirty: false })
+    useCircuitStore.temporal.getState().clear()
+    useResultsStore.setState({ result: null, stale: false, issues: [] })
+  }
+
   const onSaveProject = () => {
     download(`${name || 'circuit'}.oneline.json`, JSON.stringify(circuit(), null, 2))
     markSaved()
@@ -133,6 +149,7 @@ export function Toolbar() {
       </div>
       <div className="tb-spacer" />
       <div className="tb-group">
+        <button onClick={onNew} title="Start a new empty circuit">New</button>
         <button
           onClick={onSaveProject}
           title={dirty ? 'You have unsaved changes — save project as JSON' : 'Save project as JSON'}
