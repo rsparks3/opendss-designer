@@ -10,8 +10,6 @@ from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 
-import opendssdirect as dss
-
 from .. import __version__
 from ..core import engine, importer, irradiance, linecodes, nrel
 from ..core.compiler import export_dss
@@ -23,7 +21,7 @@ router = APIRouter(prefix="/api")
 
 @router.get("/health")
 def health() -> dict:
-    return {"version": __version__, "opendssVersion": dss.Basic.Version()}
+    return {"version": __version__, "opendssVersion": engine.opendss_version()}
 
 
 @router.get("/linecodes")

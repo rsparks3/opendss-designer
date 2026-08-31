@@ -7,10 +7,12 @@ between requests, so the diagram can never drift from the model.
 """
 from __future__ import annotations
 
+import ctypes
 import functools
 import gc
 import heapq
 import math
+import sys
 import tempfile
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -27,11 +29,52 @@ from .model import Circuit, Issue
 _lock = threading.Lock()
 _initialized = False
 
+_libc = ctypes.CDLL(None) if sys.platform == "darwin" else None
+
+
+def _clear_fp_traps() -> None:
+    """Re-mask floating-point exceptions on the calling thread (macOS).
+
+    The first time libdss_capi (Free Pascal RTL) is entered from a thread it
+    did not itself create, its per-thread init *enables* the FPU trap bits:
+    on Apple Silicon FPCR goes 0x0 -> 0x700 (invalid operation, divide by
+    zero, overflow). Building a circuit then runs TSolutionObj.Set_Frequency,
+    which divides the frequency by a not-yet-initialized Fundamental — and on
+    arm64 a trapped FP exception is delivered as EXC_BAD_INSTRUCTION, i.e.
+    SIGILL: the whole process dies with no Python traceback. The process main
+    thread is initialized at dylib load with traps off, which is why the same
+    calls are fine in a plain script and only crash under the server.
+
+    fesetenv(FE_DFL_ENV) restores this thread's default FP environment; the
+    RTL does not re-arm the traps on subsequent calls.
+    """
+    if _libc is None:
+        return
+    try:
+        default_env = ctypes.addressof(ctypes.c_char.in_dll(_libc, "_FE_DFL_ENV"))
+        _libc.fesetenv(ctypes.c_void_p(default_env))
+    except Exception:  # pragma: no cover - platform quirk, never fatal
+        pass
+
+
+def _engine_thread_init() -> None:
+    """Prepare the engine thread before it runs any task. Entering the
+    library is itself what arms the traps, so warm it up here and disarm
+    before the first real command."""
+    try:
+        dss.Basic.Version()
+    except Exception:  # pragma: no cover - defensive; pool must not break
+        pass
+    _clear_fp_traps()
+
+
 # The DSS C library (Free Pascal) segfaults on Linux when entered from
 # freshly created threads once the engine has real state (CI died with exit
-# 139 on the first Text.Command issued from the SSE route's worker thread).
-# Every entry point therefore runs on this one long-lived engine thread.
-_dss_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="dss-engine")
+# 139 on the first Text.Command issued from the SSE route's worker thread),
+# and arms FP traps on macOS (see `_clear_fp_traps`). Every entry point
+# therefore runs on this one long-lived, pre-initialized engine thread.
+_dss_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="dss-engine",
+                                   initializer=_engine_thread_init)
 
 _T = TypeVar("_T")
 
@@ -55,8 +98,10 @@ def dss_guard() -> Iterator[None]:
     long-lived thread). Suspending GC ensures no cffi finalizer can re-enter
     the library from another thread mid-call (cffi releases the GIL during
     native calls). Collection resumes as soon as the engine is released.
+    Floating-point traps are re-masked on the way in; see `_clear_fp_traps`.
     """
     with _lock:
+        _clear_fp_traps()
         was_enabled = gc.isenabled()
         gc.disable()
         try:
@@ -89,6 +134,14 @@ def _ensure_init() -> None:
         dss.Basic.DataPath(str(WORKDIR))
         dss.Basic.AllowForms(False)
         _initialized = True
+
+
+@on_engine_thread
+def opendss_version() -> str:
+    """Engine version string. Pinned to the engine thread like every other
+    native call — a stray entry from a request thread arms that thread's FP
+    traps (see `_clear_fp_traps`)."""
+    return str(dss.Basic.Version())
 
 
 def _element_for_command(cmd: str, element_map: dict[str, str]) -> str | None:
