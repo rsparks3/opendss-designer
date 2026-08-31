@@ -28,21 +28,29 @@ opendss-designer          # starts a local server and opens your browser
 
 Everything runs locally on your machine — nothing is uploaded anywhere.
 
-Head to [Getting started](getting-started.md) for a walkthrough, or the
-[Feature tour](features.md) for everything the editor can do.
+Head to [Getting started](getting-started.md) for a walkthrough, or
+[Components](components.md) for the full element reference.
 
 ## Highlights
 
 - **Draw the circuit**: click-and-place sources, busbars, transformers,
-  breakers, loads, capacitors, and generators; drag between terminals to wire
+  breakers, loads, capacitors, generators, PV systems, and storage; drag
+  between terminals to wire
 - **Solve on the diagram**: snapshot power flow with per-bus voltage (pu),
-  loading pie charts, power flows, color-coded violations, and total losses —
-  or auto-solve on every edit
+  loading pie charts, power flows, color-coded violations, fault currents,
+  and losses — or auto-solve on every edit
+- **Time-series simulation**: daily or yearly runs with load, solar, and
+  storage-dispatch shapes; scrub or play through the results right on the
+  diagram — see [Time-series analysis](timeseries.md)
+- **Real-world data**: import NREL/NLR building load profiles by climate zone
+  and building type, and NSRDB solar irradiance by location — see
+  [Shapes & profiles](shapes.md)
 - **Import existing models**: open your current `.dss` files (with
   `redirect`s) and get an automatically laid-out diagram
 - **Spreadsheet view**: bulk-edit every element in an Excel-style table with
   fill-down
-- **Graphs**: plot solved results, e.g. voltage profiles along the feeder
+- **Graphs**: voltage profiles along the feeder, and any recorded quantity
+  over simulation time, in the classic OpenDSS plot style
 - **Export**: a runnable `.dss` script, byte-for-byte the same commands the
   built-in solver uses
 

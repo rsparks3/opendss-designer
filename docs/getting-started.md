@@ -24,9 +24,10 @@ never leave your machine.
 ## Draw your first circuit
 
 1. **Place elements** — click an element in the palette (Source, Busbar,
-   Transformer, Breaker, Load, Capacitor, Generator…), then click the canvas to
-   drop it. Placement is *sticky*: keep clicking to drop several; press
-   ++esc++ to stop. Each palette item also has a keyboard shortcut letter.
+   Transformer, Breaker, Load, Capacitor, Generator, PV system, Storage…),
+   then click the canvas to drop it. Placement is *sticky*: keep clicking to
+   drop several; press ++esc++ to stop. Each palette item has a keyboard
+   shortcut letter — see [Components](components.md) for the full reference.
 2. **Wire them up** — drag from one terminal to another. You'll be asked
    whether the connection is a **Wire** (an ideal connection that merges the
    two buses) or a **Line** (a real OpenDSS `Line` with impedance and length).
@@ -50,7 +51,19 @@ The results overlay the diagram:
 
 Toggle **Auto** to re-solve automatically after every change. The **Graph**
 tab in the bottom panel plots solved results — pick your axes to get, for
-example, a classic voltage-profile plot along the feeder.
+example, a classic voltage-profile plot along the feeder. The **Fault**
+overlay and **Losses** tab cover short-circuit currents and per-element
+losses — see [Solving & analysis](analysis.md).
+
+## Simulate over time
+
+Snapshot solves are one operating point. To simulate a day or a year —
+loads following demand curves, PV following the sun, storage dispatching —
+assign shapes in the **Shapes** tab (draw them, paste CSV, or import real
+NREL/NLR building profiles and NSRDB irradiance), switch the toolbar to
+**Time series** mode, and press **▶ Run**. Then scrub or play through the
+results directly on the diagram. See [Shapes & profiles](shapes.md) and
+[Time-series analysis](timeseries.md).
 
 ## Save, export, import
 

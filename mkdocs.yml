@@ -34,7 +34,10 @@ theme:
 nav:
   - Home: index.md
   - Getting started: getting-started.md
-  - Feature tour: features.md
+  - Components: components.md
+  - Solving & analysis: analysis.md
+  - Shapes & profiles: shapes.md
+  - Time-series analysis: timeseries.md
   - Importing DSS files: importing-dss.md
   - Development:
       - Contributing: development.md
