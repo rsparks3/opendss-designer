@@ -63,6 +63,25 @@ def test_loadshape_emission_and_assignment(substation_circuit):
     assert "daily=day_shape yearly=day_shape" in res.commands[idx_load]
 
 
+def test_large_loadshape_goes_to_side_file(tmp_path, substation_circuit):
+    """Solve path (shape_dir given): big shapes become mult=(file=...) + an
+    aux_files entry; export path (no shape_dir) stays fully inline."""
+    substation_circuit.loadShapes = {
+        "year": LoadShapeSpec(intervalMin=60, points=[0.5] * 8760),
+        "day": LoadShapeSpec(intervalMin=60, points=[0.5] * 24),
+    }
+    res = compile_circuit(substation_circuit, shape_dir=tmp_path)
+    year_cmd = next(c for c in res.commands if c.startswith("new loadshape.year"))
+    assert 'mult=(file="' in year_cmd and "shape_year.csv" in year_cmd
+    assert res.aux_files["shape_year.csv"].count("\n") == 8760
+    day_cmd = next(c for c in res.commands if c.startswith("new loadshape.day"))
+    assert "file=" not in day_cmd  # small shapes stay inline even for solves
+
+    text, _ = export_dss(substation_circuit)
+    assert "file=" not in text  # exports remain a single portable file
+    assert "new loadshape.year npts=8760" in text
+
+
 def test_missing_loadshape_is_error(substation_circuit):
     load = next(n for n in substation_circuit.nodes if n.id == "ld")
     load.params["loadshape"] = "nope"

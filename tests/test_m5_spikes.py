@@ -33,14 +33,33 @@ def _element_kw(full_name: str) -> float:
     return sum(dss.CktElement.Powers()[0 : 2 * ncond : 2])
 
 
-@pytest.mark.parametrize("npts,minterval", [(8760, 60.0), (35040, 15.0)])
-def test_inline_loadshape_mult_size(npts: int, minterval: float) -> None:
-    """A yearly shape as a single inline Text command (~60-250 KB) must load."""
-    _fresh("spike_ls")
+def test_inline_loadshape_at_supported_ceiling() -> None:
+    """Inline mult=(...) is safe up to MAX_INLINE_SHAPE_PTS (288 = a 15-min
+    daily shape). Anything larger goes through a CSV side file: very long
+    inline commands parse "successfully" but corrupt the DSS Text parser's
+    heap on Linux, segfaulting the process later (found via CI exit 139)."""
+    from opendss_designer.core.compiler import MAX_INLINE_SHAPE_PTS
+
+    _fresh("spike_ls_inline")
+    npts = MAX_INLINE_SHAPE_PTS
     points = [round(0.5 + 0.5 * math.sin(2 * math.pi * i / 96), 5)
               for i in range(npts)]
     mult = " ".join(f"{v:g}" for v in points)
-    _cmd(f"new loadshape.big npts={npts} minterval={minterval:g} mult=({mult})")
+    _cmd(f"new loadshape.small npts={npts} minterval=15 mult=({mult})")
+    dss.LoadShape.Name("small")
+    assert dss.LoadShape.Npts() == npts
+
+
+@pytest.mark.parametrize("npts,minterval", [(8760, 60.0), (35040, 15.0)])
+def test_file_loadshape_mult_size(tmp_path, npts: int, minterval: float) -> None:
+    """Yearly-scale shapes load via mult=(file=...) — the solve path's format."""
+    _fresh("spike_ls_file")
+    points = [round(0.5 + 0.5 * math.sin(2 * math.pi * i / 96), 5)
+              for i in range(npts)]
+    csv_path = tmp_path / "big.csv"
+    csv_path.write_text("\n".join(f"{v:g}" for v in points) + "\n", encoding="utf-8")
+    _cmd(f'new loadshape.big npts={npts} minterval={minterval:g} '
+         f'mult=(file="{csv_path}")')
     dss.LoadShape.Name("big")
     assert dss.LoadShape.Npts() == npts
     pmult = list(dss.LoadShape.PMult())

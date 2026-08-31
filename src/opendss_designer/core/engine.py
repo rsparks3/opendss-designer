@@ -7,12 +7,16 @@ between requests, so the diagram can never drift from the model.
 """
 from __future__ import annotations
 
+import functools
+import gc
 import heapq
 import math
 import tempfile
 import threading
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator, TypeVar
 
 import opendssdirect as dss
 
@@ -23,9 +27,59 @@ from .model import Circuit, Issue
 _lock = threading.Lock()
 _initialized = False
 
+# The DSS C library (Free Pascal) segfaults on Linux when entered from
+# freshly created threads once the engine has real state (CI died with exit
+# 139 on the first Text.Command issued from the SSE route's worker thread).
+# Every entry point therefore runs on this one long-lived engine thread.
+_dss_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="dss-engine")
+
+_T = TypeVar("_T")
+
+
+def on_engine_thread(fn: Callable[..., _T]) -> Callable[..., _T]:
+    """Run the wrapped function on the dedicated DSS engine thread and wait
+    for its result. Decorated functions must not call each other (single
+    worker — a nested submit would deadlock)."""
+    @functools.wraps(fn)
+    def wrapper(*args: Any, **kwargs: Any) -> _T:
+        return _dss_executor.submit(fn, *args, **kwargs).result()
+    return wrapper
+
+
+@contextmanager
+def dss_guard() -> Iterator[None]:
+    """Hold the engine lock with garbage collection suspended.
+
+    Defense in depth around the non-thread-safe DSS C library (the primary
+    protection is `on_engine_thread`, which pins every native call to one
+    long-lived thread). Suspending GC ensures no cffi finalizer can re-enter
+    the library from another thread mid-call (cffi releases the GIL during
+    native calls). Collection resumes as soon as the engine is released.
+    """
+    with _lock:
+        was_enabled = gc.isenabled()
+        gc.disable()
+        try:
+            yield
+        finally:
+            if was_enabled:
+                gc.enable()
+
 # OpenDSS writes side files (error logs, exports) to its data path;
 # keep them out of the user's CWD.
 WORKDIR = Path(tempfile.gettempdir()) / "opendss_designer"
+# Large loadshapes are fed to OpenDSS as CSV files from here (giant inline
+# mult=(...) commands corrupt the DSS Text parser's heap on Linux).
+SHAPE_DIR = WORKDIR / "shapes"
+
+
+def _write_aux_files(compiled: CompileResult) -> None:
+    """Materialize compiler side files (large loadshape CSVs) before the
+    commands that reference them run. Called under dss_guard."""
+    if compiled.aux_files:
+        SHAPE_DIR.mkdir(parents=True, exist_ok=True)
+        for name, content in compiled.aux_files.items():
+            (SHAPE_DIR / name).write_text(content, encoding="utf-8")
 
 
 def _ensure_init() -> None:
@@ -166,15 +220,17 @@ def _bus_distances(circuit: Circuit, conn: ConnectivityResult) -> dict[str, floa
     return {b: round(d, 4) for b, d in dist.items()}
 
 
+@on_engine_thread
 def solve(circuit: Circuit) -> dict[str, Any]:
-    compiled: CompileResult = compile_circuit(circuit)
+    compiled: CompileResult = compile_circuit(circuit, shape_dir=SHAPE_DIR)
     issues = list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "issues": [i.model_dump() for i in issues],
                 "buses": {}, "elements": {}, "commands": compiled.commands}
 
-    with _lock:
+    with dss_guard():
         _ensure_init()
+        _write_aux_files(compiled)
         built = _run_commands(compiled.commands, compiled.element_map, issues)
         converged = False
         iterations = 0
@@ -241,6 +297,7 @@ def _downsample_minmax(series: list[float | None], k: int) -> list[float | None]
     return out
 
 
+@on_engine_thread
 def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
                      progress_cb: Callable[[int, int], None] | None = None,
                      cancel: threading.Event | None = None) -> dict[str, Any]:
@@ -248,7 +305,7 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
     bus voltage envelopes, per-element P/Q/current/loading, system totals and
     integrated energy. Driving the solution one step at a time (instead of one
     blocking `solve`) is what makes progress reporting and cancel possible."""
-    compiled: CompileResult = compile_circuit(circuit)
+    compiled: CompileResult = compile_circuit(circuit, shape_dir=SHAPE_DIR)
     issues = list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "issues": [i.model_dump() for i in issues],
@@ -258,8 +315,9 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
     total = hours_per_pass * (60 // step_min)
     dt_h = step_min / 60.0
 
-    with _lock:
+    with dss_guard():
         _ensure_init()
+        _write_aux_files(compiled)
         built = _run_commands(compiled.commands, compiled.element_map, issues)
         if not built:
             return {"converged": False, "issues": [i.model_dump() for i in issues],
@@ -426,10 +484,11 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
     }
 
 
+@on_engine_thread
 def fault_study(circuit: Circuit) -> dict[str, Any]:
     """Short-circuit study (`solve mode=faultstudy`): per-bus Thevenin
     impedances and prospective 3-phase / single-phase fault currents."""
-    compiled: CompileResult = compile_circuit(circuit)
+    compiled: CompileResult = compile_circuit(circuit, shape_dir=SHAPE_DIR)
     issues = list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "buses": {}, "nodeBuses": {},
@@ -437,8 +496,9 @@ def fault_study(circuit: Circuit) -> dict[str, Any]:
 
     buses: dict[str, Any] = {}
     converged = False
-    with _lock:
+    with dss_guard():
         _ensure_init()
+        _write_aux_files(compiled)
         built = _run_commands(compiled.commands, compiled.element_map, issues)
         if built:
             try:

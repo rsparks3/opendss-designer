@@ -95,6 +95,7 @@ def import_dss(text: str) -> dict[str, Any]:
     return import_dss_files([{"name": "main.dss", "text": text}])
 
 
+@engine.on_engine_thread
 def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
     files = [{"name": Path(str(f.get("name") or "file.dss")).name,
               "text": str(f.get("text", ""))} for f in files]
@@ -104,7 +105,7 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
     provided = {f["name"].lower() for f in files}
     main_text, warnings = _check_references(main["text"], provided)
 
-    with engine._lock:
+    with engine.dss_guard():
         engine._ensure_init()
         tmpdir = Path(tempfile.mkdtemp(prefix="opendss_import_"))
         try:

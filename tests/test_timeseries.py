@@ -67,6 +67,20 @@ def test_yearly_run_downsamples(substation_circuit):
         sum(SHAPE) / len(SHAPE) * 2000 * 8760, rel=0.05)
 
 
+def test_yearly_scale_shape_solves_via_side_file(substation_circuit):
+    """An 8760-point shape (NREL-import scale) exercises the mult=(file=...)
+    path end to end — the inline form corrupts the DSS parser on Linux."""
+    substation_circuit.loadShapes = {
+        "year": LoadShapeSpec(intervalMin=60, points=SHAPE * 365)}
+    load = next(n for n in substation_circuit.nodes if n.type == "load")
+    load.params["loadshape"] = "year"
+    r = engine.solve_timeseries(substation_circuit, mode="daily", step_min=60)
+    assert r["converged"], r["issues"]
+    load_kw = r["elements"]["load.l1"]["kw"]
+    assert max(load_kw) == pytest.approx(2000, rel=0.05)
+    assert min(load_kw) == pytest.approx(800, rel=0.05)
+
+
 def test_cancel_stops_early(substation_circuit):
     c = _with_shape(substation_circuit)
     cancel = threading.Event()

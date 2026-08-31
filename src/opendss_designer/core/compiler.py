@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from .connectivity import ConnectivityResult, sanitize_name, synthesize
 from .model import Circuit, Issue
@@ -15,6 +16,12 @@ from .model import Circuit, Issue
 # whenever these are used.
 DEFAULT_LINE_NORMAMPS = 400.0
 DEFAULT_BREAKER_NORMAMPS = 600.0
+
+# Shapes above this go to CSV side files (when the caller provides a
+# directory): very long inline `mult=(...)` Text commands corrupt the DSS
+# parser's heap on Linux builds — they parse fine but segfault the process
+# later. 288 points = a 15-minute daily shape, comfortably inline.
+MAX_INLINE_SHAPE_PTS = 288
 
 
 @dataclass
@@ -25,6 +32,9 @@ class CompileResult:
     element_map: dict[str, str] = field(default_factory=dict)
     issues: list[Issue] = field(default_factory=list)
     voltage_bases: list[float] = field(default_factory=list)
+    # Side files referenced by the commands (filename -> content); the engine
+    # writes them into its shape directory before running the commands.
+    aux_files: dict[str, str] = field(default_factory=dict)
 
 
 def _num(params: dict, key: str, default: float | None = None) -> float | None:
@@ -56,7 +66,12 @@ def _bus_suffix(explicit, phases: int) -> str:
     return _phase_suffix(phases)
 
 
-def compile_circuit(circuit: Circuit) -> CompileResult:
+def compile_circuit(circuit: Circuit,
+                    shape_dir: Path | None = None) -> CompileResult:
+    """Compile to Text commands. With `shape_dir` (the solve path), large
+    loadshapes become `mult=(file=...)` references plus aux_files entries;
+    without it (the .dss export path), everything stays inline so exports
+    remain a single portable file."""
     res = CompileResult()
     conn = synthesize(circuit)
     res.connectivity = conn
@@ -134,9 +149,16 @@ def compile_circuit(circuit: Circuit) -> CompileResult:
                         "after sanitization."))
             continue
         shape_names[key] = shape
-        mult = " ".join(f"{float(v):.5g}" for v in spec.points)
-        cmds.append(f"new loadshape.{shape} npts={len(spec.points)} "
-                    f"minterval={spec.intervalMin:g} mult=({mult})")
+        if shape_dir is not None and len(spec.points) > MAX_INLINE_SHAPE_PTS:
+            fname = f"shape_{shape}.csv"
+            res.aux_files[fname] = "\n".join(f"{float(v):.5g}" for v in spec.points) + "\n"
+            cmds.append(f"new loadshape.{shape} npts={len(spec.points)} "
+                        f"minterval={spec.intervalMin:g} "
+                        f'mult=(file="{shape_dir / fname}")')
+        else:
+            mult = " ".join(f"{float(v):.5g}" for v in spec.points)
+            cmds.append(f"new loadshape.{shape} npts={len(spec.points)} "
+                        f"minterval={spec.intervalMin:g} mult=({mult})")
 
     def shape_ref(p: dict, ref_id: str) -> str:
         """' daily=<n> yearly=<n>' for params.loadshape, or '' when unset.
