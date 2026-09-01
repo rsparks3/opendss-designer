@@ -50,14 +50,21 @@ export function defaultLineParams(): Params {
   }
 }
 
+// Symbol boxes are multiples of the 20px symbol pitch (2x the 10px snap grid)
+// so that w/2 and h/2 — where the terminal handles sit — always land on the
+// grid. Without that, a grid-snapped node's terminal is offset by w/2 mod 10
+// and wires to a busbar pick up a small permanent bend. Busbar handles sit at
+// 20i+10 from the bar's left edge, on the same pitch.
+export const SYMBOL_PITCH = 20
+
 export const NODE_SIZE: Record<NodeType, { w: number; h: number }> = {
-  vsource: { w: 48, h: 48 },
+  vsource: { w: 40, h: 60 },
   busbar: { w: 240, h: 14 },
-  transformer: { w: 48, h: 72 },
-  load: { w: 40, h: 52 },
-  breaker: { w: 36, h: 56 },
-  capacitor: { w: 40, h: 56 },
-  generator: { w: 44, h: 56 },
-  pvsystem: { w: 44, h: 56 },
-  storage: { w: 44, h: 56 },
+  transformer: { w: 40, h: 80 },
+  load: { w: 40, h: 60 },
+  breaker: { w: 40, h: 60 },
+  capacitor: { w: 40, h: 60 },
+  generator: { w: 40, h: 60 },
+  pvsystem: { w: 40, h: 60 },
+  storage: { w: 40, h: 60 },
 }

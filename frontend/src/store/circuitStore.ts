@@ -9,7 +9,7 @@ import {
 } from '@xyflow/react'
 import { temporal } from 'zundo'
 import { create } from 'zustand'
-import { defaultLineParams, defaultParams, nextName, NODE_SIZE } from '../lib/defaults'
+import { defaultLineParams, defaultParams, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params } from '../types/circuit'
 import { useResultsStore } from './resultsStore'
 
@@ -179,7 +179,17 @@ function selectionClipboard(s: Pick<CircuitState, 'nodes' | 'edges'>): Clipboard
 /** Number of connection handles per row a busbar of a given width exposes.
  *  Rows: b<i> along the top edge, c<i> along the bottom edge. */
 export function busbarHandleCount(width: number): number {
-  return Math.max(2, Math.floor(width / 20))
+  return Math.max(2, Math.floor(width / SYMBOL_PITCH))
+}
+
+const snapGrid = (v: number) => Math.round(v / 10) * 10
+
+const snapPosition = (p: XY): XY => ({ x: snapGrid(p.x), y: snapGrid(p.y) })
+
+/** Busbar widths stay on the symbol pitch so the handles, spaced width/count
+ *  apart, land exactly on the grid alongside every symbol terminal. */
+export function snapBusbarWidth(width: number): number {
+  return Math.max(60, Math.round(width / SYMBOL_PITCH) * SYMBOL_PITCH)
 }
 
 /** Why a proposed connection is not allowed, or null if it is fine. */
@@ -249,10 +259,19 @@ export function fromCircuitJSON(c: CircuitJSON): { nodes: AppNode[]; edges: AppE
   const nodes: AppNode[] = c.nodes.map((n) => ({
     id: n.id,
     type: n.type,
-    position: n.position ?? { x: 0, y: 0 },
+    // Re-snap on load. Positions are top-left corners, and circuits saved
+    // before the symbol boxes were put on SYMBOL_PITCH recorded corners that
+    // no longer put the terminal on the grid — leaving every busbar wire with
+    // a few pixels of bend until the node was dragged once. Snapping here
+    // moves a node by at most half a grid step and makes old files open
+    // aligned. Busbar widths are re-snapped for the same reason.
+    position: snapPosition(n.position ?? { x: 0, y: 0 }),
     data: { params: n.params },
     ...(n.type === 'busbar'
-      ? { width: n.width ?? NODE_SIZE.busbar.w, height: NODE_SIZE.busbar.h }
+      ? {
+          width: snapBusbarWidth(n.width ?? NODE_SIZE.busbar.w),
+          height: NODE_SIZE.busbar.h,
+        }
       : {}),
   }))
   const edges: AppEdge[] = c.edges.map((e) => ({
@@ -322,7 +341,10 @@ export const useCircuitStore = create<CircuitState>()(
         const node: AppNode = {
           id: newId('n'),
           type,
-          position: { x: pos.x - size.w / 2, y: pos.y - size.h / 2 },
+          // Snap the corner, not the click point: React Flow's snapGrid moves
+          // the corner on the first drag, so a node dropped on a half-grid
+          // corner would visibly jump and lose terminal alignment.
+          position: { x: snapGrid(pos.x - size.w / 2), y: snapGrid(pos.y - size.h / 2) },
           data: { params: defaultParams(type) },
           ...(type === 'busbar' ? { width: size.w, height: size.h } : {}),
         }
@@ -334,8 +356,8 @@ export const useCircuitStore = create<CircuitState>()(
         const node: AppNode = {
           id: newId('n'),
           type: 'busbar',
-          position: { x: pos.x, y: pos.y - NODE_SIZE.busbar.h / 2 },
-          width: Math.max(60, Math.round(width / 20) * 20),
+          position: { x: snapGrid(pos.x), y: snapGrid(pos.y - NODE_SIZE.busbar.h / 2) },
+          width: snapBusbarWidth(width),
           height: NODE_SIZE.busbar.h,
           data: { params: defaultParams('busbar') },
         }
@@ -406,7 +428,8 @@ export const useCircuitStore = create<CircuitState>()(
         wps.splice(best, 0, pos)
         get().setEdgeWaypoints(id, wps)
       },
-      setBusbarWidth: (id, width) => {
+      setBusbarWidth: (id, rawWidth) => {
+        const width = snapBusbarWidth(rawWidth)
         const count = busbarHandleCount(width)
         // Re-home edges whose handle no longer exists after a shrink.
         const rehome = (h: string | undefined | null, nodeId: string) => {

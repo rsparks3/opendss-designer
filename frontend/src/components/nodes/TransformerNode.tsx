@@ -13,17 +13,17 @@ import {
 export function TransformerNode({ id, data }: NodeProps<AppNode>) {
   const issueClass = useNodeIssueClass(id)
   const rot = useSymbolRotation(id, data.params)
-  const box = rotatedBox(48, 72, rot)
+  const box = rotatedBox(40, 80, rot)
   const windings = (data.params.windings as { kv: number }[] | undefined) ?? []
   const kvText = windings.length >= 2 ? `${windings[0].kv}/${windings[1].kv} kV` : ''
   return (
     <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h }}>
-      <SymbolSvg rotation={rot} w={48} h={72}>
-        <svg width="48" height="72" viewBox="0 0 48 72">
-          <line x1="24" y1="0" x2="24" y2="12" className="sym" />
-          <circle cx="24" cy="26" r="14" className="sym" fill="none" />
-          <circle cx="24" cy="46" r="14" className="sym" fill="none" />
-          <line x1="24" y1="60" x2="24" y2="72" className="sym" />
+      <SymbolSvg rotation={rot} w={40} h={80}>
+        <svg width="40" height="80" viewBox="0 0 40 80">
+          <line x1="20" y1="0" x2="20" y2="16" className="sym" />
+          <circle cx="20" cy="30" r="14" className="sym" fill="none" />
+          <circle cx="20" cy="50" r="14" className="sym" fill="none" />
+          <line x1="20" y1="64" x2="20" y2="80" className="sym" />
         </svg>
       </SymbolSvg>
       <Handle id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />

@@ -13,16 +13,16 @@ import {
 export function VsourceNode({ id, data }: NodeProps<AppNode>) {
   const issueClass = useNodeIssueClass(id)
   const rot = useSymbolRotation(id, data.params)
-  const box = rotatedBox(48, 48, rot)
+  const box = rotatedBox(40, 60, rot)
   return (
     <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h }}>
-      <SymbolSvg rotation={rot} w={48} h={48}>
-        <svg width="48" height="48" viewBox="0 0 48 48">
+      <SymbolSvg rotation={rot} w={40} h={60}>
+        <svg width="40" height="60" viewBox="0 0 40 60">
           {/* source circle with sine */}
-          <circle cx="24" cy="20" r="14" className="sym" fill="none" />
-          <path d="M 16 20 q 4 -8 8 0 q 4 8 8 0" className="sym" fill="none" />
+          <circle cx="20" cy="24" r="14" className="sym" fill="none" />
+          <path d="M 12 24 q 4 -8 8 0 q 4 8 8 0" className="sym" fill="none" />
           {/* terminal stub */}
-          <line x1="24" y1="34" x2="24" y2="46" className="sym" />
+          <line x1="20" y1="38" x2="20" y2="60" className="sym" />
         </svg>
       </SymbolSvg>
       <Handle id="t1" type="source" position={rotatePosition(Position.Bottom, rot)} className="term" />
