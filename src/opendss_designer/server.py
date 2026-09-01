@@ -13,8 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .api.routes import router
-from .middleware import (ActivityMiddleware, BodySizeLimitMiddleware,
-                         SecurityHeadersMiddleware)
+from .middleware import ActivityMiddleware, BodySizeLimitMiddleware, SecurityHeadersMiddleware
 from .settings import Settings, settings
 
 STATIC_DIR = Path(__file__).parent / "static"

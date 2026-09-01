@@ -20,10 +20,9 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
 
-from . import cache, engine
 from ..settings import settings
+from . import cache
 
 # Same weather year as the EULP building-stock load shapes.
 WEATHER_YEAR = 2018
@@ -50,7 +49,8 @@ def geocode(query: str) -> list[dict]:
         with urllib.request.urlopen(f"{GEOCODE_URL}?{params}", timeout=30) as r:
             payload = json.load(r)
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
-        raise IrradianceError(f"Place search failed (network problem?): {exc}")
+        raise IrradianceError(
+            f"Place search failed (network problem?): {exc}") from exc
     return [
         {
             "name": hit.get("name", ""),
@@ -112,7 +112,7 @@ def _parse_ghi(text: str) -> tuple[list[float], dict]:
     buf = io.StringIO(text)
     meta_fields = next(csv.reader([buf.readline()]), [])
     meta_values = next(csv.reader([buf.readline()]), [])
-    meta = dict(zip(meta_fields, meta_values))
+    meta = dict(zip(meta_fields, meta_values, strict=False))
     reader = csv.DictReader(buf)
     if not reader.fieldnames or "GHI" not in reader.fieldnames:
         raise IrradianceError("Unexpected NSRDB response layout (no GHI column).")

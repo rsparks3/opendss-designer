@@ -22,7 +22,7 @@ import opendssdirect as dss
 
 from . import engine
 from .connectivity import sanitize_name
-from .model import Circuit, CircuitNode, CircuitEdge, LoadShapeSpec, Position
+from .model import Circuit, CircuitEdge, CircuitNode, LoadShapeSpec, Position
 
 _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
 
@@ -115,7 +115,7 @@ def _sanitize_dss_text(text: str, provided: set[str]) -> tuple[str, list[str]]:
     missing: list[str] = []
     out_lines: list[str] = []
 
-    def rewrite(match: "re.Match[str]") -> str:
+    def rewrite(match: re.Match[str]) -> str:
         ref = match.group(1)
         base = _basename(ref)
         if base.lower() not in provided:

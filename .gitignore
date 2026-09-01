@@ -18,3 +18,12 @@ site/
 # Playwright output
 frontend/test-results/
 frontend/playwright-report/
+
+# Local environments and editor state
+.env
+.env.*
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store

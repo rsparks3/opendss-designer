@@ -7,7 +7,7 @@ schema change.
 """
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, Optional
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -32,9 +32,9 @@ class Position(BaseModel):
 class CircuitNode(BaseModel):
     id: str
     type: NodeType
-    position: Optional[Position] = None
-    width: Optional[float] = None
-    height: Optional[float] = None
+    position: Position | None = None
+    width: float | None = None
+    height: float | None = None
     params: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -42,12 +42,12 @@ class CircuitEdge(BaseModel):
     id: str
     type: EdgeType = "wire"
     source: str
-    sourceHandle: Optional[str] = None
+    sourceHandle: str | None = None
     target: str
-    targetHandle: Optional[str] = None
+    targetHandle: str | None = None
     params: dict[str, Any] = Field(default_factory=dict)
     # User-placed routing points (diagram cosmetics only; no electrical meaning).
-    waypoints: Optional[list[Position]] = None
+    waypoints: list[Position] | None = None
 
 
 class LoadShapeSpec(BaseModel):
@@ -62,7 +62,7 @@ class LoadShapeSpec(BaseModel):
                       Field(max_length=MAX_SHAPE_POINTS)] = Field(default_factory=list)
     # Provenance tag, e.g. "csv", "nrel:resstock/3a/single-family_detached",
     # or "nsrdb:39.74,-104.99/2018".
-    source: Optional[str] = None
+    source: str | None = None
 
 
 class Circuit(BaseModel):
@@ -84,8 +84,8 @@ class Issue(BaseModel):
     severity: Literal["error", "warning"]
     code: str
     message: str
-    nodeId: Optional[str] = None
-    edgeId: Optional[str] = None
+    nodeId: str | None = None
+    edgeId: str | None = None
 
 
 # Handles each node type exposes, by convention shared with the frontend.

@@ -1,0 +1,271 @@
+{
+  "version": 1,
+  "name": "radial-feeder-der",
+  "busNames": {},
+  "loadShapes": {
+    "residential": {
+      "kind": "load",
+      "intervalMin": 60.0,
+      "points": [
+        0.45,
+        0.45,
+        0.452,
+        0.46,
+        0.483,
+        0.527,
+        0.577,
+        0.6,
+        0.577,
+        0.527,
+        0.484,
+        0.462,
+        0.459,
+        0.47,
+        0.5,
+        0.555,
+        0.639,
+        0.737,
+        0.818,
+        0.85,
+        0.818,
+        0.737,
+        0.639,
+        0.555
+      ],
+      "source": "sample"
+    },
+    "clear_sky": {
+      "kind": "irradiance",
+      "intervalMin": 60.0,
+      "points": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.259,
+        0.5,
+        0.707,
+        0.866,
+        0.966,
+        1.0,
+        0.966,
+        0.866,
+        0.707,
+        0.5,
+        0.259,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source": "sample"
+    }
+  },
+  "nodes": [
+    {
+      "id": "src",
+      "type": "vsource",
+      "position": {
+        "x": 420,
+        "y": 0
+      },
+      "params": {
+        "name": "SUB",
+        "basekv": 12.47,
+        "pu": 1.0,
+        "angle": 0,
+        "phases": 3,
+        "mvasc3": 1500,
+        "mvasc1": 1600
+      }
+    },
+    {
+      "id": "bus1",
+      "type": "busbar",
+      "position": {
+        "x": 280,
+        "y": 120
+      },
+      "width": 320,
+      "params": {
+        "name": "FEEDER HEAD",
+        "basekv": 12.47
+      }
+    },
+    {
+      "id": "brk",
+      "type": "breaker",
+      "position": {
+        "x": 340,
+        "y": 200
+      },
+      "params": {
+        "name": "REC1",
+        "closed": true,
+        "normamps": 400,
+        "phases": 3
+      }
+    },
+    {
+      "id": "bus2",
+      "type": "busbar",
+      "position": {
+        "x": 280,
+        "y": 380
+      },
+      "width": 320,
+      "params": {
+        "name": "MIDPOINT",
+        "basekv": 12.47
+      }
+    },
+    {
+      "id": "ld1",
+      "type": "load",
+      "position": {
+        "x": 180,
+        "y": 470
+      },
+      "params": {
+        "name": "VILLAGE",
+        "kv": 12.47,
+        "kw": 900,
+        "pf": 0.95,
+        "phases": 3,
+        "conn": "wye",
+        "model": 1,
+        "loadshape": "residential"
+      }
+    },
+    {
+      "id": "pv1",
+      "type": "pvsystem",
+      "position": {
+        "x": 350,
+        "y": 470
+      },
+      "params": {
+        "name": "ROOFTOP_PV",
+        "kv": 12.47,
+        "phases": 3,
+        "conn": "wye",
+        "kva": 400,
+        "pmpp": 350,
+        "pf": 1.0,
+        "irradiance": 1.0,
+        "loadshape": "clear_sky"
+      }
+    },
+    {
+      "id": "st1",
+      "type": "storage",
+      "position": {
+        "x": 510,
+        "y": 470
+      },
+      "params": {
+        "name": "BESS",
+        "kv": 12.47,
+        "phases": 3,
+        "conn": "wye",
+        "kwrated": 250,
+        "kwhrated": 1000,
+        "effcharge": 95,
+        "effdischarge": 95,
+        "reserve": 20,
+        "soc": 50,
+        "dispatch": "default"
+      }
+    },
+    {
+      "id": "cap",
+      "type": "capacitor",
+      "position": {
+        "x": 640,
+        "y": 380
+      },
+      "params": {
+        "name": "CAP1",
+        "kv": 12.47,
+        "kvar": 300,
+        "phases": 3,
+        "conn": "wye",
+        "numsteps": 1
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "type": "wire",
+      "source": "src",
+      "sourceHandle": "t1",
+      "target": "bus1",
+      "targetHandle": "b0"
+    },
+    {
+      "id": "e2",
+      "type": "wire",
+      "source": "bus1",
+      "sourceHandle": "b1",
+      "target": "brk",
+      "targetHandle": "t1"
+    },
+    {
+      "id": "e3",
+      "type": "line",
+      "source": "brk",
+      "sourceHandle": "t2",
+      "target": "bus2",
+      "targetHandle": "b0",
+      "params": {
+        "name": "OH1",
+        "phases": 3,
+        "length": 2.5,
+        "units": "km",
+        "r1": 0.32,
+        "x1": 0.38,
+        "r0": 0.5,
+        "x0": 1.2,
+        "normamps": 400
+      }
+    },
+    {
+      "id": "e4",
+      "type": "wire",
+      "source": "bus2",
+      "sourceHandle": "b1",
+      "target": "ld1",
+      "targetHandle": "t1"
+    },
+    {
+      "id": "e5",
+      "type": "wire",
+      "source": "bus2",
+      "sourceHandle": "b2",
+      "target": "pv1",
+      "targetHandle": "t1"
+    },
+    {
+      "id": "e6",
+      "type": "wire",
+      "source": "bus2",
+      "sourceHandle": "b3",
+      "target": "st1",
+      "targetHandle": "t1"
+    },
+    {
+      "id": "e7",
+      "type": "wire",
+      "source": "bus2",
+      "sourceHandle": "b4",
+      "target": "cap",
+      "targetHandle": "t1"
+    }
+  ]
+}

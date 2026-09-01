@@ -3,7 +3,7 @@
 Features deferred from v1, organized into milestones. Each milestone leaves the app
 in a coherent, working state. Ordering rationale: foundation first (tests/CI protect
 everything after), then balanced passes across editor UX, new components, analysis,
-and platform. Sizing is rough (working sessions).
+and platform. 
 
 ## M1 — Foundation & hardening — ✅ DONE (2026-08-30)
 
@@ -75,7 +75,7 @@ All frontend-only; the M1 vitest harness covers the store changes.
   schema field), Shapes bottom-panel tab: CSV paste, draggable curve editor
   (≤96 pts), peak/avg normalize; `loadshape` field kind gives every
   load/PV/storage a shape dropdown in properties + spreadsheet
-- **NREL EULP import** (added at Ryan's request) — backend proxy
+- **NREL EULP import** — backend proxy
   (`core/nrel.py`, disk-cached) for the public End-Use Load Profiles S3
   aggregates: climate zone × building type (5 residential + 14 commercial),
   hourly or native 15-min, peak/average normalization
@@ -101,7 +101,7 @@ All frontend-only; the M1 vitest harness covers the store changes.
   pop an envelope-explanation dialog and keep an "envelope ≈12 h" chip;
   the Time chart draws a synced cursor line
 
-## M6 — Regulation, protection & phases (~2–3 sessions)
+## M6 — Regulation, protection & phases
 
 - **Voltage regulators** (`RegControl` on an autotransformer) — band, PT ratio, LDC
 - **3-winding transformers** — third handle; the per-winding editor already generalizes
@@ -110,7 +110,7 @@ All frontend-only; the M1 vitest harness covers the store changes.
   `compiler.py` already accepts explicit suffixes, so this is mostly UI)
 - **Per-phase display** — phase labels on wires, per-phase voltage readouts
 
-## M7 — Platform & polish (~2–3 sessions, pick-and-choose)
+## M7 — Platform & polish
 
 - **Smarter .dss import layout**: elkjs layered layout; keep 2-terminal pass-through
   buses as plain wires instead of busbars
@@ -119,6 +119,27 @@ All frontend-only; the M1 vitest harness covers the store changes.
 - **Dark mode**, printable/exportable diagram (SVG/PNG export)
 - **Round-trip preservation** of comments and unsupported elements on export
 - **Split line**: drop a bus in the middle of an existing Line edge
+
+## M8 — Public deployment — ✅ DONE (2026-09-01)
+
+Making the app safe to expose, without changing what a local install does.
+
+- ~~**Security fixes** (0.1.3)~~ — static-file path containment, `Host`
+  validation, `.dss` import treated as data rather than a program, unused
+  OpenDSS capabilities disabled, property-value allowlists, no server detail in
+  responses
+- ~~**Demo mode** (0.2.0)~~ — opt-in size, cost and rate limits; bounded
+  caches; security headers. Off by default, so the pip-install experience is
+  unchanged
+- ~~**Deployability**~~ — `--host`/`$PORT`, idle shutdown, per-process scratch
+  directory, shared cache volume, `Dockerfile`, structured logging
+- ~~**Sample circuits**~~ — served from the package and openable from the
+  toolbar
+- ~~**Docs**~~ — `docs/deployment.md`, `docs/security.md`, `SECURITY.md`
+
+Still open: **authentication and hosting** live in a separate wrapper project —
+this repo deliberately has no user concept. See `docs/deployment.md` for the
+split.
 
 ## Parking lot (deferred until actually needed)
 

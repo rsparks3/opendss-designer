@@ -12,7 +12,7 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 
 from .. import __version__
-from ..core import engine, importer, irradiance, linecodes, nrel
+from ..core import engine, importer, irradiance, linecodes, nrel, samples
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
@@ -66,6 +66,23 @@ def line_codes() -> dict:
 def _busy(exc: engine.EngineBusy) -> HTTPException:
     return HTTPException(status_code=503, detail=str(exc),
                          headers={"Retry-After": "5"})
+
+
+@router.get("/samples")
+def list_samples() -> dict:
+    """Curated example circuits, in the native project format."""
+    return {"samples": samples.list_samples()}
+
+
+@router.get("/samples/{sample_id}")
+def get_sample(sample_id: str) -> dict:
+    # Looked up in a preloaded dict, never joined onto a path: turning a
+    # request value into a filesystem path is exactly the bug the static-file
+    # handler used to have.
+    circuit = samples.get_sample(sample_id)
+    if circuit is None:
+        raise HTTPException(status_code=404, detail="No such sample.")
+    return circuit
 
 
 @router.post("/solve")
@@ -207,7 +224,7 @@ def nrel_fetch(req: NrelFetchRequest) -> dict:
         return nrel.fetch_profile(req.product, req.climateZone, req.buildingType,
                                   step_min=req.stepMin, normalize=req.normalize)
     except nrel.NrelError as exc:
-        raise HTTPException(status_code=exc.status, detail=str(exc))
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
 
 
 @router.get("/irradiance/geocode")
@@ -222,7 +239,7 @@ def irradiance_geocode(q: str) -> dict:
     try:
         return {"results": irradiance.geocode(q)}
     except irradiance.IrradianceError as exc:
-        raise HTTPException(status_code=exc.status, detail=str(exc))
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
 
 
 class IrradianceFetchRequest(BaseModel):
@@ -245,7 +262,7 @@ def irradiance_fetch(req: IrradianceFetchRequest) -> dict:
         return irradiance.fetch_ghi(req.lat, req.lon, req.apiKey, req.email,
                                     scaling=req.scaling, label=req.label)
     except irradiance.IrradianceError as exc:
-        raise HTTPException(status_code=exc.status, detail=str(exc))
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
 
 
 class DssFile(BaseModel):
@@ -289,4 +306,4 @@ def import_file(payload: ImportRequest = Body(...)) -> dict:
     except importer.ImportFailure as exc:
         # Bad input (the importer wraps OpenDSS compile errors in ImportFailure);
         # anything else propagates as a 500 so genuine bugs aren't masked as 400s.
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

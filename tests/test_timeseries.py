@@ -116,6 +116,7 @@ def test_compile_error_returns_cleanly(substation_circuit):
 
 def test_sse_endpoint_streams_progress_then_result(substation_circuit):
     from fastapi.testclient import TestClient
+
     from opendss_designer.server import create_app
 
     c = _with_shape(substation_circuit)

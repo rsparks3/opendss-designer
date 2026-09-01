@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from opendss_designer.core.compiler import compile_circuit
-from opendss_designer.core.model import Circuit, NODE_TERMINALS
+from opendss_designer.core.model import NODE_TERMINALS, Circuit
 from opendss_designer.core.validate import validate
 
 FIXTURE = Path(__file__).parent / "fixtures" / "full-circuit.oneline.json"

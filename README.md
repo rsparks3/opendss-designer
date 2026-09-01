@@ -54,7 +54,7 @@ building the frontend.)
 
 Options: `--port 8721`, `--no-browser`.
 
-Try it: **Open** `examples/demo-substation.oneline.json`, press **Solve**.
+Try it: pick a circuit from the **Samples** dropdown, press **Solve**.
 
 ## Development
 

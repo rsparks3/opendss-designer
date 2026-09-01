@@ -26,7 +26,11 @@ pip install opendss-designer
 opendss-designer          # starts a local server and opens your browser
 ```
 
-Everything runs locally on your machine — nothing is uploaded anywhere.
+Run it yourself and everything stays on your machine: the server binds to
+`127.0.0.1` and your circuits are never uploaded. (The optional NREL load-profile
+and NSRDB irradiance fetchers are the one exception — those reach out to public
+data services when you ask them to.) A [hosted demo](deployment.md) is a
+different setting with size limits; see [Security](security.md).
 
 Head to [Getting started](getting-started.md) for a walkthrough, or
 [Components](components.md) for the full element reference.

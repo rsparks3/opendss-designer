@@ -209,8 +209,8 @@ def test_conn_injection_is_neutralized():
 
 
 def test_units_injection_is_neutralized():
-    from opendss_designer.core.model import Circuit, CircuitEdge, CircuitNode
     from opendss_designer.core.compiler import compile_circuit
+    from opendss_designer.core.model import Circuit, CircuitEdge, CircuitNode
     nodes = [CircuitNode(id="src", type="vsource", params={"basekv": 12.47}),
              CircuitNode(id="b", type="busbar", params={"basekv": 12.47})]
     edges = [CircuitEdge(id="e1", type="line", source="src", sourceHandle="t1",
@@ -344,7 +344,7 @@ def test_envelope_matches_the_batch_downsampler():
     reducing at the end; the output must be byte-identical to the old path."""
     import random
 
-    from opendss_designer.core.engine import _Envelope, _downsample_minmax
+    from opendss_designer.core.engine import _downsample_minmax, _Envelope
 
     random.seed(7)
     for _ in range(200):
@@ -469,3 +469,82 @@ def test_security_headers_are_present(client):
     assert headers["x-content-type-options"] == "nosniff"
     assert headers["x-frame-options"] == "DENY"
     assert "frame-ancestors 'none'" in headers["content-security-policy"]
+
+
+def test_engine_does_not_move_the_process_working_directory(substation_circuit):
+    """Setting DataPath chdirs the whole process unless AllowChangeDir is
+    already off, so the flag order in _ensure_init matters. A moved CWD
+    silently changes how every relative path in the process resolves --
+    including the conductor-preset lookup."""
+    import os
+
+    from opendss_designer.core import engine
+
+    before = os.getcwd()
+    engine.solve(substation_circuit)
+    assert os.getcwd() == before
+    engine.fault_study(substation_circuit)
+    assert os.getcwd() == before
+
+
+def test_import_does_not_move_the_process_working_directory():
+    import os
+
+    before = os.getcwd()
+    _import([{"name": "main.dss", "text": MAIN},
+             {"name": "helper.dss", "text": "! nothing\n"}])
+    assert os.getcwd() == before
+
+
+# --- curated samples -------------------------------------------------------
+
+def test_samples_are_listed(client):
+    body = client.get("/api/samples").json()["samples"]
+    ids = {s["id"] for s in body}
+    assert {"demo-substation", "radial-feeder-der"} <= ids
+    assert all(s["nodes"] > 0 for s in body)
+
+
+@pytest.mark.parametrize("bad", [
+    "../../../pyproject", "..", ".", "Demo Substation", "demo/substation",
+    "demo-substation.oneline", "a" * 100, "", "C:/Windows/win.ini",
+])
+def test_sample_ids_cannot_address_the_filesystem(bad):
+    """Tested at the function, not over HTTP: the client normalizes `..` out
+    of a URL before it is sent, so only this level sees the hostile value."""
+    from opendss_designer.core import samples
+    assert samples.get_sample(bad) is None
+
+
+@pytest.mark.parametrize("bad", ["nope", "demo-substation-x"])
+def test_unknown_sample_is_a_404(client, bad):
+    assert client.get(f"/api/samples/{bad}").status_code == 404
+
+
+def test_every_sample_validates_and_solves():
+    """Doubles as the demo's smoke test: if a sample stops solving, the first
+    thing a visitor clicks is broken."""
+    from opendss_designer.core import engine, samples
+    from opendss_designer.core.model import Circuit
+    from opendss_designer.core.validate import validate
+
+    listed = samples.list_samples()
+    assert listed
+    for meta in listed:
+        circuit = Circuit(**samples.get_sample(meta["id"]))
+        errors = [i for i in validate(circuit) if i.severity == "error"]
+        assert not errors, (meta["id"], [i.message for i in errors])
+        result = engine.solve(circuit)
+        assert result["converged"], meta["id"]
+
+
+def test_samples_fit_within_the_demo_limits():
+    from opendss_designer.core import samples
+    from opendss_designer.core.model import Circuit
+    from opendss_designer.core.validate import limit_issues
+    from opendss_designer.settings import Settings
+
+    demo_cfg = Settings.from_env({"OPENDSS_DESIGNER_MODE": "demo"})
+    for meta in samples.list_samples():
+        circuit = Circuit(**samples.get_sample(meta["id"]))
+        assert not limit_issues(circuit, demo_cfg), meta["id"]

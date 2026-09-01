@@ -70,7 +70,50 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>
 }
 
+async function get<T>(url: string): Promise<T> {
+  const res = await fetch(url)
+  if (!res.ok) {
+    const text = await res.text()
+    let detail = text
+    try {
+      detail = JSON.parse(text).detail ?? text
+    } catch {
+      // not JSON — use raw text
+    }
+    throw new Error(detail || `${url} failed: ${res.status}`)
+  }
+  return res.json() as Promise<T>
+}
+
+export interface SampleMeta {
+  id: string
+  name: string
+  description: string
+  nodes: number
+  edges: number
+}
+
+export interface HealthInfo {
+  version: string
+  opendssVersion: string
+  mode: 'local' | 'demo'
+  limits?: {
+    maxNodes: number | null
+    maxEdges: number | null
+    maxShapes: number | null
+    maxShapePoints: number | null
+    maxBodyBytes: number | null
+  }
+  idleSeconds?: number
+}
+
 export const api = {
+  health: () => get<HealthInfo>('/api/health'),
+
+  samples: () => get<{ samples: SampleMeta[] }>('/api/samples'),
+
+  sample: (id: string) => get<CircuitJSON>(`/api/samples/${encodeURIComponent(id)}`),
+
   solve: (circuit: CircuitJSON) => post<SolveResult>('/api/solve', circuit),
 
   faultStudy: (circuit: CircuitJSON) => post<FaultResult>('/api/faultstudy', circuit),

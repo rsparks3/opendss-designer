@@ -18,7 +18,7 @@ def _psm4_csv() -> str:
         "NSRDB,484607,-,-,-,39.73,-104.98,-7,1607,w/m2",
         "Year,Month,Day,Hour,Minute,GHI",
     ]
-    for d in range(365):
+    for _day in range(365):
         for h in range(24):
             ghi = max(0.0, round(1000 * math.sin(math.pi * (h - 6) / 12), 1)) if 6 <= h <= 18 else 0.0
             lines.append(f"2018,1,1,{h},30,{ghi}")

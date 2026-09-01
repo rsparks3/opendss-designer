@@ -39,6 +39,8 @@ nav:
   - Shapes & profiles: shapes.md
   - Time-series analysis: timeseries.md
   - Importing DSS files: importing-dss.md
+  - Deploying: deployment.md
+  - Security: security.md
   - Development:
       - Contributing: development.md
       - Adding an element type: adding-an-element.md

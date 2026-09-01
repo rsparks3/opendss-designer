@@ -110,7 +110,7 @@ def test_daily_step_loop() -> None:
         hours.append(dss.Solution.DblHour())
         load_kw.append(_element_kw("load.ld1"))
     # Clock advances one hour per step, monotonically.
-    steps = [round(b - a, 6) for a, b in zip(hours, hours[1:])]
+    steps = [round(b - a, 6) for a, b in zip(hours, hours[1:], strict=False)]
     assert steps == [1.0] * 23
     # The load tracked the shape: peak/off-peak ratio ~ 1.0/0.4.
     assert max(load_kw) / min(load_kw) == pytest.approx(2.5, rel=0.1)

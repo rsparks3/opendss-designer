@@ -6,7 +6,7 @@ from .connectivity import synthesize, terminal_key
 from .model import NODE_TERMINALS, Circuit, Issue
 
 
-def limit_issues(circuit: Circuit, cfg: "Settings | None" = None) -> list[Issue]:
+def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
     """Demo-mode size caps, expressed as ordinary validation issues.
 
     Riding the existing `Issue` pipeline means the Problems list renders them,
@@ -173,7 +173,7 @@ def validate(circuit: Circuit) -> list[Issue]:
                 declared.append((buses[0], float(kv)))
         elif n.type == "transformer":
             windings = n.params.get("windings") or []
-            for b, w in zip(buses, windings):
+            for b, w in zip(buses, windings, strict=False):
                 if w.get("kv"):
                     declared.append((b, float(w["kv"])))
         label = str(n.params.get("name") or n.id)

@@ -12,12 +12,16 @@ opendss-designer
 This starts a local web server and opens the editor in your browser. Useful
 flags: `--port 8721` (it picks the next free port if busy) and `--no-browser`.
 
-The app is fully local: the server binds to `127.0.0.1`, and your circuits
-never leave your machine.
+The app is local by default: the server binds to `127.0.0.1`, and your circuits
+never leave your machine. The only outbound requests are the ones you ask for
+explicitly — the NREL load-profile and NSRDB irradiance fetchers. If you are
+using a *hosted* demo instead, see [Security](security.md) for what that
+changes.
 
-!!! tip "Try the demo circuit"
-    Click **Open** and load
-    [`examples/demo-substation.oneline.json`](https://github.com/rsparks3/opendss-designer/tree/main/examples)
+!!! tip "Start from a sample"
+    Pick one from the **Samples** dropdown in the toolbar — *Demo substation*
+    for the basics, or *Radial feeder with DER* if you want something with PV,
+    a battery and a daily load shape to run a time series on.
     from the repository, then press **Solve** to see the result overlays
     immediately.
 

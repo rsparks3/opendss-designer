@@ -11,7 +11,8 @@ from __future__ import annotations
 import json
 import threading
 import time
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 Scope = dict[str, Any]
 Receive = Callable[[], Awaitable[dict]]

@@ -15,8 +15,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from . import cache, engine
 from ..settings import settings
+from . import cache
 from .connectivity import sanitize_name
 
 BASE_URL = ("https://oedi-data-lake.s3.amazonaws.com/nrel-pds-building-stock/"

@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { api } from '../lib/api'
+import { useEffect, useRef, useState } from 'react'
+import { api, type SampleMeta } from '../lib/api'
 import { autoLayout } from '../lib/layout'
 import { runSolve } from '../lib/solve'
 import {
@@ -9,6 +9,18 @@ import {
   useCircuitStore,
 } from '../store/circuitStore'
 import { useResultsStore, type OverlayMode } from '../store/resultsStore'
+
+// A browser tab dies on JSON.parse of a few hundred MB long before the server
+// ever sees the request, so the first size check has to happen here.
+const MAX_PROJECT_BYTES = 32 * 1024 * 1024
+const MAX_DSS_BYTES = 32 * 1024 * 1024
+
+function tooBig(files: File[], limit: number): string | null {
+  const total = files.reduce((n, f) => n + f.size, 0)
+  if (total <= limit) return null
+  const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(1)} MB`
+  return `That is ${mb(total)}; the editor handles up to ${mb(limit)}.`
+}
 
 function download(filename: string, text: string, type = 'application/json') {
   const a = document.createElement('a')
@@ -33,6 +45,12 @@ export function Toolbar() {
   const loadCircuit = useCircuitStore((s) => s.loadCircuit)
   const dirty = useCircuitStore((s) => s.dirty)
   const markSaved = useCircuitStore((s) => s.markSaved)
+
+  const [samples, setSamples] = useState<SampleMeta[]>([])
+  useEffect(() => {
+    // Best effort: a missing sample list just hides the picker.
+    api.samples().then((r) => setSamples(r.samples)).catch(() => {})
+  }, [])
 
   const solving = useResultsStore((s) => s.solving)
   const tsRunning = useResultsStore((s) => s.tsRunning)
@@ -99,10 +117,35 @@ export function Toolbar() {
   }
 
   const onOpenProject = async (file: File) => {
+    const oversize = tooBig([file], MAX_PROJECT_BYTES)
+    if (oversize) {
+      flash(`Could not open project: ${oversize}`)
+      return
+    }
     try {
       loadCircuit(JSON.parse(await file.text()))
     } catch (err) {
       flash(`Could not open project: ${err instanceof Error ? err.message : err}`)
+    }
+  }
+
+  const onOpenSample = async (id: string) => {
+    const st = useCircuitStore.getState()
+    if (
+      st.nodes.length > 0 &&
+      st.dirty &&
+      !window.confirm('Discard unsaved changes and open the sample?')
+    ) {
+      return
+    }
+    try {
+      const circuit = await api.sample(id)
+      loadCircuit(circuit)
+      useCircuitStore.setState({ dirty: false })
+      useCircuitStore.temporal.getState().clear()
+      useResultsStore.setState({ result: null, stale: false, issues: [] })
+    } catch (err) {
+      flash(`Could not open sample: ${err instanceof Error ? err.message : err}`)
     }
   }
 
@@ -115,6 +158,11 @@ export function Toolbar() {
   }
 
   const onImportDss = async (fileList: File[]) => {
+    const oversize = tooBig(fileList, MAX_DSS_BYTES)
+    if (oversize) {
+      flash(`Could not import: ${oversize}`)
+      return
+    }
     try {
       const files = await Promise.all(
         fileList.map(async (f) => ({ name: f.name, text: await f.text() })),
@@ -226,6 +274,23 @@ export function Toolbar() {
           Save{dirty ? ' •' : ''}
         </button>
         <button onClick={() => projectInput.current?.click()}>Open</button>
+        {samples.length > 0 && (
+          <select
+            value=""
+            title="Open a ready-made example circuit"
+            onChange={(e) => {
+              if (e.target.value) onOpenSample(e.target.value)
+              e.target.value = ''
+            }}
+          >
+            <option value="">Samples…</option>
+            {samples.map((s) => (
+              <option key={s.id} value={s.id} title={s.description}>
+                {s.name} ({s.nodes} elements)
+              </option>
+            ))}
+          </select>
+        )}
         <button onClick={onExportDss} title="Export as a runnable OpenDSS .dss file">Export .dss</button>
         <button
           onClick={() => dssInput.current?.click()}

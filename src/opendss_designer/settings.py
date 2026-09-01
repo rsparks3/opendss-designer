@@ -108,7 +108,7 @@ class Settings:
         return self.cache_dir or self.workdir
 
     @classmethod
-    def from_env(cls, env: dict[str, str] | None = None) -> "Settings":
+    def from_env(cls, env: dict[str, str] | None = None) -> Settings:
         env = dict(os.environ if env is None else env)
         mode = (env.get("OPENDSS_DESIGNER_MODE") or LOCAL).strip().lower()
         if mode not in (LOCAL, DEMO):
@@ -118,7 +118,7 @@ class Settings:
         base = _DEMO_LIMITS if mode == DEMO else {}
         casts = {f.name: f.type for f in fields(cls)}
 
-        for name, demo_default in _DEMO_LIMITS.items():
+        for name in _DEMO_LIMITS:
             default = base.get(name)
             cast = float if "float" in str(casts.get(name, "")) else int
             values[name] = _env_num(

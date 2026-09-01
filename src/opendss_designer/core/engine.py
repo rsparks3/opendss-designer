@@ -15,10 +15,10 @@ import math
 import sys
 import tempfile
 import threading
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from pathlib import Path
-from typing import Any, Callable, Iterator, TypeVar
+from typing import Any, TypeVar
 
 import opendssdirect as dss
 
@@ -163,14 +163,18 @@ def _ensure_init() -> None:
     global _initialized
     if not _initialized:
         WORKDIR.mkdir(parents=True, exist_ok=True)
-        dss.Basic.DataPath(str(WORKDIR))
         # The DSS script language can touch the filesystem and spawn processes.
         # None of it is needed to build and solve a diagram, so it is all off:
         # imports compile attacker-supplied text (see importer.import_dss_files).
+        #
+        # Order matters: setting DataPath chdirs the whole process unless
+        # AllowChangeDir is already off. A moved CWD silently changes how every
+        # relative path in the process resolves.
+        dss.Basic.AllowChangeDir(False)  # `compile`/DataPath must not move the CWD
         dss.Basic.AllowForms(False)      # no GUI dialogs
         dss.Basic.AllowEditor(False)     # `Show`/`Export` must not spawn an editor
         dss.Basic.AllowDOScmd(False)     # pin the default; never inherit it
-        dss.Basic.AllowChangeDir(False)  # `compile` must not move the process CWD
+        dss.Basic.DataPath(str(WORKDIR))
         _initialized = True
 
 

@@ -3,6 +3,45 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.2.0 — 2026-09-01
+
+Everything here is opt-in. `pip install opendss-designer` and run it as before
+and nothing below applies: demo mode is off by default, and every limit is
+unset in local mode.
+
+### Added
+
+- **Demo mode** (`--demo`, or `OPENDSS_DESIGNER_MODE=demo`) for running a
+  public instance: caps on circuit size, request size, import size, solver
+  queue depth and time-series cost; bounded on-disk caches; rate-limited
+  outbound data fetchers; no interactive API docs. Size limits appear in the
+  Problems list as ordinary validation errors while you draw, rather than as a
+  failure when you press Solve. See [docs/deployment.md](docs/deployment.md).
+- **Sample circuits**, in a Samples dropdown in the toolbar: a demo substation
+  and a radial feeder with PV, storage and a daily load shape.
+- **`Dockerfile`** building a single-session container, and `--host` / `$PORT`
+  / idle-shutdown support so one can be run per visitor.
+- **Deployment and security documentation**, plus a `SECURITY.md`.
+- Security headers on every response, and structured logging (JSON with
+  `OPENDSS_DESIGNER_LOG_JSON=1`) for hosted instances.
+
+### Fixed
+
+- **The OpenDSS engine no longer changes the process working directory.**
+  Setting the engine's data path chdir'd the whole process, so every relative
+  path in the program silently resolved somewhere else afterwards.
+- **A time-series run no longer holds every sample in memory.** Long runs
+  bucketed only at the end, so a yearly run allocated steps x elements floats;
+  the envelope is now accumulated as the run goes. Fixing the bucket size up
+  front also keeps the time axis aligned with the data when a run is cancelled.
+- `config/linecodes.csv` now ships inside the wheel. A `pip install` previously
+  loaded **zero** conductor presets unless you happened to have a repo checkout
+  and the right working directory.
+- The time-series progress queue is bounded, so a backgrounded browser tab no
+  longer lets events accumulate without limit.
+- A busy solver returns 503 with `Retry-After` instead of parking request
+  threads until the whole app stops responding.
+
 ## 0.1.3 — 2026-09-01
 
 ### Security
