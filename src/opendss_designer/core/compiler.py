@@ -5,6 +5,7 @@ export is exactly what was solved.
 """
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -22,6 +23,17 @@ DEFAULT_BREAKER_NORMAMPS = 600.0
 # parser's heap on Linux builds — they parse fine but segfault the process
 # later. 288 points = a 15-minute daily shape, comfortably inline.
 MAX_INLINE_SHAPE_PTS = 288
+
+# Element property values are interpolated straight into DSS command text, so
+# every free-form string is constrained to a known set. Anything else would be
+# appended to the command as extra properties (conn="wye kw=9e9").
+CONN_TYPES = frozenset({"wye", "delta"})
+DISPATCH_MODES = frozenset({"follow", "default"})
+# The full set OpenDSS accepts for Line.units. Must stay the superset the
+# importer can emit (importer._UNIT_CODES) -- not linecodes.VALID_UNITS, which
+# is the stricter set allowed in the conductor-preset CSV. Kept in sync with
+# engine._KM_PER_UNIT by a test.
+LINE_UNITS = frozenset({"none", "mi", "kft", "km", "m", "ft", "in", "cm"})
 
 
 @dataclass
@@ -42,9 +54,23 @@ def _num(params: dict, key: str, default: float | None = None) -> float | None:
     if v is None or v == "":
         return default
     try:
-        return float(v)
+        f = float(v)
     except (TypeError, ValueError):
         return default
+    # json.loads turns 1e999 into inf, which would reach a command as "inf".
+    return f if math.isfinite(f) else default
+
+
+def _enum(params: dict, key: str, allowed: frozenset[str], default: str) -> str:
+    """Allowlisted property value, falling back to the default."""
+    v = str(params.get(key, default)).strip().lower()
+    return v if v in allowed else default
+
+
+def _phases(params: dict, default: int = 3) -> int:
+    """Phase count clamped to 1-3; a huge value builds a pathological command."""
+    n = _num(params, "phases", default) or default
+    return min(max(int(n), 1), 3)
 
 
 def _phase_suffix(phases: int) -> str:
@@ -119,7 +145,7 @@ def compile_circuit(circuit: Circuit,
         p = n.params
         basekv = _num(p, "basekv", 12.47) or 12.47
         pu = _num(p, "pu", 1.0)
-        phases = int(_num(p, "phases", 3) or 3)
+        phases = _phases(p)
         mvasc3 = _num(p, "mvasc3", 2000.0)
         mvasc1 = _num(p, "mvasc1", 2100.0)
         angle = _num(p, "angle", 0.0)
@@ -178,7 +204,7 @@ def compile_circuit(circuit: Circuit,
     for n in transformers:
         p = n.params
         name = element_name("transformer", p.get("name"), n.id, n.id)
-        phases = int(_num(p, "phases", 3) or 3)
+        phases = _phases(p)
         windings = p.get("windings") or [
             {"kv": 115, "kva": 10000, "conn": "delta"},
             {"kv": 12.47, "kva": 10000, "conn": "wye"},
@@ -188,7 +214,9 @@ def compile_circuit(circuit: Circuit,
         bus_list = ", ".join(
             b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None, phases)
             for i, b in enumerate(buses[: len(windings)]))
-        conns = ", ".join(str(w.get("conn", "wye")) for w in windings)
+        conns = ", ".join(
+            _enum(w if isinstance(w, dict) else {}, "conn", CONN_TYPES, "wye")
+            for w in windings)
         kvs = ", ".join(f"{float(w.get('kv', 12.47)):g}" for w in windings)
         kvas = ", ".join(f"{float(w.get('kva', 10000)):g}" for w in windings)
         xhl = _num(p, "xhl", 8.0)
@@ -203,12 +231,12 @@ def compile_circuit(circuit: Circuit,
     for e in line_edges:
         p = e.params
         name = element_name("line", p.get("name"), e.id, e.id)
-        phases = int(_num(p, "phases", 3) or 3)
+        phases = _phases(p)
         b1, b2 = conn.line_buses[e.id]
         sfx1 = _bus_suffix(p.get("nodes1"), phases)
         sfx2 = _bus_suffix(p.get("nodes2"), phases)
         length = _num(p, "length", 1.0)
-        units = str(p.get("units", "km"))
+        units = _enum(p, "units", LINE_UNITS, "km")
         r1 = _num(p, "r1", 0.12)
         x1 = _num(p, "x1", 0.38)
         r0 = _num(p, "r0", 0.4)
@@ -229,7 +257,7 @@ def compile_circuit(circuit: Circuit,
     for n in breakers:
         p = n.params
         name = element_name("line", p.get("name"), n.id, n.id)
-        phases = int(_num(p, "phases", 3) or 3)
+        phases = _phases(p)
         b1, b2 = conn.node_buses[n.id]
         sfx = _phase_suffix(phases)
         normamps = _num(p, "normamps", DEFAULT_BREAKER_NORMAMPS)
@@ -242,12 +270,12 @@ def compile_circuit(circuit: Circuit,
     for n in loads:
         p = n.params
         name = element_name("load", p.get("name"), n.id, n.id)
-        phases = int(_num(p, "phases", 3) or 3)
+        phases = _phases(p)
         bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
         kv = _num(p, "kv", 12.47) or 12.47
         kw = _num(p, "kw", 100.0)
         pf = _num(p, "pf", 0.95)
-        load_conn = str(p.get("conn", "wye"))
+        load_conn = _enum(p, "conn", CONN_TYPES, "wye")
         model = int(_num(p, "model", 1) or 1)
         kv_bases.add(kv)
         cmds.append(
@@ -258,12 +286,12 @@ def compile_circuit(circuit: Circuit,
     for n in capacitors:
         p = n.params
         name = element_name("capacitor", p.get("name"), n.id, n.id)
-        phases = int(_num(p, "phases", 3) or 3)
+        phases = _phases(p)
         bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
         kv = _num(p, "kv", 12.47) or 12.47
         kvar = _num(p, "kvar", 600.0)
-        cap_conn = str(p.get("conn", "wye"))
-        numsteps = int(_num(p, "numsteps", 1) or 1)
+        cap_conn = _enum(p, "conn", CONN_TYPES, "wye")
+        numsteps = min(max(int(_num(p, "numsteps", 1) or 1), 1), 100)
         kv_bases.add(kv)
         cmd = (f"new capacitor.{name} bus1={bus} phases={phases} conn={cap_conn} "
                f"kv={kv:g} kvar={kvar:g}")
@@ -274,12 +302,12 @@ def compile_circuit(circuit: Circuit,
     for n in generators:
         p = n.params
         name = element_name("generator", p.get("name"), n.id, n.id)
-        phases = int(_num(p, "phases", 3) or 3)
+        phases = _phases(p)
         bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
         kv = _num(p, "kv", 12.47) or 12.47
         kw = _num(p, "kw", 1000.0)
         pf = _num(p, "pf", 1.0)
-        gen_conn = str(p.get("conn", "wye"))
+        gen_conn = _enum(p, "conn", CONN_TYPES, "wye")
         model = int(_num(p, "model", 1) or 1)
         kv_bases.add(kv)
         cmd = (f"new generator.{name} bus1={bus} phases={phases} conn={gen_conn} "
@@ -299,14 +327,14 @@ def compile_circuit(circuit: Circuit,
     for n in pvsystems:
         p = n.params
         name = element_name("pvsystem", p.get("name"), n.id, n.id)
-        phases = int(_num(p, "phases", 3) or 3)
+        phases = _phases(p)
         bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
         kv = _num(p, "kv", 12.47) or 12.47
         kva = _num(p, "kva", 500.0)
         pmpp = _num(p, "pmpp", 500.0)
         pf = _num(p, "pf", 1.0)
         irradiance = _num(p, "irradiance", 1.0)
-        pv_conn = str(p.get("conn", "wye"))
+        pv_conn = _enum(p, "conn", CONN_TYPES, "wye")
         kv_bases.add(kv)
         cmds.append(
             f"new pvsystem.{name} bus1={bus} phases={phases} conn={pv_conn} "
@@ -318,7 +346,7 @@ def compile_circuit(circuit: Circuit,
     for n in storages:
         p = n.params
         name = element_name("storage", p.get("name"), n.id, n.id)
-        phases = int(_num(p, "phases", 3) or 3)
+        phases = _phases(p)
         bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
         kv = _num(p, "kv", 12.47) or 12.47
         kwrated = _num(p, "kwrated", 250.0)
@@ -327,8 +355,8 @@ def compile_circuit(circuit: Circuit,
         effdischarge = _num(p, "effdischarge", 95.0)
         reserve = _num(p, "reserve", 20.0)
         soc = _num(p, "soc", 50.0)
-        stg_conn = str(p.get("conn", "wye"))
-        dispatch = str(p.get("dispatch", "follow"))
+        stg_conn = _enum(p, "conn", CONN_TYPES, "wye")
+        dispatch = _enum(p, "dispatch", DISPATCH_MODES, "follow")
         kv_bases.add(kv)
         cmd = (f"new storage.{name} bus1={bus} phases={phases} conn={stg_conn} "
                f"kv={kv:g} kwrated={kwrated:g} kwhrated={kwhrated:g} "

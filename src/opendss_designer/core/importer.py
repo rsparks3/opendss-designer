@@ -61,26 +61,112 @@ def _find_main(files: list[dict[str, str]]) -> dict[str, str]:
         "Select the feeder's main .dss file (plus any files it references).")
 
 
-def _check_references(main_text: str, provided: set[str]) -> tuple[str, list[str]]:
-    """Verify Redirect/Compile targets were uploaded; comment out BusCoords
-    lines whose file is missing (coordinates are cosmetic)."""
+# Commands that write files, spawn processes, or repoint the engine. An import
+# describes a circuit; it is data, not a program, so none of these are needed.
+_FORBIDDEN = {
+    "save", "export", "dump", "show", "plot", "visualize", "fileedit",
+    "docmd", "dosimplecmd", "doscmd", "cd",
+}
+
+# Leading commands that name a companion file. buscoords/latloncoords are
+# cosmetic (bus positions), so a missing one is a warning, not a failure.
+_COSMETIC_REFS = {"buscoords", "latloncoords"}
+_REF_LINE_RE = re.compile(
+    r'^(\s*)(redirect|compile|buscoords|latloncoords)(\s+)"?([^"\s]+)"?(.*)$',
+    re.IGNORECASE)
+
+# Property forms that name a data file: `mult=(file=shape.csv)`, `(file=x)`,
+# `csvfile=x`, `sngfile=`, `dblfile=`. `\bfile` does not match inside
+# "csvfile" (the preceding 'v' is a word character), so both are needed.
+_FILE_PARAM_RE = re.compile(r'\bfile\s*=\s*"?([^"\s,\)\]]+)', re.IGNORECASE)
+_CSVFILE_PARAM_RE = re.compile(
+    r'\b(?:csvfile|sngfile|dblfile)\s*=\s*"?([^"\s,\)\]]+)', re.IGNORECASE)
+
+_LEADING_RE = re.compile(r'^\s*([A-Za-z_]+)')
+_SET_BAD_RE = re.compile(r'^\s*set\b.*\b(datapath|editor)\s*=', re.IGNORECASE)
+_DLL_RE = re.compile(r'\bdll\s*=', re.IGNORECASE)
+
+# Uploaded filenames land in a temp dir; keep them boring.
+_SAFE_NAME_RE = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}')
+
+
+def _is_comment(line: str) -> bool:
+    t = line.lstrip()
+    return not t or t.startswith("!") or t.startswith("//")
+
+
+def _basename(ref: str) -> str:
+    return Path(ref.replace("\\", "/")).name
+
+
+def _sanitize_dss_text(text: str, provided: set[str]) -> tuple[str, list[str]]:
+    """Make one uploaded .dss file safe to hand to the OpenDSS compiler.
+
+    Every file reference is rewritten to its *basename*, so a path trying to
+    leave the import temp directory ("../../etc/passwd") simply resolves to a
+    name inside it. That is a normalization, not a blocklist, which is why it
+    holds: there is no traversal spelling that survives it. A basename that was
+    not uploaded is then reported as a missing companion file.
+
+    Applied to every uploaded file, not just the one defining the circuit --
+    otherwise a second file can redirect wherever it likes.
+    """
     warnings: list[str] = []
     missing: list[str] = []
     out_lines: list[str] = []
-    ref_re = re.compile(r'^\s*(redirect|compile|buscoords)\s+"?([^"\s]+)"?', re.IGNORECASE)
-    for line in main_text.splitlines():
-        m = ref_re.match(line)
+
+    def rewrite(match: "re.Match[str]") -> str:
+        ref = match.group(1)
+        base = _basename(ref)
+        if base.lower() not in provided:
+            missing.append(ref)
+            return match.group(0)
+        return match.group(0).replace(ref, base)
+
+    for line in text.splitlines():
+        if _is_comment(line):
+            out_lines.append(line)
+            continue
+
+        lead = _LEADING_RE.match(line)
+        verb = lead.group(1).lower() if lead else ""
+        if verb in _FORBIDDEN:
+            # Commented out rather than refused: real feeders routinely end
+            # with `solve`/`export`/`show`, and none of it contributes to the
+            # diagram. Skipping keeps those files importable; the line never
+            # reaches the engine either way.
+            warnings.append(
+                f"Ignored '{verb}' — an import reads the circuit "
+                "definition only, it does not run scripts.")
+            out_lines.append("! " + line)
+            continue
+        if _SET_BAD_RE.match(line) or _DLL_RE.search(line):
+            warnings.append(f"Ignored an unsupported directive: {line.strip()[:80]}")
+            out_lines.append("! " + line)
+            continue
+
+        # Leading `redirect foo/bar.dss` -> `redirect bar.dss`
+        m = _REF_LINE_RE.match(line)
         if m:
-            kind, ref = m.group(1).lower(), m.group(2)
-            if Path(ref).name.lower() not in provided:
-                if kind == "buscoords":
-                    warnings.append(
-                        f"Skipped 'BusCoords {ref}' — file not provided, "
-                        "so no geographic layout.")
-                    out_lines.append("! " + line)
-                    continue
+            indent, kind, gap, ref, rest = m.groups()
+            base = _basename(ref)
+            if base.lower() in provided:
+                out_lines.append(f"{indent}{kind}{gap}{base}{rest}")
+            elif kind.lower() in _COSMETIC_REFS:
+                label = "BusCoords" if kind.lower() == "buscoords" else kind
+                warnings.append(
+                    f"Skipped '{label} {ref}' — file not provided, "
+                    "so no geographic layout.")
+                out_lines.append("! " + line)
+            else:
                 missing.append(ref)
+                out_lines.append(line)
+            continue
+
+        line = _FILE_PARAM_RE.sub(rewrite, line)
+        line = _CSVFILE_PARAM_RE.sub(rewrite, line)
         out_lines.append(line)
+
     if missing:
         raise ImportFailure(
             "This file references other files that were not selected: "
@@ -97,21 +183,36 @@ def import_dss(text: str) -> dict[str, Any]:
 
 @engine.on_engine_thread
 def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
-    files = [{"name": Path(str(f.get("name") or "file.dss")).name,
-              "text": str(f.get("text", ""))} for f in files]
+    cleaned: list[dict[str, str]] = []
+    for f in files:
+        raw = str(f.get("name") or "file.dss")
+        name = _basename(raw)
+        # ".." survives basename stripping and "." collapses to "", both of
+        # which name a directory -- writing to one crashes the import.
+        if not _SAFE_NAME_RE.fullmatch(name):
+            raise ImportFailure(
+                f"'{raw}' is not a usable file name. Rename the file to plain "
+                "letters, digits, dots, dashes or underscores and try again.")
+        cleaned.append({"name": name, "text": str(f.get("text", ""))})
+    files = cleaned
     if not files:
         raise ImportFailure("No files were provided.")
     main = _find_main(files)
     provided = {f["name"].lower() for f in files}
-    main_text, warnings = _check_references(main["text"], provided)
+
+    # Sanitize *every* file: a companion file gets compiled too, via the main
+    # file's redirect, so checking only the main one leaves the door open.
+    warnings: list[str] = []
+    for f in files:
+        f["text"], warns = _sanitize_dss_text(f["text"], provided)
+        warnings.extend(warns)
 
     with engine.dss_guard():
         engine._ensure_init()
         tmpdir = Path(tempfile.mkdtemp(prefix="opendss_import_"))
         try:
             for f in files:
-                text = main_text if f is main else f["text"]
-                (tmpdir / f["name"]).write_text(text, encoding="utf-8")
+                (tmpdir / f["name"]).write_text(f["text"], encoding="utf-8")
             dss.Text.Command("clear")
             try:
                 dss.Text.Command(f'compile "{tmpdir / main["name"]}"')

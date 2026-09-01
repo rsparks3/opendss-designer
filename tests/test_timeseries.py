@@ -120,7 +120,9 @@ def test_sse_endpoint_streams_progress_then_result(substation_circuit):
 
     c = _with_shape(substation_circuit)
     app = create_app()
-    client = TestClient(app)
+    # Explicit loopback host: the app validates Host (DNS-rebinding
+    # defense), and TestClient would otherwise send "testserver".
+    client = TestClient(app, base_url="http://127.0.0.1")
     body = {"circuit": json.loads(c.model_dump_json()), "mode": "daily", "stepMin": 60}
     events = []
     with client.stream("POST", "/api/timeseries", json=body) as resp:

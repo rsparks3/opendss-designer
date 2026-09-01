@@ -39,7 +39,7 @@ def config_path() -> Path | None:
 def load_line_codes() -> dict[str, Any]:
     path = config_path()
     if path is None:
-        return {"lineCodes": [], "path": None,
+        return {"lineCodes": [],
                 "errors": ["config/linecodes.csv not found — no conductor presets loaded."]}
 
     errors: list[str] = []
@@ -50,7 +50,7 @@ def load_line_codes() -> dict[str, Any]:
     reader = csv.DictReader(lines)
     missing_cols = [c for c in REQUIRED_COLUMNS if c not in (reader.fieldnames or [])]
     if missing_cols:
-        return {"lineCodes": [], "path": str(path),
+        return {"lineCodes": [],
                 "errors": [f"linecodes.csv is missing column(s): {', '.join(missing_cols)}"]}
 
     for i, raw in enumerate(reader, start=2):  # 2 = first data line of the CSV body
@@ -77,4 +77,4 @@ def load_line_codes() -> dict[str, Any]:
         seen.add(code)
         rows.append({"code": code, "label": label, "units": units, **numbers})
 
-    return {"lineCodes": rows, "path": str(path), "errors": errors}
+    return {"lineCodes": rows, "errors": errors}

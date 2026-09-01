@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import queue
 import threading
 from typing import Literal
@@ -15,6 +16,8 @@ from ..core import engine, importer, irradiance, linecodes, nrel
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.validate import validate
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
@@ -77,8 +80,17 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
                     {"type": "progress", "step": s, "total": t}),
                 cancel=cancel)
             q.put({"type": "result", "result": result})
-        except Exception as exc:  # surfaced to the client, not swallowed
+        except (ValueError, importer.ImportFailure) as exc:
+            # Known bad input: the message is written for the user.
             q.put({"type": "error", "message": str(exc)})
+        except Exception:
+            # A bug, not bad input. `str(exc)` here can carry filesystem paths
+            # and library internals, so it stays server-side; the traceback
+            # still reaches stderr via the logging added for deployment.
+            logger.exception("Time-series run failed")
+            q.put({"type": "error",
+                   "message": "The time-series run failed unexpectedly. "
+                              "Check the server log for details."})
         finally:
             q.put(None)  # sentinel: stream complete
 

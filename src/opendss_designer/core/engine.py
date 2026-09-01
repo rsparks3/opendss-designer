@@ -130,18 +130,45 @@ def _write_aux_files(compiled: CompileResult) -> None:
 def _ensure_init() -> None:
     global _initialized
     if not _initialized:
-        WORKDIR.mkdir(exist_ok=True)
+        WORKDIR.mkdir(parents=True, exist_ok=True)
         dss.Basic.DataPath(str(WORKDIR))
-        dss.Basic.AllowForms(False)
+        # The DSS script language can touch the filesystem and spawn processes.
+        # None of it is needed to build and solve a diagram, so it is all off:
+        # imports compile attacker-supplied text (see importer.import_dss_files).
+        dss.Basic.AllowForms(False)      # no GUI dialogs
+        dss.Basic.AllowEditor(False)     # `Show`/`Export` must not spawn an editor
+        dss.Basic.AllowDOScmd(False)     # pin the default; never inherit it
+        dss.Basic.AllowChangeDir(False)  # `compile` must not move the process CWD
         _initialized = True
 
 
+@functools.lru_cache(maxsize=1)
 @on_engine_thread
 def opendss_version() -> str:
     """Engine version string. Pinned to the engine thread like every other
     native call — a stray entry from a request thread arms that thread's FP
-    traps (see `_clear_fp_traps`)."""
+    traps (see `_clear_fp_traps`).
+
+    Cached: this is what /api/health calls, and the version cannot change
+    within a process. Without the cache the health check queues behind
+    whatever is occupying the single engine thread, so a container running a
+    long solve looks dead to a liveness probe.
+    """
     return str(dss.Basic.Version())
+
+
+def _redact(text: str) -> str:
+    """Strip server-side absolute paths out of user-facing text.
+
+    Large loadshapes are passed to OpenDSS as `mult=(file="<abs path>")`
+    (compiler.MAX_INLINE_SHAPE_PTS), so an echoed command would otherwise
+    disclose the server's temp layout.
+    """
+    for path in (str(SHAPE_DIR), str(WORKDIR), tempfile.gettempdir()):
+        if path:
+            text = text.replace(path, "<workdir>")
+            text = text.replace(path.replace("\\", "/"), "<workdir>")
+    return text
 
 
 def _element_for_command(cmd: str, element_map: dict[str, str]) -> str | None:
@@ -165,7 +192,7 @@ def _run_commands(commands: list[str], element_map: dict[str, str],
             ref = _element_for_command(cmd, element_map)
             issues.append(Issue(
                 severity="error", code="dss-error",
-                message=f"OpenDSS rejected: {cmd!r} — {exc}",
+                message=_redact(f"OpenDSS rejected: {cmd!r} — {exc}"),
                 nodeId=ref, edgeId=ref))
     return ok
 
@@ -279,7 +306,7 @@ def solve(circuit: Circuit) -> dict[str, Any]:
     issues = list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "issues": [i.model_dump() for i in issues],
-                "buses": {}, "elements": {}, "commands": compiled.commands}
+                "buses": {}, "elements": {}}
 
     with dss_guard():
         _ensure_init()
