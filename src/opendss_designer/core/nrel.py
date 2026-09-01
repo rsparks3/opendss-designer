@@ -15,7 +15,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from . import engine
+from . import cache, engine
+from ..settings import settings
 from .connectivity import sanitize_name
 
 BASE_URL = ("https://oedi-data-lake.s3.amazonaws.com/nrel-pds-building-stock/"
@@ -48,7 +49,10 @@ PRODUCTS: dict[str, dict] = {
     },
 }
 
-CACHE_DIR = engine.WORKDIR / "nrel_cache"
+# Public, static files keyed only by what was requested, so a deployment
+# can point every session at one shared volume instead of re-downloading
+# 10-30 MB per visitor (settings.cache_dir).
+CACHE_DIR = settings.effective_cache_dir / "nrel_cache"
 
 
 class NrelError(Exception):
@@ -64,8 +68,16 @@ def _download(url: str, dest: Path) -> None:
     truncated file in the cache."""
     tmp = dest.with_suffix(".part")
     req = urllib.request.Request(url, headers={"User-Agent": "opendss-designer"})
+    limit = settings.max_outbound_bytes
+    written = 0
     with urllib.request.urlopen(req, timeout=120) as resp, open(tmp, "wb") as f:
         while chunk := resp.read(1 << 20):
+            written += len(chunk)
+            if limit and written > limit:
+                f.close()
+                tmp.unlink(missing_ok=True)
+                raise NrelError(
+                    "That dataset file is larger than this deployment allows.")
             f.write(chunk)
     tmp.replace(dest)
 
@@ -85,6 +97,7 @@ def _fetch_csv(product: str, zone: str, building_type: str) -> Path:
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise NrelError("Could not reach the NREL dataset (network problem?): "
                         f"{exc}") from exc
+    cache.sweep(CACHE_DIR, settings.nrel_cache_bytes)
     return dest
 
 

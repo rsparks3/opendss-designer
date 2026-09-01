@@ -22,9 +22,12 @@ from typing import Any, Callable, Iterator, TypeVar
 
 import opendssdirect as dss
 
+from ..settings import settings
+from . import cache
 from .compiler import CompileResult, compile_circuit
-from .connectivity import ConnectivityResult
+from .connectivity import ConnectivityResult, synthesize
 from .model import Circuit, Issue
+from .validate import limit_issues
 
 _lock = threading.Lock()
 _initialized = False
@@ -79,13 +82,37 @@ _dss_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="dss-engine
 _T = TypeVar("_T")
 
 
+class EngineBusy(Exception):
+    """Too many callers already waiting for the single engine thread."""
+
+
+# True concurrency is already 1 (the executor has one worker); what has to be
+# bounded is the number of *waiters*. `/api/solve` is a sync def, so each call
+# parks an anyio threadpool thread on `.result()` -- 40 of them and the whole
+# app stops answering, health check included. Rejecting beyond a small queue
+# keeps the server responsive instead of silently building a backlog.
+_pending = threading.BoundedSemaphore(
+    settings.max_queued_engine_calls or 10_000)
+
+
 def on_engine_thread(fn: Callable[..., _T]) -> Callable[..., _T]:
     """Run the wrapped function on the dedicated DSS engine thread and wait
     for its result. Decorated functions must not call each other (single
     worker — a nested submit would deadlock)."""
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> _T:
-        return _dss_executor.submit(fn, *args, **kwargs).result()
+        if settings.max_queued_engine_calls is None:
+            return _dss_executor.submit(fn, *args, **kwargs).result()
+        if not _pending.acquire(blocking=False):
+            raise EngineBusy(
+                "The solver is busy with other visitors right now — "
+                "try again in a moment.")
+        future = _dss_executor.submit(fn, *args, **kwargs)
+        # Released from the callback, not a `finally`: if `.result()` times out
+        # the engine thread is still running that work, so releasing here would
+        # over-admit. A timeout frees the HTTP worker, never the engine.
+        future.add_done_callback(lambda _f: _pending.release())
+        return future.result(timeout=settings.engine_result_timeout_s)
     return wrapper
 
 
@@ -110,9 +137,11 @@ def dss_guard() -> Iterator[None]:
             if was_enabled:
                 gc.enable()
 
-# OpenDSS writes side files (error logs, exports) to its data path;
-# keep them out of the user's CWD.
-WORKDIR = Path(tempfile.gettempdir()) / "opendss_designer"
+# OpenDSS writes side files (error logs, exports) to its data path; keep them
+# out of the user's CWD. In demo mode this is a per-process directory: shape
+# side files are named after the user's loadshape, so two sessions sharing a
+# directory would overwrite each other's data.
+WORKDIR = settings.workdir
 # Large loadshapes are fed to OpenDSS as CSV files from here (giant inline
 # mult=(...) commands corrupt the DSS Text parser's heap on Linux).
 SHAPE_DIR = WORKDIR / "shapes"
@@ -125,6 +154,9 @@ def _write_aux_files(compiled: CompileResult) -> None:
         SHAPE_DIR.mkdir(parents=True, exist_ok=True)
         for name, content in compiled.aux_files.items():
             (SHAPE_DIR / name).write_text(content, encoding="utf-8")
+        # Nothing else ever removes these; without a budget the directory
+        # grows for the life of the deployment.
+        cache.sweep(SHAPE_DIR, settings.shape_cache_bytes)
 
 
 def _ensure_init() -> None:
@@ -303,7 +335,7 @@ def _bus_distances(circuit: Circuit, conn: ConnectivityResult) -> dict[str, floa
 @on_engine_thread
 def solve(circuit: Circuit) -> dict[str, Any]:
     compiled: CompileResult = compile_circuit(circuit, shape_dir=SHAPE_DIR)
-    issues = list(compiled.issues)
+    issues = limit_issues(circuit) + list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "issues": [i.model_dump() for i in issues],
                 "buses": {}, "elements": {}}
@@ -377,6 +409,61 @@ def _downsample_minmax(series: list[float | None], k: int) -> list[float | None]
     return out
 
 
+def estimate_timeseries_cost(circuit: Circuit, mode: str, step_min: int) -> int:
+    """Rough work estimate: steps x recorded entities.
+
+    Uses `synthesize` only -- no engine, no lock -- so an over-budget request
+    can be refused before it queues behind the single engine thread.
+    """
+    steps = (24 if mode == "daily" else 8760) * (60 // max(step_min, 1))
+    conn = synthesize(circuit)
+    buses = len({b for buses in conn.node_buses.values() for b in buses})
+    elements = len(circuit.nodes) + sum(1 for e in circuit.edges if e.type == "line")
+    return steps * max(buses + elements, 1)
+
+
+class _Envelope:
+    """Records a per-step series, keeping memory flat on long runs.
+
+    With `k == 1` it stores every sample, exactly as before. Above the
+    downsample threshold `k` is known before the run starts (it depends only on
+    the step count), so each bucket's [min, max] is accumulated as the run goes
+    instead of holding all 35,040 samples for every bus and element and
+    reducing at the end. Output is identical to `_downsample_minmax(series, k)`.
+    """
+
+    __slots__ = ("k", "out", "_lo", "_hi", "_n")
+
+    def __init__(self, k: int) -> None:
+        self.k = k
+        self.out: list[float | None] = []
+        self._lo: float | None = None
+        self._hi: float | None = None
+        self._n = 0
+
+    def add(self, value: float | None) -> None:
+        if self.k == 1:
+            self.out.append(value)
+            return
+        if value is not None:
+            if self._lo is None or value < self._lo:
+                self._lo = value
+            if self._hi is None or value > self._hi:
+                self._hi = value
+        self._n += 1
+        if self._n == self.k:
+            self.out.extend((self._lo, self._hi))
+            self._lo = self._hi = None
+            self._n = 0
+
+    def finish(self) -> list[float | None]:
+        if self.k != 1 and self._n:  # partial trailing bucket
+            self.out.extend((self._lo, self._hi))
+            self._lo = self._hi = None
+            self._n = 0
+        return self.out
+
+
 @on_engine_thread
 def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
                      progress_cb: Callable[[int, int], None] | None = None,
@@ -386,7 +473,7 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
     integrated energy. Driving the solution one step at a time (instead of one
     blocking `solve`) is what makes progress reporting and cancel possible."""
     compiled: CompileResult = compile_circuit(circuit, shape_dir=SHAPE_DIR)
-    issues = list(compiled.issues)
+    issues = limit_issues(circuit) + list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "issues": [i.model_dump() for i in issues],
                 "buses": {}, "elements": {}, "totals": {}, "summary": None}
@@ -432,10 +519,15 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
         times: list[float] = []
         total_kw: list[float] = []
         loss_kw: list[float] = []
-        bus_vmin: dict[str, list[float]] = {b: [] for b in bus_slices}
-        bus_vmax: dict[str, list[float]] = {b: [] for b in bus_slices}
-        elem_series: dict[str, dict[str, list]] = {
-            fn: {"kw": [], "kvar": [], "ampsMax": [], "loadingPct": []}
+        # Bucket size is fixed up front from the planned step count, so the
+        # time axis and every series stay the same length even if the run is
+        # cancelled part way through.
+        bucket = math.ceil(total / _TARGET_BUCKETS) if total > _DOWNSAMPLE_ABOVE else 1
+        bus_vmin: dict[str, _Envelope] = {b: _Envelope(bucket) for b in bus_slices}
+        bus_vmax: dict[str, _Envelope] = {b: _Envelope(bucket) for b in bus_slices}
+        elem_series: dict[str, dict[str, _Envelope]] = {
+            fn: {"kw": _Envelope(bucket), "kvar": _Envelope(bucket),
+                 "ampsMax": _Envelope(bucket), "loadingPct": _Envelope(bucket)}
             for fn, *_ in elem_static}
         non_converged: list[int] = []
         energy_kwh = 0.0
@@ -463,14 +555,14 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
                     total_kw.append(0.0)
                     loss_kw.append(0.0)
                     for b in bus_slices:
-                        bus_vmin[b].append(0.0)
-                        bus_vmax[b].append(0.0)
+                        bus_vmin[b].add(0.0)
+                        bus_vmax[b].add(0.0)
                     for fn, *_ in elem_static:
                         s = elem_series[fn]
-                        s["kw"].append(0.0)
-                        s["kvar"].append(0.0)
-                        s["ampsMax"].append(0.0)
-                        s["loadingPct"].append(None)
+                        s["kw"].add(0.0)
+                        s["kvar"].add(0.0)
+                        s["ampsMax"].add(0.0)
+                        s["loadingPct"].add(None)
                     steps_done += 1
                     continue
 
@@ -489,8 +581,8 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
                 for b, idxs in bus_slices.items():
                     vals = [mags[i] for i in idxs]
                     lo, hi = min(vals), max(vals)
-                    bus_vmin[b].append(round(lo, 5))
-                    bus_vmax[b].append(round(hi, 5))
+                    bus_vmin[b].add(round(lo, 5))
+                    bus_vmax[b].add(round(hi, 5))
                     if 0.05 < lo < vmin_rec["value"]:  # ignore de-energized buses
                         vmin_rec = {"bus": b, "hour": hour, "value": round(lo, 5)}
                     if hi > vmax_rec["value"]:
@@ -503,10 +595,10 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
                     t1_amps = currents[0:2 * nphases:2]
                     amps = max(t1_amps) if t1_amps else 0.0
                     s = elem_series[fn]
-                    s["kw"].append(round(sum(powers[0:2 * ncond:2]), 2))
-                    s["kvar"].append(round(sum(powers[1:2 * ncond:2]), 2))
-                    s["ampsMax"].append(round(amps, 2))
-                    s["loadingPct"].append(
+                    s["kw"].add(round(sum(powers[0:2 * ncond:2]), 2))
+                    s["kvar"].add(round(sum(powers[1:2 * ncond:2]), 2))
+                    s["ampsMax"].add(round(amps, 2))
+                    s["loadingPct"].add(
                         round(100.0 * amps / norm_amps, 1) if norm_amps else None)
 
                 steps_done += 1
@@ -518,21 +610,22 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
             return {"converged": False, "issues": [i.model_dump() for i in issues],
                     "buses": {}, "elements": {}, "totals": {}, "summary": None}
 
-    downsampled = steps_done > _DOWNSAMPLE_ABOVE
+    # Per-bus and per-element series were bucketed as the run went (see
+    # _Envelope); only the three whole-run series are still raw, and they are
+    # reduced with the same bucket size so every axis stays aligned.
+    downsampled = bucket > 1
+    bus_out = {b: e.finish() for b, e in bus_vmin.items()}
+    bus_max_out = {b: e.finish() for b, e in bus_vmax.items()}
+    elem_out = {fn: {k: e.finish() for k, e in series.items()}
+                for fn, series in elem_series.items()}
     if downsampled:
-        k = math.ceil(steps_done / _TARGET_BUCKETS)
-        ds = lambda s: _downsample_minmax(s, k)  # noqa: E731
+        ds = lambda s: _downsample_minmax(s, bucket)  # noqa: E731
         time_pairs: list[float] = []
-        for i in range(0, steps_done, k):
-            time_pairs.extend((times[i], times[min(i + k, steps_done) - 1]))
+        for i in range(0, steps_done, bucket):
+            time_pairs.extend((times[i], times[min(i + bucket, steps_done) - 1]))
         times = time_pairs
         total_kw = ds(total_kw)
         loss_kw = ds(loss_kw)
-        bus_vmin = {b: ds(v) for b, v in bus_vmin.items()}
-        bus_vmax = {b: ds(v) for b, v in bus_vmax.items()}
-        for s in elem_series.values():
-            for key in s:
-                s[key] = ds(s[key])
 
     conn = compiled.connectivity
     return {
@@ -544,9 +637,9 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
         "downsampled": downsampled,
         "time": times,
         "totals": {"kw": total_kw, "lossKw": loss_kw},
-        "buses": {b: {"vmin": bus_vmin[b], "vmax": bus_vmax[b],
+        "buses": {b: {"vmin": bus_out[b], "vmax": bus_max_out[b],
                       "kvBase": bus_kv_base.get(b, 0.0)} for b in bus_slices},
-        "elements": {fn: {"id": _id, **elem_series[fn]}
+        "elements": {fn: {"id": _id, **elem_out[fn]}
                      for fn, _id, *_ in elem_static},
         "summary": {
             "energyKwh": round(energy_kwh, 1),
@@ -569,7 +662,7 @@ def fault_study(circuit: Circuit) -> dict[str, Any]:
     """Short-circuit study (`solve mode=faultstudy`): per-bus Thevenin
     impedances and prospective 3-phase / single-phase fault currents."""
     compiled: CompileResult = compile_circuit(circuit, shape_dir=SHAPE_DIR)
-    issues = list(compiled.issues)
+    issues = limit_issues(circuit) + list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "buses": {}, "nodeBuses": {},
                 "issues": [i.model_dump() for i in issues]}

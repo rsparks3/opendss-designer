@@ -22,7 +22,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from . import engine
+from . import cache, engine
+from ..settings import settings
 
 # Same weather year as the EULP building-stock load shapes.
 WEATHER_YEAR = 2018
@@ -31,7 +32,7 @@ NSRDB_URL = ("https://developer.nlr.gov/api/nsrdb/v2/solar/"
              "nsrdb-GOES-aggregated-v4-0-0-download.csv")
 GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search"
 
-CACHE_DIR = engine.WORKDIR / "nsrdb_cache"
+CACHE_DIR = settings.effective_cache_dir / "nsrdb_cache"
 
 
 class IrradianceError(Exception):
@@ -65,9 +66,9 @@ def geocode(query: str) -> list[dict]:
 def _nsrdb_csv(lat: float, lon: float, api_key: str, email: str) -> str:
     """Raw PSM4 CSV for the location (disk cache keyed by rounded coords)."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache = CACHE_DIR / f"ghi_{lat:.3f}_{lon:.3f}_{WEATHER_YEAR}.csv"
-    if cache.exists():
-        return cache.read_text(encoding="utf-8")
+    cache_file = CACHE_DIR / f"ghi_{lat:.3f}_{lon:.3f}_{WEATHER_YEAR}.csv"
+    if cache_file.exists():
+        return cache_file.read_text(encoding="utf-8")
 
     params = urllib.parse.urlencode({
         "api_key": api_key, "email": email,
@@ -99,7 +100,9 @@ def _nsrdb_csv(lat: float, lon: float, api_key: str, email: str) -> str:
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise IrradianceError(f"Could not reach the NSRDB (network problem?): {exc}") from exc
 
-    cache.write_text(text, encoding="utf-8")
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_atomic(cache_file, text)
+    cache.sweep(CACHE_DIR, settings.nsrdb_cache_bytes)
     return text
 
 

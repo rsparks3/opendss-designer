@@ -10,6 +10,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .api.routes import router
+from .middleware import BodySizeLimitMiddleware, SecurityHeadersMiddleware
+from .settings import Settings, settings
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -27,9 +29,19 @@ def allowed_hosts() -> list[str]:
     return [h.strip() for h in env.split(",") if h.strip()]
 
 
-def create_app() -> FastAPI:
-    app = FastAPI(title="OpenDSS Designer")
+def create_app(config: Settings | None = None) -> FastAPI:
+    cfg = config or settings
+    # The interactive API docs are a local convenience, not something a public
+    # demo needs to advertise.
+    docs = {} if not cfg.demo else {"docs_url": None, "redoc_url": None,
+                                    "openapi_url": None}
+    app = FastAPI(title="OpenDSS Designer", **docs)
+    app.state.settings = cfg
+
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts())
+    app.add_middleware(SecurityHeadersMiddleware)
+    if cfg.max_body_bytes:
+        app.add_middleware(BodySizeLimitMiddleware, max_bytes=cfg.max_body_bytes)
     app.include_router(router)
 
     if (STATIC_DIR / "index.html").exists():

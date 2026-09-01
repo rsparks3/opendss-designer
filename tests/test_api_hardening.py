@@ -335,3 +335,137 @@ def test_health_does_not_enter_the_engine_thread(client):
     finally:
         release.set()
         t.join(timeout=10)
+
+
+# --- time series: flat memory, bounded cost --------------------------------
+
+def test_envelope_matches_the_batch_downsampler():
+    """The run now buckets as it goes instead of keeping every sample and
+    reducing at the end; the output must be byte-identical to the old path."""
+    import random
+
+    from opendss_designer.core.engine import _Envelope, _downsample_minmax
+
+    random.seed(7)
+    for _ in range(200):
+        n, k = random.randint(1, 60), random.randint(1, 9)
+        series = [None if random.random() < 0.15 else round(random.uniform(-5, 5), 3)
+                  for _ in range(n)]
+        env = _Envelope(k)
+        for v in series:
+            env.add(v)
+        expected = series if k == 1 else _downsample_minmax(series, k)
+        assert env.finish() == expected, (n, k)
+
+
+def test_timeseries_axes_stay_aligned(substation_circuit):
+    """Time axis and every per-bus series must have the same length, including
+    on a downsampled yearly run."""
+    from opendss_designer.core import engine
+
+    res = engine.solve_timeseries(substation_circuit, "yearly", 60)
+    assert res["downsampled"]
+    n = len(res["time"])
+    assert n > 0
+    for bus in res["buses"].values():
+        assert len(bus["vmin"]) == n
+        assert len(bus["vmax"]) == n
+    for elem in res["elements"].values():
+        assert len(elem["kw"]) == n
+
+
+# --- demo mode: off by default, limits on when asked for -------------------
+
+@pytest.fixture()
+def demo(tmp_path, monkeypatch):
+    """Turn on demo mode for one test, then restore local defaults."""
+    from opendss_designer import server
+    from opendss_designer.settings import reload_settings
+
+    static = tmp_path / "static"
+    (static / "assets").mkdir(parents=True)
+    (static / "index.html").write_text("SPA", encoding="utf-8")
+    monkeypatch.setattr(server, "STATIC_DIR", static)
+
+    cfg = reload_settings({
+        "OPENDSS_DESIGNER_MODE": "demo",
+        "OPENDSS_DESIGNER_MAX_NODES": "5",
+        "OPENDSS_DESIGNER_MAX_BODY_BYTES": str(4096),
+        "OPENDSS_DESIGNER_MAX_IMPORT_FILES": "2",
+    })
+    try:
+        yield TestClient(server.create_app(cfg), base_url="http://127.0.0.1")
+    finally:
+        reload_settings({})
+
+
+def test_local_mode_is_the_default_and_has_no_limits():
+    from opendss_designer.settings import Settings
+    cfg = Settings.from_env({})
+    assert not cfg.demo
+    assert cfg.max_nodes is None and cfg.max_body_bytes is None
+
+
+def test_demo_reports_its_mode_and_limits(demo):
+    body = demo.get("/api/health").json()
+    assert body["mode"] == "demo"
+    assert body["limits"]["maxNodes"] == 5
+
+
+def test_local_health_reports_no_limits(client):
+    body = client.get("/api/health").json()
+    assert body["mode"] == "local"
+    assert "limits" not in body
+
+
+def test_oversized_body_is_rejected(demo):
+    res = demo.post("/api/solve", content=b'{"nodes":[' + b"0" * 8192 + b"]}",
+                    headers={"content-type": "application/json"})
+    assert res.status_code == 413
+    assert "demo" in res.json()["detail"].lower()
+
+
+def test_too_many_elements_is_a_validation_error(demo):
+    circuit = {"nodes": [{"id": f"n{i}", "type": "load"} for i in range(9)],
+               "edges": []}
+    issues = demo.post("/api/validate", json=circuit).json()["issues"]
+    codes = [i["code"] for i in issues]
+    assert "limit-nodes" in codes
+    assert any(i["severity"] == "error" for i in issues if i["code"] == "limit-nodes")
+
+
+def test_over_limit_circuit_refuses_to_solve(demo):
+    circuit = {"nodes": [{"id": f"n{i}", "type": "load"} for i in range(9)],
+               "edges": []}
+    res = demo.post("/api/solve", json=circuit).json()
+    assert not res["converged"]
+    assert any(i["code"] == "limit-nodes" for i in res["issues"])
+
+
+def test_too_many_import_files(demo):
+    files = [{"name": f"f{i}.dss", "text": "! x"} for i in range(5)]
+    res = demo.post("/api/import/dss", json={"files": files})
+    assert res.status_code == 413
+    assert "at most 2" in res.json()["detail"]
+
+
+def test_docs_are_hidden_in_demo_mode(demo):
+    """The schema route is not registered at all, so the SPA fallback answers
+    instead of publishing the API surface."""
+    assert "SPA" in demo.get("/openapi.json").text
+    assert "openapi" not in demo.get("/openapi.json").text
+    assert "SPA" in demo.get("/docs").text
+
+
+def test_docs_stay_available_locally(client):
+    """A local install keeps the interactive API docs."""
+    res = client.get("/openapi.json")
+    assert res.status_code == 200
+    assert res.json()["info"]["title"] == "OpenDSS Designer"
+
+
+def test_security_headers_are_present(client):
+    headers = client.get("/api/health").headers
+    assert headers["x-content-type-options"] == "nosniff"
+    assert headers["x-frame-options"] == "DENY"
+    assert "frame-ancestors 'none'" in headers["content-security-policy"]
