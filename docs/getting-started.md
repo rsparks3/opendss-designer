@@ -10,7 +10,9 @@ opendss-designer
 ```
 
 This starts a local web server and opens the editor in your browser. Useful
-flags: `--port 8721` (it picks the next free port if busy) and `--no-browser`.
+flags: `--port 8721` (it picks the next free port if busy) and
+`--no-browser`. There is also `--host` and `--demo` for
+[hosting an instance](deployment.md) — neither affects a normal local run.
 
 The app is local by default: the server binds to `127.0.0.1`, and your circuits
 never leave your machine. The only outbound requests are the ones you ask for

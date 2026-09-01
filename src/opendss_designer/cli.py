@@ -72,16 +72,20 @@ def main() -> None:
     cfg = reload_settings()
     host = args.host or cfg.host
 
-    env_port = os.environ.get("PORT", "").strip()
-    explicit = args.port if args.port is not None else (
+    # A platform routes to the port it assigned and nothing else, so quietly
+    # moving to the next free one would look like a dead service. On a desktop
+    # the opposite is true: --port is a starting point and finding a free one
+    # is the friendly behavior. So an exact bind applies exactly when this
+    # looks like a deployment -- and $PORT, which a user may well have set for
+    # something else entirely, is only consulted there.
+    deployment = cfg.demo or host not in LOOPBACK
+    env_port = os.environ.get("PORT", "").strip() if deployment else ""
+    requested = args.port if args.port is not None else (
         int(env_port) if env_port.isdigit() else None)
-    if explicit is not None:
-        # A platform routes to the port it assigned and nothing else, so
-        # quietly moving to the next free one would look like a dead service.
-        port = explicit
+    if deployment:
+        port = requested if requested is not None else DEFAULT_PORT
     else:
-        port = _find_free_port(host if host not in ("0.0.0.0", "::") else "127.0.0.1",
-                               DEFAULT_PORT)
+        port = _find_free_port(host, requested or DEFAULT_PORT)
 
     configure_logging(cfg)
 
@@ -93,7 +97,7 @@ def main() -> None:
     print(f"OpenDSS Designer running at {url}  (Ctrl+C to stop)")
 
     # A server install has no browser to open, and opening one is a hang risk.
-    headless = args.no_browser or cfg.demo or host not in LOOPBACK or explicit is not None
+    headless = args.no_browser or deployment
     if not headless:
         threading.Thread(target=_open_when_ready, args=(url,), daemon=True).start()
 

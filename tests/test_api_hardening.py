@@ -548,3 +548,52 @@ def test_samples_fit_within_the_demo_limits():
     for meta in samples.list_samples():
         circuit = Circuit(**samples.get_sample(meta["id"]))
         assert not limit_issues(circuit, demo_cfg), meta["id"]
+
+
+# --- local behavior must be unchanged from before demo mode existed --------
+
+def _port_decision(argv, env, ):
+    """Mirror of cli.main()'s port choice, without starting a server."""
+    from opendss_designer.cli import DEFAULT_PORT, LOOPBACK, build_parser
+
+    args = build_parser().parse_args(argv)
+    host = args.host or "127.0.0.1"
+    deployment = args.demo or host not in LOOPBACK
+    env_port = env.get("PORT", "").strip() if deployment else ""
+    requested = args.port if args.port is not None else (
+        int(env_port) if env_port.isdigit() else None)
+    if deployment:
+        return "exact", requested if requested is not None else DEFAULT_PORT
+    return "scan", requested or DEFAULT_PORT
+
+
+def test_local_port_behavior_is_unchanged():
+    """docs/getting-started.md promises `--port` picks the next free port if
+    busy. A desktop install must keep doing that."""
+    assert _port_decision([], {}) == ("scan", 8721)
+    assert _port_decision(["--port", "9000"], {}) == ("scan", 9000)
+
+
+def test_stray_port_env_does_not_move_a_local_install():
+    """$PORT is a platform convention; a user may have it set for something
+    else entirely, and it must not relocate their desktop app."""
+    assert _port_decision([], {"PORT": "3000"}) == ("scan", 8721)
+
+
+def test_deployments_bind_the_assigned_port_exactly():
+    """A platform routes to the port it assigned; scanning past it looks like
+    a dead service."""
+    assert _port_decision(["--demo"], {"PORT": "3000"}) == ("exact", 3000)
+    assert _port_decision(["--host", "0.0.0.0"], {}) == ("exact", 8721)
+
+
+def test_no_endpoint_is_disabled_in_local_mode(client):
+    """Demo mode adds limits, never removes features."""
+    for path in ("/api/health", "/api/linecodes", "/api/samples",
+                 "/api/nrel/meta", "/api/openapi.json".replace("/api", "")):
+        assert client.get(path).status_code == 200, path
+    circuit = {"nodes": [{"id": "s", "type": "vsource",
+                          "params": {"basekv": 12.47}}], "edges": []}
+    for path in ("/api/validate", "/api/solve", "/api/faultstudy",
+                 "/api/export/dss"):
+        assert client.post(path, json=circuit).status_code == 200, path

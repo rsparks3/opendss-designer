@@ -50,13 +50,15 @@ async def _lifespan(app: FastAPI):
     alive forever, so the wrapper still owns an absolute session TTL.
     """
     cfg: Settings = app.state.settings
-    if cfg.demo and set(allowed_hosts()) == set(DEFAULT_ALLOWED_HOSTS):
+    reachable = cfg.demo or cfg.host not in ("127.0.0.1", "localhost", "::1")
+    if reachable and set(allowed_hosts()) == set(DEFAULT_ALLOWED_HOSTS):
         # Easy to miss and it fails closed: a proxy forwards the public Host,
         # which is not in the loopback default, so every request 400s.
         logger.warning(
-            "demo mode with the default loopback-only Host allowlist - set "
-            "OPENDSS_DESIGNER_ALLOWED_HOSTS to your public hostname, or every "
-            "proxied request will be rejected with 400")
+            "reachable from outside this machine but the Host allowlist is "
+            "still loopback-only - set OPENDSS_DESIGNER_ALLOWED_HOSTS to the "
+            "hostname or IP you will use, or those requests are rejected "
+            "with 400")
     task = None
     if cfg.idle_timeout_s:
         task = asyncio.create_task(_idle_watch(app, cfg.idle_timeout_s))

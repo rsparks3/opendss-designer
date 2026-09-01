@@ -25,6 +25,15 @@ unset in local mode.
 - Security headers on every response, and structured logging (JSON with
   `OPENDSS_DESIGNER_LOG_JSON=1`) for hosted instances.
 
+### Unchanged for local use
+
+Demo mode adds limits; it never removes features. Every endpoint, element type
+and analysis works exactly as before, `--port` still picks the next free port
+if busy, and a `PORT` environment variable set for something else does not
+relocate your install. The one deliberate change: importing a `.dss` file now
+skips trailing `solve`/`export`/`show` lines with a warning instead of running
+them, which does not affect the diagram it builds.
+
 ### Fixed
 
 - **The OpenDSS engine no longer changes the process working directory.**
