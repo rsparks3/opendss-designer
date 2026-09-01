@@ -1,4 +1,4 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Position, type NodeProps } from '@xyflow/react'
 import type { AppNode } from '../../store/circuitStore'
 import {
   ElementBadge,
@@ -6,6 +6,7 @@ import {
   rotatedBox,
   rotatePosition,
   SymbolSvg,
+  Terminal,
   useNodeIssueClass,
   useSymbolRotation,
 } from './common'
@@ -29,7 +30,7 @@ export function PVSystemNode({ id, data }: NodeProps<AppNode>) {
           </text>
         </svg>
       </SymbolSvg>
-      <Handle id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
+      <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
       <NodeLabel>
         {String(data.params.name ?? '')}
         {pmpp != null && <div className="sub-label">{Number(pmpp)} kW</div>}

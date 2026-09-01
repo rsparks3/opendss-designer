@@ -1,4 +1,4 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Position, type NodeProps } from '@xyflow/react'
 import type { AppNode } from '../../store/circuitStore'
 import {
   ElementBadge,
@@ -6,6 +6,7 @@ import {
   rotatedBox,
   rotatePosition,
   SymbolSvg,
+  Terminal,
   useNodeIssueClass,
   useSymbolRotation,
 } from './common'
@@ -30,7 +31,7 @@ export function CapacitorNode({ id, data }: NodeProps<AppNode>) {
           <line x1="17" y1="58" x2="23" y2="58" className="sym" />
         </svg>
       </SymbolSvg>
-      <Handle id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
+      <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
       <NodeLabel>
         {String(data.params.name ?? '')}
         {kvar != null && <div className="sub-label">{Number(kvar)} kvar</div>}

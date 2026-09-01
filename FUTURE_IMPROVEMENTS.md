@@ -127,6 +127,12 @@ All frontend-only; the M1 vitest harness covers the store changes.
 - **Multi-circuit tabs** / compare two scenarios side by side — big architectural change;
   wait until the single-circuit workflow is mature
 - **Explicit grounding elements** (`Reactor` to ground, grounding transformer symbols)
+- **Parking a wire mid-air** (an end connected to nothing) — considered alongside
+  drag-to-re-route and declined: ReactFlow has no dangling edge, so it would need a
+  placeholder node standing in for "not connected", and grab-and-drop makes the
+  two-step park-then-reconnect workflow unnecessary. If temporarily removing a
+  branch is ever wanted, an edge-level "out of service" flag (still attached at
+  both ends, omitted from the compile) is the cheaper answer.
 
 ## Done since v1
 
@@ -135,3 +141,8 @@ All frontend-only; the M1 vitest harness covers the store changes.
   (`frontend/e2e/`), GitHub Actions CI, schema-drift guard
   (`tests/fixtures/full-circuit.oneline.json` round-tripped by both pytest and vitest),
   flash-toast error surfacing (no more `alert()`), import bugs now 500 not 400
+- Drag-to-re-route (2026-08-31): dragging from a terminal that holds exactly one wire
+  moves that wire's end instead of drawing a second one — the edge itself is the drag
+  preview (`useEdgePath`), the gesture is a DOM-free state machine (`store/grabStore.ts`)
+  wired to a `Terminal` wrapper over ReactFlow's `<Handle>`, and drops reuse
+  `validateConnection`. Frontend only; the wire format is unchanged.

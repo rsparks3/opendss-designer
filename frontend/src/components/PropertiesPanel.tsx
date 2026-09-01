@@ -88,7 +88,9 @@ export function PropertiesPanel() {
           Tips: drag on empty canvas to box-select several elements and move
           them together (pan with the right or middle mouse button; scroll to
           zoom). Double-click a wire or line to add a routing point;
-          double-click a breaker to open/close it.
+          double-click a breaker to open/close it. Drag a terminal that already
+          has a wire to move that wire somewhere else (Alt-drag to add a second
+          one instead).
         </div>
       </div>
     )

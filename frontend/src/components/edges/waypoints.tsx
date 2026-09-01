@@ -1,5 +1,6 @@
 import { EdgeLabelRenderer, getSmoothStepPath, useReactFlow, type EdgeProps } from '@xyflow/react'
 import { beginGesture, endGesture, useCircuitStore, type AppEdge, type XY } from '../../store/circuitStore'
+import { useGrabStore } from '../../store/grabStore'
 
 const snap = (v: number) => Math.round(v / 10) * 10
 
@@ -11,25 +12,46 @@ const BAR_CENTER_Y = 7
  *  Without waypoints: React Flow's smoothstep. With waypoints: straight
  *  polyline segments through them (snap them to the grid for orthogonal
  *  routing). Endpoints that land on a busbar handle are pulled onto the
- *  bar's centerline so the wire always visually meets the bar. */
+ *  bar's centerline so the wire always visually meets the bar.
+ *
+ *  While this edge is being grabbed (see store/grabStore.ts) the moving end
+ *  is drawn at the cursor instead of at its terminal: the edge itself is the
+ *  drag preview, so there is no second line to keep in step. */
 export function useEdgePath(props: EdgeProps<AppEdge>): [string, number, number] {
   const nodes = useCircuitStore((s) => s.nodes)
+  const grab = useGrabStore((s) => (s.edgeId === props.id ? s : null))
 
   const anchorY = (nodeId: string, y: number): number => {
     const n = nodes.find((nd) => nd.id === nodeId)
     return n?.type === 'busbar' ? n.position.y + BAR_CENTER_Y : y
   }
-  const sourceY = anchorY(props.source, props.sourceY)
-  const targetY = anchorY(props.target, props.targetY)
+  const held = grab?.cursor ?? null
+  const source =
+    held && grab?.end === 'source'
+      ? held
+      : { x: props.sourceX, y: anchorY(props.source, props.sourceY) }
+  const target =
+    held && grab?.end === 'target'
+      ? held
+      : { x: props.targetX, y: anchorY(props.target, props.targetY) }
 
   const wps = props.data?.waypoints
-  if (!wps?.length) {
-    const [path, lx, ly] = getSmoothStepPath({ ...props, sourceY, targetY, borderRadius: 0 })
+  if (!wps?.length && !held) {
+    const [path, lx, ly] = getSmoothStepPath({
+      ...props,
+      sourceY: source.y,
+      targetY: target.y,
+      borderRadius: 0,
+    })
     return [path, lx, ly]
   }
-  const pts: XY[] = [{ x: props.sourceX, y: sourceY }, ...wps, { x: props.targetX, y: targetY }]
+  // A grabbed end rubber-bands straight to the cursor; smoothstep's elbows
+  // are computed from the terminal's facing, which no longer applies.
+  const pts: XY[] = [source, ...(wps ?? []), target]
   const path = `M ${pts[0].x},${pts[0].y} ` + pts.slice(1).map((p) => `L ${p.x},${p.y}`).join(' ')
-  const mid = wps[Math.floor((wps.length - 1) / 2)]
+  const mid = wps?.length
+    ? wps[Math.floor((wps.length - 1) / 2)]
+    : { x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 }
   return [path, mid.x, mid.y]
 }
 

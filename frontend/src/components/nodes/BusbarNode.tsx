@@ -1,5 +1,4 @@
 import {
-  Handle,
   NodeResizer,
   Position,
   useUpdateNodeInternals,
@@ -8,7 +7,7 @@ import {
 import { useEffect } from 'react'
 import { beginGesture, busbarHandleCount, endGesture, useCircuitStore, type AppNode } from '../../store/circuitStore'
 import { SYMBOL_PITCH } from '../../lib/defaults'
-import { FaultBadge, NodeLabel, useNodeIssueClass, VoltageBadge } from './common'
+import { FaultBadge, NodeLabel, Terminal, useNodeIssueClass, VoltageBadge } from './common'
 
 const BAR_H = 14
 
@@ -45,8 +44,9 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
           snap grid, exactly like a symbol's centered terminal. A percentage
           would only line up when the width divides evenly. */}
       {Array.from({ length: count }, (_, i) => (
-        <Handle
+        <Terminal
           key={`b${i}`}
+          nodeId={id}
           id={`b${i}`}
           type="source"
           position={Position.Top}
@@ -55,8 +55,9 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
         />
       ))}
       {Array.from({ length: count }, (_, i) => (
-        <Handle
+        <Terminal
           key={`c${i}`}
+          nodeId={id}
           id={`c${i}`}
           type="source"
           position={Position.Bottom}

@@ -1,4 +1,4 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Position, type NodeProps } from '@xyflow/react'
 import type { AppNode } from '../../store/circuitStore'
 import {
   ElementBadge,
@@ -6,6 +6,7 @@ import {
   rotatedBox,
   rotatePosition,
   SymbolSvg,
+  Terminal,
   useNodeIssueClass,
   useSymbolRotation,
 } from './common'
@@ -26,8 +27,8 @@ export function TransformerNode({ id, data }: NodeProps<AppNode>) {
           <line x1="20" y1="64" x2="20" y2="80" className="sym" />
         </svg>
       </SymbolSvg>
-      <Handle id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
-      <Handle id="t2" type="source" position={rotatePosition(Position.Bottom, rot)} className="term" />
+      <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
+      <Terminal nodeId={id} id="t2" type="source" position={rotatePosition(Position.Bottom, rot)} className="term" />
       <NodeLabel>
         {String(data.params.name ?? '')}
         {kvText && <div className="sub-label">{kvText}</div>}

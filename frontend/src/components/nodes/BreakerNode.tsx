@@ -1,4 +1,4 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Position, type NodeProps } from '@xyflow/react'
 import { useCircuitStore, type AppNode } from '../../store/circuitStore'
 import {
   ElementBadge,
@@ -6,6 +6,7 @@ import {
   rotatedBox,
   rotatePosition,
   SymbolSvg,
+  Terminal,
   useNodeIssueClass,
   useSymbolRotation,
 } from './common'
@@ -33,8 +34,8 @@ export function BreakerNode({ id, data }: NodeProps<AppNode>) {
           <line x1="20" y1="40" x2="20" y2="60" className="sym" />
         </svg>
       </SymbolSvg>
-      <Handle id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
-      <Handle id="t2" type="source" position={rotatePosition(Position.Bottom, rot)} className="term" />
+      <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
+      <Terminal nodeId={id} id="t2" type="source" position={rotatePosition(Position.Bottom, rot)} className="term" />
       <NodeLabel>
         {String(data.params.name ?? '')}
         <div className="sub-label">{closed ? 'closed' : 'OPEN'}</div>

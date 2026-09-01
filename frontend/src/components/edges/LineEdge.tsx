@@ -1,12 +1,14 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
 import type { AppEdge } from '../../store/circuitStore'
+import { useIsGrabbed } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import { LoadingPie } from '../LoadingPie'
 import { useEdgePath, WaypointDots } from './waypoints'
 
 export function LineEdge(props: EdgeProps<AppEdge>) {
   const [path, labelX, labelY] = useEdgePath(props)
+  const grabbed = useIsGrabbed(props.id)
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore(activeResult)
   const stale = useResultsStore(activeStale)
@@ -15,7 +17,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
     ? Object.values(result.elements).find((e) => e.id === props.id)
     : null
 
-  let stroke = props.selected ? '#1976d2' : '#263238'
+  let stroke = props.selected || grabbed ? '#1976d2' : '#263238'
   let resultText: string | null = null
   let loadingPct: number | null = null
   if (el && !stale) {
@@ -35,7 +37,11 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
       <BaseEdge
         id={props.id}
         path={path}
-        style={{ stroke, strokeWidth: props.selected ? 3.5 : 2.5 }}
+        style={{
+          stroke,
+          strokeWidth: props.selected ? 3.5 : 2.5,
+          strokeDasharray: grabbed ? '6 4' : undefined,
+        }}
       />
       <EdgeLabelRenderer>
         <div

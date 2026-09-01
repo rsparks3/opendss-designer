@@ -187,6 +187,28 @@ html, body, #root { margin: 0; height: 100%; }
 .busbar-term { opacity: 0.45; }
 .busbar-term:hover { opacity: 1; }
 
+/* A terminal holding exactly one wire: dragging it moves that wire's end
+   (store/grabStore.ts) rather than starting a second connection. ReactFlow
+   only makes a handle hit-testable while it carries .connectionindicator,
+   which isConnectableStart={false} deliberately withholds here — so the
+   grab gesture has to re-enable pointer events itself. */
+.term.grabbable {
+  pointer-events: all;
+  cursor: grab;
+}
+.term.grabbable:active { cursor: grabbing; }
+/* Terminal the grabbed end would land on, and one that would be refused. */
+.term.drop-target {
+  background: var(--accent) !important;
+  opacity: 1;
+  box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.28);
+}
+.term.drop-refused {
+  background: #d32f2f !important;
+  opacity: 1;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.25);
+}
+
 /* ---------- edges ---------- */
 .edge-label {
   position: absolute;

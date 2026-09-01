@@ -42,6 +42,9 @@ export interface CircuitState {
   addBusbarAt: (pos: XY, width: number) => void
   updateNodeParams: (id: string, patch: Params) => void
   updateEdgeParams: (id: string, patch: Params) => void
+  /** Move one end of an existing edge to another terminal (the grab
+   *  gesture); the edge keeps its id, kind and parameters. */
+  reconnectEdgeEnd: (id: string, end: EdgeEnd, nodeId: string, handleId: string) => void
   setEdgeWaypoints: (id: string, waypoints: XY[]) => void
   addEdgeWaypoint: (id: string, pos: XY) => void
   setBusbarWidth: (id: string, width: number) => void
@@ -176,6 +179,47 @@ function selectionClipboard(s: Pick<CircuitState, 'nodes' | 'edges'>): Clipboard
   })
 }
 
+/** Which end of an edge a gesture is acting on. */
+export type EdgeEnd = 'source' | 'target'
+
+export function terminalKey(nodeId: string, handleId: string): string {
+  return `${nodeId}:${handleId}`
+}
+
+// Terminal -> edge ids, memoized on the edges array identity: every Terminal
+// component asks this on every store update, so it must not rescan the edge
+// list once per handle.
+let termMapCache: { edges: AppEdge[]; map: Map<string, string[]> } | null = null
+
+/** Map of "<nodeId>:<handleId>" to the ids of the edges landing there.
+ *  Edges saved without an explicit handle default to t1, matching the
+ *  backend's terminal convention. */
+export function terminalEdgeMap(edges: AppEdge[]): Map<string, string[]> {
+  if (termMapCache?.edges === edges) return termMapCache.map
+  const map = new Map<string, string[]>()
+  const add = (nodeId: string, handleId: string | null | undefined, id: string) => {
+    const key = terminalKey(nodeId, handleId ?? 't1')
+    const list = map.get(key)
+    if (list) list.push(id)
+    else map.set(key, [id])
+  }
+  for (const e of edges) {
+    add(e.source, e.sourceHandle, e.id)
+    add(e.target, e.targetHandle, e.id)
+  }
+  termMapCache = { edges, map }
+  return map
+}
+
+/** Ids of the edges attached to one terminal. */
+export function edgesAtTerminal(
+  s: Pick<CircuitState, 'edges'>,
+  nodeId: string,
+  handleId: string,
+): string[] {
+  return terminalEdgeMap(s.edges).get(terminalKey(nodeId, handleId)) ?? []
+}
+
 /** Number of connection handles per row a busbar of a given width exposes.
  *  Rows: b<i> along the top edge, c<i> along the bottom edge. */
 export function busbarHandleCount(width: number): number {
@@ -196,6 +240,9 @@ export function snapBusbarWidth(width: number): number {
 export function validateConnection(
   conn: { source: string | null; sourceHandle?: string | null; target: string | null; targetHandle?: string | null },
   state?: Pick<CircuitState, 'nodes' | 'edges' | 'connectMode'>,
+  /** Edge exempt from the duplicate check — the one being re-routed, which
+   *  would otherwise report itself as an existing connection. */
+  ignoreEdgeId?: string,
 ): string | null {
   const s = state ?? useCircuitStore.getState()
   if (!conn.source || !conn.target) return 'Connection is missing an endpoint.'
@@ -208,14 +255,15 @@ export function validateConnection(
   }
   const dup = s.edges.some(
     (e) =>
-      (e.source === conn.source &&
+      e.id !== ignoreEdgeId &&
+      ((e.source === conn.source &&
         e.target === conn.target &&
         (e.sourceHandle ?? null) === (conn.sourceHandle ?? null) &&
         (e.targetHandle ?? null) === (conn.targetHandle ?? null)) ||
-      (e.source === conn.target &&
-        e.target === conn.source &&
-        (e.sourceHandle ?? null) === (conn.targetHandle ?? null) &&
-        (e.targetHandle ?? null) === (conn.sourceHandle ?? null)),
+        (e.source === conn.target &&
+          e.target === conn.source &&
+          (e.sourceHandle ?? null) === (conn.targetHandle ?? null) &&
+          (e.targetHandle ?? null) === (conn.sourceHandle ?? null))),
   )
   if (dup) return 'These terminals are already connected.'
   return null
@@ -382,6 +430,30 @@ export const useCircuitStore = create<CircuitState>()(
           ),
           dirty: true,
         })
+        markStale()
+      },
+      // The grab gesture (drag an existing connection off its terminal onto
+      // another one). Routing waypoints survive a move between handles of the
+      // same node — where they still describe the same path — but are dropped
+      // when the end lands on a different node, where the old polyline would
+      // be meaningless.
+      reconnectEdgeEnd: (id, end, nodeId, handleId) => {
+        const edge = get().edges.find((e) => e.id === id)
+        if (!edge) return
+        const wasNode = end === 'source' ? edge.source : edge.target
+        const wasHandle = (end === 'source' ? edge.sourceHandle : edge.targetHandle) ?? null
+        if (wasNode === nodeId && wasHandle === handleId) return // dropped where it started
+        const moved: AppEdge = {
+          ...edge,
+          ...(end === 'source'
+            ? { source: nodeId, sourceHandle: handleId }
+            : { target: nodeId, targetHandle: handleId }),
+          data: {
+            params: edge.data?.params ?? {},
+            waypoints: wasNode === nodeId ? edge.data?.waypoints : undefined,
+          },
+        }
+        set({ edges: get().edges.map((e) => (e.id === id ? moved : e)), dirty: true })
         markStale()
       },
       // Waypoints are routing cosmetics only — unsaved, but no markStale.

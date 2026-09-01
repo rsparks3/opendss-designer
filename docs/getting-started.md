@@ -86,3 +86,9 @@ results directly on the diagram. See [Shapes & profiles](shapes.md) and
 Plus: grid snapping, pan/zoom with a minimap, box-select and group-move,
 right-click context menu, rotation, and double-click actions — double-click a
 breaker to open/close it, or a wire/line to add a draggable routing point.
+
+To move a connection, drag the terminal it sits on: a terminal holding a
+single wire hands that wire over rather than starting a second one, so you can
+walk a line from one component to another in one gesture. Drop it on empty
+canvas or press ++esc++ to leave it where it was; hold ++alt++ to draw a new
+wire from an occupied terminal instead.

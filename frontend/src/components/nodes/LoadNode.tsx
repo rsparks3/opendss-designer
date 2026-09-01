@@ -1,10 +1,11 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Position, type NodeProps } from '@xyflow/react'
 import type { AppNode } from '../../store/circuitStore'
 import {
   NodeLabel,
   rotatedBox,
   rotatePosition,
   SymbolSvg,
+  Terminal,
   useNodeIssueClass,
   useSymbolRotation,
   VoltageBadge,
@@ -24,7 +25,7 @@ export function LoadNode({ id, data }: NodeProps<AppNode>) {
           <polygon points="12,30 28,30 20,54" className="sym-fill" />
         </svg>
       </SymbolSvg>
-      <Handle id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
+      <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
       <NodeLabel>
         {String(data.params.name ?? '')}
         {kw != null && <div className="sub-label">{Number(kw)} kW</div>}

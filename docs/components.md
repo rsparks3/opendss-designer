@@ -147,6 +147,24 @@ Illegal connections — busbar-to-busbar wires, self-connections, duplicates —
 are refused with an explanation. Double-click any wire or line to add a
 draggable routing point; double-click a point to remove it.
 
+### Re-routing a connection
+
+Dragging from a terminal that already holds exactly one wire picks that wire
+up instead of drawing a second one: its end follows the cursor while the far
+end stays put, so moving a line from one component to another is a single
+gesture. Drop it on any terminal to re-home it — the same rules apply, and a
+refused drop says why. Drop it on empty canvas, or press ++esc++ mid-drag, and
+the wire snaps back untouched.
+
+Terminals carrying two or more wires are left alone (there would be no telling
+which one the drag meant), and holding ++alt++ always draws a new wire. A
+terminal never stops being a valid *drop* target, so a second connection is
+still made the usual way: start the drag at the other end.
+
+Routing points survive a move between handles of the same component — walking
+a wire along a busbar keeps its shape — and are cleared when the end lands on
+a different component, where the old path no longer means anything.
+
 ## Spreadsheet view
 
 The **Elements** tab lists every element type in an editable table — one
@@ -159,6 +177,6 @@ read-only bus-results table appears alongside.
 
 Undo/redo (++ctrl+z++ / ++ctrl+y++), copy/paste/duplicate
 (++ctrl+c++ / ++ctrl+v++ / ++ctrl+d++), delete, rotation (++r++), grid
-snapping, pan/zoom with minimap, box-select and group-move, right-click
-context menus, and result tooltips throughout. Your work autosaves to the
+snapping, pan/zoom with minimap, box-select and group-move, drag-to-re-route
+connections, right-click context menus, and result tooltips throughout. Your work autosaves to the
 browser between sessions.

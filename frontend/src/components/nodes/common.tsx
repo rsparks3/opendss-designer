@@ -1,9 +1,75 @@
-import { Position, useUpdateNodeInternals } from '@xyflow/react'
+import { Handle, Position, useReactFlow, useUpdateNodeInternals, type HandleProps } from '@xyflow/react'
 import { useEffect, type ReactNode } from 'react'
+import { useAltHeld } from '../../lib/altKey'
 import { loadingColor } from '../../lib/colorScale'
+import { edgesAtTerminal, useCircuitStore, type EdgeEnd } from '../../store/circuitStore'
+import { beginGrab, useGrabStore } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import type { Params } from '../../types/circuit'
 import { LoadingPie } from '../LoadingPie'
+
+// ---------------------------------------------------------------------------
+// Terminals
+//
+// A connection point on a symbol. Dragging from a terminal that already holds
+// exactly one wire moves that wire's end instead of drawing a second one, so
+// re-routing a line between components is a single gesture.
+//
+// ReactFlow's <Handle> spreads its extra props *after* its own onMouseDown, so
+// passing one here replaces the start-a-new-connection handler on precisely
+// the terminals we want to reinterpret — and nowhere else. isConnectableEnd
+// stays on throughout: an occupied terminal is still a valid drop target.
+
+export function Terminal({ nodeId, ...props }: { nodeId: string } & HandleProps) {
+  const { screenToFlowPosition, getZoom } = useReactFlow()
+  const handleId = props.id ?? 't1'
+  // Only an unambiguous terminal is grabbable: with two wires on one dot
+  // there is no telling which one the drag meant to pick up.
+  const grabEdgeId = useCircuitStore((s) => {
+    const ids = edgesAtTerminal(s, nodeId, handleId)
+    return ids.length === 1 ? ids[0] : null
+  })
+  const altHeld = useAltHeld()
+  const grabbable = grabEdgeId !== null && !altHeld
+  const drop = useGrabStore((s) =>
+    s.target?.nodeId === nodeId && s.target.handleId === handleId
+      ? s.refusal
+        ? ' drop-refused'
+        : ' drop-target'
+      : '',
+  )
+
+  const onMouseDown = (event: React.MouseEvent) => {
+    if (event.button !== 0 || event.altKey || !grabEdgeId) return
+    const edge = useCircuitStore.getState().edges.find((e) => e.id === grabEdgeId)
+    if (!edge) return
+    const end: EdgeEnd =
+      edge.source === nodeId && (edge.sourceHandle ?? 't1') === handleId ? 'source' : 'target'
+    const fixed =
+      end === 'source'
+        ? { nodeId: edge.target, handleId: edge.targetHandle ?? 't1' }
+        : { nodeId: edge.source, handleId: edge.sourceHandle ?? 't1' }
+    // Keep the press off the node itself; the click that ends the drag is
+    // swallowed by the grab store.
+    event.stopPropagation()
+    beginGrab(event, {
+      edgeId: edge.id,
+      end,
+      fixed,
+      project: (p) => screenToFlowPosition(p, { snapToGrid: false }),
+      getZoom,
+    })
+  }
+
+  return (
+    <Handle
+      {...props}
+      {...(grabbable ? { onMouseDown } : {})}
+      isConnectableStart={!grabbable}
+      className={`${props.className ?? ''}${grabbable ? ' grabbable' : ''}${drop}`}
+    />
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Symbol rotation (R key / context menu): params.rotation ∈ {0, 90, 180, 270}.

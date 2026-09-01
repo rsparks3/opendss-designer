@@ -5,8 +5,10 @@ import { useResultsStore } from './resultsStore'
 import {
   beginGesture,
   busbarHandleCount,
+  edgesAtTerminal,
   endGesture,
   fromCircuitJSON,
+  terminalEdgeMap,
   toCircuitJSON,
   useCircuitStore,
   validateConnection,
@@ -376,5 +378,116 @@ describe('onConnect', () => {
     })
     expect(useCircuitStore.getState().edges).toHaveLength(0)
     expect(useResultsStore.getState().flash).toMatch(/plain wire/)
+  })
+})
+
+describe('terminal lookup', () => {
+  const edges: AppEdge[] = [
+    { id: 'e1', source: 'bus', sourceHandle: 'c0', target: 'ld', targetHandle: 't1' },
+    { id: 'e2', source: 'bus', sourceHandle: 'c0', target: 'cap', targetHandle: 't1' },
+    { id: 'e3', source: 'bus', sourceHandle: 'c1', target: 'xf', targetHandle: 't1' },
+    // Older files (and the .dss importer's early output) may omit the handle.
+    { id: 'e4', source: 'xf', target: 'gen', targetHandle: 't1' },
+  ]
+
+  it('indexes both ends of every edge', () => {
+    const map = terminalEdgeMap(edges)
+    expect(map.get('bus:c0')).toEqual(['e1', 'e2'])
+    expect(map.get('bus:c1')).toEqual(['e3'])
+    expect(map.get('ld:t1')).toEqual(['e1'])
+  })
+
+  it('defaults a missing handle to t1', () => {
+    expect(edgesAtTerminal({ edges }, 'xf', 't1')).toEqual(['e3', 'e4'])
+  })
+
+  it('reuses the index while the edge array is unchanged', () => {
+    expect(terminalEdgeMap(edges)).toBe(terminalEdgeMap(edges))
+    expect(terminalEdgeMap([...edges])).not.toBe(terminalEdgeMap(edges))
+  })
+
+  it('reports nothing for a free terminal', () => {
+    expect(edgesAtTerminal({ edges }, 'ld', 't2')).toEqual([])
+  })
+})
+
+describe('reconnectEdgeEnd', () => {
+  const setup = (waypoints?: { x: number; y: number }[]) =>
+    useCircuitStore.setState({
+      nodes: [node('bus', 'busbar'), node('ld1', 'load'), node('ld2', 'load')],
+      edges: [
+        {
+          id: 'e1',
+          type: 'line',
+          source: 'bus',
+          sourceHandle: 'c0',
+          target: 'ld1',
+          targetHandle: 't1',
+          data: { params: { name: 'LN1' }, waypoints },
+        },
+      ],
+    })
+
+  it('moves one end and leaves the other alone', () => {
+    setup()
+    useCircuitStore.getState().reconnectEdgeEnd('e1', 'target', 'ld2', 't1')
+    const e = useCircuitStore.getState().edges[0]
+    expect([e.source, e.sourceHandle, e.target, e.targetHandle]).toEqual(['bus', 'c0', 'ld2', 't1'])
+    expect(useCircuitStore.getState().dirty).toBe(true)
+  })
+
+  it('moves the source end too', () => {
+    setup()
+    useCircuitStore.getState().reconnectEdgeEnd('e1', 'source', 'bus', 'c3')
+    const e = useCircuitStore.getState().edges[0]
+    expect([e.source, e.sourceHandle, e.target]).toEqual(['bus', 'c3', 'ld1'])
+  })
+
+  it('keeps routing waypoints when the end stays on the same node', () => {
+    setup([{ x: 10, y: 20 }])
+    useCircuitStore.getState().reconnectEdgeEnd('e1', 'source', 'bus', 'c4')
+    expect(useCircuitStore.getState().edges[0].data?.waypoints).toEqual([{ x: 10, y: 20 }])
+  })
+
+  it('drops waypoints when the end moves to a different node', () => {
+    setup([{ x: 10, y: 20 }])
+    useCircuitStore.getState().reconnectEdgeEnd('e1', 'target', 'ld2', 't1')
+    expect(useCircuitStore.getState().edges[0].data?.waypoints).toBeUndefined()
+  })
+
+  it('is a no-op when the end is dropped where it already was', () => {
+    setup()
+    useCircuitStore.setState({ dirty: false })
+    useCircuitStore.getState().reconnectEdgeEnd('e1', 'target', 'ld1', 't1')
+    expect(useCircuitStore.getState().dirty).toBe(false)
+  })
+
+  it('ignores an unknown edge', () => {
+    setup()
+    useCircuitStore.getState().reconnectEdgeEnd('nope', 'target', 'ld2', 't1')
+    expect(useCircuitStore.getState().edges[0].target).toBe('ld1')
+  })
+})
+
+describe('validateConnection with an exempt edge', () => {
+  const state = {
+    nodes: [node('bus', 'busbar'), node('ld', 'load')],
+    edges: [
+      { id: 'e1', source: 'bus', sourceHandle: 'c0', target: 'ld', targetHandle: 't1' },
+    ] as AppEdge[],
+    connectMode: 'wire' as const,
+  }
+  const conn = { source: 'bus', sourceHandle: 'c0', target: 'ld', targetHandle: 't1' }
+
+  it('still refuses a duplicate of another edge', () => {
+    expect(validateConnection(conn, state)).toMatch(/already connected/)
+  })
+
+  it('lets the edge being re-routed land back on its own terminals', () => {
+    expect(validateConnection(conn, state, 'e1')).toBeNull()
+  })
+
+  it('keeps every other rule in force for the exempt edge', () => {
+    expect(validateConnection({ source: 'ld', target: 'ld' }, state, 'e1')).toMatch(/itself/)
   })
 })
