@@ -5,7 +5,8 @@ from pathlib import Path
 
 from opendss_designer.core import linecodes
 
-REPO_CSV = Path(__file__).parent.parent / "config" / "linecodes.csv"
+REPO_CSV = (Path(__file__).parent.parent / "src" / "opendss_designer"
+            / "config" / "linecodes.csv")
 
 
 def test_shipped_csv_loads_cleanly():

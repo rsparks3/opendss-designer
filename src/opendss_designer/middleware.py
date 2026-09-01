@@ -9,6 +9,8 @@ that is the only thing stopping a runaway yearly run.
 from __future__ import annotations
 
 import json
+import threading
+import time
 from typing import Any, Awaitable, Callable
 
 Scope = dict[str, Any]
@@ -135,3 +137,43 @@ class SecurityHeadersMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_with_headers)
+
+
+class ActivityMiddleware:
+    """Track when the app was last doing something, for idle shutdown.
+
+    Health checks are deliberately *not* activity: an orchestrator polls
+    `/api/health` every few seconds, so counting it would keep every abandoned
+    session alive forever -- which is the whole point of the feature.
+
+    The in-flight counter matters because a yearly time-series run streams for
+    minutes without any new request arriving.
+    """
+
+    def __init__(self, app, state):
+        self.app = app
+        self.state = state
+        state.last_activity = time.monotonic()
+        state.inflight = 0
+        self._lock = threading.Lock()
+
+    def _touch(self, delta: int) -> None:
+        with self._lock:
+            self.state.inflight += delta
+            self.state.last_activity = time.monotonic()
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or scope.get("path") == "/api/health":
+            await self.app(scope, receive, send)
+            return
+        self._touch(+1)
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            self._touch(-1)
+
+    def idle_seconds(self) -> float:
+        with self._lock:
+            if self.state.inflight > 0:
+                return 0.0
+            return time.monotonic() - self.state.last_activity

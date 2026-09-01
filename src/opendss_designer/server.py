@@ -1,6 +1,9 @@
 """FastAPI app factory: API routes + built-frontend static serving."""
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import logging
 import os
 from pathlib import Path
 
@@ -10,7 +13,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .api.routes import router
-from .middleware import BodySizeLimitMiddleware, SecurityHeadersMiddleware
+from .middleware import (ActivityMiddleware, BodySizeLimitMiddleware,
+                         SecurityHeadersMiddleware)
 from .settings import Settings, settings
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -29,15 +33,71 @@ def allowed_hosts() -> list[str]:
     return [h.strip() for h in env.split(",") if h.strip()]
 
 
+logger = logging.getLogger(__name__)
+
+
+def _track_activity(app, app_state):
+    app_state.activity = ActivityMiddleware(app, app_state)
+    return app_state.activity
+
+
+@contextlib.asynccontextmanager
+async def _lifespan(app: FastAPI):
+    """Exit once nothing has happened for `idle_timeout_s`.
+
+    Under one-process-per-session this is what lets a container release the
+    OpenDSS singleton and scale to zero without an external reaper. It is a
+    courtesy, not a guarantee: a client polling a non-health endpoint keeps it
+    alive forever, so the wrapper still owns an absolute session TTL.
+    """
+    cfg: Settings = app.state.settings
+    if cfg.demo and set(allowed_hosts()) == set(DEFAULT_ALLOWED_HOSTS):
+        # Easy to miss and it fails closed: a proxy forwards the public Host,
+        # which is not in the loopback default, so every request 400s.
+        logger.warning(
+            "demo mode with the default loopback-only Host allowlist - set "
+            "OPENDSS_DESIGNER_ALLOWED_HOSTS to your public hostname, or every "
+            "proxied request will be rejected with 400")
+    task = None
+    if cfg.idle_timeout_s:
+        task = asyncio.create_task(_idle_watch(app, cfg.idle_timeout_s))
+    try:
+        yield
+    finally:
+        if task is not None:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+
+async def _idle_watch(app: FastAPI, timeout: float) -> None:
+    while True:
+        await asyncio.sleep(min(30.0, timeout))
+        activity = getattr(app.state, "activity", None)
+        if activity is None:
+            continue
+        idle = activity.idle_seconds()
+        if idle >= timeout:
+            logger.info("idle for %.0fs (limit %.0fs) - shutting down", idle, timeout)
+            server = getattr(app.state, "server", None)
+            if server is not None:
+                server.should_exit = True
+            return
+
+
 def create_app(config: Settings | None = None) -> FastAPI:
     cfg = config or settings
     # The interactive API docs are a local convenience, not something a public
     # demo needs to advertise.
     docs = {} if not cfg.demo else {"docs_url": None, "redoc_url": None,
                                     "openapi_url": None}
-    app = FastAPI(title="OpenDSS Designer", **docs)
+    app = FastAPI(title="OpenDSS Designer", lifespan=_lifespan, **docs)
     app.state.settings = cfg
+    app.state.activity = None
 
+    if cfg.idle_timeout_s:
+        # Held on app.state so the idle task can read the counter.
+        app.add_middleware(_track_activity, app_state=app.state)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts())
     app.add_middleware(SecurityHeadersMiddleware)
     if cfg.max_body_bytes:

@@ -23,14 +23,17 @@ jobs:
       - run: pip install build
       - run: python -m build
       # The frontend must ship inside the wheel; fail loudly if it didn't.
-      - name: Verify wheel contains the frontend
+      - name: Verify wheel contains the frontend and config
         run: |
           python - <<'EOF'
           import glob, sys, zipfile
           wheel = glob.glob("dist/*.whl")[0]
           names = zipfile.ZipFile(wheel).namelist()
           assert "opendss_designer/static/index.html" in names, names
-          print(f"OK: {wheel} contains the built frontend")
+          # Shipped separately from the frontend and just as easy to lose: a
+          # wheel without it loads zero conductor presets.
+          assert "opendss_designer/config/linecodes.csv" in names, names
+          print(f"OK: {wheel} contains the built frontend and config")
           EOF
       - uses: actions/upload-artifact@v4
         with:

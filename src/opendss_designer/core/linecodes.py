@@ -30,6 +30,9 @@ def config_path() -> Path | None:
     candidates.append(Path.cwd() / "config" / "linecodes.csv")
     # src/opendss_designer/core/linecodes.py -> repo root is parents[3]
     candidates.append(Path(__file__).resolve().parents[3] / "config" / "linecodes.csv")
+    # Shipped inside the package: a pip install has no repo checkout, and
+    # without this a deployed instance loads zero conductor presets.
+    candidates.append(Path(__file__).resolve().parent.parent / "config" / "linecodes.csv")
     for p in candidates:
         if p.is_file():
             return p

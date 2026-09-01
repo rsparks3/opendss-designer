@@ -20,3 +20,19 @@ def test_version_is_declared_once_per_place_and_agrees():
         (ROOT / "frontend" / "package.json").read_text(encoding="utf-8"))
     assert pyproject.group(1) == __version__
     assert package_json["version"] == __version__
+
+
+def test_linecodes_csv_ships_inside_the_package():
+    """It used to live at the repo root, so `pip install opendss-designer`
+    got no conductor presets at all."""
+    assert (ROOT / "src" / "opendss_designer" / "config" / "linecodes.csv").is_file()
+
+
+def test_linecodes_resolve_without_a_repo_checkout(tmp_path, monkeypatch):
+    """Resolution must not depend on the current working directory."""
+    from opendss_designer.core import linecodes
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("OPENDSS_DESIGNER_CONFIG", raising=False)
+    data = linecodes.load_line_codes()
+    assert data["lineCodes"], data.get("errors")

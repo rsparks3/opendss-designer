@@ -1,0 +1,19 @@
+.git/
+.github/
+docs/
+site/
+tests/
+# ...except the schema fixture: frontend/src/store/circuitStore.test.ts
+# imports it (the pytest/vitest schema-drift guard), so `tsc -b`
+# cannot typecheck without it.
+!tests/fixtures/
+dist/
+build/
+*.egg-info/
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+src/opendss_designer/static/
+__pycache__/
+*.pyc

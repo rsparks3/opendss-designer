@@ -7,7 +7,7 @@ import queue
 import threading
 from typing import Literal
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -31,7 +31,7 @@ _timeseries_slots = threading.BoundedSemaphore(
 
 
 @router.get("/health")
-def health() -> dict:
+def health(request: Request) -> dict:
     """Liveness plus what the client needs to explain the demo's limits.
 
     Deliberately does not touch the engine (engine.opendss_version is cached),
@@ -48,6 +48,11 @@ def health() -> dict:
             "maxShapePoints": settings.max_shape_points,
             "maxBodyBytes": settings.max_body_bytes,
         }
+        activity = getattr(request.app.state, "activity", None)
+        if activity is not None:
+            # So an external reaper can make the same call the in-process
+            # idle timer makes, without trusting it.
+            out["idleSeconds"] = round(activity.idle_seconds(), 1)
     return out
 
 
