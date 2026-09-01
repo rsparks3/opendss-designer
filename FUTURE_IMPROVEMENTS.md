@@ -146,3 +146,7 @@ All frontend-only; the M1 vitest harness covers the store changes.
   preview (`useEdgePath`), the gesture is a DOM-free state machine (`store/grabStore.ts`)
   wired to a `Terminal` wrapper over ReactFlow's `<Handle>`, and drops reuse
   `validateConnection`. Frontend only; the wire format is unchanged.
+- Shape-preserving routing points (2026-08-31): the first waypoint on an edge used to
+  swap ReactFlow's smoothstep elbows for a straight polyline. `lib/edgeGeometry.ts` now
+  reads the drawn path back off the screen, keeps its corners as waypoints, and puts the
+  new point on the line it was clicked on.

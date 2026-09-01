@@ -12,6 +12,7 @@ import {
   type IsValidConnection,
 } from '@xyflow/react'
 import { useCallback, useEffect, useState } from 'react'
+import { renderedEdgePoints } from '../lib/edgeGeometry'
 import {
   beginGesture,
   endGesture,
@@ -146,11 +147,14 @@ export function EditorCanvas() {
     [],
   )
 
+  // The click position stays unsnapped here: the store puts the new point on
+  // the edge's current path (read off the screen) and snaps it along that
+  // path, so adding a routing point never changes the shape.
   const onEdgeDoubleClick = useCallback(
     (event: React.MouseEvent, edge: AppEdge) => {
       event.stopPropagation()
-      const p = screenToFlowPosition({ x: event.clientX, y: event.clientY })
-      addEdgeWaypoint(edge.id, { x: Math.round(p.x / 10) * 10, y: Math.round(p.y / 10) * 10 })
+      const p = screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false })
+      addEdgeWaypoint(edge.id, p, renderedEdgePoints(edge.id))
     },
     [screenToFlowPosition, addEdgeWaypoint],
   )

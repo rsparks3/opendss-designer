@@ -10,6 +10,7 @@ import {
 import { temporal } from 'zundo'
 import { create } from 'zustand'
 import { defaultLineParams, defaultParams, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
+import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params } from '../types/circuit'
 import { useResultsStore } from './resultsStore'
 
@@ -46,7 +47,10 @@ export interface CircuitState {
    *  gesture); the edge keeps its id, kind and parameters. */
   reconnectEdgeEnd: (id: string, end: EdgeEnd, nodeId: string, handleId: string) => void
   setEdgeWaypoints: (id: string, waypoints: XY[]) => void
-  addEdgeWaypoint: (id: string, pos: XY) => void
+  /** Add a routing point where the user clicked. `rendered` is the polyline
+   *  the edge is currently drawn as (endpoints included), read off the screen
+   *  by the caller; passing it keeps the edge's shape exactly as it looks. */
+  addEdgeWaypoint: (id: string, pos: XY, rendered?: XY[] | null) => void
   setBusbarWidth: (id: string, width: number) => void
   setName: (name: string) => void
   setPlacement: (t: NodeType | null) => void
@@ -467,38 +471,34 @@ export const useCircuitStore = create<CircuitState>()(
           dirty: true,
         })
       },
-      addEdgeWaypoint: (id, pos) => {
+      addEdgeWaypoint: (id, pos, rendered) => {
         const edge = get().edges.find((e) => e.id === id)
         if (!edge) return
-        const wps = [...(edge.data?.waypoints ?? [])]
-        // Insert at the segment of the polyline (endpoint-approximated by node
-        // centers) closest to the click.
+        const wps = edge.data?.waypoints ?? []
+        // Prefer the polyline actually on screen. Without waypoints that is
+        // ReactFlow's smoothstep path, whose corners are adopted as waypoints
+        // so the edge keeps the shape it had when it was clicked; with
+        // waypoints it is our own polyline, which indexes the click exactly.
+        const drawn = rendered && rendered.length >= 2 ? rendered : null
+        const usable = drawn && (!wps.length || drawn.length === wps.length + 2)
         const src = get().nodes.find((n) => n.id === edge.source)
         const tgt = get().nodes.find((n) => n.id === edge.target)
-        const pts = [
-          ...(src ? [nodeCenter(src)] : []),
-          ...wps,
-          ...(tgt ? [nodeCenter(tgt)] : []),
-        ]
-        let best = wps.length
-        if (pts.length >= 2) {
-          let bestD = Infinity
-          for (let i = 0; i < pts.length - 1; i++) {
-            const a = pts[i], b = pts[i + 1]
-            const t = Math.max(0, Math.min(1,
-              ((pos.x - a.x) * (b.x - a.x) + (pos.y - a.y) * (b.y - a.y)) /
-              (((b.x - a.x) ** 2 + (b.y - a.y) ** 2) || 1)))
-            const dx = pos.x - (a.x + t * (b.x - a.x))
-            const dy = pos.y - (a.y + t * (b.y - a.y))
-            const d = dx * dx + dy * dy
-            if (d < bestD) {
-              bestD = d
-              best = src ? i : i + 1 // segment i starts before waypoint i
-            }
-          }
+        const pts = usable
+          ? wps.length
+            ? drawn!
+            : simplifyCollinear(drawn!)
+          : // Fall back to a straight run between the node centers.
+            src && tgt
+            ? [nodeCenter(src), ...wps, nodeCenter(tgt)]
+            : []
+        if (pts.length < 2) {
+          get().setEdgeWaypoints(id, [...wps, pos])
+          return
         }
-        wps.splice(best, 0, pos)
-        get().setEdgeWaypoints(id, wps)
+        const { index, point } = insertPoint(pts, pos)
+        const base = wps.length ? [...wps] : interiorPoints(pts)
+        base.splice(index, 0, point)
+        get().setEdgeWaypoints(id, base)
       },
       setBusbarWidth: (id, rawWidth) => {
         const width = snapBusbarWidth(rawWidth)

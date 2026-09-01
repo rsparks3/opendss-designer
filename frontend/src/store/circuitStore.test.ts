@@ -491,3 +491,86 @@ describe('validateConnection with an exempt edge', () => {
     expect(validateConnection({ source: 'ld', target: 'ld' }, state, 'e1')).toMatch(/itself/)
   })
 })
+
+describe('addEdgeWaypoint', () => {
+  // The elbow ReactFlow draws for an edge with no waypoints yet.
+  const SMOOTHSTEP = [
+    { x: 510, y: 327 },
+    { x: 510, y: 347 },
+    { x: 510, y: 361.25 },
+    { x: 460, y: 361.25 },
+    { x: 460, y: 375.5 },
+    { x: 460, y: 395.5 },
+  ]
+
+  const setup = (waypoints?: { x: number; y: number }[]) =>
+    useCircuitStore.setState({
+      nodes: [
+        { ...node('bus', 'busbar'), position: { x: 400, y: 320 } } as AppNode,
+        { ...node('ld', 'load'), position: { x: 440, y: 390 } } as AppNode,
+      ],
+      edges: [
+        {
+          id: 'e1',
+          type: 'line',
+          source: 'bus',
+          target: 'ld',
+          data: { params: {}, waypoints },
+        },
+      ],
+    })
+
+  const waypoints = () => useCircuitStore.getState().edges[0].data?.waypoints
+
+  it('adopts the drawn corners so the edge keeps its shape', () => {
+    setup()
+    // Click on the vertical leg, a few pixels off the line.
+    useCircuitStore.getState().addEdgeWaypoint('e1', { x: 514, y: 338 }, SMOOTHSTEP)
+    expect(waypoints()).toEqual([
+      { x: 510, y: 340 }, // the new point, pulled onto the leg it was clicked on
+      { x: 510, y: 361.25 }, // corners of the smoothstep path, kept as-is
+      { x: 460, y: 361.25 },
+    ])
+  })
+
+  it('inserts a later point in the right place along the path', () => {
+    setup()
+    // Click on the horizontal leg: it belongs between the two elbow corners.
+    useCircuitStore.getState().addEdgeWaypoint('e1', { x: 486, y: 364 }, SMOOTHSTEP)
+    expect(waypoints()).toEqual([
+      { x: 510, y: 361.25 },
+      { x: 490, y: 361.25 },
+      { x: 460, y: 361.25 },
+    ])
+  })
+
+  it('does not turn collinear path points into routing dots', () => {
+    setup()
+    useCircuitStore.getState().addEdgeWaypoint('e1', { x: 514, y: 338 }, SMOOTHSTEP)
+    // 510,347 and 460,375.5 lie on straight runs and are dropped.
+    expect(waypoints()).toHaveLength(3)
+  })
+
+  it('adds to an edge that already has waypoints without disturbing them', () => {
+    setup([{ x: 500, y: 300 }, { x: 400, y: 300 }])
+    const drawn = [{ x: 500, y: 200 }, { x: 500, y: 300 }, { x: 400, y: 300 }, { x: 400, y: 400 }]
+    useCircuitStore.getState().addEdgeWaypoint('e1', { x: 404, y: 352 }, drawn)
+    expect(waypoints()).toEqual([
+      { x: 500, y: 300 },
+      { x: 400, y: 300 },
+      { x: 400, y: 350 },
+    ])
+  })
+
+  it('falls back to the node centers when the edge is not on screen', () => {
+    setup()
+    useCircuitStore.getState().addEdgeWaypoint('e1', { x: 470, y: 360 }, null)
+    expect(waypoints()).toHaveLength(1)
+  })
+
+  it('ignores an unknown edge', () => {
+    setup()
+    useCircuitStore.getState().addEdgeWaypoint('nope', { x: 0, y: 0 }, SMOOTHSTEP)
+    expect(waypoints()).toBeUndefined()
+  })
+})

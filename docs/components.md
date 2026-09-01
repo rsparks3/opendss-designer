@@ -145,7 +145,10 @@ the kind you chose. While a placement mode *is* active, connections default
 to plain wires (you're dropping components and hooking them up as you go).
 Illegal connections — busbar-to-busbar wires, self-connections, duplicates —
 are refused with an explanation. Double-click any wire or line to add a
-draggable routing point; double-click a point to remove it.
+draggable routing point; double-click a point to remove it. The new point
+lands *on* the wire and the elbows the router had already drawn become
+routing points too, so adding one never changes the shape you were looking
+at — right-click and **Straighten** hands the edge back to the auto-router.
 
 ### Re-routing a connection
 
