@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="OpenDSS Designer">
+  <rect width="32" height="32" rx="6" fill="#1f2937"/>
+  <!-- A transmission tower, matching the docs site logo. -->
+  <g stroke="#f8fafc" stroke-width="1.6" stroke-linecap="round" fill="none">
+    <path d="M16 5v22"/>
+    <path d="M8 27 16 5l8 22"/>
+    <path d="M7 12h18"/>
+    <path d="M9 18h14"/>
+    <path d="M11.5 12 16 18l4.5-6"/>
+  </g>
+</svg>

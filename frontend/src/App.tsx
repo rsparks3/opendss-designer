@@ -7,6 +7,7 @@ import { toCircuitJSON, useCircuitStore } from './store/circuitStore'
 import { useResultsStore } from './store/resultsStore'
 import type { CircuitJSON } from './types/circuit'
 import { BottomPanel } from './components/BottomPanel'
+import { DemoBanner } from './components/DemoBanner'
 import { EditorCanvas } from './components/EditorCanvas'
 import { Palette } from './components/Palette'
 import { PropertiesPanel } from './components/PropertiesPanel'
@@ -115,6 +116,7 @@ export default function App() {
   return (
     <ReactFlowProvider>
       <div className="app">
+        <DemoBanner />
         <Toolbar />
         <TimeBar />
         <div className="main-row">

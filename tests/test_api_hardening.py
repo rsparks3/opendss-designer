@@ -597,3 +597,80 @@ def test_no_endpoint_is_disabled_in_local_mode(client):
     for path in ("/api/validate", "/api/solve", "/api/faultstudy",
                  "/api/export/dss"):
         assert client.post(path, json=circuit).status_code == 200, path
+
+
+# --- time-series streaming under demo-mode concurrency limits --------------
+
+def _ts_body(circuit):
+    return {"circuit": json.loads(circuit.model_dump_json()),
+            "mode": "daily", "stepMin": 60}
+
+
+def _drain(client, body):
+    """Run one time series to completion, returning (status, first_bytes)."""
+    with client.stream("POST", "/api/timeseries", json=body) as res:
+        if res.status_code != 200:
+            return res.status_code, None
+        first = None
+        for chunk in res.iter_text():
+            if first is None:
+                first = chunk
+        return 200, first
+
+
+def test_timeseries_slots_are_returned_after_each_run(client, substation_circuit,
+                                                      monkeypatch):
+    """The concurrency slot was acquired per run and never released, so after
+    `max_concurrent_timeseries` runs the demo refused every further time
+    series. It only reproduced in demo mode, because the semaphore is sized at
+    import and is effectively unbounded locally.
+    """
+    from opendss_designer.api import routes
+
+    monkeypatch.setattr(routes, "_timeseries_slots", threading.BoundedSemaphore(2))
+    body = _ts_body(substation_circuit)
+    for run in range(1, 6):
+        status, _ = _drain(client, body)
+        assert status == 200, f"run {run} was refused ({status}) — slot leak"
+
+
+def test_timeseries_opens_the_stream_before_any_work(client, substation_circuit):
+    """Nothing is sent until the first progress event, which lands only after
+    the circuit compiles on the shared engine thread. A proxy that sees no
+    bytes treats the request as a hung origin (Cloudflare kills it at 100s),
+    so the stream opens with an SSE comment immediately."""
+    status, first = _drain(client, _ts_body(substation_circuit))
+    assert status == 200
+    assert first.startswith(": open\n\n"), first[:40]
+
+
+def test_engine_wait_timeout_is_a_503_not_a_500(substation_circuit, monkeypatch):
+    """`future.result(timeout=...)` raises a bare TimeoutError; the routes only
+    caught EngineBusy, so a slow solve returned 500. With the timeout tuned
+    below a CDN's origin limit this is the likeliest error under load."""
+    from opendss_designer import server
+    from opendss_designer.core import engine
+    from opendss_designer.settings import reload_settings
+
+    cfg = reload_settings({"OPENDSS_DESIGNER_MODE": "demo",
+                           "OPENDSS_DESIGNER_ENGINE_RESULT_TIMEOUT_S": "1"})
+    try:
+        c = TestClient(server.create_app(cfg), base_url="http://127.0.0.1",
+                       raise_server_exceptions=False)
+        release, started = threading.Event(), threading.Event()
+
+        def hog():
+            engine._dss_executor.submit(
+                lambda: (started.set(), release.wait(timeout=15)))
+
+        threading.Thread(target=hog, daemon=True).start()
+        assert started.wait(timeout=10)
+        try:
+            res = c.post("/api/solve",
+                         json=json.loads(substation_circuit.model_dump_json()))
+            assert res.status_code == 503, res.status_code
+            assert res.headers.get("retry-after")
+        finally:
+            release.set()
+    finally:
+        reload_settings({})
