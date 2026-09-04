@@ -3,6 +3,19 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-09-04
+
+### Changed
+
+- **Licence changed from MIT to AGPL-3.0-or-later.** The tool stays free to
+  use, modify and self-host, including commercially. The one obligation added
+  is the AGPL's network clause: if you run a *modified* version and let other
+  people use it over a network, you must make those modifications available to
+  them. Running an unmodified copy for yourself or your organisation carries no
+  such obligation, and self-hosting remains a first-class supported path — see
+  `NOTICE` for the reasoning and `docs/deployment.md` for the templates.
+  Releases up to and including 0.2.0 remain available under MIT.
+
 ## 0.2.0 — 2026-09-01
 
 Everything here is opt-in. `pip install opendss-designer` and run it as before

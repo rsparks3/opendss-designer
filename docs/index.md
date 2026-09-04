@@ -60,6 +60,6 @@ Head to [Getting started](getting-started.md) for a walkthrough, or
 
 ## Open source
 
-MIT-licensed, developed on
+AGPL-3.0-licensed, developed on
 [GitHub](https://github.com/rsparks3/opendss-designer) — issues and pull
 requests welcome. See [Development](development.md) to hack on it.
