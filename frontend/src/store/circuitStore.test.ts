@@ -574,3 +574,36 @@ describe('addEdgeWaypoint', () => {
     expect(waypoints()).toBeUndefined()
   })
 })
+
+describe('document identity and history', () => {
+  it('clears undo history when a different document is loaded', () => {
+    // Regression: loadCircuit did not clear the zundo timeline, so Ctrl+Z
+    // after Open walked backwards into the *previous* document.
+    const s = useCircuitStore.getState()
+    s.clearAll()
+    s.addNodeAt('load', { x: 0, y: 0 })
+    s.addNodeAt('load', { x: 50, y: 0 })
+    expect(useCircuitStore.temporal.getState().pastStates.length).toBeGreaterThan(0)
+
+    useCircuitStore.getState().loadCircuit({
+      version: 1, name: 'other', nodes: [], edges: [], busNames: {}, loadShapes: {},
+    })
+    expect(useCircuitStore.temporal.getState().pastStates).toHaveLength(0)
+  })
+
+  it('generates ids that do not collide across sessions', () => {
+    // Ids were `Date.now()` plus a counter that reset on page load, so two
+    // sessions produced the same ids — which silently reassigns busNames,
+    // keyed by `nodeId:handleId`.
+    const s = useCircuitStore.getState()
+    s.clearAll()
+    const ids = new Set<string>()
+    for (let i = 0; i < 500; i++) {
+      s.addNodeAt('load', { x: i, y: 0 })
+    }
+    for (const n of useCircuitStore.getState().nodes) ids.add(n.id)
+    expect(ids.size).toBe(500)
+    // No wall-clock component that would repeat between sessions.
+    expect([...ids].every((id) => /^n_[a-z0-9]{10}$/.test(id))).toBe(true)
+  })
+})

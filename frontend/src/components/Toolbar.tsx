@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type SampleMeta } from '../lib/api'
 import { autoLayout } from '../lib/layout'
+import { migrateCircuit } from '../lib/schema'
 import { runSolve } from '../lib/solve'
 import {
   redo,
@@ -123,7 +124,9 @@ export function Toolbar() {
       return
     }
     try {
-      loadCircuit(JSON.parse(await file.text()))
+      const { circuit, warning } = migrateCircuit(JSON.parse(await file.text()))
+      loadCircuit(circuit)
+      if (warning) flash(warning, 'info', 12000)
     } catch (err) {
       flash(`Could not open project: ${err instanceof Error ? err.message : err}`)
     }

@@ -12,6 +12,7 @@ import { create } from 'zustand'
 import { defaultLineParams, defaultParams, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params } from '../types/circuit'
+import { SCHEMA_VERSION } from '../lib/schema'
 import { useResultsStore } from './resultsStore'
 
 export interface XY {
@@ -74,11 +75,38 @@ export interface CircuitState {
   rotateSelection: () => void
 }
 
-let idSeq = 0
-const newId = (p: string) => `${p}_${Date.now().toString(36)}_${++idSeq}`
+// Ids used to be `Date.now()` plus a counter that reset on every page load,
+// which is unique within one editing session and collides across them. That is
+// fine while a circuit only ever lives in one file, and a landmine as soon as
+// elements are copied between documents or two clients write to one library:
+// `busNames` is keyed by `nodeId:handleId`, so an id collision silently
+// reassigns bus names. 10 random base36 characters is ~51 bits -- negligible
+// collision odds at any circuit size, and short enough not to bloat the
+// document, since every id appears several times across nodes and edges.
+const ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789'
+function randomSuffix(len = 10): string {
+  const g = globalThis.crypto
+  if (g?.getRandomValues) {
+    const buf = new Uint8Array(len)
+    g.getRandomValues(buf)
+    return Array.from(buf, (b) => ID_CHARS[b % ID_CHARS.length]).join('')
+  }
+  let out = ''
+  for (let i = 0; i < len; i++) {
+    out += ID_CHARS[Math.floor(Math.random() * ID_CHARS.length)]
+  }
+  return out
+}
+const newId = (p: string) => `${p}_${randomSuffix()}`
 
 function markStale() {
   useResultsStore.getState().markStale()
+}
+
+/** Drop the undo timeline. Every path that swaps in a different document must
+ *  call this, or Ctrl+Z walks backwards into the previous one. */
+function clearHistory() {
+  useCircuitStore.temporal.getState().clear()
 }
 
 // ---------------------------------------------------------------------------
@@ -283,7 +311,7 @@ export function toCircuitJSON(
   s: Pick<CircuitState, 'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes'>,
 ): CircuitJSON {
   return {
-    version: 1,
+    version: SCHEMA_VERSION,
     name: s.name,
     nodes: s.nodes.map((n) => ({
       id: n.id,
@@ -578,6 +606,9 @@ export const useCircuitStore = create<CircuitState>()(
           loadShapes: c.loadShapes ?? {},
           dirty: false,
         })
+        // Cleared here rather than at each call site: Open used to leave the
+        // previous document's history in place, so undo crossed documents.
+        clearHistory()
         markStale()
       },
       clearAll: () => {
