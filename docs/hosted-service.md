@@ -121,10 +121,10 @@ gateway's database and the numbers below are its seed data.
 
 | | Anonymous | Free account | Pro (about $5/month) |
 | --- | --- | --- | --- |
-| Elements per circuit | 500 | 1,200 | 2,000 |
-| Time-series cost per run (steps × entities) | 250 k | 1 M | 3 M |
+| Elements per circuit | 10 | 50 | 1,000 |
+| Time-series cost per run (steps × entities) | 250 k | 1 M | 3 M (bounded by worker memory; see below) |
 | Longest single run | 30 s | 90 s | 600 s |
-| Engine time budget | 30 s per day, per client | 5 min per day | 5 h per month |
+| Engine time budget | 10 s per day, per client | 30 s per day | 60 min per month |
 | Concurrent runs | 1, and anonymous traffic as a whole never holds more than one worker | 1 | 2 |
 | Queue priority | lowest | normal | highest |
 | Outbound data fetches (NREL, NSRDB) | shared pool | 20 per hour | 60 per hour |
