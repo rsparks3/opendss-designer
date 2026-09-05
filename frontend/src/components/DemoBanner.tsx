@@ -5,6 +5,19 @@ import { describeInstance } from '../lib/plan'
 const DISMISS_KEY = 'opendss-designer.demoBannerDismissed'
 
 /**
+ * A dismissal is remembered per banner *title*, so dismissing the guest
+ * banner does not hide the one that appears after signing in (or after a
+ * plan change).
+ */
+function readDismissed(): string | null {
+  try {
+    return localStorage.getItem(DISMISS_KEY)
+  } catch {
+    return null // storage unavailable — showing the banner is the safe default
+  }
+}
+
+/**
  * Shown only on a hosted instance: `/api/health` reports mode "demo", or a
  * gateway in front has described the caller's plan. A local `pip install`
  * renders nothing at all, which keeps demo mode's rule that it only ever adds
@@ -15,13 +28,7 @@ const DISMISS_KEY = 'opendss-designer.demoBannerDismissed'
  */
 export function DemoBanner() {
   const [health, setHealth] = useState<HealthInfo | null>(null)
-  const [dismissed, setDismissed] = useState(() => {
-    try {
-      return localStorage.getItem(DISMISS_KEY) === '1'
-    } catch {
-      return false // storage unavailable — showing the banner is the safe default
-    }
-  })
+  const [dismissed, setDismissed] = useState<string | null>(readDismissed)
 
   useEffect(() => {
     // Best effort: if health is unreachable the app still works, so failing
@@ -30,12 +37,14 @@ export function DemoBanner() {
   }, [])
 
   const text = describeInstance(health)
-  if (!text || dismissed) return null
+  if (!text) return null
+  // '1' is what older builds stored; it only ever meant the generic banner.
+  if (dismissed === text.title || (dismissed === '1' && text.title === 'Hosted instance.')) return null
 
   const onDismiss = () => {
-    setDismissed(true)
+    setDismissed(text.title)
     try {
-      localStorage.setItem(DISMISS_KEY, '1')
+      localStorage.setItem(DISMISS_KEY, text.title)
     } catch {
       // storage unavailable — it will reappear next visit, which is fine
     }
