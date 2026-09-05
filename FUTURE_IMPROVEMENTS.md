@@ -170,6 +170,11 @@ contract" (0.4.0) — ✅ DONE (2026-09-05)**, all opt-in and inert in local mod
 - Stage 2 (gateway v0.1, guests only: one slot per worker, priority queue,
   engine-second ledger, two workers behind it on the box) ✅ DONE
   (2026-09-05) — lives in `opendss-designer-cloud`; nothing in this repo
+- Stage 3 (accounts: magic link, GitHub, Google; Free plan; account and
+  legal pages) — code shipped and deployed 2026-09-05 (gateway 0.2.0);
+  **switched off until the email provider and OAuth apps exist**. The only
+  change here: the banner remembers a dismissal per plan title, so signing
+  in shows the new plan's banner
 
 Accounts, plans, the solver queue, metering and Stripe live in a new AGPL
 repository, `opendss-designer-cloud`; deployment stays in

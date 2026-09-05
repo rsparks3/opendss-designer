@@ -1,7 +1,8 @@
 # The hosted service: model, architecture, and roadmap
 
-*Planning document, written 2026-09-04. Stages 0–2 shipped 2026-09-05; the
-rest is not built yet. It exists so the shape is decided before
+*Planning document, written 2026-09-04. Stages 0–2 shipped 2026-09-05, and
+Stage 3's code is deployed pending sign-in credentials; the rest is not built
+yet. It exists so the shape is decided before
 the code is, and so a contributor can see why the local tool stays the way it
 is.*
 
