@@ -139,3 +139,11 @@ test('export .dss, start new, and re-import the exported file', async ({ page })
   await expect(page.locator('.react-flow__node-load')).toHaveCount(1)
   await expect(page.locator('.react-flow__node-transformer')).toHaveCount(1)
 })
+
+test('the demo banner stays hidden on a local install', async ({ page }) => {
+  // Demo mode only ever adds constraints; a `pip install` must look exactly
+  // as it did before any of it existed. The e2e server runs in local mode.
+  await openEditor(page)
+  await expect(page.locator('.demo-banner')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Solve/ })).toBeVisible()
+})

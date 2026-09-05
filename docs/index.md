@@ -29,8 +29,11 @@ opendss-designer          # starts a local server and opens your browser
 Run it yourself and everything stays on your machine: the server binds to
 `127.0.0.1` and your circuits are never uploaded. (The optional NREL load-profile
 and NSRDB irradiance fetchers are the one exception — those reach out to public
-data services when you ask them to.) A [hosted demo](deployment.md) is a
+data services when you ask them to.) The [hosted instance](https://opendssdesigner.ryanmsparks.com) is a
 different setting with size limits; see [Security](security.md).
+
+**Or try it without installing anything: [opendssdesigner.ryanmsparks.com](https://opendssdesigner.ryanmsparks.com)** —
+no sign-up, runs in your browser.
 
 Head to [Getting started](getting-started.md) for a walkthrough, or
 [Components](components.md) for the full element reference.
@@ -60,6 +63,6 @@ Head to [Getting started](getting-started.md) for a walkthrough, or
 
 ## Open source
 
-MIT-licensed, developed on
+AGPL-3.0-licensed, developed on
 [GitHub](https://github.com/rsparks3/opendss-designer) — issues and pull
 requests welcome. See [Development](development.md) to hack on it.

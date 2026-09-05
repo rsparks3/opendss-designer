@@ -1,6 +1,6 @@
 # Development
 
-Contributions are welcome — the project is MIT-licensed and developed on
+Contributions are welcome — the project is AGPL-3.0-licensed and developed on
 [GitHub](https://github.com/rsparks3/opendss-designer).
 
 ## Setup

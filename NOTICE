@@ -1,0 +1,47 @@
+OpenDSS Designer
+Copyright (C) 2026 Ryan Sparks
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version. See LICENSE for the full text.
+
+
+What this means in practice
+---------------------------
+
+You may use OpenDSS Designer for anything, including commercial work, at no
+cost. You may run it on your own machine or your own server, modify it, and
+distribute your modifications. Nothing here asks you to pay for or register
+anything.
+
+The one obligation the AGPL adds over a permissive licence: if you run a
+modified version and let other people use it over a network, you have to make
+your modified source available to those users. Running an unmodified copy for
+yourself, your team, or your organisation carries no such obligation.
+
+The intent is that the tool stays genuinely free and self-hostable, while a
+modified closed fork cannot be offered as a competing hosted service. It is not
+intended to discourage self-hosting -- self-hosting is a supported, first-class
+way to use this project, and the deployment templates are published for exactly
+that purpose.
+
+If the AGPL is genuinely incompatible with your situation, open an issue and
+say so; that is useful signal.
+
+
+Versions and history
+--------------------
+
+Releases up to and including 0.2.0 were published under the MIT licence and
+remain available under those terms. This change applies from 0.3.0 onward.
+
+
+Third-party components
+----------------------
+
+This project builds on OpenDSS via OpenDSSDirect.py and DSS-Python, which carry
+their own permissive licences (BSD 3-Clause; OpenDSSDirect.py is copyright the
+Alliance for Sustainable Energy, LLC). Those licences are unaffected by this
+one. Frontend dependencies are listed in frontend/package.json and retain their
+respective licences.

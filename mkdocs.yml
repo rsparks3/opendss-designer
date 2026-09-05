@@ -2,7 +2,7 @@ site_name: OpenDSS Designer
 site_description: >-
   A graphical user interface (GUI) for OpenDSS — draw one-line diagrams in
   your browser, run power flows, and import/export .dss files.
-site_url: https://opendssdesigner.ryanmsparks.com/
+site_url: https://opendssdesigner-docs.ryanmsparks.com/
 repo_url: https://github.com/rsparks3/opendss-designer
 repo_name: rsparks3/opendss-designer
 

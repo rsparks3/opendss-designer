@@ -3,6 +3,44 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-09-04
+
+### Fixed
+
+- **Starting a new circuit no longer destroys your unsaved work.** The autosave
+  subscribed to every store change with no filter, so `New` (and `Open`, and
+  `Import`) cleared the editor and then, 800 ms later, wrote that *empty*
+  circuit over the only copy of the previous session's work. It now refuses to
+  overwrite a recovery copy with an empty document, and skips the write
+  entirely when nothing about the circuit actually changed.
+- **Undo no longer walks into the previously open circuit.** `Open` left the
+  old document's undo history in place, so Ctrl+Z after opening a project
+  reverted edits belonging to a different circuit. History is now cleared
+  wherever a document is loaded.
+- **Autosave works for large circuits again.** It lived in `localStorage`,
+  which is capped near 5 MB per origin — a circuit with about three
+  15-minute-year loadshapes exceeded it, and the resulting error was swallowed,
+  so the people with the most to lose had no protection and no warning. Autosave
+  now uses IndexedDB, falling back to `localStorage` where unavailable.
+
+### Changed
+
+- **Licence changed from MIT to AGPL-3.0-or-later.** The tool stays free to
+  use, modify and self-host, including commercially. The one obligation added
+  is the AGPL's network clause: if you run a *modified* version and let other
+  people use it over a network, you must make those modifications available to
+  them. Running an unmodified copy for yourself or your organisation carries no
+  such obligation, and self-hosting remains a first-class supported path — see
+  `NOTICE` for the reasoning and `docs/deployment.md` for the templates.
+  Releases up to and including 0.2.0 remain available under MIT.
+- **Project files now carry a checked format version.** The `version` field was
+  written but never read, so a project saved by a newer build opened silently
+  in an older one and lost anything it did not recognise on the next save. The
+  version is now validated, malformed files fail with a readable message, and a
+  document from the future opens with an explicit warning.
+- **Element ids are now random rather than time-based**, so ids generated in
+  different sessions cannot collide. Existing files are unaffected.
+
 ## 0.2.0 — 2026-09-01
 
 Everything here is opt-in. `pip install opendss-designer` and run it as before

@@ -17,27 +17,57 @@ Demo mode caps circuit size, request size, import size, solver queue depth and
 time-series cost; bounds the on-disk caches; rate-limits the outbound data
 fetchers; hides the interactive API docs; and enables request logging.
 
-## One process per session
+## How many containers?
 
 The OpenDSS engine is a **process-wide singleton** behind a single thread and a
 single lock. That is not incidental: the underlying library is not thread-safe,
 and every solve is a full rebuild. One process therefore serves one circuit at
 a time, and a long run blocks every other request in that process.
 
-So a hosted deployment should run **one container per visitor session** rather
-than one shared instance. The container is designed for it: it binds `$PORT`,
-exits on its own once idle, and keeps its scratch directory to itself.
+What that does *not* imply is per-visitor containers. The server keeps **no
+session state at all** — no cookies, no session ids, nothing user-scoped. Every
+request carries the whole circuit and the engine rebuilds from it, so any
+container can serve any request and no session affinity is needed.
+
+So pick whichever fits your platform:
+
+- **One shared container** — the simplest, and how the public demo runs. Solves
+  serialise, and the admission control returns `503` with `Retry-After` when the
+  queue is full rather than piling up. Fine until the demo is busy enough that
+  visitors see those 503s.
+- **A pool behind a load balancer** — horizontal scaling works with no affinity
+  and no sticky sessions, because of the statelessness above.
+- **One container per session** — worth it only on a platform that scales to
+  zero and bills per request, where the idle timeout below earns its keep.
 
 ```bash
 docker build -t opendss-designer .
-docker run --init -p 8721:8721 \
-  -e OPENDSS_DESIGNER_ALLOWED_HOSTS=demo.example.com \
+docker run --init -p 127.0.0.1:8721:8721 \
+  -e OPENDSS_DESIGNER_ALLOWED_HOSTS=demo.example.com,127.0.0.1,localhost \
   -v opendss-cache:/cache \
   opendss-designer
 ```
 
 `--init` matters: without it `SIGTERM` does not reach PID 1 and the graceful
 shutdown never runs.
+
+!!! warning "Three things that will bite you"
+    **Keep the loopback names in `OPENDSS_DESIGNER_ALLOWED_HOSTS`.** The value
+    *replaces* the defaults, and the image's own `HEALTHCHECK` requests
+    `Host: 127.0.0.1`. Drop them and the container runs but is permanently
+    reported unhealthy.
+
+    **Publish to `127.0.0.1`, not `0.0.0.0`.** Docker writes its own iptables
+    rules, which your host firewall never sees — `-p 8721:8721` exposes the app
+    on the public interface even with everything but 80/443 closed.
+
+    **Set `OPENDSS_DESIGNER_IDLE_TIMEOUT_S=0` under a restart policy.** The
+    idle shutdown exists for platforms that scale to zero. Combined with
+    `restart: unless-stopped` it just cycles the container on a timer.
+
+    And if a CDN sits in front, keep `ENGINE_RESULT_TIMEOUT_S` below its origin
+    timeout (Cloudflare's is 100s) so a slow solve returns this app's error
+    rather than the CDN's.
 
 ## Environment variables
 

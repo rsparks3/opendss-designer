@@ -802,3 +802,44 @@ html, body, #root { margin: 0; height: 100%; }
 }
 .ts-cursor { stroke: #ef6c00; stroke-width: 1.3; stroke-dasharray: 5 3; }
 .rt-hour { font-weight: 400; color: #667; }
+
+/* Hosted-demo notice. Rendered only when /api/health reports mode "demo",
+   so a local install never sees it. */
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: #fff8e1;
+  border-bottom: 1px solid #e6cf8b;
+  color: #4a3c10;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.demo-banner strong { font-weight: 600; }
+
+.demo-banner-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.demo-banner-links a { color: #6b4f00; }
+
+.demo-banner-links code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.demo-banner button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: inherit;
+  padding: 0 2px;
+}

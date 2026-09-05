@@ -8,7 +8,9 @@ drawing **is** the circuit model — then run a power flow and see voltages,
 loading, and violations right on the diagram. Import existing `.dss` files,
 edit visually or in a spreadsheet view, and export runnable OpenDSS scripts.
 
-📖 **Documentation: [opendssdesigner.ryanmsparks.com](https://opendssdesigner.ryanmsparks.com)**
+🚀 **Try it: [opendssdesigner.ryanmsparks.com](https://opendssdesigner.ryanmsparks.com)** — no sign-up, runs in your browser
+
+📖 **Documentation: [opendssdesigner-docs.ryanmsparks.com](https://opendssdesigner-docs.ryanmsparks.com)**
 
 ![screenshot](docs/screenshot.png)
 

@@ -180,6 +180,14 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
                  "message": "The time-series run failed unexpectedly. "
                             "Check the server log for details."})
         finally:
+            # Released here, not in the response generator: the worker always
+            # runs to completion, but a client that disconnects before reading
+            # a byte means the generator never starts and its `finally` never
+            # fires -- which leaked one slot per run until the demo refused
+            # every further time series.
+            _timeseries_slots.release()
+            if watchdog is not None:
+                watchdog.cancel()
             try:
                 q.put(None, timeout=5)  # sentinel: stream complete
             except queue.Full:
@@ -188,8 +196,24 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
     threading.Thread(target=worker, daemon=True).start()
 
     def gen():
+        # Flush a comment immediately, then keep the stream warm. Nothing else
+        # is sent until the first progress event, which lands only after the
+        # circuit compiles -- and `solve_timeseries` runs on the single engine
+        # thread, so another visitor's solve can delay that indefinitely. A
+        # proxy or CDN that sees no bytes treats the request as a hung origin
+        # and kills it (Cloudflare does at 100s). SSE comment lines are ignored
+        # by the client: lib/timeseries.ts skips any block not starting
+        # with "data: ".
+        yield ": open\n\n"
         try:
-            while (ev := q.get()) is not None:
+            while True:
+                try:
+                    ev = q.get(timeout=15)
+                except queue.Empty:
+                    yield ": ping\n\n"
+                    continue
+                if ev is None:
+                    break
                 yield f"data: {json.dumps(ev)}\n\n"
         finally:
             cancel.set()

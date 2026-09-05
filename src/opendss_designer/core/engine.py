@@ -112,7 +112,17 @@ def on_engine_thread(fn: Callable[..., _T]) -> Callable[..., _T]:
         # the engine thread is still running that work, so releasing here would
         # over-admit. A timeout frees the HTTP worker, never the engine.
         future.add_done_callback(lambda _f: _pending.release())
-        return future.result(timeout=settings.engine_result_timeout_s)
+        try:
+            return future.result(timeout=settings.engine_result_timeout_s)
+        except TimeoutError as exc:
+            # The wait expired, not the work: the engine thread is still
+            # running this call (which is why the semaphore is released from
+            # the callback above, not here). To the caller this is the same
+            # situation as a full queue, so report it the same way rather than
+            # as a 500 -- under load it is the likeliest error a visitor sees.
+            raise EngineBusy(
+                "The solver is taking longer than this demo allows — "
+                "try a smaller circuit, or try again in a moment.") from exc
     return wrapper
 
 

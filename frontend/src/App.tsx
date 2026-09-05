@@ -4,9 +4,11 @@ import { api } from './lib/api'
 import { loadLineCodes } from './lib/lineCodes'
 import { runSolve } from './lib/solve'
 import { toCircuitJSON, useCircuitStore } from './store/circuitStore'
+import { loadDoc, saveDoc } from './lib/localStore'
+import { migrateCircuit } from './lib/schema'
 import { useResultsStore } from './store/resultsStore'
-import type { CircuitJSON } from './types/circuit'
 import { BottomPanel } from './components/BottomPanel'
+import { DemoBanner } from './components/DemoBanner'
 import { EditorCanvas } from './components/EditorCanvas'
 import { Palette } from './components/Palette'
 import { PropertiesPanel } from './components/PropertiesPanel'
@@ -49,41 +51,54 @@ function useValidation() {
   }, [nodes, edges, setIssues])
 }
 
-const AUTOSAVE_KEY = 'opendss-designer.autosave'
+const AUTOSAVE_KEY = 'autosave'
 
 /** Warn before leaving with unsaved changes, and continuously autosave the
  *  circuit to browser storage so an accidental refresh restores it. */
 function useUnsavedWorkProtection() {
   // Restore an autosaved circuit once, on first mount of an empty editor.
   useEffect(() => {
-    const s = useCircuitStore.getState()
-    if (s.nodes.length > 0) return
-    try {
-      const raw = localStorage.getItem(AUTOSAVE_KEY)
-      if (!raw) return
-      const saved = JSON.parse(raw) as CircuitJSON
-      if (!saved.nodes?.length) return
-      s.loadCircuit(saved)
-      // Restored work still isn't in a project file.
-      useCircuitStore.setState({ dirty: true })
-      useResultsStore.getState().setFlash(
-        `Restored unsaved work ("${saved.name}") from your last session`, 'info')
-    } catch {
-      // corrupt autosave — ignore it
-    }
+    void (async () => {
+      const s = useCircuitStore.getState()
+      if (s.nodes.length > 0) return
+      try {
+        const saved = await loadDoc<unknown>(AUTOSAVE_KEY)
+        if (!saved) return
+        const { circuit, warning } = migrateCircuit(saved)
+        if (!circuit.nodes?.length) return
+        s.loadCircuit(circuit)
+        // Restored work still isn't in a project file.
+        useCircuitStore.setState({ dirty: true })
+        useResultsStore.getState().setFlash(
+          warning ??
+            `Restored unsaved work ("${circuit.name}") from your last session`,
+          'info')
+      } catch {
+        // corrupt autosave — ignore it
+      }
+    })()
   }, [])
 
   // Debounced autosave on every circuit change.
   useEffect(() => {
     let timer: number | undefined
+    // The document slices as of the last write. The subscription fires on
+    // every store change including selection and placement mode, so without
+    // this the whole document (loadshape point arrays included) is
+    // re-serialized on every click.
+    let last: unknown[] = []
     const unsub = useCircuitStore.subscribe((s) => {
       window.clearTimeout(timer)
       timer = window.setTimeout(() => {
-        try {
-          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(toCircuitJSON(s)))
-        } catch {
-          // storage full/unavailable — the beforeunload warning still protects
-        }
+        const slices = [s.nodes, s.edges, s.busNames, s.loadShapes, s.name]
+        if (slices.every((v, i) => v === last[i])) return
+        // Never overwrite the recovery copy with an empty document. `New`,
+        // `Open` and `Import` all clear the store, and the debounce used to
+        // then write that empty circuit over the previous session's only
+        // copy — destroying exactly the work this hook exists to protect.
+        if (s.nodes.length === 0) return
+        last = slices
+        void saveDoc(AUTOSAVE_KEY, toCircuitJSON(s))
       }, 800)
     })
     return () => {
@@ -115,6 +130,7 @@ export default function App() {
   return (
     <ReactFlowProvider>
       <div className="app">
+        <DemoBanner />
         <Toolbar />
         <TimeBar />
         <div className="main-row">

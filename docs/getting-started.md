@@ -17,8 +17,8 @@ flags: `--port 8721` (it picks the next free port if busy) and
 The app is local by default: the server binds to `127.0.0.1`, and your circuits
 never leave your machine. The only outbound requests are the ones you ask for
 explicitly — the NREL load-profile and NSRDB irradiance fetchers. If you are
-using a *hosted* demo instead, see [Security](security.md) for what that
-changes.
+using the [hosted instance](https://opendssdesigner.ryanmsparks.com) instead, see [Security](security.md) for
+what that changes.
 
 !!! tip "Start from a sample"
     Pick one from the **Samples** dropdown in the toolbar — *Demo substation*

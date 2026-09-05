@@ -1,0 +1,5 @@
+# The demo is a portfolio piece — indexing the app itself is welcome.
+# The API is not useful to a crawler and every POST costs solver time.
+User-agent: *
+Allow: /
+Disallow: /api/
