@@ -38,6 +38,17 @@ html, body, #root { margin: 0; height: 100%; }
 }
 .tb-group { display: flex; align-items: center; gap: 4px; }
 .tb-spacer { flex: 1; }
+.tb-plan { display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }
+.tb-plan-name { color: #667; }
+.tb-plan-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 10px;
+}
+.tb-plan-link:hover { background: #f0f0ec; }
 .tb-label { font-size: 12px; color: #667; }
 .toolbar button {
   border: 1px solid var(--border);

@@ -10,6 +10,7 @@ import {
   useCircuitStore,
 } from '../store/circuitStore'
 import { useResultsStore, type OverlayMode } from '../store/resultsStore'
+import { PlanCorner } from './PlanCorner'
 
 // A browser tab dies on JSON.parse of a few hundred MB long before the server
 // ever sees the request, so the first size check has to happen here.
@@ -302,6 +303,8 @@ export function Toolbar() {
           Import .dss
         </button>
       </div>
+      <span className="tb-spacer" />
+      <PlanCorner />
       <input
         ref={projectInput}
         type="file"

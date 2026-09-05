@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { api, type HealthInfo } from '../lib/api'
+import { useState } from 'react'
+import { useInstanceHealth } from '../lib/instance'
 import { describeInstance } from '../lib/plan'
 
 const DISMISS_KEY = 'opendss-designer.demoBannerDismissed'
@@ -27,14 +27,8 @@ function readDismissed(): string | null {
  * is handed and has no notion of accounts itself.
  */
 export function DemoBanner() {
-  const [health, setHealth] = useState<HealthInfo | null>(null)
+  const health = useInstanceHealth()
   const [dismissed, setDismissed] = useState<string | null>(readDismissed)
-
-  useEffect(() => {
-    // Best effort: if health is unreachable the app still works, so failing
-    // here must not block the editor from loading.
-    api.health().then(setHealth).catch(() => {})
-  }, [])
 
   const text = describeInstance(health)
   if (!text) return null

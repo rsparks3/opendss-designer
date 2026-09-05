@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { HealthInfo } from './api'
-import { describeInstance } from './plan'
+import { describeCorner, describeInstance } from './plan'
 
 const base: HealthInfo = { version: '0.4.0', opendssVersion: 'x', mode: 'local' }
 
@@ -46,5 +46,27 @@ describe('describeInstance', () => {
   it('shows a plan even when the process is not in demo mode', () => {
     const text = describeInstance({ ...base, plan: { name: 'Pro' } })
     expect(text?.title).toBe('Pro plan.')
+  })
+})
+
+describe('describeCorner', () => {
+  it('is absent locally and when the plan has no links', () => {
+    expect(describeCorner(null)).toBeNull()
+    expect(describeCorner(base)).toBeNull()
+    expect(describeCorner({ ...base, mode: 'demo', plan: { name: 'Guest', links: [] } })).toBeNull()
+  })
+
+  it('names the plan and keeps only safe links', () => {
+    const corner = describeCorner({
+      ...base,
+      plan: {
+        name: 'Guest',
+        links: [
+          { label: 'Sign in', url: '/auth/signin' },
+          { label: 'Bad', url: 'javascript:alert(1)' },
+        ],
+      },
+    })
+    expect(corner).toEqual({ label: 'Guest plan', links: [{ label: 'Sign in', url: '/auth/signin' }] })
   })
 })

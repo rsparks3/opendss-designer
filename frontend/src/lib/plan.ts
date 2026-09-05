@@ -41,6 +41,20 @@ export function describeInstance(health: HealthInfo | null): BannerText | null {
   return { title: 'Hosted instance.', body: `${sizeNote} ${storageNote}`, links: [] }
 }
 
+/**
+ * The permanent toolbar corner: the plan name plus its links ("Guest · Sign
+ * in", "Free plan · Account"). Unlike the banner it cannot be dismissed, so a
+ * visitor who closed the banner can still find the way in. `null` on a local
+ * install, or when there is nothing to link to.
+ */
+export function describeCorner(health: HealthInfo | null): { label: string; links: BannerLink[] } | null {
+  const plan = health?.plan
+  if (!plan) return null
+  const links = (plan.links ?? []).filter(isSafeLink)
+  if (links.length === 0) return null
+  return { label: `${plan.name} plan`, links }
+}
+
 /** Belt to the server's braces: only web links ever become an href. */
 function isSafeLink(link: BannerLink): boolean {
   return link.url.startsWith('https://') || link.url.startsWith('/')
