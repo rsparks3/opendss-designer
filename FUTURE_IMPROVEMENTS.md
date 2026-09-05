@@ -151,19 +151,22 @@ roadmap in `docs/hosted-service.md`. Takes priority over M6/M7; only editor
 bug fixes ship in between.
 
 The only work that lands in *this* repository is **Stage 1, "worker
-contract" (0.4.0)**, all opt-in and inert in local mode:
+contract" (0.4.0) — ✅ DONE (2026-09-05)**, all opt-in and inert in local mode:
 
-- Per-request limit overrides from a trusted header
-  (`OPENDSS_DESIGNER_TRUSTED_LIMITS_HEADER`), overlaying `Settings` the way
-  `limit_issues(circuit, cfg)` already allows; the header can only tighten a
-  worker's own env limits, never loosen them
-- Engine-time reporting: `X-Engine-Seconds` on engine-backed responses,
-  `engineSeconds` in the final time-series SSE event
-- A generic `plan` block (`name`, `message`, `links`) echoed by `/api/health`
-  and rendered by `DemoBanner`, so the SPA shows plan/usage/upgrade strings
-  without knowing what an account is
-- Limit messages name the plan instead of "the public demo"
-- Request-id passthrough in JSON logs
+- ~~Per-request limit overrides from a trusted header~~
+  (`OPENDSS_DESIGNER_TRUSTED_LIMITS_HEADER`): a `contextvars` overlay
+  (`context.current_settings()`) that `on_engine_thread` and the time-series
+  worker thread carry across their thread hops; `Settings.tightened()` can
+  only lower a worker's own env limits, never raise them
+- ~~Engine-time reporting~~: `X-Engine-Seconds` on engine-backed responses,
+  `engineSeconds` in the final time-series SSE event, measured on the engine
+  thread
+- ~~A generic `plan` block~~ (`name`, `message`, `links`) echoed by
+  `/api/health` and rendered by `DemoBanner` via `lib/plan.ts`
+- ~~Limit messages name the plan~~ instead of "the public demo"
+- ~~Request-id passthrough~~ echoed and attached to JSON logs
+- Stage 0 (ship the demo, docs to `opendssdesigner-docs.ryanmsparks.com`)
+  ✅ DONE (2026-09-05)
 
 Accounts, plans, the solver queue, metering and Stripe live in a new AGPL
 repository, `opendss-designer-cloud`; deployment stays in

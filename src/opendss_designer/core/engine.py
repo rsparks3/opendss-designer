@@ -7,6 +7,7 @@ between requests, so the diagram can never drift from the model.
 """
 from __future__ import annotations
 
+import contextvars
 import ctypes
 import functools
 import gc
@@ -15,6 +16,7 @@ import math
 import sys
 import tempfile
 import threading
+import time
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -22,6 +24,7 @@ from typing import Any, TypeVar
 
 import opendssdirect as dss
 
+from .. import context
 from ..settings import settings
 from . import cache
 from .compiler import CompileResult, compile_circuit
@@ -101,19 +104,36 @@ def on_engine_thread(fn: Callable[..., _T]) -> Callable[..., _T]:
     worker — a nested submit would deadlock)."""
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> _T:
+        # The call runs inside a *copy* of the caller's context so the
+        # per-request settings overlay and request id are visible on the
+        # engine thread; the copy is what makes concurrent callers safe. The
+        # elapsed time is charged to the caller's request: this is engine
+        # time, not queue time, which is the number a metering proxy wants.
+        ctx = contextvars.copy_context()
+        req = context.current_context()
+        cfg = context.current_settings()
+
+        def timed() -> _T:
+            started = time.perf_counter()
+            try:
+                return fn(*args, **kwargs)
+            finally:
+                if req is not None:
+                    req.add_engine_seconds(time.perf_counter() - started)
+
         if settings.max_queued_engine_calls is None:
-            return _dss_executor.submit(fn, *args, **kwargs).result()
+            return _dss_executor.submit(ctx.run, timed).result()
         if not _pending.acquire(blocking=False):
             raise EngineBusy(
                 "The solver is busy with other visitors right now — "
                 "try again in a moment.")
-        future = _dss_executor.submit(fn, *args, **kwargs)
+        future = _dss_executor.submit(ctx.run, timed)
         # Released from the callback, not a `finally`: if `.result()` times out
         # the engine thread is still running that work, so releasing here would
         # over-admit. A timeout frees the HTTP worker, never the engine.
         future.add_done_callback(lambda _f: _pending.release())
         try:
-            return future.result(timeout=settings.engine_result_timeout_s)
+            return future.result(timeout=cfg.engine_result_timeout_s)
         except TimeoutError as exc:
             # The wait expired, not the work: the engine thread is still
             # running this call (which is why the semaphore is released from
@@ -121,7 +141,7 @@ def on_engine_thread(fn: Callable[..., _T]) -> Callable[..., _T]:
             # situation as a full queue, so report it the same way rather than
             # as a 500 -- under load it is the likeliest error a visitor sees.
             raise EngineBusy(
-                "The solver is taking longer than this demo allows — "
+                f"The solver is taking longer than {cfg.plan_label} allows — "
                 "try a smaller circuit, or try again in a moment.") from exc
     return wrapper
 

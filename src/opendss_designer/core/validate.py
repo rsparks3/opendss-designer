@@ -1,7 +1,8 @@
 """Structural validation of a Circuit, shared by /api/validate and the UI."""
 from __future__ import annotations
 
-from ..settings import Settings, settings
+from .. import context
+from ..settings import Settings
 from .connectivity import synthesize, terminal_key
 from .model import NODE_TERMINALS, Circuit, Issue
 
@@ -15,8 +16,11 @@ def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
     while the user is drawing rather than only when they hit Solve.
 
     Returns nothing at all in local mode, so a pip-installed user is unaffected.
+    Behind a gateway the per-request overlay (``context.current_settings``)
+    is what applies, and the messages name the caller's plan.
     """
-    cfg = cfg or settings
+    cfg = cfg or context.current_settings()
+    who = cfg.plan_label
     issues: list[Issue] = []
 
     def over(limit: int | None, actual: int) -> bool:
@@ -25,19 +29,19 @@ def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
     if over(cfg.max_nodes, len(circuit.nodes)):
         issues.append(Issue(
             severity="error", code="limit-nodes",
-            message=f"This circuit has {len(circuit.nodes)} elements; the public "
-                    f"demo is limited to {cfg.max_nodes}. Run OpenDSS Designer "
+            message=f"This circuit has {len(circuit.nodes)} elements; {who} "
+                    f"is limited to {cfg.max_nodes}. Run OpenDSS Designer "
                     "locally (pip install opendss-designer) for full-size models."))
     if over(cfg.max_edges, len(circuit.edges)):
         issues.append(Issue(
             severity="error", code="limit-edges",
-            message=f"This circuit has {len(circuit.edges)} connections; the "
-                    f"public demo is limited to {cfg.max_edges}."))
+            message=f"This circuit has {len(circuit.edges)} connections; "
+                    f"{who} is limited to {cfg.max_edges}."))
     if over(cfg.max_shapes, len(circuit.loadShapes)):
         issues.append(Issue(
             severity="error", code="limit-shapes",
-            message=f"This circuit defines {len(circuit.loadShapes)} shapes; the "
-                    f"public demo is limited to {cfg.max_shapes}."))
+            message=f"This circuit defines {len(circuit.loadShapes)} shapes; "
+                    f"{who} is limited to {cfg.max_shapes}."))
 
     total_points = 0
     for key, spec in circuit.loadShapes.items():
@@ -45,14 +49,14 @@ def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
         if over(cfg.max_shape_points, len(spec.points)):
             issues.append(Issue(
                 severity="error", code="limit-shape-points",
-                message=f"Loadshape '{key}' has {len(spec.points)} points; the "
-                        f"public demo is limited to {cfg.max_shape_points} "
+                message=f"Loadshape '{key}' has {len(spec.points)} points; "
+                        f"{who} is limited to {cfg.max_shape_points} "
                         "(a 15-minute year)."))
     if over(cfg.max_total_shape_points, total_points):
         issues.append(Issue(
             severity="error", code="limit-total-shape-points",
             message=f"The shapes in this circuit total {total_points} points; "
-                    f"the public demo is limited to {cfg.max_total_shape_points}."))
+                    f"{who} is limited to {cfg.max_total_shape_points}."))
     return issues
 
 

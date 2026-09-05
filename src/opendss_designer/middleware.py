@@ -14,6 +14,9 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from . import context
+from .settings import BadLimitsHeader, settings
+
 Scope = dict[str, Any]
 Receive = Callable[[], Awaitable[dict]]
 Send = Callable[[dict], Awaitable[None]]
@@ -138,6 +141,72 @@ class SecurityHeadersMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_with_headers)
+
+
+class RequestContextMiddleware:
+    """Bind the per-request context: effective limits, request id, engine time.
+
+    Limits: when ``OPENDSS_DESIGNER_TRUSTED_LIMITS_HEADER`` names a header and
+    the request carries it, its JSON *tightens* the process settings for this
+    request only (see ``Settings.tightened``). The gateway that sets it is the
+    only thing that should be able to reach the worker at all; with the
+    variable unset the header is ignored entirely, which is the local default.
+
+    Request id: an incoming ``X-Request-ID`` (if it looks like one) is echoed
+    back and attached to every log line, so a proxy log and a worker log can
+    be joined.
+
+    Engine time: ``X-Engine-Seconds`` on responses whose handler used the
+    engine -- how much of the single engine thread this call consumed, which
+    is what a metering proxy needs. A streamed time-series run reports it in
+    its final event instead, because its headers go out before the run.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = {k.lower(): v for k, v in (scope.get("headers") or [])}
+        ctx = context.RequestContext(
+            context.clean_request_id(_decode(headers.get(b"x-request-id"))))
+
+        cfg = None
+        name = settings.trusted_limits_header
+        raw = headers.get(name.encode("latin-1")) if name else None
+        if raw is not None:
+            try:
+                cfg = settings.tightened(json.loads(_decode(raw) or ""))
+            except (ValueError, BadLimitsHeader) as exc:
+                # A malformed header is a proxy bug: fail loudly, not open.
+                await _reject(send, 400, f"Invalid limits header: {exc}")
+                return
+
+        async def send_with_context(message: dict) -> None:
+            if message["type"] == "http.response.start":
+                message.setdefault("headers", [])
+                if ctx.engine_seconds > 0:
+                    message["headers"].append(
+                        (b"x-engine-seconds", f"{ctx.engine_seconds:.3f}".encode()))
+                if ctx.request_id:
+                    message["headers"].append(
+                        (b"x-request-id", ctx.request_id.encode("latin-1")))
+            await send(message)
+
+        tokens = context.bind(cfg, ctx)
+        try:
+            await self.app(scope, receive, send_with_context)
+        finally:
+            context.unbind(tokens)
+
+
+def _decode(value: bytes | None) -> str | None:
+    if value is None:
+        return None
+    return value.decode("latin-1")
 
 
 class ActivityMiddleware:

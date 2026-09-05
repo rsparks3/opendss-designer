@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react'
 import { api, type HealthInfo } from '../lib/api'
+import { describeInstance } from '../lib/plan'
 
 const DISMISS_KEY = 'opendss-designer.demoBannerDismissed'
 
 /**
- * Shown only on a hosted demo instance (`/api/health` reports mode "demo").
- * A local `pip install` renders nothing at all, which keeps demo mode's rule
- * that it only ever adds constraints and never changes the desktop experience.
+ * Shown only on a hosted instance: `/api/health` reports mode "demo", or a
+ * gateway in front has described the caller's plan. A local `pip install`
+ * renders nothing at all, which keeps demo mode's rule that it only ever adds
+ * constraints and never changes the desktop experience.
+ *
+ * The wording comes from `describeInstance`: the app renders plan strings it
+ * is handed and has no notion of accounts itself.
  */
 export function DemoBanner() {
   const [health, setHealth] = useState<HealthInfo | null>(null)
@@ -24,9 +29,9 @@ export function DemoBanner() {
     api.health().then(setHealth).catch(() => {})
   }, [])
 
-  if (!health || health.mode !== 'demo' || dismissed) return null
+  const text = describeInstance(health)
+  if (!text || dismissed) return null
 
-  const maxNodes = health.limits?.maxNodes
   const onDismiss = () => {
     setDismissed(true)
     try {
@@ -39,13 +44,14 @@ export function DemoBanner() {
   return (
     <div className="demo-banner" role="status">
       <span>
-        <strong>Hosted instance.</strong>{' '}
-        {maxNodes
-          ? `Circuits are limited to ${maxNodes.toLocaleString()} elements and long time-series runs are capped. `
-          : 'This instance runs with size and time limits. '}
-        Nothing you draw is saved on the server — it stays in this browser.
+        <strong>{text.title}</strong> {text.body}
       </span>
       <span className="demo-banner-links">
+        {text.links.map((link) => (
+          <a key={link.url} href={link.url}>
+            {link.label}
+          </a>
+        ))}
         <a href="https://opendssdesigner-docs.ryanmsparks.com" target="_blank" rel="noreferrer">
           Docs
         </a>

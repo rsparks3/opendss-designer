@@ -1,6 +1,7 @@
 """REST API for the designer frontend."""
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 import queue
@@ -11,7 +12,7 @@ from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 
-from .. import __version__
+from .. import __version__, context
 from ..core import engine, importer, irradiance, linecodes, nrel, samples
 from ..core.compiler import export_dss
 from ..core.model import Circuit
@@ -37,17 +38,24 @@ def health(request: Request) -> dict:
     Deliberately does not touch the engine (engine.opendss_version is cached),
     so it still answers while a long solve is running.
     """
+    cfg = context.current_settings()
     out: dict = {"version": __version__,
                  "opendssVersion": engine.opendss_version(),
-                 "mode": settings.mode}
-    if settings.demo:
+                 "mode": cfg.mode}
+    if cfg.demo or cfg.plan is not None:
+        # The effective limits for *this caller*: behind a gateway that is
+        # the per-request overlay, so the banner describes the right plan.
         out["limits"] = {
-            "maxNodes": settings.max_nodes,
-            "maxEdges": settings.max_edges,
-            "maxShapes": settings.max_shapes,
-            "maxShapePoints": settings.max_shape_points,
-            "maxBodyBytes": settings.max_body_bytes,
+            "maxNodes": cfg.max_nodes,
+            "maxEdges": cfg.max_edges,
+            "maxShapes": cfg.max_shapes,
+            "maxShapePoints": cfg.max_shape_points,
+            "maxBodyBytes": cfg.max_body_bytes,
+            "maxTimeseriesCost": cfg.max_timeseries_cost,
         }
+    if cfg.plan is not None:
+        out["plan"] = cfg.plan.as_dict()
+    if cfg.demo:
         activity = getattr(request.app.state, "activity", None)
         if activity is not None:
             # So an external reaper can make the same call the in-process
@@ -126,18 +134,19 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
     the global engine lock for the whole run) and a queue decouples it from
     the response generator; a client disconnect closes the generator, whose
     `finally` sets the cancel event so the step loop exits within one step."""
+    cfg = context.current_settings()
     cost = engine.estimate_timeseries_cost(req.circuit, req.mode, req.stepMin)
-    if settings.max_timeseries_cost and cost > settings.max_timeseries_cost:
+    if cfg.max_timeseries_cost and cost > cfg.max_timeseries_cost:
         raise HTTPException(
             status_code=413,
-            detail=f"This run is too large for the public demo "
+            detail=f"This run is too large for {cfg.plan_label} "
                    f"({req.mode} at {req.stepMin} min on a circuit this size). "
                    "Try a daily run, an hourly step, or a smaller circuit — "
                    "or run OpenDSS Designer locally for the full model.")
     if not _timeseries_slots.acquire(blocking=False):
         raise HTTPException(
             status_code=503, headers={"Retry-After": "10"},
-            detail="Another time-series run is already using the demo solver. "
+            detail="Another time-series run is already using the solver. "
                    "Try again in a moment.")
 
     # Bounded: a backgrounded or throttled browser tab stops reading, and an
@@ -145,10 +154,10 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
     q: queue.Queue = queue.Queue(maxsize=256)
     cancel = threading.Event()
     watchdog: threading.Timer | None = None
-    if settings.timeseries_timeout_s:
+    if cfg.timeseries_timeout_s:
         # The step loop already checks `cancel` every step, so a wall-clock
         # budget is just a timer pointed at the same flag.
-        watchdog = threading.Timer(settings.timeseries_timeout_s, cancel.set)
+        watchdog = threading.Timer(cfg.timeseries_timeout_s, cancel.set)
         watchdog.daemon = True
         watchdog.start()
 
@@ -158,6 +167,14 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
         except queue.Full:
             cancel.set()
 
+    req_ctx = context.current_context()
+
+    def used() -> dict:
+        # The response headers left before the run started, so the engine
+        # time a metering proxy needs rides on the final event instead.
+        return ({"engineSeconds": round(req_ctx.engine_seconds, 3)}
+                if req_ctx is not None else {})
+
     def worker() -> None:
         try:
             result = engine.solve_timeseries(
@@ -165,12 +182,12 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
                 progress_cb=lambda s, t: put(
                     {"type": "progress", "step": s, "total": t}),
                 cancel=cancel)
-            put({"type": "result", "result": result})
+            put({"type": "result", "result": result, **used()})
         except engine.EngineBusy as exc:
-            put({"type": "error", "message": str(exc)})
+            put({"type": "error", "message": str(exc), **used()})
         except (ValueError, importer.ImportFailure) as exc:
             # Known bad input: the message is written for the user.
-            put({"type": "error", "message": str(exc)})
+            put({"type": "error", "message": str(exc), **used()})
         except Exception:
             # A bug, not bad input. `str(exc)` here can carry filesystem paths
             # and library internals, so it stays server-side; the traceback
@@ -178,7 +195,7 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
             logger.exception("Time-series run failed")
             put({"type": "error",
                  "message": "The time-series run failed unexpectedly. "
-                            "Check the server log for details."})
+                            "Check the server log for details.", **used()})
         finally:
             # Released here, not in the response generator: the worker always
             # runs to completion, but a client that disconnects before reading
@@ -193,7 +210,11 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
             except queue.Full:
                 pass
 
-    threading.Thread(target=worker, daemon=True).start()
+    # A copy of the request context, so the limits overlay and request id
+    # follow the run onto its own thread (and from there onto the engine
+    # thread, which copies again).
+    threading.Thread(target=contextvars.copy_context().run, args=(worker,),
+                     daemon=True).start()
 
     def gen():
         # Flush a comment immediately, then keep the stream warm. Nothing else
@@ -301,19 +322,20 @@ class ImportRequest(BaseModel):
 
 
 def _check_import_size(files: list[DssFile]) -> None:
-    if settings.max_import_files and len(files) > settings.max_import_files:
+    cfg = context.current_settings()
+    if cfg.max_import_files and len(files) > cfg.max_import_files:
         raise HTTPException(
             status_code=413,
-            detail=f"Select at most {settings.max_import_files} files "
+            detail=f"Select at most {cfg.max_import_files} files "
                    f"({len(files)} given).")
-    if settings.max_import_bytes:
+    if cfg.max_import_bytes:
         for f in files:
-            if len(f.text.encode("utf-8", "ignore")) > settings.max_import_bytes:
-                mb = settings.max_import_bytes // (1024 * 1024)
+            if len(f.text.encode("utf-8", "ignore")) > cfg.max_import_bytes:
+                mb = cfg.max_import_bytes // (1024 * 1024)
                 raise HTTPException(
                     status_code=413,
                     detail=f"'{f.name}' is larger than the {mb} MB per-file "
-                           "limit for the public demo. Run OpenDSS Designer "
+                           f"limit for {cfg.plan_label}. Run OpenDSS Designer "
                            "locally for full-size feeders.")
 
 

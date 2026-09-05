@@ -107,6 +107,78 @@ Two consequences worth knowing: one visitor's NSRDB API key fetches data that
 later visitors read for free, and concurrent containers write to it, which is
 why writes go through a temp file and a rename.
 
+## Running behind a gateway: the worker contract
+
+A hosted service with accounts, plans and metering is a *separate* program
+(see [the hosted service plan](hosted-service.md)). What this app offers such
+a gateway is three generic reverse-proxy features, all off unless configured,
+so that the gateway can run **unmodified release images** of this app as
+workers.
+
+### Per-request limits from a trusted header
+
+```bash
+OPENDSS_DESIGNER_TRUSTED_LIMITS_HEADER=X-OpenDSS-Limits
+```
+
+With that set, a request carrying the named header has its JSON applied on
+top of the process settings **for that request only**. Keys mirror
+`/api/health`:
+
+```json
+{"maxNodes": 500, "maxEdges": 1000, "maxShapes": 8, "maxShapePoints": 8760,
+ "maxTotalShapePoints": 50000, "maxImportFiles": 5, "maxImportBytes": 262144,
+ "maxTimeseriesCost": 250000, "engineResultTimeoutS": 30,
+ "timeseriesTimeoutS": 30,
+ "plan": {"name": "Free", "message": "12 of 20 min used this month.",
+          "links": [{"label": "Upgrade", "url": "/account"}]}}
+```
+
+Two rules make this safe to expose to a proxy you wrote yourself:
+
+- **It only tightens.** Each value is `min(process value, header value)`;
+  a value of zero or below is ignored rather than read as "no limit". The
+  environment the worker started with is the ceiling the box was sized for,
+  and nothing a request says can raise it.
+- **Unset means ignored.** Without the variable the header is not read at
+  all, which is the local default. Never expose a worker directly to
+  browsers with the variable set: whoever can reach it can *lower* their own
+  limits, which is harmless, and can label themselves any plan name, which is
+  merely silly, but the intent is that only the gateway talks to workers.
+
+A malformed header returns **400**, not a silently ignored header: it is a
+bug in the proxy and should be loud.
+
+Not overridable per request, because they are process-wide pools or fixed at
+startup: the engine queue depth, concurrent time-series slots, fetch rate
+buckets, cache sizes, the working directory, and `MAX_BODY_BYTES` (enforced
+before routing).
+
+### Engine time
+
+Responses whose handler used the OpenDSS engine carry
+`X-Engine-Seconds: 0.137`: the time the single engine thread spent on this
+call, excluding any wait in the queue. A time-series stream cannot carry it in
+headers (they are sent before the run), so its final event does:
+`{"type": "result", "result": {...}, "engineSeconds": 6.31}`, likewise on
+`error` events and on cancelled runs. This is the number to meter.
+
+### Plan display
+
+If the header includes `plan`, `/api/health` echoes it as `plan` and reports
+the *effective* limits for that caller, and the banner in the UI renders the
+plan name, the message, and the links (only `https://` URLs and site-relative
+paths are accepted). Limit messages in the Problems list say "the Free plan
+is limited to 500" instead of "the public demo". The app never decides who is
+on which plan; it renders what it is told.
+
+### Request ids
+
+An incoming `X-Request-ID` matching `[A-Za-z0-9._:-]{1,64}` is echoed on the
+response and included as `requestId` in every JSON log line the request
+produces, including lines written from the engine thread and the time-series
+worker thread.
+
 ## What this app deliberately does not do
 
 Adding any of this would tax the local tool that is the actual product:

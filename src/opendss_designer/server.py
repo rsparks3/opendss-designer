@@ -13,7 +13,12 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .api.routes import router
-from .middleware import ActivityMiddleware, BodySizeLimitMiddleware, SecurityHeadersMiddleware
+from .middleware import (
+    ActivityMiddleware,
+    BodySizeLimitMiddleware,
+    RequestContextMiddleware,
+    SecurityHeadersMiddleware,
+)
 from .settings import Settings, settings
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -101,6 +106,9 @@ def create_app(config: Settings | None = None) -> FastAPI:
         app.add_middleware(_track_activity, app_state=app.state)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts())
     app.add_middleware(SecurityHeadersMiddleware)
+    # Always on: in a local install it only echoes X-Request-ID if a client
+    # sends one; the limits header is ignored unless the env var names it.
+    app.add_middleware(RequestContextMiddleware)
     if cfg.max_body_bytes:
         app.add_middleware(BodySizeLimitMiddleware, max_bytes=cfg.max_body_bytes)
     app.include_router(router)

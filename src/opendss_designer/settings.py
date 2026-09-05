@@ -15,6 +15,7 @@ requirements and that leanness is worth keeping for a scientific tool.
 """
 from __future__ import annotations
 
+import dataclasses
 import os
 import tempfile
 from dataclasses import dataclass, fields
@@ -70,9 +71,79 @@ def _env_num(env: dict, key: str, default, cast):
 
 
 @dataclass(frozen=True)
+class PlanInfo:
+    """What a trusted proxy says about the caller's plan, for display only.
+
+    The app never decides who is on which plan; it renders whatever strings it
+    is handed and names the plan in its limit messages.
+    """
+    name: str
+    message: str | None = None
+    links: tuple[tuple[str, str], ...] = ()  # (label, url)
+
+    @classmethod
+    def from_payload(cls, raw: object) -> PlanInfo:
+        if not isinstance(raw, dict) or not isinstance(raw.get("name"), str):
+            raise BadLimitsHeader("plan must be an object with a string name")
+        name = raw["name"].strip()[:40]
+        if not name:
+            raise BadLimitsHeader("plan.name is empty")
+        message = raw.get("message")
+        if message is not None:
+            if not isinstance(message, str):
+                raise BadLimitsHeader("plan.message must be a string")
+            message = message.strip()[:200] or None
+        links: list[tuple[str, str]] = []
+        for link in raw.get("links") or ():
+            if (not isinstance(link, dict) or not isinstance(link.get("label"), str)
+                    or not isinstance(link.get("url"), str)):
+                raise BadLimitsHeader("plan.links entries need label and url")
+            url = link["url"].strip()
+            # Rendered as an <a href>; only navigable web links are allowed.
+            if not (url.startswith("https://") or url.startswith("/")):
+                raise BadLimitsHeader("plan link urls must be https:// or a path")
+            links.append((link["label"].strip()[:40], url[:500]))
+        return cls(name=name, message=message, links=tuple(links[:4]))
+
+    def as_dict(self) -> dict:
+        return {"name": self.name, "message": self.message,
+                "links": [{"label": l, "url": u} for l, u in self.links]}
+
+
+class BadLimitsHeader(ValueError):
+    """The trusted limits header was present but malformed. That is a bug in
+    the proxy, so it is reported loudly rather than ignored."""
+
+
+# The limits a trusted proxy may *tighten* per request (header key -> field).
+# Everything not listed is either a process-wide pool (queue depth, the
+# time-series slots, the fetch buckets, the caches) or fixed at startup
+# (workdir, body size, which is enforced before routing).
+REQUEST_LIMITS: dict[str, str] = {
+    "maxNodes": "max_nodes",
+    "maxEdges": "max_edges",
+    "maxShapes": "max_shapes",
+    "maxShapePoints": "max_shape_points",
+    "maxTotalShapePoints": "max_total_shape_points",
+    "maxImportFiles": "max_import_files",
+    "maxImportBytes": "max_import_bytes",
+    "maxTimeseriesCost": "max_timeseries_cost",
+    "engineResultTimeoutS": "engine_result_timeout_s",
+    "timeseriesTimeoutS": "timeseries_timeout_s",
+}
+
+
+@dataclass(frozen=True)
 class Settings:
     mode: str = LOCAL
     host: str = "127.0.0.1"
+
+    # Name of a request header carrying per-request limit overrides from a
+    # trusted reverse proxy. Unset (the default) means no header is trusted,
+    # so a local install cannot be talked into anything by a browser.
+    trusted_limits_header: str | None = None
+    # Present only on a per-request overlay built from that header.
+    plan: PlanInfo | None = None
 
     # None everywhere means "no limit"; that is the local default.
     max_body_bytes: int | None = None
@@ -104,6 +175,40 @@ class Settings:
         return self.mode == DEMO
 
     @property
+    def plan_label(self) -> str:
+        """How limit messages refer to this configuration."""
+        return f"the {self.plan.name} plan" if self.plan else "the public demo"
+
+    def tightened(self, payload: dict) -> Settings:
+        """A copy with the limits in `payload` applied, never loosening any.
+
+        The process environment is the ceiling: it is what the operator sized
+        the box for. A proxy may only ask for less, so a bug in the proxy
+        cannot grant more than the worker was configured to allow. Values of
+        zero or below mean "no opinion" (the env-var convention of 0 meaning
+        "disable this cap" is deliberately *not* honoured here, because that
+        would be loosening).
+        """
+        if not isinstance(payload, dict):
+            raise BadLimitsHeader("limits header must be a JSON object")
+        values: dict[str, object] = {}
+        for key, field in REQUEST_LIMITS.items():
+            raw = payload.get(key)
+            if raw is None:
+                continue
+            if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+                raise BadLimitsHeader(f"{key} must be a number")
+            cast = float if field.endswith("_s") else int
+            value = cast(raw)
+            if value <= 0:
+                continue
+            current = getattr(self, field)
+            values[field] = value if current is None else min(current, value)
+        if payload.get("plan") is not None:
+            values["plan"] = PlanInfo.from_payload(payload["plan"])
+        return dataclasses.replace(self, **values)
+
+    @property
     def effective_cache_dir(self) -> Path:
         return self.cache_dir or self.workdir
 
@@ -125,6 +230,9 @@ class Settings:
                 env, f"OPENDSS_DESIGNER_{name.upper()}", default, cast)
 
         values["host"] = (env.get("OPENDSS_DESIGNER_HOST") or "127.0.0.1").strip()
+
+        header = env.get("OPENDSS_DESIGNER_TRUSTED_LIMITS_HEADER", "").strip()
+        values["trusted_limits_header"] = header.lower() or None
 
         workdir = env.get("OPENDSS_DESIGNER_WORKDIR", "").strip()
         if workdir:

@@ -3,6 +3,40 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.4.0 — 2026-09-05
+
+Nothing here changes a local install. This release is the "worker contract":
+the three generic reverse-proxy features a hosted gateway needs from the app,
+each inert unless an operator turns it on. The app still has no user concept;
+see [docs/hosted-service.md](docs/hosted-service.md) for the service it
+enables and [docs/deployment.md](docs/deployment.md) for the contract.
+
+### Added
+
+- **Per-request limit tightening from a trusted header.** When
+  `OPENDSS_DESIGNER_TRUSTED_LIMITS_HEADER` names a header, the JSON in it
+  lowers the size, cost and timeout limits for that request only. It can
+  never raise one: the process environment is the ceiling the box was sized
+  for, so a proxy bug cannot grant more than the operator allowed. Unset by
+  default, so a browser cannot talk a local install into anything.
+- **Engine-time reporting.** `X-Engine-Seconds` on every response whose
+  handler used the OpenDSS engine, and `engineSeconds` in the final event of
+  a time-series stream. Measured on the engine thread, so it is engine time,
+  not queue time.
+- **Plan description passthrough.** The trusted header may carry a `plan`
+  block (name, message, links). `/api/health` echoes it and the hosted-instance
+  banner renders it, so a gateway can show "Free plan · 12 of 20 min used ·
+  Upgrade" without the app knowing what an account is.
+- **`X-Request-ID` passthrough.** A well-formed incoming id is echoed on the
+  response and attached to every JSON log line, including lines written from
+  the engine thread, so a proxy log and a worker log can be joined.
+
+### Changed
+
+- Limit messages name the caller's plan ("the Free plan is limited to 500")
+  when a gateway supplies one, and keep saying "the public demo" otherwise.
+- `/api/health` `limits` now includes `maxTimeseriesCost`.
+
 ## 0.3.0 — 2026-09-04
 
 ### Fixed

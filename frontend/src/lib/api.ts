@@ -93,6 +93,12 @@ export interface SampleMeta {
   edges: number
 }
 
+export interface PlanInfo {
+  name: string
+  message?: string | null
+  links?: { label: string; url: string }[]
+}
+
 export interface HealthInfo {
   version: string
   opendssVersion: string
@@ -103,7 +109,10 @@ export interface HealthInfo {
     maxShapes: number | null
     maxShapePoints: number | null
     maxBodyBytes: number | null
+    maxTimeseriesCost?: number | null
   }
+  /** Present only behind a gateway that describes the caller's plan. */
+  plan?: PlanInfo
   idleSeconds?: number
 }
 

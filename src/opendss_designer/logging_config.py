@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 
+from . import context
 from .settings import Settings
 
 
@@ -23,6 +24,9 @@ class JsonFormatter(logging.Formatter):
             "message": record.getMessage(),
             "time": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
         }
+        request_id = context.current_request_id()
+        if request_id:
+            payload["requestId"] = request_id
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)
         return json.dumps(payload)
