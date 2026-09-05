@@ -36,7 +36,9 @@ export function BreakerNode({ id, data }: NodeProps<AppNode>) {
       </SymbolSvg>
       <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
       <Terminal nodeId={id} id="t2" type="source" position={rotatePosition(Position.Bottom, rot)} className="term" />
-      <NodeLabel>
+      {/* Upright, the line leaves the bottom, so the label goes beside; turned
+          on its side, the line leaves left/right and below is clear again. */}
+      <NodeLabel beside={rot % 180 === 0}>
         {String(data.params.name ?? '')}
         <div className="sub-label">{closed ? 'closed' : 'OPEN'}</div>
       </NodeLabel>

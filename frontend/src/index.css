@@ -143,6 +143,14 @@ html, body, #root { margin: 0; height: 100%; }
 .symbol-node.issue-error { outline: 2px solid #d32f2f; outline-offset: 3px; border-radius: 4px; }
 .symbol-node.issue-warning { outline: 2px dashed #ed6c02; outline-offset: 3px; border-radius: 4px; }
 
+.node-label.beside {
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+  margin-top: 0;
+  margin-left: 6px;
+  text-align: left;
+}
 .node-label {
   position: absolute;
   top: 100%;
@@ -195,8 +203,13 @@ html, body, #root { margin: 0; height: 100%; }
   border-radius: 50%;
 }
 .term:hover { background: var(--accent) !important; }
-.busbar-term { opacity: 0.45; }
-.busbar-term:hover { opacity: 1; }
+/* Busbar attach points stay invisible until they matter: hovering the bar,
+   dragging a new wire, or moving an existing wire's end (.routing is set by
+   BusbarNode). They remain hit-testable throughout, so a drop still lands. */
+.busbar-term { opacity: 0; transition: opacity 0.12s; }
+.busbar-node:hover .busbar-term,
+.busbar-node.routing .busbar-term { opacity: 0.55; }
+.busbar-node .busbar-term:hover { opacity: 1; }
 
 /* A terminal holding exactly one wire: dragging it moves that wire's end
    (store/grabStore.ts) rather than starting a second connection. ReactFlow

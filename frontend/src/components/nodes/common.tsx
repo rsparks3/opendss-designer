@@ -134,8 +134,13 @@ export function useNodeIssueClass(id: string): string {
   return ''
 }
 
-export function NodeLabel({ children }: { children: ReactNode }) {
-  return <div className="node-label">{children}</div>
+/**
+ * A symbol's name. `beside` puts it to the right of the symbol instead of
+ * under it: series devices (breakers, transformers) have a line leaving the
+ * bottom, and a label there always sat on top of that line.
+ */
+export function NodeLabel({ children, beside = false }: { children: ReactNode; beside?: boolean }) {
+  return <div className={`node-label${beside ? ' beside' : ''}`}>{children}</div>
 }
 
 export function Badge({ color, children }: { color: string; children: ReactNode }) {

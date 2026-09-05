@@ -3,6 +3,17 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.5.1 — 2026-09-05
+
+### Changed
+
+- **Busbar attach points are hidden until they matter.** The row of circles
+  along a busbar now appears only while you hover the bar or are routing a
+  wire (dragging a new one, or moving an end), and fades out otherwise.
+- **Breaker and transformer names sit beside the symbol** instead of under
+  it, where they always crossed the line leaving the device. When the symbol
+  is rotated on its side the label returns to below, which is clear again.
+
 ## 0.5.0 — 2026-09-05
 
 ### Added

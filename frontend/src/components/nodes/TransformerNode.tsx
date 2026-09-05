@@ -29,7 +29,7 @@ export function TransformerNode({ id, data }: NodeProps<AppNode>) {
       </SymbolSvg>
       <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
       <Terminal nodeId={id} id="t2" type="source" position={rotatePosition(Position.Bottom, rot)} className="term" />
-      <NodeLabel>
+      <NodeLabel beside={rot % 180 === 0}>
         {String(data.params.name ?? '')}
         {kvText && <div className="sub-label">{kvText}</div>}
       </NodeLabel>

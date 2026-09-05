@@ -1,11 +1,13 @@
 import {
   NodeResizer,
   Position,
+  useConnection,
   useUpdateNodeInternals,
   type NodeProps,
 } from '@xyflow/react'
 import { useEffect } from 'react'
 import { beginGesture, busbarHandleCount, endGesture, useCircuitStore, type AppNode } from '../../store/circuitStore'
+import { useGrabStore } from '../../store/grabStore'
 import { SYMBOL_PITCH } from '../../lib/defaults'
 import { FaultBadge, NodeLabel, Terminal, useNodeIssueClass, VoltageBadge } from './common'
 
@@ -17,13 +19,22 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
   const updateNodeInternals = useUpdateNodeInternals()
   const w = width ?? 240
   const count = busbarHandleCount(w)
+  // The attach points are only useful while a wire is looking for a home:
+  // a new connection being dragged, or an existing end being moved. The rest
+  // of the time they are clutter, so they fade in on hover and while routing.
+  const connecting = useConnection((c) => c.inProgress)
+  const grabbing = useGrabStore((s) => s.edgeId !== null)
+  const routing = connecting || grabbing
 
   useEffect(() => {
     updateNodeInternals(id)
   }, [w, count, id, updateNodeInternals])
 
   return (
-    <div className={`symbol-node busbar-node${issueClass}`} style={{ width: w, height: BAR_H }}>
+    <div
+      className={`symbol-node busbar-node${issueClass}${routing ? ' routing' : ''}`}
+      style={{ width: w, height: BAR_H }}
+    >
       <NodeResizer
         isVisible={!!selected}
         minWidth={60}
