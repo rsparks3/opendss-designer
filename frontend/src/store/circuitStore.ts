@@ -36,6 +36,9 @@ export interface CircuitState {
   /** True when there are changes not yet saved to a project file. */
   dirty: boolean
   markSaved: () => void
+  /** Library entry this document was opened from or saved to; null = unsaved. */
+  projectId: string | null
+  setProjectId: (id: string | null) => void
 
   onNodesChange: (changes: NodeChange<AppNode>[]) => void
   onEdgesChange: (changes: EdgeChange<AppEdge>[]) => void
@@ -378,6 +381,8 @@ export const useCircuitStore = create<CircuitState>()(
       connectMode: 'wire',
       dirty: false,
       markSaved: () => set({ dirty: false }),
+      projectId: null,
+      setProjectId: (projectId) => set({ projectId }),
 
       onNodesChange: (changes) => {
         set({ nodes: applyNodeChanges(changes, get().nodes) })
@@ -612,7 +617,7 @@ export const useCircuitStore = create<CircuitState>()(
         markStale()
       },
       clearAll: () => {
-        set({ nodes: [], edges: [], busNames: {}, loadShapes: {}, dirty: true })
+        set({ nodes: [], edges: [], busNames: {}, loadShapes: {}, dirty: true, projectId: null })
         markStale()
       },
 

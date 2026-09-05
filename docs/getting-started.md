@@ -73,8 +73,13 @@ results directly on the diagram. See [Shapes & profiles](shapes.md) and
 
 ## Save, export, import
 
-- **Save/Open** stores the whole project (diagram + parameters) as a
-  `.oneline.json` file.
+- **Save** (Ctrl+S) keeps the whole project (diagram, parameters, shapes)
+  in your browser's storage under a name; the first save asks for one, later
+  saves are silent. **Save as…** makes a copy, **Open…** (Ctrl+O) lists what
+  is saved with rename, delete and export. Saved circuits live in that
+  browser on that device only and are never uploaded.
+- **Export .json / Import** move a project between machines or keep a
+  backup as a `.oneline.json` file (Import is inside the Open dialog).
 - **Export** writes a runnable `.dss` script — the exact commands the built-in
   solver uses — so anything you draw also runs in stock OpenDSS.
 - **Import** loads existing `.dss` files; see

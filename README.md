@@ -38,7 +38,8 @@ edit visually or in a spreadsheet view, and export runnable OpenDSS scripts.
   table after a solve) — edit values in bulk with an Excel-style fill-down handle,
   click ⌖ to locate an element on the diagram
 - **Undo/redo** (Ctrl+Z / Ctrl+Y), delete key, grid snapping, pan/zoom, minimap
-- **Save/Open** projects as JSON; **Export** a runnable `.dss` file;
+- **Save/Open** projects in the browser, **Export/Import** them as JSON;
+  **Export** a runnable `.dss` file;
   **Import** existing `.dss` files (select the main file plus anything it redirects to)
   with a hierarchical auto-layout — source at top, loads beneath their buses
 

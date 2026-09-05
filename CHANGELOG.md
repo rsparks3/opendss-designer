@@ -3,6 +3,22 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.5.0 — 2026-09-05
+
+### Added
+
+- **Save circuits in the browser.** Save (Ctrl+S) keeps the whole project in
+  the browser's own storage under a name: the first save asks for one, later
+  saves are silent. Save as… makes a copy, and Open… (Ctrl+O) lists what is
+  saved with rename, delete and export. Saved circuits live in that browser
+  on that device and are never uploaded; clearing site data removes them.
+  The old file round-trip is still there as Export .json and Import (inside
+  the Open dialog) for moving a project between machines or keeping a backup.
+- **A permanent plan corner** in the toolbar on hosted instances, showing
+  the plan name and its links (for example "Guest plan · Sign in"), so the
+  way to sign in survives dismissing the banner. Banner dismissals are now
+  remembered per plan, and the banner no longer repeats the storage note.
+
 ## 0.4.0 — 2026-09-05
 
 Nothing here changes a local install. This release is the "worker contract":

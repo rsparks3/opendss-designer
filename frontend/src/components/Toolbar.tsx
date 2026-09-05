@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type SampleMeta } from '../lib/api'
 import { autoLayout } from '../lib/layout'
+import { loadProject, newProjectId, saveProject } from '../lib/library'
 import { migrateCircuit } from '../lib/schema'
 import { runSolve } from '../lib/solve'
 import {
@@ -11,6 +12,7 @@ import {
 } from '../store/circuitStore'
 import { useResultsStore, type OverlayMode } from '../store/resultsStore'
 import { PlanCorner } from './PlanCorner'
+import { LibraryDialog, SaveAsDialog } from './ProjectLibrary'
 
 // A browser tab dies on JSON.parse of a few hundred MB long before the server
 // ever sees the request, so the first size check has to happen here.
@@ -47,6 +49,9 @@ export function Toolbar() {
   const loadCircuit = useCircuitStore((s) => s.loadCircuit)
   const dirty = useCircuitStore((s) => s.dirty)
   const markSaved = useCircuitStore((s) => s.markSaved)
+  const projectId = useCircuitStore((s) => s.projectId)
+  const [saveAsOpen, setSaveAsOpen] = useState(false)
+  const [libraryOpen, setLibraryOpen] = useState(false)
 
   const [samples, setSamples] = useState<SampleMeta[]>([])
   useEffect(() => {
@@ -113,10 +118,84 @@ export function Toolbar() {
     useResultsStore.setState({ result: null, stale: false, issues: [] })
   }
 
-  const onSaveProject = () => {
+  const onExportJson = () => {
     download(`${name || 'circuit'}.oneline.json`, JSON.stringify(circuit(), null, 2))
     markSaved()
   }
+
+  // --- the browser-local project library ---------------------------------
+
+  const writeProject = async (id: string, chosenName: string) => {
+    try {
+      const st = useCircuitStore.getState()
+      await saveProject(id, chosenName, toCircuitJSON(st))
+      useCircuitStore.setState({ projectId: id, name: chosenName, dirty: false })
+      flash(`Saved "${chosenName}"`, 'info', 2500)
+    } catch (err) {
+      flash(
+        `Could not save in this browser (${err instanceof Error ? err.message : err}). ` +
+          'Use Export .json to keep a copy as a file.',
+        'error', 8000)
+    }
+  }
+
+  // Save: silent once the circuit has a home; the first time, ask for a name.
+  const onSave = () => {
+    if (projectId) void writeProject(projectId, name.trim() || 'circuit')
+    else setSaveAsOpen(true)
+  }
+  const onSaveAs = () => setSaveAsOpen(true)
+
+  const onOpenFromLibrary = async (id: string) => {
+    const st = useCircuitStore.getState()
+    if (
+      st.nodes.length > 0 &&
+      st.dirty &&
+      !window.confirm('Discard unsaved changes and open the saved circuit?')
+    ) {
+      return
+    }
+    try {
+      const found = await loadProject(id)
+      if (!found) {
+        flash('That circuit is no longer in the library.')
+        return
+      }
+      const { circuit: c, warning } = migrateCircuit(found.circuit)
+      loadCircuit(c)
+      useCircuitStore.setState({ projectId: id, dirty: false })
+      useResultsStore.setState({ result: null, stale: false, issues: [] })
+      setLibraryOpen(false)
+      if (warning) flash(warning, 'info', 12000)
+    } catch (err) {
+      flash(`Could not open: ${err instanceof Error ? err.message : err}`)
+    }
+  }
+
+  const onExportSaved = async (id: string) => {
+    const found = await loadProject(id)
+    if (found) download(`${found.meta.name}.oneline.json`, JSON.stringify(found.circuit, null, 2))
+  }
+
+  // Ctrl/Cmd+S saves, Shift adds "as", Ctrl/Cmd+O opens the library.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      const k = e.key.toLowerCase()
+      if (k === 's') {
+        e.preventDefault()
+        if (e.shiftKey) setSaveAsOpen(true)
+        else onSave()
+      } else if (k === 'o') {
+        e.preventDefault()
+        setLibraryOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // onSave reads the store directly; projectId/name are the only closed-over values.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, name])
 
   const onOpenProject = async (file: File) => {
     const oversize = tooBig([file], MAX_PROJECT_BYTES)
@@ -127,6 +206,9 @@ export function Toolbar() {
     try {
       const { circuit, warning } = migrateCircuit(JSON.parse(await file.text()))
       loadCircuit(circuit)
+      // A file from disk is not a library entry until it is saved.
+      useCircuitStore.setState({ projectId: null })
+      setLibraryOpen(false)
       if (warning) flash(warning, 'info', 12000)
     } catch (err) {
       flash(`Could not open project: ${err instanceof Error ? err.message : err}`)
@@ -145,7 +227,7 @@ export function Toolbar() {
     try {
       const circuit = await api.sample(id)
       loadCircuit(circuit)
-      useCircuitStore.setState({ dirty: false })
+      useCircuitStore.setState({ dirty: false, projectId: null })
       useCircuitStore.temporal.getState().clear()
       useResultsStore.setState({ result: null, stale: false, issues: [] })
     } catch (err) {
@@ -174,6 +256,7 @@ export function Toolbar() {
       const { circuit: imported, unsupported, warnings } = await api.importDss(files)
       autoLayout(imported)
       loadCircuit(imported)
+      useCircuitStore.setState({ projectId: null })
       const notes = [...(warnings ?? [])]
       if (unsupported.length) {
         const shown = unsupported.slice(0, 5)
@@ -272,12 +355,20 @@ export function Toolbar() {
       <div className="tb-group">
         <button onClick={onNew} title="Start a new empty circuit">New</button>
         <button
-          onClick={onSaveProject}
-          title={dirty ? 'You have unsaved changes — save project as JSON' : 'Save project as JSON'}
+          onClick={onSave}
+          title={
+            (dirty ? 'You have unsaved changes. ' : '') +
+            (projectId
+              ? 'Save to this browser (Ctrl+S)'
+              : 'Save to this browser under a name (Ctrl+S)')
+          }
         >
           Save{dirty ? ' •' : ''}
         </button>
-        <button onClick={() => projectInput.current?.click()}>Open</button>
+        <button onClick={onSaveAs} title="Save a copy under a new name (Ctrl+Shift+S)">Save as…</button>
+        <button onClick={() => setLibraryOpen(true)} title="Open a circuit saved in this browser (Ctrl+O)">
+          Open…
+        </button>
         {samples.length > 0 && (
           <select
             value=""
@@ -295,6 +386,9 @@ export function Toolbar() {
             ))}
           </select>
         )}
+        <button onClick={onExportJson} title="Download the project as a .oneline.json file (to move it or back it up)">
+          Export .json
+        </button>
         <button onClick={onExportDss} title="Export as a runnable OpenDSS .dss file">Export .dss</button>
         <button
           onClick={() => dssInput.current?.click()}
@@ -305,6 +399,25 @@ export function Toolbar() {
       </div>
       <span className="tb-spacer" />
       <PlanCorner />
+      {saveAsOpen && (
+        <SaveAsDialog
+          initialName={name.trim() || 'my-circuit'}
+          onCancel={() => setSaveAsOpen(false)}
+          onSave={(chosen) => {
+            setSaveAsOpen(false)
+            void writeProject(projectId && chosen === name ? projectId : newProjectId(), chosen)
+          }}
+        />
+      )}
+      {libraryOpen && (
+        <LibraryDialog
+          currentId={projectId}
+          onOpen={(id) => void onOpenFromLibrary(id)}
+          onExport={(id) => void onExportSaved(id)}
+          onImportFile={() => projectInput.current?.click()}
+          onClose={() => setLibraryOpen(false)}
+        />
+      )}
       <input
         ref={projectInput}
         type="file"
