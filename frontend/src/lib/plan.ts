@@ -29,16 +29,14 @@ export function describeInstance(health: HealthInfo | null): BannerText | null {
   const sizeNote = maxNodes
     ? `Circuits are limited to ${maxNodes.toLocaleString()} elements and long time-series runs are capped.`
     : 'This instance runs with size and time limits.'
-  const storageNote = 'Nothing you draw is saved on the server — it stays in this browser.'
-
   if (plan) {
     return {
       title: `${plan.name} plan.`,
-      body: [plan.message, sizeNote, storageNote].filter(Boolean).join(' '),
+      body: [plan.message, sizeNote].filter(Boolean).join(' '),
       links: (plan.links ?? []).filter(isSafeLink),
     }
   }
-  return { title: 'Hosted instance.', body: `${sizeNote} ${storageNote}`, links: [] }
+  return { title: 'Hosted instance.', body: sizeNote, links: [] }
 }
 
 /**

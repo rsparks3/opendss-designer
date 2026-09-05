@@ -18,7 +18,7 @@ describe('describeInstance', () => {
     })
     expect(text?.title).toBe('Hosted instance.')
     expect(text?.body).toContain('1,200 elements')
-    expect(text?.body).toContain('stays in this browser')
+    expect(text?.body).not.toContain('stays in this browser')
     expect(text?.links).toEqual([])
   })
 
