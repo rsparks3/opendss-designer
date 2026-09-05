@@ -141,6 +141,35 @@ Still open: **authentication and hosting** live in a separate wrapper project �
 this repo deliberately has no user concept. See `docs/deployment.md` for the
 split.
 
+## M9 — Hosted service (planned 2026-09-04)
+
+A free-with-limits public instance at `opendssdesigner.ryanmsparks.com`, a free
+account that raises the limits, and a paid plan (~$5/month) that sells
+**compute** — bigger circuits, longer runs, priority, a monthly engine-time
+budget — and never storage. Full design, plan table and stage-by-stage
+roadmap in `docs/hosted-service.md`. Takes priority over M6/M7; only editor
+bug fixes ship in between.
+
+The only work that lands in *this* repository is **Stage 1, "worker
+contract" (0.4.0)**, all opt-in and inert in local mode:
+
+- Per-request limit overrides from a trusted header
+  (`OPENDSS_DESIGNER_TRUSTED_LIMITS_HEADER`), overlaying `Settings` the way
+  `limit_issues(circuit, cfg)` already allows; the header can only tighten a
+  worker's own env limits, never loosen them
+- Engine-time reporting: `X-Engine-Seconds` on engine-backed responses,
+  `engineSeconds` in the final time-series SSE event
+- A generic `plan` block (`name`, `message`, `links`) echoed by `/api/health`
+  and rendered by `DemoBanner`, so the SPA shows plan/usage/upgrade strings
+  without knowing what an account is
+- Limit messages name the plan instead of "the public demo"
+- Request-id passthrough in JSON logs
+
+Accounts, plans, the solver queue, metering and Stripe live in a new AGPL
+repository, `opendss-designer-cloud`; deployment stays in
+`opendss-designer-demo`. Stage 0 (ship the demo, move the docs site to
+`opendssdesigner-docs.ryanmsparks.com`) precedes all of it.
+
 ## Parking lot (deferred until actually needed)
 
 - **Incremental solve** — reuse the compiled circuit when only parameter values changed;

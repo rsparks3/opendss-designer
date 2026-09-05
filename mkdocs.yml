@@ -40,6 +40,7 @@ nav:
   - Time-series analysis: timeseries.md
   - Importing DSS files: importing-dss.md
   - Deploying: deployment.md
+  - Hosted service plan: hosted-service.md
   - Security: security.md
   - Development:
       - Contributing: development.md
