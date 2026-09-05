@@ -35,7 +35,7 @@ dev = ["pytest>=8", "httpx", "ruff"]
 
 [project.urls]
 Homepage = "https://opendssdesigner.ryanmsparks.com"
-Documentation = "https://opendssdesigner.ryanmsparks.com"
+Documentation = "https://opendssdesigner-docs.ryanmsparks.com"
 Repository = "https://github.com/rsparks3/opendss-designer"
 Issues = "https://github.com/rsparks3/opendss-designer/issues"
 

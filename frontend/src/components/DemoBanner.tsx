@@ -39,14 +39,14 @@ export function DemoBanner() {
   return (
     <div className="demo-banner" role="status">
       <span>
-        <strong>Public demo.</strong>{' '}
+        <strong>Hosted instance.</strong>{' '}
         {maxNodes
           ? `Circuits are limited to ${maxNodes.toLocaleString()} elements and long time-series runs are capped. `
           : 'This instance runs with size and time limits. '}
         Nothing you draw is saved on the server — it stays in this browser.
       </span>
       <span className="demo-banner-links">
-        <a href="https://opendssdesigner.ryanmsparks.com" target="_blank" rel="noreferrer">
+        <a href="https://opendssdesigner-docs.ryanmsparks.com" target="_blank" rel="noreferrer">
           Docs
         </a>
         <a href="https://github.com/rsparks3/opendss-designer" target="_blank" rel="noreferrer">
