@@ -124,7 +124,7 @@ gateway's database and the numbers below are its seed data.
 | Elements per circuit | 500 | 1,200 | 2,000 |
 | Time-series cost per run (steps × entities) | 250 k | 1 M | 3 M |
 | Longest single run | 30 s | 90 s | 600 s |
-| Engine time budget | 5 min per day, per client | 20 min per month | 5 h per month |
+| Engine time budget | 30 s per day, per client | 5 min per day | 5 h per month |
 | Concurrent runs | 1, and anonymous traffic as a whole never holds more than one worker | 1 | 2 |
 | Queue priority | lowest | normal | highest |
 | Outbound data fetches (NREL, NSRDB) | shared pool | 20 per hour | 60 per hour |
@@ -161,8 +161,9 @@ the ledger and keeps a per-month running total per user. The account page and
 the in-app banner show "14 min of 20 used this month", which is also the
 upgrade prompt.
 
-Budgets reset on the calendar month for free accounts and on the billing
-period for Pro. When a budget is exhausted the gateway refuses with the same
+Guest and free budgets reset daily at midnight UTC; Pro resets on the
+billing period. A snapshot solve is well under a second and a yearly run a
+few seconds, so 30 s a day is dozens of power flows. When a budget is exhausted the gateway refuses with the same
 `Issue` shape the app already uses for demo limits, so the message renders in
 the Problems list like any other limit.
 
