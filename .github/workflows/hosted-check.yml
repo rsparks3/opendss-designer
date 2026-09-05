@@ -1,0 +1,63 @@
+name: Hosted instance check
+
+# A minimal uptime monitor for the public instance, running on GitHub's
+# schedule so it needs no third-party account. A failed run emails the
+# repository owner. Checks the gateway's own health (workers, queue), the
+# app's health through it, and the docs site.
+#
+# Public repos get unlimited Actions minutes, and this repo is active, so the
+# schedule will not be auto-disabled. Schedules can lag a few minutes under
+# load; that is fine for a service with no SLA.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Gateway health
+        run: |
+          set -euo pipefail
+          body=$(curl -fsS --max-time 20 -A "hosted-check/1.0 (GitHub Actions)" \
+            https://opendssdesigner.ryanmsparks.com/gw/health)
+          echo "$body"
+          python3 - "$body" <<'EOF'
+          import json, sys
+          d = json.loads(sys.argv[1])
+          assert d["ok"] is True, "gateway reports not ok (draining?)"
+          assert d["workers"] >= 2, f"expected 2 workers, gateway knows {d['workers']}"
+          assert d["queued"] < 10, f"queue depth {d['queued']} looks stuck"
+          EOF
+
+      - name: App health through the gateway
+        run: |
+          set -euo pipefail
+          body=$(curl -fsS --max-time 30 -A "hosted-check/1.0 (GitHub Actions)" \
+            https://opendssdesigner.ryanmsparks.com/api/health)
+          echo "$body" | head -c 300; echo
+          python3 - "$body" <<'EOF'
+          import json, sys
+          d = json.loads(sys.argv[1])
+          assert d["mode"] == "demo", d["mode"]
+          assert d.get("plan", {}).get("name"), "no plan block: is the gateway in front?"
+          EOF
+
+      - name: A real solve
+        run: |
+          set -euo pipefail
+          circuit=$(curl -fsS --max-time 20 -A "hosted-check/1.0 (GitHub Actions)" \
+            https://opendssdesigner.ryanmsparks.com/api/samples/demo-substation)
+          headers=$(curl -fsS --max-time 60 -A "hosted-check/1.0 (GitHub Actions)" \
+            -o /tmp/solve.json -D - -H "Content-Type: application/json" \
+            --data-binary "$circuit" https://opendssdesigner.ryanmsparks.com/api/solve)
+          grep -i "x-engine-seconds" <<<"$headers" || { echo "no X-Engine-Seconds: not metered"; exit 1; }
+          python3 -c "import json; d=json.load(open('/tmp/solve.json')); assert d['converged'], d"
+
+      - name: Docs site
+        run: curl -fsS --max-time 20 -o /dev/null https://opendssdesigner-docs.ryanmsparks.com/
