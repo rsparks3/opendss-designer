@@ -1,7 +1,7 @@
 # The hosted service: model, architecture, and roadmap
 
-*Planning document, written 2026-09-04. Stages 0–3 shipped 2026-09-05; Stage
-4's code is deployed pending Stripe keys; Stage 5 onward is not built yet. It exists so the shape is decided before
+*Planning document, written 2026-09-04. Stages 0–4 shipped 2026-09-05/06;
+Stage 5 onward is not built yet. It exists so the shape is decided before
 the code is, and so a contributor can see why the local tool stays the way it
 is.*
 
@@ -12,7 +12,7 @@ run on their own machine with no account, no limits and no network dependency.
 Alongside it, one hosted instance at **opendssdesigner.ryanmsparks.com** lets
 people use the same tool in a browser without installing anything. That
 instance is free with limits, a free account raises the limits, and a paid
-plan (about $5/month) raises them further. What the paid plan sells is
+plan ($20 a year) raises them further. What the paid plan sells is
 **compute**: bigger circuits, longer and finer time-series runs, priority in
 the solver queue, and a larger monthly budget of engine time. It does **not**
 sell storage: circuits are never kept on the server in any tier, and the
@@ -118,7 +118,7 @@ Starting values. They are meant to be tuned from the ledger once real usage
 exists, so nothing in the code should hard-code them: plans are rows in the
 gateway's database and the numbers below are its seed data.
 
-| | Anonymous | Free account | Pro (about $5/month) |
+| | Anonymous | Free account | Pro ($20 a year) |
 | --- | --- | --- | --- |
 | Elements per circuit | 10 | 50 | 1,000 |
 | Time-series cost per run (steps × entities) | 250 k | 1 M | 3 M (bounded by worker memory; see below) |
