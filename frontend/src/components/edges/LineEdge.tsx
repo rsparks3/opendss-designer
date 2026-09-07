@@ -32,6 +32,14 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
   }
 
   const name = String(props.data?.params?.name ?? '')
+  // A label centred on the midpoint sits on top of a vertical line. Judge the
+  // line's overall direction from its endpoints and put the label beside a
+  // mostly-vertical one, above a mostly-horizontal one.
+  const vertical =
+    Math.abs(props.targetX - props.sourceX) < Math.abs(props.targetY - props.sourceY)
+  const labelTransform = vertical
+    ? `translate(0, -50%) translate(${labelX + 8}px, ${labelY}px)`
+    : `translate(-50%, -50%) translate(${labelX}px, ${labelY - 12}px)`
   return (
     <>
       <BaseEdge
@@ -47,7 +55,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
         <div
           className="edge-label nodrag nopan"
           style={{
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY - 12}px)`,
+            transform: labelTransform,
             opacity: stale ? 0.4 : 1,
           }}
         >

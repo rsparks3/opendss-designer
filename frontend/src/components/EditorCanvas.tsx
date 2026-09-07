@@ -10,6 +10,7 @@ import {
   ViewportPortal,
   type FinalConnectionState,
   type IsValidConnection,
+  useConnection,
 } from '@xyflow/react'
 import { useCallback, useEffect, useState } from 'react'
 import { renderedEdgePoints } from '../lib/edgeGeometry'
@@ -38,6 +39,7 @@ import { TransformerNode } from './nodes/TransformerNode'
 import { VsourceNode } from './nodes/VsourceNode'
 import { LineEdge } from './edges/LineEdge'
 import { WireEdge } from './edges/WireEdge'
+import { useGrabStore } from '../store/grabStore'
 
 const nodeTypes = {
   vsource: VsourceNode,
@@ -241,8 +243,15 @@ export function EditorCanvas() {
     beginGesture()
   }, [])
 
+  // Every symbol's attach points are hidden until a wire is looking for a
+  // home: a new connection being dragged, or an existing end being moved.
+  // One class on the wrapper lets plain CSS reveal them all at once.
+  const connecting = useConnection((c) => c.inProgress)
+  const grabbing = useGrabStore((s) => s.edgeId !== null)
+  const routing = connecting || grabbing
+
   return (
-    <div className={`canvas-wrap${placementType ? ' placing' : ''}`}>
+    <div className={`canvas-wrap${placementType ? ' placing' : ''}${routing ? ' routing' : ''}`}>
       <ReactFlow
         nodes={nodes}
         edges={edges}

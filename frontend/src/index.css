@@ -72,13 +72,55 @@ html, body, #root { margin: 0; height: 100%; }
 /* ---------- layout ---------- */
 .main-row { display: flex; flex: 1; min-height: 0; }
 
-.palette {
-  width: 170px;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  padding: 10px;
-  overflow-y: auto;
+/* ---------- side panels (resizable, collapsible; see SidePanel.tsx) ---------- */
+.side-panel {
+  position: relative;
+  display: flex;
   flex-shrink: 0;
+  background: var(--panel);
+  min-height: 0;
+}
+.side-left { border-right: 1px solid var(--border); }
+.side-right { border-left: 1px solid var(--border); }
+.side-panel.collapsed { width: 22px; }
+.sp-content { flex: 1; min-width: 0; overflow-y: auto; }
+.sp-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 5;
+}
+.side-left .sp-resizer { right: -3px; }
+.side-right .sp-resizer { left: -3px; }
+.sp-resizer:hover { background: var(--accent); opacity: 0.35; }
+.sp-toggle {
+  position: absolute;
+  top: 6px;
+  z-index: 6;
+  width: 18px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  color: #667;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.side-left .sp-toggle { right: 4px; }
+.side-right .sp-toggle { left: 4px; }
+.side-panel.collapsed .sp-toggle { left: 2px; right: auto; }
+.sp-toggle:hover { background: #f0f0ec; color: var(--ink); }
+
+.palette {
+  background: var(--panel);
+  padding: 10px 28px 10px 10px;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
 }
 .palette-title {
   font-size: 11px;
@@ -108,12 +150,11 @@ html, body, #root { margin: 0; height: 100%; }
 .palette-hint { font-size: 12px; color: var(--accent); margin-top: 8px; }
 
 .properties {
-  width: 250px;
   background: var(--panel);
-  border-left: 1px solid var(--border);
-  padding: 10px;
+  padding: 10px 10px 10px 28px;
   overflow-y: auto;
-  flex-shrink: 0;
+  height: 100%;
+  box-sizing: border-box;
 }
 .props-empty { font-size: 12.5px; color: #889; line-height: 1.5; }
 .props-form { display: flex; flex-direction: column; gap: 6px; }
@@ -203,13 +244,17 @@ html, body, #root { margin: 0; height: 100%; }
   border-radius: 50%;
 }
 .term:hover { background: var(--accent) !important; }
-/* Busbar attach points stay invisible until they matter: hovering the bar,
-   dragging a new wire, or moving an existing wire's end (.routing is set by
-   BusbarNode). They remain hit-testable throughout, so a drop still lands. */
-.busbar-term { opacity: 0; transition: opacity 0.12s; }
-.busbar-node:hover .busbar-term,
-.busbar-node.routing .busbar-term { opacity: 0.55; }
-.busbar-node .busbar-term:hover { opacity: 1; }
+/* Attach points stay invisible until they matter: hovering or selecting the
+   symbol, dragging a new wire, or moving an existing wire's end (.routing is
+   set on the canvas wrapper by EditorCanvas). They remain hit-testable
+   throughout, so a drop still lands on an invisible one. */
+.term { opacity: 0; transition: opacity 0.12s; }
+.react-flow__node:hover .term,
+.react-flow__node.selected .term,
+.canvas-wrap.routing .term,
+.term.drop-target,
+.term.drop-refused { opacity: 0.55; }
+.term:hover { opacity: 1; }
 
 /* A terminal holding exactly one wire: dragging it moves that wire's end
    (store/grabStore.ts) rather than starting a second connection. ReactFlow

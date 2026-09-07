@@ -3,6 +3,24 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.5.2 — 2026-09-06
+
+### Changed
+
+- **Every attach point fades out until it matters.** The grey terminal dots
+  on all symbols, not only busbars, now appear when you hover or select the
+  symbol or while a wire is being routed, and are invisible otherwise. They
+  stay hit-testable, so a drop still lands on one.
+- **Source and line names no longer sit on their own line.** An upright
+  source's name goes beside the symbol, like breakers and transformers; a
+  line's name goes beside a mostly-vertical line and above a mostly-horizontal
+  one.
+
+- **The side panels resize and collapse.** Drag the inner edge of the
+  component palette or the properties panel to change its width, or click the
+  chevron to fold it to a thin strip; both remember their state, like the
+  bottom panel already did.
+
 ## 0.5.1 — 2026-09-05
 
 ### Changed

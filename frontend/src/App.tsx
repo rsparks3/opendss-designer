@@ -13,6 +13,7 @@ import { EditorCanvas } from './components/EditorCanvas'
 import { Palette } from './components/Palette'
 import { PropertiesPanel } from './components/PropertiesPanel'
 import { TimeBar } from './components/TimeBar'
+import { SidePanel } from './components/SidePanel'
 import { Toolbar } from './components/Toolbar'
 
 /** Re-validate the circuit (debounced) whenever it changes. */
@@ -134,9 +135,13 @@ export default function App() {
         <Toolbar />
         <TimeBar />
         <div className="main-row">
-          <Palette />
+          <SidePanel side="left" storageKey="palette" defaultWidth={170} minWidth={120} maxWidth={360} title="components">
+            <Palette />
+          </SidePanel>
           <EditorCanvas />
-          <PropertiesPanel />
+          <SidePanel side="right" storageKey="properties" defaultWidth={250} minWidth={180} maxWidth={560} title="properties">
+            <PropertiesPanel />
+          </SidePanel>
         </div>
         <BottomPanel />
       </div>

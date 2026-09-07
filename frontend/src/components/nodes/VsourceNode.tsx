@@ -27,7 +27,8 @@ export function VsourceNode({ id, data }: NodeProps<AppNode>) {
         </svg>
       </SymbolSvg>
       <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Bottom, rot)} className="term" />
-      <NodeLabel>{String(data.params.name ?? '')}</NodeLabel>
+      {/* The stub leaves the bottom when upright, so the label goes beside. */}
+      <NodeLabel beside={rot % 180 === 0}>{String(data.params.name ?? '')}</NodeLabel>
       <VoltageBadge nodeId={id} />
     </div>
   )
