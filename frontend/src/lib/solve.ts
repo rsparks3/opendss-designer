@@ -1,8 +1,7 @@
 import { toCircuitJSON, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import { api } from './api'
-
-const SOLVE_ISSUE_CODES = new Set(['dss-error', 'not-converged', 'solve-failed'])
+import { firstError, mergeRunIssues } from './issues'
 
 /** Run a snapshot power flow on the current circuit and publish the results.
  *  Shared by the Solve button and auto-solve. Returns false when the request
@@ -18,13 +17,14 @@ export async function runSolve(): Promise<boolean> {
     const store = useResultsStore.getState()
     store.setResult(result)
     if (result.busNames) useCircuitStore.getState().mergeBusNames(result.busNames)
-    const solveIssues = result.issues.filter(
-      (i) => i.severity === 'error' || SOLVE_ISSUE_CODES.has(i.code),
-    )
-    store.setIssues([
-      ...store.issues.filter((i) => !SOLVE_ISSUE_CODES.has(i.code)),
-      ...solveIssues.filter((i) => SOLVE_ISSUE_CODES.has(i.code)),
-    ])
+    // Everything the engine refused on goes into the Problems list, and a
+    // refusal also says so out loud: an enabled Solve that quietly produced
+    // nothing was the worst failure mode this app had.
+    store.setIssues(mergeRunIssues(store.issues, result.issues))
+    if (!result.converged) {
+      const why = firstError(result.issues)
+      store.setFlash(why ? `Solve refused: ${why}` : 'The power flow did not converge.', 'error', 8000)
+    }
     return true
   } catch (err) {
     // TypeError from fetch means the request never reached the server.

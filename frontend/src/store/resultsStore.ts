@@ -42,6 +42,10 @@ interface ResultsState {
   setTsProgress: (p: { step: number; total: number } | null) => void
   tsAbort: AbortController | null
   setTsRunning: (running: boolean, abort?: AbortController | null) => void
+  /** Why the last time-series run produced nothing; shown in the transport
+   *  bar until the next run or the next circuit edit. */
+  tsError: string | null
+  setTsError: (m: string | null) => void
   /** Bumped to ask the bottom panel to open the Graph tab (e.g. after a
    *  time-series run completes). */
   graphTabSignal: number
@@ -102,12 +106,15 @@ export const useResultsStore = create<ResultsState>((set) => ({
   tsAbort: null,
   setTsRunning: (tsRunning, tsAbort = null) =>
     set({ tsRunning, tsAbort, ...(tsRunning ? {} : { tsProgress: null }) }),
+  tsError: null,
+  setTsError: (tsError) => set({ tsError }),
   graphTabSignal: 0,
   requestGraphTab: () => set((s) => ({ graphTabSignal: s.graphTabSignal + 1 })),
 
   setResult: (result) => set({ result, stale: false }),
   markStale: () =>
-    set({ stale: true, fault: null, timeseries: null, tsIndex: null, scrubResult: null }),
+    set({ stale: true, fault: null, timeseries: null, tsIndex: null, scrubResult: null,
+          tsError: null }),
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),
   setIssues: (issues) => set({ issues }),

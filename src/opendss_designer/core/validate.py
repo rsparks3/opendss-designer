@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .. import context
 from ..settings import Settings
+from .compiler import compile_circuit
 from .connectivity import synthesize, terminal_key
 from .model import NODE_TERMINALS, Circuit, Issue
 
@@ -60,10 +61,25 @@ def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
     return issues
 
 
+#: Errors only the compiler detects. Validation used to stop short of the
+#: compiler, so two elements sanitising to one OpenDSS name passed
+#: validation, Solve stayed enabled, and the engine refused every run with
+#: no visible reason. Compiling is pure string building (no engine), so it
+#: is cheap enough to run on the validation debounce. Missing load shapes
+#: are reported further down with a friendlier message, so only the name
+#: clash is taken from the compiler.
+COMPILER_CHECKS = frozenset({"duplicate-name"})
+
+
 def validate(circuit: Circuit) -> list[Issue]:
     issues: list[Issue] = limit_issues(circuit)
     conn = synthesize(circuit)
     issues.extend(conn.issues)
+    seen = {(i.code, i.nodeId) for i in issues}
+    for i in compile_circuit(circuit).issues:
+        if i.code in COMPILER_CHECKS and (i.code, i.nodeId) not in seen:
+            issues.append(i)
+            seen.add((i.code, i.nodeId))
 
     sources = [n for n in circuit.nodes if n.type == "vsource"]
     if not sources:

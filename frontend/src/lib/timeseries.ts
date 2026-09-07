@@ -1,6 +1,7 @@
 import { toCircuitJSON, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { TimeSeriesResult } from '../types/circuit'
+import { firstError, mergeRunIssues } from './issues'
 
 type TsEvent =
   | { type: 'progress'; step: number; total: number }
@@ -15,6 +16,7 @@ export async function runTimeSeries(mode: 'daily' | 'yearly', stepMin: 60 | 15):
   if (results.tsRunning || results.solving) return false
   const abort = new AbortController()
   results.setTsRunning(true, abort)
+  results.setTsError(null)
 
   try {
     const res = await fetch('/api/timeseries', {
@@ -81,19 +83,25 @@ export async function runTimeSeries(mode: 'daily' | 'yearly', stepMin: 60 | 15):
       )
       return true
     } else {
-      const firstError = result.issues.find((i) => i.severity === 'error')
-      store.setFlash(firstError?.message ?? 'Time-series run failed.')
+      // Refused before the first step: put the reasons where they stay
+      // visible (Problems list, and the transport bar) rather than only in
+      // a toast that is gone in five seconds.
+      store.setIssues(mergeRunIssues(store.issues, result.issues))
+      const why = firstError(result.issues) ?? 'Time-series run failed.'
+      store.setTsError(why)
+      store.setFlash(why)
     }
     return false
   } catch (err) {
+    const store = useResultsStore.getState()
     if ((err as Error).name === 'AbortError') {
-      useResultsStore.getState().setFlash('Time-series run cancelled.', 'info')
+      store.setFlash('Time-series run cancelled.', 'info')
     } else if (err instanceof TypeError) {
-      useResultsStore.getState().setFlash(
-        'Time-series request failed — is the backend still running?',
-      )
+      store.setTsError('Time-series request failed — is the backend still running?')
+      store.setFlash('Time-series request failed — is the backend still running?')
     } else {
-      useResultsStore.getState().setFlash(`Time series: ${(err as Error).message}`)
+      store.setTsError((err as Error).message)
+      store.setFlash(`Time series: ${(err as Error).message}`)
     }
     return false
   } finally {

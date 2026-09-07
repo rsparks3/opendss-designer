@@ -3,6 +3,19 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.5.4 — 2026-09-07
+
+### Fixed
+
+- **A refused solve is no longer silent.** A load pointing at a load shape
+  that no longer exists (or two elements sanitising to the same OpenDSS name)
+  passed validation, so Solve stayed enabled, and then every snapshot and
+  time-series run was refused by the engine with no message, no result and
+  no overlays. Validation now reports those errors in the Problems list
+  while you draw, a refused run puts its reasons there too and says so in a
+  toast, and the time-series bar keeps showing why the last run produced
+  nothing until you change the circuit or run again.
+
 ## 0.5.3 — 2026-09-06
 
 ### Fixed

@@ -38,6 +38,16 @@ html, body, #root { margin: 0; height: 100%; }
 }
 .tb-group { display: flex; align-items: center; gap: 4px; }
 .tb-spacer { flex: 1; }
+.ts-error {
+  color: #b71c1c;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 40vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ts-hint { color: #778; font-size: 12px; white-space: nowrap; }
 .tb-plan { display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }
 .tb-plan-name { color: #667; }
 .tb-plan-link {

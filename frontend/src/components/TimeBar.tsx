@@ -51,6 +51,7 @@ export function TimeBar() {
   const setTsIndex = useResultsStore((s) => s.setTsIndex)
   const tsRunning = useResultsStore((s) => s.tsRunning)
   const tsProgress = useResultsStore((s) => s.tsProgress)
+  const tsError = useResultsStore((s) => s.tsError)
   const issues = useResultsStore((s) => s.issues)
   const [mode, setMode] = useState<'daily' | 'yearly'>('daily')
   const [step, setStep] = useState<60 | 15>(60)
@@ -123,6 +124,14 @@ export function TimeBar() {
                   : 'Run the simulation (assign loadshapes in the Shapes tab first)'}>
           ▶ Run
         </button>
+      )}
+      {tsError && !tsRunning && (
+        <span className="ts-error" role="alert" title={tsError}>
+          Last run: {tsError}
+        </span>
+      )}
+      {!ts && !tsError && !tsRunning && (
+        <span className="ts-hint">No recorded run yet — overlays show a run once it completes.</span>
       )}
       <button className="tb-play" onClick={togglePlay} disabled={!ts}
               title={ts ? (playing ? 'Pause' : 'Play through the run') : 'Run a simulation first'}>
