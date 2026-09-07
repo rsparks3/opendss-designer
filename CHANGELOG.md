@@ -3,6 +3,16 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.5.3 — 2026-09-06
+
+### Fixed
+
+- **Wires meet the symbols again.** Hiding the terminal dots in 0.5.2
+  exposed a gap that had always been there: a wire starts at the outer edge
+  of its terminal, and the terminals sat half outside the symbol, so every
+  wire began half a dot away from the stub it belonged to. Terminals now sit
+  flush inside the symbol's edge and the wire lands on the stub.
+
 ## 0.5.2 — 2026-09-06
 
 ### Changed

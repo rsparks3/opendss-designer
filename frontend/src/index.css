@@ -244,6 +244,16 @@ html, body, #root { margin: 0; height: 100%; }
   border-radius: 50%;
 }
 .term:hover { background: var(--accent) !important; }
+/* Keep each terminal wholly inside the symbol, flush with its edge. React
+   Flow starts a wire at the handle's OUTER edge, not its centre, so the
+   default placement (centred on the node edge) began every wire half a dot
+   away from the symbol's stub; the dot used to cover that gap, and once the
+   dots faded the gap showed. Busbar terminals keep their own placement:
+   their wires are anchored to the bar centre regardless. */
+.term:not(.busbar-term).react-flow__handle-top { top: 0; transform: translate(-50%, 0); }
+.term:not(.busbar-term).react-flow__handle-bottom { bottom: 0; transform: translate(-50%, 0); }
+.term:not(.busbar-term).react-flow__handle-left { left: 0; transform: translate(0, -50%); }
+.term:not(.busbar-term).react-flow__handle-right { right: 0; transform: translate(0, -50%); }
 /* Attach points stay invisible until they matter: hovering or selecting the
    symbol, dragging a new wire, or moving an existing wire's end (.routing is
    set on the canvas wrapper by EditorCanvas). They remain hit-testable
