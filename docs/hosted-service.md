@@ -1,3 +1,7 @@
+---
+description: The design of the hosted OpenDSS Designer service: plans, the solver queue, engine-time metering, and the roadmap from free demo to paid tier.
+---
+
 # The hosted service: model, architecture, and roadmap
 
 *Planning document, written 2026-09-04. Stages 0–4 shipped 2026-09-05/06;

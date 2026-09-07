@@ -1,3 +1,7 @@
+---
+description: A free, open-source graphical user interface (GUI) for OpenDSS. Draw one-line diagrams in your browser, run power flows and time series, and import or export .dss files.
+---
+
 # OpenDSS Designer
 
 **OpenDSS Designer is a free, open-source graphical user interface (GUI) for
@@ -36,7 +40,10 @@ different setting with size limits; see [Security](security.md).
 no sign-up, runs in your browser.
 
 Head to [Getting started](getting-started.md) for a walkthrough, or
-[Components](components.md) for the full element reference.
+[Components](components.md) for the full element reference. New to the idea
+of a graphical front end for OpenDSS? Start with
+[Why an OpenDSS GUI](opendss-gui.md) and
+[how this compares with OpenDSS-G](compare.md).
 
 ## Highlights
 
@@ -64,5 +71,6 @@ Head to [Getting started](getting-started.md) for a walkthrough, or
 ## Open source
 
 AGPL-3.0-licensed, developed on
-[GitHub](https://github.com/rsparks3/opendss-designer) — issues and pull
+[GitHub](https://github.com/rsparks3/opendss-designer) and published on
+[PyPI](https://pypi.org/project/opendss-designer/) — issues and pull
 requests welcome. See [Development](development.md) to hack on it.

@@ -1,3 +1,7 @@
+---
+description: Every element in OpenDSS Designer and the OpenDSS parameters behind it: sources, busbars, transformers, breakers, lines, loads, capacitors, generators, PV systems and storage.
+---
+
 # Components
 
 Every element you can place from the palette, with its OpenDSS parameters.

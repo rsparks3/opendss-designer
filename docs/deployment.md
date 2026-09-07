@@ -1,3 +1,7 @@
+---
+description: Run a hosted OpenDSS Designer: demo mode limits, containers, the shared data cache, and the worker contract a gateway uses for per-plan limits and metering.
+---
+
 # Deploying a hosted instance
 
 OpenDSS Designer is built as a local, single-user tool: one process, one

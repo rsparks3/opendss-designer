@@ -1,3 +1,7 @@
+---
+description: Load shapes and irradiance profiles in OpenDSS Designer: paste a CSV, draw a curve, or import NREL building load profiles and NSRDB solar data by location.
+---
+
 # Shapes & profiles
 
 Time-series behavior is driven by **shapes**: named multiplier curves stored

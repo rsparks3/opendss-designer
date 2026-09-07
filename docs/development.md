@@ -1,3 +1,7 @@
+---
+description: Set up a development environment for OpenDSS Designer, run the Python and frontend test suites, and understand how the repository is laid out.
+---
+
 # Development
 
 Contributions are welcome — the project is AGPL-3.0-licensed and developed on

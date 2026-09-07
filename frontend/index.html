@@ -12,12 +12,54 @@
     <meta property="og:site_name" content="OpenDSS Designer" />
     <meta property="og:title" content="OpenDSS Designer — a browser GUI for OpenDSS" />
     <meta property="og:description" content="Draw a substation one-line diagram, run a power flow, and see voltages and loading on the diagram. Import and export .dss files." />
-    <meta property="og:url" content="https://opendssdesigner-demo.ryanmsparks.com/" />
-    <meta property="og:image" content="https://opendssdesigner-demo.ryanmsparks.com/og-preview.png" />
+    <meta property="og:url" content="https://opendssdesigner.ryanmsparks.com/" />
+    <meta property="og:image" content="https://opendssdesigner.ryanmsparks.com/og-preview.png" />
+    <meta property="og:image:alt" content="A solved one-line diagram in OpenDSS Designer" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OpenDSS Designer — a browser GUI for OpenDSS" />
+    <meta name="twitter:image" content="https://opendssdesigner.ryanmsparks.com/og-preview.png" />
+    <!-- Structured data for search engines. A data block, not a script, so
+         the app's script-src 'self' policy is not involved. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "OpenDSS Designer",
+      "applicationCategory": "EngineeringApplication",
+      "operatingSystem": "Web, Windows, macOS, Linux",
+      "description": "Draw a one-line diagram in your browser and run an OpenDSS power flow on it. The drawing is the circuit model.",
+      "url": "https://opendssdesigner.ryanmsparks.com/",
+      "softwareHelp": "https://opendssdesigner-docs.ryanmsparks.com/",
+      "downloadUrl": "https://pypi.org/project/opendss-designer/",
+      "codeRepository": "https://github.com/rsparks3/opendss-designer",
+      "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+    }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- What a crawler (or a browser with scripts off) sees. React replaces
+         the whole of #root on mount, so none of this survives in the app. -->
+    <div id="root">
+      <main style="max-width:44rem;margin:4rem auto;padding:0 1rem;font:16px/1.5 system-ui,sans-serif;color:#1f2328">
+        <h1>OpenDSS Designer</h1>
+        <p><strong>A free, open-source graphical interface for OpenDSS.</strong>
+          Draw a substation or feeder one-line diagram in your browser, press Solve,
+          and read bus voltages, element loading and violations straight off the
+          drawing. Every solve runs the real OpenDSS engine; the diagram is the model.</p>
+        <p>Import existing <code>.dss</code> files, run daily or yearly time-series
+          simulations with load, solar and storage shapes, and export a runnable
+          <code>.dss</code> script. Runs on Windows, macOS and Linux with
+          <code>pip install opendss-designer</code>, or right here with nothing to install.</p>
+        <p>This page needs JavaScript to run the designer.</p>
+        <ul>
+          <li><a href="https://opendssdesigner-docs.ryanmsparks.com/">Documentation and getting started</a></li>
+          <li><a href="https://opendssdesigner-docs.ryanmsparks.com/opendss-gui/">Why an OpenDSS GUI, and how this one compares</a></li>
+          <li><a href="https://github.com/rsparks3/opendss-designer">Source code on GitHub</a></li>
+          <li><a href="https://pypi.org/project/opendss-designer/">Package on PyPI</a></li>
+        </ul>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

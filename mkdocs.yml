@@ -8,6 +8,7 @@ repo_name: rsparks3/opendss-designer
 
 theme:
   name: material
+  custom_dir: overrides
   icon:
     logo: material/transmission-tower
   palette:
@@ -33,6 +34,8 @@ theme:
 
 nav:
   - Home: index.md
+  - Why an OpenDSS GUI: opendss-gui.md
+  - Compared with OpenDSS-G: compare.md
   - Getting started: getting-started.md
   - Components: components.md
   - Solving & analysis: analysis.md

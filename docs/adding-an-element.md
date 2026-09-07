@@ -1,3 +1,7 @@
+---
+description: A checklist for adding a new OpenDSS element type to OpenDSS Designer, from the schema to the symbol to the compiler and the importer.
+---
+
 # Adding a new element type
 
 Checklist for adding a component to the palette (as done for `capacitor` and

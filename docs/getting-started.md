@@ -1,3 +1,7 @@
+---
+description: Install OpenDSS Designer with pip or use the hosted copy, draw your first one-line diagram, run a power flow, and read the results on the diagram. A five-minute walkthrough.
+---
+
 # Getting started
 
 ## Install

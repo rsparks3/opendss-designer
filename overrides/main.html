@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{#
+  Search and share metadata for every docs page. Material's built-in
+  description tag is kept (page.meta.description falls back to the site
+  description); this adds Open Graph and Twitter cards, a canonical URL, and
+  a SoftwareApplication JSON-LD block on the home page so a search result
+  or a shared link shows a real title, blurb and image.
+#}
+
+{% block htmltitle %}
+  {% if page.is_homepage %}
+    <title>OpenDSS Designer — a free, open-source GUI for OpenDSS in your browser</title>
+  {% elif page.meta and page.meta.title %}
+    <title>{{ page.meta.title }} · OpenDSS Designer</title>
+  {% elif page.title and not page.is_homepage %}
+    <title>{{ page.title | striptags }} · OpenDSS Designer</title>
+  {% else %}
+    <title>{{ config.site_name }}</title>
+  {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+  {% set page_url = config.site_url ~ page.url %}
+  {% if page.is_homepage %}
+    {% set page_title = "OpenDSS Designer — a free, open-source GUI for OpenDSS in your browser" %}
+  {% else %}
+    {% set page_title = (page.meta.title if page.meta and page.meta.title else page.title | striptags) ~ " · OpenDSS Designer" %}
+  {% endif %}
+  {% set page_desc = (page.meta.description if page.meta and page.meta.description else config.site_description) %}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="OpenDSS Designer">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ page_desc | striptags }}">
+  <meta property="og:url" content="{{ page_url }}">
+  <meta property="og:image" content="{{ config.site_url }}screenshot.png">
+  <meta property="og:image:alt" content="A solved one-line diagram in OpenDSS Designer">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ page_desc | striptags }}">
+  <meta name="twitter:image" content="{{ config.site_url }}screenshot.png">
+  {% if page.is_homepage %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "OpenDSS Designer",
+    "applicationCategory": "EngineeringApplication",
+    "operatingSystem": "Windows, macOS, Linux, Web",
+    "description": "A free, open-source graphical user interface for OpenDSS: draw a one-line diagram in your browser, run a power flow, and read voltages and loading off the drawing. Import and export .dss files.",
+    "url": "https://opendssdesigner.ryanmsparks.com/",
+    "downloadUrl": "https://pypi.org/project/opendss-designer/",
+    "softwareHelp": "{{ config.site_url }}",
+    "codeRepository": "https://github.com/rsparks3/opendss-designer",
+    "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+    "author": {"@type": "Person", "name": "Ryan Sparks", "url": "https://ryanmsparks.com/"},
+    "keywords": "OpenDSS, OpenDSS GUI, one-line diagram, power flow, distribution system, OpenDSSDirect"
+  }
+  </script>
+  {% endif %}
+{% endblock %}

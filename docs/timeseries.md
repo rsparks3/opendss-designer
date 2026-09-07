@@ -1,3 +1,7 @@
+---
+description: Run a daily or yearly OpenDSS time-series simulation with load, solar and storage shapes, then scrub through the recorded results on the one-line diagram.
+---
+
 # Time-series analysis
 
 Simulate a day or a year of operation — loads following their shapes, PV

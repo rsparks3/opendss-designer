@@ -1,3 +1,7 @@
+---
+description: How OpenDSS Designer treats local versus hosted use, what the server never stores, and how imported .dss files are handled as data rather than a program.
+---
+
 # Security
 
 ## The two settings
