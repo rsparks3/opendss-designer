@@ -3,7 +3,9 @@
 Features deferred from v1, organized into milestones. Each milestone leaves the app
 in a coherent, working state. Ordering rationale: foundation first (tests/CI protect
 everything after), then balanced passes across editor UX, new components, analysis,
-and platform. 
+and platform. From M10 on the roadmap follows a stated target — competing with the
+commercial distribution planning tools; see **Direction** below for what that rules
+in and out.
 
 ## M1 — Foundation & hardening — ✅ DONE (2026-08-30)
 
@@ -106,6 +108,9 @@ All frontend-only; the M1 vitest harness covers the store changes.
 - **Voltage regulators** (`RegControl` on an autotransformer) — band, PT ratio, LDC
 - **3-winding transformers** — third handle; the per-winding editor already generalizes
 - **Fuses, reclosers, relays** (`Fuse`, `Recloser`, `Relay`) — pairs with M4's fault study
+- **TCC curves** (`TCC_Curve`) — a user-editable curve library plus a time-current plot
+  in the Graph tab, so a coordination check can be read off the diagram. Shipping the
+  plot, not a manufacturer device library — see Out of scope
 - **Phase pinning** — connect 1-phase elements to a chosen phase (`.2`, `.3` suffixes;
   `compiler.py` already accepts explicit suffixes, so this is mostly UI)
 - **Per-phase display** — phase labels on wires, per-phase voltage readouts
@@ -147,8 +152,10 @@ A free-with-limits public instance at `opendssdesigner.ryanmsparks.com`, a free
 account that raises the limits, and a paid plan (~$5/month) that sells
 **compute** — bigger circuits, longer runs, priority, a monthly engine-time
 budget — and never storage. Full design, plan table and stage-by-stage
-roadmap in `docs/hosted-service.md`. Takes priority over M6/M7; only editor
-bug fixes ship in between.
+roadmap in `docs/hosted-service.md`. Took priority over M6/M7 while it was
+being built; with Stage 4 live (2026-09-06) the remaining stages are
+operational work in the cloud and deploy repositories, so app-repo work
+resumes at **M6**, which the M10–M13 direction depends on.
 
 The only work that lands in *this* repository is **Stage 1, "worker
 contract" (0.4.0) — ✅ DONE (2026-09-05)**, all opt-in and inert in local mode:
@@ -183,12 +190,128 @@ repository, `opendss-designer-cloud`; deployment stays in
 `opendss-designer-demo`. Stage 0 (ship the demo, move the docs site to
 `opendssdesigner-docs.ryanmsparks.com`) precedes all of it.
 
+## Direction — the distribution planning market (decided 2026-09-11)
+
+M10–M13 are aimed at a specific goal: becoming an open-source alternative to the
+commercial **distribution planning** tools — DNV Synergi Electric, Eaton CYME,
+Milsoft WindMil — rather than to the facility/arc-flash tools (SKM PowerTools,
+EasyPower, ETAP's core). The two markets look adjacent and are not. The arc-flash
+business sells a PE-stamped IEEE 1584 / NFPA 70E deliverable backed by a
+protective-device curve library nobody can reproduce (Eaton documents 15,000+
+devices from 100+ manufacturers), so it is out of reach and out of scope. Utility
+planning is what the OpenDSS engine is already for, which means most of the gap
+to Synergi and CYME is **interface work, not numerical work** — the engine
+already does unbalanced power flow, fault study, yearly time series, reliability
+indices, and it is what EPRI's DRIVE hosting-capacity method runs on.
+
+Ordering: **M6 first** — regulators, fuses/reclosers/relays, three-winding
+transformers and per-phase laterals are table stakes for anything below, because
+a feeder without them is not a feeder. M7's SVG/PNG export and elkjs layout are
+prerequisites for M10 and M11 respectively. Each milestone below is chosen to be
+useful to someone real on its own, not only at the end of the list.
+
+## M10 — Study output & proof
+
+The cheapest credibility available, and the first milestone that lets someone
+hand a study to a colleague.
+
+- **IEEE PES test feeder validation** — import the 13, 34, 37 and 123-bus
+  feeders, compare bus voltages against the published solutions, and publish the
+  comparison as a docs page. CYME and WindMil both advertise this benchmark; the
+  engine already passes it, so this is reporting, not work. Worth pinning as a CI
+  fixture alongside `tests/fixtures/full-circuit.oneline.json`
+- **Study report export** — a PDF/Excel report of violations, losses, element
+  tables and the one-line itself. Depends on M7's SVG/PNG diagram export. This is
+  the artifact an engineer actually delivers, and no amount of on-screen analysis
+  substitutes for it
+- **Reliability indices** — SAIFI/SAIDI/CAIDI from OpenDSS's own `EnergyMeter`
+  reliability calculations: needs meter placement, per-line `faultrate`/`pctperm`/
+  repair-time properties in the properties panel, and an indices table plus a
+  per-zone overlay. Every incumbent sells this as a paid module; here it is mostly
+  UI over an engine feature that already exists
+
+## M11 — Real models in
+
+Nobody hand-draws a utility feeder. Until an engineer can open the model they
+already own, the analysis features have no audience — this is the first real gate.
+
+- **Scale to thousands of elements** — `.dss` import of real feeders needs the
+  elkjs layered layout from M7, canvas virtualisation, and a hard look at
+  rebuild-per-solve. (The parking-lot "incremental solve" item becomes relevant
+  here for *editor responsiveness*; note it trades away the statelessness that
+  makes the hosted workers scale horizontally, so if it lands it must stay behind
+  a flag — see `docs/hosted-service.md`)
+- **Bulk import formats** — CSV element tables, then Esri shapefile/geodatabase
+  (bus coordinates and line geometry). GIS is how every incumbent builds models;
+  CYME Gateway also reads Smallworld and Intergraph
+- **Geographic view** — map background tiles and a schematic/geographic toggle.
+  The importer already keeps bus coordinates; today they are only used to seed the
+  layout
+- **Incumbent model conversion** — CYME, Synergi and WindMil models via NREL's
+  DiTTo, which already targets those formats but has had no activity since
+  December 2023 and has open conversion bugs. Reviving it beats starting over.
+  Belongs in a separate package so this repo does not take on a GIS/converter
+  dependency tree. Strategically this is the biggest lever available: proprietary
+  formats and unreliable conversion are the loudest documented complaint about
+  the incumbents
+
+## M12 — Planning studies
+
+The studies a utility is under obligation to produce — the reason a tool gets
+adopted rather than admired.
+
+- **Hosting capacity / integration capacity analysis** — iterative DER injection
+  at each bus until a voltage or thermal limit binds, reusing the time-series
+  worker and its SSE progress streaming, with a colour-coded overlay. This is the
+  wedge: it is the one study regulators increasingly require and the one small
+  utilities are priced out of
+- **Contingency & switching** — tie switches, an N-1 loop, and ranked restoration
+  candidates
+- **Volt/VAR and CVR** — regulator and capacitor setting sweeps with a CVR factor
+  report, building on the M6 `RegControl` work
+- **Scenario manager & batch runs** — several scenarios per project, run as a
+  batch, compared in one table. Supersedes the parked "multi-circuit tabs" item,
+  which was the same need stated as a UI feature
+
+## M13 — Team-scale modeling
+
+Where a utility could standardise on it — and where support and liability become
+the real questions, not features.
+
+- **Load allocation from billing kWh or AMI data** — OpenDSS's own
+  `AllocateLoads` works off `EnergyMeter` readings and per-load allocation
+  factors, so the engine side largely exists; the work is the data pipeline and
+  the UI for mapping meter data onto loads. Every incumbent has this (CYME's
+  state estimator, Synergi's AMI and customer-management modules) and without it
+  a model cannot be made to match measurements
+- **Documented Python API** — `OpenDSSDirect.py` is already underneath; what is
+  missing is a stable, documented surface for scripted runs, matching CYME's
+  CymPy and Synergi's COM automation
+- **Shared model store, versions, review** — collides with this repo's rule that
+  it has no user concept (see M8). It belongs in `opendss-designer-cloud` or a
+  separate sync service, not here
+
+## Out of scope (decided 2026-09-11)
+
+Recorded so they stop being reconsidered:
+
+- **A protective-device curve library.** Ship TCC plotting in M6 and let users
+  enter curves; do not try to match a library assembled over forty years
+- **Arc flash labels.** The deliverable is legal rather than numerical — it needs
+  a PE stamp, and buyers pick the tool their insurer already accepts
+- **Real-time, SCADA, ADMS, OMS.** An operations business with 24/7 support
+  obligations
+- **Transmission and EMS.** PowerWorld and PSS/E own it, and the engine is not
+  aimed at it
+
 ## Parking lot (deferred until actually needed)
 
 - **Incremental solve** — reuse the compiled circuit when only parameter values changed;
-  matters once circuits reach thousands of elements (v1 rebuilds every solve)
+  matters once circuits reach thousands of elements (v1 rebuilds every solve).
+  Revisit in M11, where real feeders make it an editor-responsiveness question
 - **Multi-circuit tabs** / compare two scenarios side by side — big architectural change;
-  wait until the single-circuit workflow is mature
+  wait until the single-circuit workflow is mature. Superseded by M12's scenario
+  manager, which is the same need stated as a study rather than as a UI feature
 - **Explicit grounding elements** (`Reactor` to ground, grounding transformer symbols)
 - **Parking a wire mid-air** (an end connected to nothing) — considered alongside
   drag-to-re-route and declined: ReactFlow has no dangling edge, so it would need a
