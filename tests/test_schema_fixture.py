@@ -66,7 +66,8 @@ def test_fixture_compiles_cleanly(fixture_json):
                      "new capacitor.cap1", "new generator.gen1",
                      "new loadshape.day24", "new loadshape.sun24",
                      "new pvsystem.pv1", "new storage.bat1",
-                     "new transformer.reg1", "new regcontrol.reg1"):
+                     "new transformer.reg1", "new regcontrol.reg1",
+                     "new fuse.fu1", "new recloser.rec1", "new relay.rly1"):
         assert fragment in joined.lower()
 
 

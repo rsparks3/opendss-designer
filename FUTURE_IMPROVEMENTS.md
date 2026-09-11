@@ -110,10 +110,15 @@ All frontend-only; the M1 vitest harness covers the store changes.
   properties panel, PT ratio derived from the rated kV when left blank, and a
   controlled transformer imports back as a regulator
 - **3-winding transformers** — third handle; the per-winding editor already generalizes
-- **Fuses, reclosers, relays** (`Fuse`, `Recloser`, `Relay`) — pairs with M4's fault study
+- ~~**Fuses, reclosers, relays**~~ — each is a switch plus its control, kept as one
+  element in the editor; curve choices are limited to the ten the engine ships, since
+  naming any other stops the solve; a relay with no ground curve gets no ground unit;
+  open/close (blow/replace) like a breaker; imports back as the device, not as a switch
 - **TCC curves** (`TCC_Curve`) — a user-editable curve library plus a time-current plot
   in the Graph tab, so a coordination check can be read off the diagram. Shipping the
-  plot, not a manufacturer device library — see Out of scope
+  plot, not a manufacturer device library — see Out of scope. Pairs with M4's fault
+  study: the interesting check is pickup and interrupting rating against the fault
+  current actually available at the device
 - **Phase pinning** — connect 1-phase elements to a chosen phase (`.2`, `.3` suffixes;
   `compiler.py` already accepts explicit suffixes, so this is mostly UI)
 - **Per-phase display** — phase labels on wires, per-phase voltage readouts

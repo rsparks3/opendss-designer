@@ -7,6 +7,12 @@ from .compiler import compile_circuit
 from .connectivity import synthesize, terminal_key
 from .model import NODE_TERMINALS, Circuit, Issue
 
+# 2-terminal devices that carry power between their two buses. Protective
+# devices are switches, so they conduct unless their `closed` flag says
+# otherwise -- the same rule as a breaker.
+SERIES_TYPES = ("transformer", "regulator", "breaker", "fuse", "recloser", "relay")
+SWITCH_TYPES = ("breaker", "fuse", "recloser", "relay")
+
 
 def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
     """Demo-mode size caps, expressed as ordinary validation issues.
@@ -125,8 +131,8 @@ def validate(circuit: Circuit) -> list[Issue]:
                 link(b1, b2)
         for n in circuit.nodes:
             buses = conn.node_buses.get(n.id, [])
-            if n.type in ("transformer", "regulator", "breaker") and len(buses) >= 2:
-                if n.type == "breaker" and not n.params.get("closed", True):
+            if n.type in SERIES_TYPES and len(buses) >= 2:
+                if n.type in SWITCH_TYPES and not n.params.get("closed", True):
                     continue
                 link(buses[0], buses[1])
 

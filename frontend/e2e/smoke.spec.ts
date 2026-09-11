@@ -136,8 +136,15 @@ test('export .dss, start new, and re-import the exported file', async ({ page })
   // The importer reads the model back through OpenDSS itself; exact node
   // counts depend on bus synthesis, so assert the key elements returned.
   await expect(page.locator('.react-flow__node-vsource')).toHaveCount(1, { timeout: 20_000 })
-  await expect(page.locator('.react-flow__node-load')).toHaveCount(1)
+  await expect(page.locator('.react-flow__node-load')).toHaveCount(2)
   await expect(page.locator('.react-flow__node-transformer')).toHaveCount(1)
+  // The controlled transformer and the switches with protection on them come
+  // back as those devices, not as a plain transformer and three breakers.
+  await expect(page.locator('.react-flow__node-regulator')).toHaveCount(1)
+  await expect(page.locator('.react-flow__node-fuse')).toHaveCount(1)
+  await expect(page.locator('.react-flow__node-recloser')).toHaveCount(1)
+  await expect(page.locator('.react-flow__node-relay')).toHaveCount(1)
+  await expect(page.locator('.react-flow__node-breaker')).toHaveCount(1)
 })
 
 test('the demo banner stays hidden on a local install', async ({ page }) => {

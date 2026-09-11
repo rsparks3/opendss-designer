@@ -17,6 +17,9 @@ from .model import Circuit, Issue
 # whenever these are used.
 DEFAULT_LINE_NORMAMPS = 400.0
 DEFAULT_BREAKER_NORMAMPS = 600.0
+DEFAULT_FUSE_AMPS = 65.0
+DEFAULT_RECLOSER_AMPS = 560.0
+DEFAULT_RELAY_AMPS = 600.0
 
 # Shapes above this go to CSV side files (when the caller provides a
 # directory): very long inline `mult=(...)` Text commands corrupt the DSS
@@ -34,6 +37,12 @@ DISPATCH_MODES = frozenset({"follow", "default"})
 # is the stricter set allowed in the conductor-preset CSV. Kept in sync with
 # engine._KM_PER_UNIT by a test.
 LINE_UNITS = frozenset({"none", "mi", "kft", "km", "m", "ft", "in", "cm"})
+# Time-current curves built into the OpenDSS engine. Naming a curve it does not
+# hold is a hard engine error ("TCC_Curve object not found"), which would take
+# the whole solve down, so protective devices may only reference these.
+FUSE_CURVES = frozenset({"tlink", "klink"})
+RECLOSER_CURVES = frozenset({"a", "d", "tlink", "klink"})
+RELAY_CURVES = frozenset({"mod_inv", "very_inv", "ext_inv", "definite"})
 
 
 @dataclass
@@ -127,6 +136,9 @@ def compile_circuit(circuit: Circuit,
     regulators = [n for n in circuit.nodes if n.type == "regulator"]
     loads = [n for n in circuit.nodes if n.type == "load"]
     breakers = [n for n in circuit.nodes if n.type == "breaker"]
+    fuses = [n for n in circuit.nodes if n.type == "fuse"]
+    reclosers = [n for n in circuit.nodes if n.type == "recloser"]
+    relays = [n for n in circuit.nodes if n.type == "relay"]
     capacitors = [n for n in circuit.nodes if n.type == "capacitor"]
     generators = [n for n in circuit.nodes if n.type == "generator"]
     pvsystems = [n for n in circuit.nodes if n.type == "pvsystem"]
@@ -302,6 +314,68 @@ def compile_circuit(circuit: Circuit,
             f"switch=yes normamps={normamps:g}")
         if not p.get("closed", True):
             cmds.append(f"open line.{name} term=1")
+
+    # Protective devices. Each is a switch (the power element the diagram wires
+    # into, and what results map to) plus the control object that watches it.
+    # The control only operates in fault and time-domain studies; in a snapshot
+    # these are a closed switch with a rating.
+    def protective_switch(n, default_amps: float) -> tuple[str, dict]:
+        p = n.params
+        name = element_name("line", p.get("name"), n.id, n.id)
+        phases = _phases(p)
+        b1, b2 = conn.node_buses[n.id]
+        sfx = _phase_suffix(phases)
+        normamps = _num(p, "normamps", default_amps)
+        cmds.append(
+            f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
+            f"switch=yes normamps={normamps:g}")
+        if not p.get("closed", True):
+            # A blown fuse or an open recloser: the switch is open, and the
+            # control object still describes what it would do when reset.
+            cmds.append(f"open line.{name} term=1")
+        return name, p
+
+    def monitors(name: str, p: dict) -> str:
+        # Opening the switch is not enough on its own: the control closes what
+        # it switches when the solve resets it, so an open device has to say so
+        # on the control as well.
+        action = "" if p.get("closed", True) else " action=open"
+        return (f"monitoredobj=line.{name} monitoredterm=1 "
+                f"switchedobj=line.{name} switchedterm=1{action}")
+
+    for n in fuses:
+        name, p = protective_switch(n, DEFAULT_FUSE_AMPS)
+        cmds.append(
+            f"new fuse.{name} {monitors(name, p)} "
+            f"fusecurve={_enum(p, 'fusecurve', FUSE_CURVES, 'tlink')} "
+            f"ratedcurrent={_num(p, 'ratedcurrent', DEFAULT_FUSE_AMPS):g} "
+            f"delay={_num(p, 'delay', 0.0):g}")
+
+    for n in reclosers:
+        name, p = protective_switch(n, DEFAULT_RECLOSER_AMPS)
+        cmds.append(
+            f"new recloser.{name} {monitors(name, p)} "
+            f"phasefast={_enum(p, 'phasefast', RECLOSER_CURVES, 'a')} "
+            f"phasedelayed={_enum(p, 'phasedelayed', RECLOSER_CURVES, 'd')} "
+            f"phasetrip={_num(p, 'phasetrip', 100.0):g} "
+            f"groundtrip={_num(p, 'groundtrip', 50.0):g} "
+            f"numfast={int(_num(p, 'numfast', 1.0) or 1)} "
+            f"shots={int(_num(p, 'shots', 4.0) or 4)} "
+            f"delay={_num(p, 'delay', 0.0):g}")
+
+    for n in relays:
+        name, p = protective_switch(n, DEFAULT_RELAY_AMPS)
+        cmd = (f"new relay.{name} {monitors(name, p)} type=current "
+               f"phasecurve={_enum(p, 'phasecurve', RELAY_CURVES, 'very_inv')} "
+               f"phasetrip={_num(p, 'phasetrip', 200.0):g} "
+               f"delay={_num(p, 'delay', 0.0):g}")
+        # No ground curve means no ground unit at all, which is a different
+        # relay from one with a ground unit picked up at some default.
+        ground = _enum(p, "groundcurve", RELAY_CURVES | {"none"}, "none")
+        if ground != "none":
+            cmd += (f" groundcurve={ground} "
+                    f"groundtrip={_num(p, 'groundtrip', 50.0):g}")
+        cmds.append(cmd)
 
     for n in loads:
         p = n.params

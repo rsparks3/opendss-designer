@@ -41,7 +41,7 @@ the whole list.
 9. `components/EditorCanvas.tsx` — register in `nodeTypes` and add a letter to
    `PLACE_KEYS`.
 10. `components/Palette.tsx` — palette item with icon + the same `kbd` letter.
-    (Taken letters: S B T V K L C G P A, plus W/E/R for modes.)
+    (Taken letters: S B T V K F O Y L C G P A, plus W/E/R for modes.)
 11. `lib/layout.ts` — if it's a 1-terminal shunt device, add it to
     `SHUNT_TYPES` so imports hang it under its busbar; 2-terminal series
     devices need `orientedEdges` / `alignDevicesBetweenBuses` handling.

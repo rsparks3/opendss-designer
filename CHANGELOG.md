@@ -16,6 +16,17 @@ This project follows [Semantic Versioning](https://semver.org/).
   overlays show what it settled on. Importing a `.dss` file brings a
   transformer that has a `RegControl` on it back as a regulator rather than as
   a plain transformer.
+- **Fuses, reclosers and relays** (++f++, ++o++, ++y++). Each is a switch plus
+  the control that watches it, kept together as one element: fuse link and
+  rated current; recloser pickups, fast and delayed curves, fast operations
+  and shots to lockout; relay pickups and IEEE inverse curves, with `none` as
+  a real option for the ground unit. Right-click or double-click blows a fuse
+  or opens a recloser or relay, and everything downstream goes dead. Curve
+  choices are limited to the ones the engine ships, because naming any other
+  stops the solve outright. The controls describe how each device would
+  operate: OpenDSS runs protection in fault and time-domain studies, so in a
+  snapshot these are closed switches with ratings — plotting the curves and
+  checking coordination comes next.
 
 ## 0.5.4 — 2026-09-07
 

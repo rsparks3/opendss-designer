@@ -61,6 +61,55 @@
       "params": { "name": "BUS-REG", "basekv": 12.47 }
     },
     {
+      "id": "n_fuse",
+      "type": "fuse",
+      "position": { "x": 780, "y": 400 },
+      "width": null,
+      "params": { "name": "FU1", "closed": true, "phases": 3, "ratedcurrent": 65, "fusecurve": "tlink", "delay": 0, "normamps": 100 }
+    },
+    {
+      "id": "n_rec",
+      "type": "recloser",
+      "position": { "x": 860, "y": 400 },
+      "width": null,
+      "params": { "name": "REC1", "closed": true, "phases": 3, "phasetrip": 100, "groundtrip": 50, "phasefast": "a", "phasedelayed": "d", "numfast": 1, "shots": 4, "delay": 0, "normamps": 560 }
+    },
+    {
+      "id": "n_rly",
+      "type": "relay",
+      "position": { "x": 940, "y": 400 },
+      "width": null,
+      "params": { "name": "RLY1", "closed": true, "phases": 3, "phasetrip": 200, "phasecurve": "very_inv", "groundcurve": "very_inv", "groundtrip": 50, "delay": 0, "normamps": 600 }
+    },
+    {
+      "id": "n_bus5",
+      "type": "busbar",
+      "position": { "x": 800, "y": 480 },
+      "width": 160,
+      "params": { "name": "BUS-PROT", "basekv": 12.47 }
+    },
+    {
+      "id": "n_bus6",
+      "type": "busbar",
+      "position": { "x": 800, "y": 560 },
+      "width": 160,
+      "params": { "name": "BUS-LAT", "basekv": 12.47 }
+    },
+    {
+      "id": "n_bus7",
+      "type": "busbar",
+      "position": { "x": 800, "y": 640 },
+      "width": 160,
+      "params": { "name": "BUS-TAP", "basekv": 12.47 }
+    },
+    {
+      "id": "n_load2",
+      "type": "load",
+      "position": { "x": 860, "y": 720 },
+      "width": null,
+      "params": { "name": "LOAD2", "kv": 12.47, "kw": 300, "pf": 0.95, "phases": 3, "conn": "wye", "model": 1 }
+    },
+    {
       "id": "n_brk",
       "type": "breaker",
       "position": { "x": 520, "y": 400 },
@@ -182,6 +231,76 @@
       "sourceHandle": "t2",
       "target": "n_bus4",
       "targetHandle": "b0",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e13",
+      "type": "wire",
+      "source": "n_bus4",
+      "sourceHandle": "c4",
+      "target": "n_rly",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e14",
+      "type": "wire",
+      "source": "n_rly",
+      "sourceHandle": "t2",
+      "target": "n_bus5",
+      "targetHandle": "b0",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e15",
+      "type": "wire",
+      "source": "n_bus5",
+      "sourceHandle": "c0",
+      "target": "n_rec",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e16",
+      "type": "wire",
+      "source": "n_rec",
+      "sourceHandle": "t2",
+      "target": "n_bus6",
+      "targetHandle": "b0",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e17",
+      "type": "wire",
+      "source": "n_bus6",
+      "sourceHandle": "c0",
+      "target": "n_fuse",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e18",
+      "type": "wire",
+      "source": "n_fuse",
+      "sourceHandle": "t2",
+      "target": "n_bus7",
+      "targetHandle": "b0",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e19",
+      "type": "wire",
+      "source": "n_bus7",
+      "sourceHandle": "c0",
+      "target": "n_load2",
+      "targetHandle": "t1",
       "params": {},
       "waypoints": null
     },

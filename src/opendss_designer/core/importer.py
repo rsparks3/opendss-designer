@@ -28,7 +28,7 @@ _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 
 
 SUPPORTED_PREFIXES = ("vsource.", "transformer.", "line.", "load.",
                       "capacitor.", "generator.", "pvsystem.", "storage.",
-                      "regcontrol.")
+                      "regcontrol.", "fuse.", "recloser.", "relay.")
 
 # Drawing-canvas size that geographic bus coordinates are normalized into.
 _LAYOUT_W, _LAYOUT_H = 1800.0, 1200.0
@@ -231,6 +231,84 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _prop(full_name: str, prop: str) -> str:
+    """Read one property off an element by name, for the ones the typed API
+    does not expose (recloser curves, everything on a relay)."""
+    dss.Text.Command(f"? {full_name}.{prop}")
+    return dss.Text.Result().strip()
+
+
+def _read_protection(warnings: list[str]) -> dict[str, tuple[str, dict[str, Any]]]:
+    """Protective devices, keyed by the switch they operate.
+
+    Each is modelled in the diagram as one element -- the switch plus its
+    control -- so the caller turns the switch it names into that element type
+    rather than into a plain breaker.
+    """
+    devices: dict[str, tuple[str, dict[str, Any]]] = {}
+
+    def switched_line(raw: str) -> str | None:
+        name = str(raw)
+        return name.split(".", 1)[1].lower() if name.lower().startswith("line.") else None
+
+    i = dss.Fuses.First()
+    while i:
+        line = switched_line(dss.Fuses.SwitchedObj())
+        if line:
+            devices[line] = ("fuse", {
+                "fusecurve": str(dss.Fuses.TCCCurve()).lower(),
+                "ratedcurrent": dss.Fuses.RatedCurrent(),
+                "delay": dss.Fuses.Delay(),
+            })
+        i = dss.Fuses.Next()
+
+    i = dss.Reclosers.First()
+    while i:
+        line = switched_line(dss.Reclosers.SwitchedObj())
+        if line:
+            full = f"recloser.{dss.Reclosers.Name()}"
+            devices[line] = ("recloser", {
+                "phasefast": _prop(full, "phasefast").lower(),
+                "phasedelayed": _prop(full, "phasedelayed").lower(),
+                "phasetrip": dss.Reclosers.PhaseTrip(),
+                "groundtrip": dss.Reclosers.GroundTrip(),
+                "numfast": dss.Reclosers.NumFast(),
+                "shots": dss.Reclosers.Shots(),
+                "delay": _to_float(_prop(full, "delay")),
+            })
+        i = dss.Reclosers.Next()
+
+    i = dss.Relays.First()
+    while i:
+        name = dss.Relays.Name()
+        line = switched_line(dss.Relays.SwitchedObj())
+        full = f"relay.{name}"
+        kind = _prop(full, "type").lower()
+        if line and kind.startswith("current"):
+            devices[line] = ("relay", {
+                "phasecurve": _prop(full, "phasecurve").lower(),
+                "phasetrip": _to_float(_prop(full, "phasetrip")),
+                # No curve means no ground unit; keep that distinction.
+                "groundcurve": _prop(full, "groundcurve").lower() or "none",
+                "groundtrip": _to_float(_prop(full, "groundtrip")),
+                "delay": _to_float(_prop(full, "delay")),
+            })
+        elif line:
+            warnings.append(
+                f"Relay.{name} is a '{kind}' relay; only overcurrent relays are "
+                "modelled, so it was imported as a plain switch.")
+        i = dss.Relays.Next()
+
+    return devices
+
+
+def _to_float(raw: str, default: float = 0.0) -> float:
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return default
+
+
 def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     nodes: list[CircuitNode] = []
     edges: list[CircuitEdge] = []
@@ -358,7 +436,10 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             wire(nid, f"t{term + 1}", busbar_for(bus), "b0")
         i = dss.Transformers.Next()
 
-    # Lines: switches become breaker nodes, others become line edges.
+    protection = _read_protection(warnings)
+
+    # Lines: switches become breaker nodes (or the protective device that
+    # switches them), others become line edges.
     i = dss.Lines.First()
     while i:
         name = dss.Lines.Name()
@@ -369,11 +450,12 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             dss.Circuit.SetActiveElement(f"line.{name}")
             closed = not dss.CktElement.IsOpen(1, 0)
             nid = node_id()
+            kind, device = protection.get(name.lower(), ("breaker", {}))
             nodes.append(CircuitNode(
-                id=nid, type="breaker",
+                id=nid, type=kind,
                 params={"name": name, "closed": closed,
                         "normamps": dss.Lines.NormAmps(),
-                        "phases": dss.Lines.Phases()}))
+                        "phases": dss.Lines.Phases(), **device}))
             wire(nid, "t1", busbar_for(b1), "b0")
             wire(nid, "t2", busbar_for(b2), "b0")
         else:

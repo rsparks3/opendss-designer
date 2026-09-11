@@ -8,7 +8,9 @@ const snap = (v: number) => Math.round(v / 10) * 10
 const SHUNT_TYPES = new Set(['load', 'capacitor', 'generator', 'pvsystem', 'storage'])
 
 /** 2-terminal series devices that sit between the buses they join, t1 upstream. */
-const SERIES_TYPES = new Set(['transformer', 'regulator', 'breaker'])
+const SERIES_TYPES = new Set([
+  'transformer', 'regulator', 'breaker', 'fuse', 'recloser', 'relay',
+])
 
 /** Lay out an imported circuit hierarchically (mutates in place): source at
  *  the top, power flowing downward, loads hanging directly beneath their

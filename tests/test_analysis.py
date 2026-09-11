@@ -46,10 +46,12 @@ def test_solve_reports_element_losses_and_distances():
 
     losses = {n: e["lossKw"] for n, e in result["elements"].items()
               if e["lossKw"] is not None}
-    # Only series elements report losses; shunt elements report None.
-    # A regulator is a transformer to OpenDSS, so it reports losses too.
+    # Only series elements report losses; shunt elements report None. A
+    # regulator is a transformer to OpenDSS, and every protective device is a
+    # switch, so both kinds report losses like the breaker does.
     assert set(losses) == {"transformer.t1", "transformer.reg1",
-                           "line.ln1", "line.brk1"}
+                           "line.ln1", "line.brk1",
+                           "line.fu1", "line.rec1", "line.rly1"}
     assert result["elements"]["load.load1"]["lossKw"] is None
     assert losses["transformer.t1"] > 0
     assert losses["line.ln1"] > 0

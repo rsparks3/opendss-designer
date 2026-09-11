@@ -60,6 +60,45 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
     ),
   },
   {
+    type: 'fuse',
+    label: 'Fuse',
+    kbd: 'F',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="9" className="sym" />
+        <rect x="9" y="9" width="14" height="14" className="sym" fill="none" />
+        <line x1="16" y1="9" x2="16" y2="23" className="sym" />
+        <line x1="16" y1="23" x2="16" y2="30" className="sym" />
+      </svg>
+    ),
+  },
+  {
+    type: 'recloser',
+    label: 'Recloser',
+    kbd: 'O',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="8" className="sym" />
+        <circle cx="16" cy="16" r="8" className="sym" fill="none" />
+        <line x1="16" y1="8" x2="16" y2="24" className="sym" />
+        <line x1="16" y1="24" x2="16" y2="30" className="sym" />
+      </svg>
+    ),
+  },
+  {
+    type: 'relay',
+    label: 'Relay',
+    kbd: 'Y',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="14" y1="4" x2="14" y2="12" className="sym" />
+        <rect x="8" y="12" width="12" height="12" className="sym-fill" />
+        <line x1="14" y1="24" x2="14" y2="30" className="sym" />
+        <circle cx="24" cy="8" r="6" className="sym" fill="none" />
+      </svg>
+    ),
+  },
+  {
     type: 'load',
     label: 'Load',
     kbd: 'L',

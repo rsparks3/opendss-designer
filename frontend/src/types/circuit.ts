@@ -11,6 +11,9 @@ export type NodeType =
   | 'pvsystem'
   | 'storage'
   | 'regulator'
+  | 'fuse'
+  | 'recloser'
+  | 'relay'
 export type EdgeKind = 'wire' | 'line'
 
 export type Params = Record<string, unknown>

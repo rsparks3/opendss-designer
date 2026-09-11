@@ -80,6 +80,58 @@ open/close it; an open breaker de-energizes everything downstream.
 | Rating (A) | `normamps`, used for the loading overlay |
 | Phases | 1 / 2 / 3 |
 
+## Fuse — ++f++, Recloser — ++o++, Relay — ++y++
+
+Protective devices. Each one is a switch on the diagram plus the control that
+watches it, and the editor keeps the pair together as a single element — the
+switch is what carries current, so loading and losses report against it.
+
+Right-click (or double-click) blows a fuse or opens a recloser or relay, the
+same way a breaker opens. Anything downstream goes dead, which is how you check
+what a device protects.
+
+**Fuse**
+
+| Parameter | Meaning |
+|---|---|
+| Intact | Uncheck to blow it |
+| Rated current | The link's rating, in amps |
+| Fuse link | `tlink` or `klink` — the standard link curves |
+| Added delay | Seconds added to the curve's time |
+| Continuous rating | `normamps`, used for the loading overlay |
+
+**Recloser**
+
+| Parameter | Meaning |
+|---|---|
+| Phase / ground pickup | Trip current, in amps |
+| Fast / delayed curve | `a` and `d` are the standard fast and delayed curves |
+| Fast operations | How many trips use the fast curve before switching to the delayed one |
+| Shots to lockout | Trips before it stays open |
+
+**Relay** (overcurrent, ANSI 51 — 51N once a ground curve is set)
+
+| Parameter | Meaning |
+|---|---|
+| Phase / ground pickup | Trip current, in amps |
+| Phase / ground curve | `mod_inv`, `very_inv`, `ext_inv` (IEEE moderately, very and extremely inverse) or `definite` |
+| Ground curve `none` | No ground unit at all, which is different from one set to a default |
+
+The curve names are the ones built into the OpenDSS engine, so the dropdown
+only offers those — naming a curve the engine does not hold stops the solve
+outright.
+
+!!! note "What these do today"
+
+    The controls describe how each device *would* operate. OpenDSS runs
+    protection in fault and time-domain studies, so in a snapshot or a
+    time-series run these behave as closed switches with ratings. Plotting
+    the curves and checking coordination between devices is the next step on
+    the [roadmap](https://github.com/rsparks3/opendss-designer/blob/main/FUTURE_IMPROVEMENTS.md).
+    Meanwhile the model is complete: export it and the devices are there, and
+    importing a `.dss` file brings them back as devices rather than as plain
+    switches.
+
 ## Load — ++l++
 
 | Parameter | Meaning |

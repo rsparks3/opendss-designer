@@ -28,6 +28,23 @@ export function defaultParams(type: NodeType): Params {
         vreg: 122, band: 2, ptratio: 60, ctprim: 300, r: 0, x: 0,
         xhl: 0.01, pctloadloss: 0.01, maxtapchange: 16,
       }
+    case 'fuse':
+      return {
+        name: nextName('FU'), closed: true, phases: 3, ratedcurrent: 65,
+        fusecurve: 'tlink', delay: 0, normamps: 100,
+      }
+    case 'recloser':
+      return {
+        name: nextName('REC'), closed: true, phases: 3, phasetrip: 100,
+        groundtrip: 50, phasefast: 'a', phasedelayed: 'd', numfast: 1,
+        shots: 4, delay: 0, normamps: 560,
+      }
+    case 'relay':
+      return {
+        name: nextName('RLY'), closed: true, phases: 3, phasetrip: 200,
+        phasecurve: 'very_inv', groundcurve: 'very_inv', groundtrip: 50,
+        delay: 0, normamps: 600,
+      }
     case 'load':
       return { name: nextName('LOAD'), kv: 12.47, kw: 1000, pf: 0.95, phases: 3, conn: 'wye', model: 1 }
     case 'breaker':
@@ -70,6 +87,9 @@ export const NODE_SIZE: Record<NodeType, { w: number; h: number }> = {
   busbar: { w: 240, h: 14 },
   transformer: { w: 40, h: 80 },
   regulator: { w: 40, h: 80 },
+  fuse: { w: 40, h: 60 },
+  recloser: { w: 40, h: 60 },
+  relay: { w: 40, h: 60 },
   load: { w: 40, h: 60 },
   breaker: { w: 40, h: 60 },
   capacitor: { w: 40, h: 60 },
