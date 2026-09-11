@@ -33,6 +33,7 @@ import { BusbarNode } from './nodes/BusbarNode'
 import { CapacitorNode } from './nodes/CapacitorNode'
 import { GeneratorNode } from './nodes/GeneratorNode'
 import { LoadNode } from './nodes/LoadNode'
+import { RegulatorNode } from './nodes/RegulatorNode'
 import { PVSystemNode } from './nodes/PVSystemNode'
 import { StorageNode } from './nodes/StorageNode'
 import { TransformerNode } from './nodes/TransformerNode'
@@ -45,6 +46,7 @@ const nodeTypes = {
   vsource: VsourceNode,
   busbar: BusbarNode,
   transformer: TransformerNode,
+  regulator: RegulatorNode,
   load: LoadNode,
   breaker: BreakerNode,
   capacitor: CapacitorNode,
@@ -168,6 +170,7 @@ export function EditorCanvas() {
       s: 'vsource',
       b: 'busbar',
       t: 'transformer',
+      v: 'regulator',
       k: 'breaker',
       l: 'load',
       c: 'capacitor',

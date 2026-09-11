@@ -19,6 +19,7 @@ const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'vsource', label: 'Sources' },
   { key: 'busbar', label: 'Busbars' },
   { key: 'transformer', label: 'Transformers' },
+  { key: 'regulator', label: 'Regulators' },
   { key: 'line', label: 'Lines' },
   { key: 'breaker', label: 'Breakers' },
   { key: 'load', label: 'Loads' },

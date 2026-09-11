@@ -125,7 +125,7 @@ def validate(circuit: Circuit) -> list[Issue]:
                 link(b1, b2)
         for n in circuit.nodes:
             buses = conn.node_buses.get(n.id, [])
-            if n.type in ("transformer", "breaker") and len(buses) >= 2:
+            if n.type in ("transformer", "regulator", "breaker") and len(buses) >= 2:
                 if n.type == "breaker" and not n.params.get("closed", True):
                     continue
                 link(buses[0], buses[1])
@@ -191,6 +191,11 @@ def validate(circuit: Circuit) -> list[Issue]:
             kv = n.params.get("kv")
             if kv and buses:
                 declared.append((buses[0], float(kv)))
+        elif n.type == "regulator":
+            # Equal ratio, so both sides declare the same kV.
+            kv = n.params.get("kv")
+            if kv:
+                declared.extend((b, float(kv)) for b in buses[:2])
         elif n.type == "transformer":
             windings = n.params.get("windings") or []
             for b, w in zip(buses, windings, strict=False):

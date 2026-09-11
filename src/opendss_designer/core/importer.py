@@ -27,7 +27,8 @@ from .model import Circuit, CircuitEdge, CircuitNode, LoadShapeSpec, Position
 _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
 
 SUPPORTED_PREFIXES = ("vsource.", "transformer.", "line.", "load.",
-                      "capacitor.", "generator.", "pvsystem.", "storage.")
+                      "capacitor.", "generator.", "pvsystem.", "storage.",
+                      "regcontrol.")
 
 # Drawing-canvas size that geographic bus coordinates are normalized into.
 _LAYOUT_W, _LAYOUT_H = 1800.0, 1200.0
@@ -296,6 +297,24 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
         i = dss.Vsources.Next()
 
+    # RegControls, indexed by the transformer they act on: a controlled
+    # transformer comes back as a regulator node rather than a transformer.
+    reg_controls: dict[str, dict[str, Any]] = {}
+    i = dss.RegControls.First()
+    while i:
+        xfmr = str(dss.RegControls.Transformer()).lower()
+        reg_controls[xfmr] = {
+            "name": dss.RegControls.Name(),
+            "vreg": dss.RegControls.ForwardVreg(),
+            "band": dss.RegControls.ForwardBand(),
+            "ptratio": dss.RegControls.PTRatio(),
+            "ctprim": dss.RegControls.CTPrimary(),
+            "r": dss.RegControls.ForwardR(),
+            "x": dss.RegControls.ForwardX(),
+            "maxtapchange": dss.RegControls.MaxTapChange(),
+        }
+        i = dss.RegControls.Next()
+
     # Transformers (2-winding supported; others reported)
     i = dss.Transformers.First()
     while i:
@@ -320,7 +339,21 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             "windings": windings, "xhl": dss.Transformers.Xhl()}
         if any(bus_nodes):
             params["busNodes"] = bus_nodes
-        nodes.append(CircuitNode(id=nid, type="transformer", params=params))
+        reg = reg_controls.get(name.lower())
+        if reg is not None:
+            # The regulator's own editor carries one kv/kva pair, not a winding
+            # list; the RegControl's name is dropped in favour of the
+            # transformer's, which is what the compiler re-emits for both.
+            params.pop("windings", None)
+            params["kv"] = windings[0]["kv"]
+            params["kva"] = windings[0]["kva"]
+            params["pctloadloss"] = 0.01
+            for key, value in reg.items():
+                if key != "name":
+                    params[key] = value
+            nodes.append(CircuitNode(id=nid, type="regulator", params=params))
+        else:
+            nodes.append(CircuitNode(id=nid, type="transformer", params=params))
         for term, bus in enumerate(raw_buses[:2]):
             wire(nid, f"t{term + 1}", busbar_for(bus), "b0")
         i = dss.Transformers.Next()

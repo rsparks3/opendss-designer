@@ -35,6 +35,19 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
     ),
   },
   {
+    type: 'regulator',
+    label: 'Regulator',
+    kbd: 'V',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <circle cx="16" cy="11" r="8" className="sym" fill="none" />
+        <circle cx="16" cy="21" r="8" className="sym" fill="none" />
+        <line x1="4" y1="26" x2="28" y2="6" className="sym" />
+        <path d="M28 6 L21 7.5 L25.5 12 Z" className="sym" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
     type: 'breaker',
     label: 'Breaker',
     kbd: 'K',

@@ -48,6 +48,27 @@ Two-winding, with a per-winding editor:
 | Load loss (%) | Winding losses at rated load |
 | Per winding: kV, kVA, wye/delta | Ratings and connection for each side |
 
+## Regulator — ++v++
+
+A step-voltage regulator: an equal-ratio transformer plus the `RegControl`
+that moves its taps to hold the load-side voltage. Settings are the ones on a
+real control cabinet, expressed on the 120 V control base.
+
+| Parameter | Meaning |
+|---|---|
+| Phases | 1 or 3 |
+| Rated kV, kVA | Same kV both sides — a regulator boosts, it does not transform |
+| Voltage setpoint | Target voltage on the 120 V base (122 V is typical) |
+| Bandwidth | Total deadband around the setpoint, so ±half this |
+| PT ratio | Turns the line voltage into the 120 V base. Left blank, it is derived from the rated kV |
+| CT primary | Current transformer primary rating, used by line drop compensation |
+| Line drop comp R, X | Volts of compensation, to regulate a point out on the feeder rather than at the regulator |
+| Max tap change / solution | Taps the control may move in one solution |
+
+The tap position is chosen by OpenDSS during the solve; the diagram shows the
+resulting voltages. Importing a `.dss` file turns any transformer with a
+`RegControl` on it back into a regulator.
+
 ## Breaker / switch — ++k++
 
 Emitted as a zero-impedance OpenDSS switch. Double-click (or right-click) to

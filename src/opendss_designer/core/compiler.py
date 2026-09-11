@@ -124,6 +124,7 @@ def compile_circuit(circuit: Circuit,
 
     vsources = [n for n in circuit.nodes if n.type == "vsource"]
     transformers = [n for n in circuit.nodes if n.type == "transformer"]
+    regulators = [n for n in circuit.nodes if n.type == "regulator"]
     loads = [n for n in circuit.nodes if n.type == "load"]
     breakers = [n for n in circuit.nodes if n.type == "breaker"]
     capacitors = [n for n in circuit.nodes if n.type == "capacitor"]
@@ -227,6 +228,41 @@ def compile_circuit(circuit: Circuit,
             f"new transformer.{name} phases={phases} windings={len(windings)} "
             f"buses=({bus_list}) conns=({conns}) kvs=({kvs}) kvas=({kvas}) "
             f"xhl={xhl:g} %loadloss={loadloss:g}")
+
+    # Regulators: an equal-ratio 2-winding transformer plus the RegControl that
+    # moves its taps. They share one name — OpenDSS keeps classes in separate
+    # namespaces, and results/issues map through the transformer, which is the
+    # power element.
+    for n in regulators:
+        p = n.params
+        name = element_name("transformer", p.get("name"), n.id, n.id)
+        phases = _phases(p)
+        kv = _num(p, "kv", 12.47) or 12.47
+        kva = _num(p, "kva", 5000.0)
+        xhl = _num(p, "xhl", 0.01)
+        loadloss = _num(p, "pctloadloss", 0.01)
+        buses = conn.node_buses[n.id]
+        bus_nodes = p.get("busNodes") or []
+        bus_list = ", ".join(
+            b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None, phases)
+            for i, b in enumerate(buses[:2]))
+        kv_bases.add(kv)
+        cmds.append(
+            f"new transformer.{name} phases={phases} windings=2 "
+            f"buses=({bus_list}) conns=(wye, wye) kvs=({kv:g}, {kv:g}) "
+            f"kvas=({kva:g}, {kva:g}) xhl={xhl:g} %loadloss={loadloss:g}")
+        # PT ratio defaults to whatever turns the regulated winding's nominal
+        # voltage into the 120 V control base.
+        ptratio = _num(p, "ptratio")
+        if ptratio is None or ptratio <= 0:
+            ln_volts = kv * 1000.0 / (3 ** 0.5) if phases == 3 else kv * 1000.0
+            ptratio = round(ln_volts / 120.0, 2)
+        cmds.append(
+            f"new regcontrol.{name} transformer={name} winding=2 "
+            f"vreg={_num(p, 'vreg', 122.0):g} band={_num(p, 'band', 2.0):g} "
+            f"ptratio={ptratio:g} ctprim={_num(p, 'ctprim', 300.0):g} "
+            f"R={_num(p, 'r', 0.0):g} X={_num(p, 'x', 0.0):g} "
+            f"maxtapchange={int(_num(p, 'maxtapchange', 16.0) or 16)}")
 
     for e in line_edges:
         p = e.params

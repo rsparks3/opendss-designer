@@ -139,6 +139,7 @@ const NAME_PREFIX: Record<string, string> = {
   vsource: 'SRC',
   busbar: 'BUS',
   transformer: 'T',
+  regulator: 'REG',
   load: 'LOAD',
   breaker: 'BRK',
   capacitor: 'CAP',

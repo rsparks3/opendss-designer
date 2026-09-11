@@ -47,6 +47,20 @@
       "params": { "name": "BUS-FDR", "basekv": 12.47 }
     },
     {
+      "id": "n_reg",
+      "type": "regulator",
+      "position": { "x": 700, "y": 400 },
+      "width": null,
+      "params": { "name": "REG1", "phases": 3, "kv": 12.47, "kva": 5000, "vreg": 122, "band": 2, "ptratio": 60, "ctprim": 300, "r": 0, "x": 0, "xhl": 0.01, "pctloadloss": 0.01, "maxtapchange": 16 }
+    },
+    {
+      "id": "n_bus4",
+      "type": "busbar",
+      "position": { "x": 640, "y": 480 },
+      "width": 160,
+      "params": { "name": "BUS-REG", "basekv": 12.47 }
+    },
+    {
       "id": "n_brk",
       "type": "breaker",
       "position": { "x": 520, "y": 400 },
@@ -144,10 +158,30 @@
     {
       "id": "e5",
       "type": "wire",
-      "source": "n_bus3",
+      "source": "n_bus4",
       "sourceHandle": "c1",
       "target": "n_brk",
       "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e11",
+      "type": "wire",
+      "source": "n_bus3",
+      "sourceHandle": "c1",
+      "target": "n_reg",
+      "targetHandle": "t1",
+      "params": {},
+      "waypoints": null
+    },
+    {
+      "id": "e12",
+      "type": "wire",
+      "source": "n_reg",
+      "sourceHandle": "t2",
+      "target": "n_bus4",
+      "targetHandle": "b0",
       "params": {},
       "waypoints": null
     },

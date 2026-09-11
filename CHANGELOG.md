@@ -3,6 +3,20 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **Step-voltage regulators** (++v++ in the palette). A regulator is an
+  equal-ratio transformer plus the `RegControl` that taps it, and the editor
+  treats it as one element: voltage setpoint and bandwidth on the 120 V control
+  base, PT ratio (derived from the rated kV when you leave it blank), CT
+  primary, line drop compensation R and X, and the tap change limit per
+  solution. The tap position is OpenDSS's to choose during the solve, and the
+  overlays show what it settled on. Importing a `.dss` file brings a
+  transformer that has a `RegControl` on it back as a regulator rather than as
+  a plain transformer.
+
 ## 0.5.4 — 2026-09-07
 
 ### Fixed

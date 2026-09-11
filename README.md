@@ -16,7 +16,8 @@ edit visually or in a spreadsheet view, and export runnable OpenDSS scripts.
 
 ## Features (v1)
 
-- **Click-and-place palette**: Source (Vsource), Busbar, 2-winding Transformer, Breaker/Switch, Load —
+- **Click-and-place palette**: Source (Vsource), Busbar, 2-winding Transformer, Step-voltage
+  Regulator, Breaker/Switch, Load —
   placement is sticky, so keep clicking to drop several; Esc to stop
 - **Drag-to-wire**: drag between terminals; choose **Wire** (ideal connection, merges buses) or
   **Line** (a real OpenDSS Line with impedance and length). Illegal connections (busbar-to-busbar

@@ -41,21 +41,23 @@ the whole list.
 9. `components/EditorCanvas.tsx` — register in `nodeTypes` and add a letter to
    `PLACE_KEYS`.
 10. `components/Palette.tsx` — palette item with icon + the same `kbd` letter.
-    (Taken letters: S B T K L C G P A, plus W/E/R for modes.)
+    (Taken letters: S B T V K L C G P A, plus W/E/R for modes.)
 11. `lib/layout.ts` — if it's a 1-terminal shunt device, add it to
     `SHUNT_TYPES` so imports hang it under its busbar; 2-terminal series
     devices need `orientedEdges` / `alignDevicesBetweenBuses` handling.
 12. `store/circuitStore.ts` — add the name prefix to `NAME_PREFIX`
     (copy/paste renaming).
+13. `components/BottomPanel.tsx` — add a `TYPE_TABS` entry, or the element
+    never appears in the spreadsheet view.
 
 ## Tests
 
-13. ⚡ `tests/fixtures/full-circuit.oneline.json` — add a wired, solvable
+14. ⚡ `tests/fixtures/full-circuit.oneline.json` — add a wired, solvable
     instance of the element. `test_schema_fixture.py::
     test_fixture_covers_every_type` fails until you do; the same fixture
     drives the frontend round-trip test and the e2e solve test.
-14. `tests/test_schema_fixture.py` — add the expected `new <class>.<name>`
+15. `tests/test_schema_fixture.py` — add the expected `new <class>.<name>`
     fragment to `test_fixture_compiles_cleanly`.
-15. `tests/test_import_roundtrip.py` — extend the round-trip coverage.
+16. `tests/test_import_roundtrip.py` — extend the round-trip coverage.
 
 Then: `pytest`, `npm test`, `npm run e2e`, and update `FUTURE_IMPROVEMENTS.md`.

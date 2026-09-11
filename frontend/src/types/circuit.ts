@@ -10,6 +10,7 @@ export type NodeType =
   | 'generator'
   | 'pvsystem'
   | 'storage'
+  | 'regulator'
 export type EdgeKind = 'wire' | 'line'
 
 export type Params = Record<string, unknown>

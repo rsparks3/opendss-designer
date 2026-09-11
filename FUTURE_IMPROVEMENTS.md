@@ -105,7 +105,10 @@ All frontend-only; the M1 vitest harness covers the store changes.
 
 ## M6 — Regulation, protection & phases
 
-- **Voltage regulators** (`RegControl` on an autotransformer) — band, PT ratio, LDC
+- ~~**Voltage regulators**~~ — an equal-ratio transformer plus its `RegControl`,
+  emitted under one name; setpoint/band/PT ratio/CT primary/LDC R and X in the
+  properties panel, PT ratio derived from the rated kV when left blank, and a
+  controlled transformer imports back as a regulator
 - **3-winding transformers** — third handle; the per-winding editor already generalizes
 - **Fuses, reclosers, relays** (`Fuse`, `Recloser`, `Relay`) — pairs with M4's fault study
 - **TCC curves** (`TCC_Curve`) — a user-editable curve library plus a time-current plot
