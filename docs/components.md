@@ -121,16 +121,17 @@ The curve names are the ones built into the OpenDSS engine, so the dropdown
 only offers those — naming a curve the engine does not hold stops the solve
 outright.
 
+Their curves are plotted in the **Graph tab → Protection** — see
+[Analysis](analysis.md#protection-time-current-curves).
+
 !!! note "What these do today"
 
-    The controls describe how each device *would* operate. OpenDSS runs
-    protection in fault and time-domain studies, so in a snapshot or a
-    time-series run these behave as closed switches with ratings. Plotting
-    the curves and checking coordination between devices is the next step on
-    the [roadmap](https://github.com/rsparks3/opendss-designer/blob/main/FUTURE_IMPROVEMENTS.md).
-    Meanwhile the model is complete: export it and the devices are there, and
-    importing a `.dss` file brings them back as devices rather than as plain
-    switches.
+    The controls describe how each device *would* operate, and the Protection
+    plot shows when. OpenDSS itself runs protection in fault and time-domain
+    studies, so in a snapshot or a time-series run these behave as closed
+    switches with ratings — nothing trips mid-run. Automatic coordination
+    checks between devices are the next step on the
+    [roadmap](https://github.com/rsparks3/opendss-designer/blob/main/FUTURE_IMPROVEMENTS.md).
 
 ## Load — ++l++
 

@@ -114,11 +114,20 @@ All frontend-only; the M1 vitest harness covers the store changes.
   element in the editor; curve choices are limited to the ten the engine ships, since
   naming any other stops the solve; a relay with no ground curve gets no ground unit;
   open/close (blow/replace) like a breaker; imports back as the device, not as a switch
-- **TCC curves** (`TCC_Curve`) — a user-editable curve library plus a time-current plot
-  in the Graph tab, so a coordination check can be read off the diagram. Shipping the
-  plot, not a manufacturer device library — see Out of scope. Pairs with M4's fault
-  study: the interesting check is pickup and interrupting rating against the fault
-  current actually available at the device
+- ~~**TCC curves** (`TCC_Curve`)~~ — Graph tab → Protection plots every device on
+  log-log paper from the engine's own curve objects scaled by each pickup, with the
+  prospective 3φ fault current at each device's downstream bus as a dashed line, a
+  dotted flat tail past the end of the curve data, hover readout and a legend that
+  toggles devices. `core/protection.py` + `POST /api/tcc`
+- **Coordination checks** — the judgement the plot still leaves to the eye, as
+  `Issue`s in the Problems list: a device whose pickup sits above the fault current
+  available to it (it never operates), and a series pair that miscoordinates at the
+  downstream device's fault current (upstream faster, or inside the margin). Needs an
+  upstream/downstream walk over the series elements, which `connectivity.py` already
+  has the graph for
+- **A user-editable curve library** — the ten curves the engine ships cover the common
+  cases; entering a manufacturer's points is what a real study needs next. Shipping the
+  editor, never a manufacturer device library — see Out of scope
 - **Phase pinning** — connect 1-phase elements to a chosen phase (`.2`, `.3` suffixes;
   `compiler.py` already accepts explicit suffixes, so this is mostly UI)
 - **Per-phase display** — phase labels on wires, per-phase voltage readouts

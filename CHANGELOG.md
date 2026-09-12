@@ -24,6 +24,16 @@ This project follows [Semantic Versioning](https://semver.org/).
   overlays show what it settled on. Importing a `.dss` file brings a
   transformer that has a `RegControl` on it back as a regulator rather than as
   a plain transformer.
+- **Time-current curves** (Graph tab → **Protection**). Every fuse, recloser
+  and relay in the circuit, plotted on log-log paper with a dashed line at the
+  prospective 3φ fault current at each device's own downstream bus — the fault
+  it exists to clear. Hovering reads out what each curve would do at that
+  current; clicking a device in the legend takes it off the plot. The curves
+  are the engine's own `TCC_Curve` objects scaled by each device's pickup, and
+  the fault currents come from the same study the Fault overlay uses, so the
+  plot agrees with both. Past the end of a curve's data a faint dotted line
+  carries it on flat, which is what the engine does and is usually where the
+  fault current lands.
 - **Fuses, reclosers and relays** (++f++, ++o++, ++y++). Each is a switch plus
   the control that watches it, kept together as one element: fuse link and
   rated current; recloser pickups, fast and delayed curves, fast operations

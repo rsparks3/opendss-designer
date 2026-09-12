@@ -13,7 +13,7 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 
 from .. import __version__, context
-from ..core import engine, importer, irradiance, linecodes, nrel, samples
+from ..core import engine, importer, irradiance, linecodes, nrel, protection, samples
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
@@ -105,6 +105,14 @@ def solve(circuit: Circuit) -> dict:
 def fault_study(circuit: Circuit) -> dict:
     try:
         return engine.fault_study(circuit)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+@router.post("/tcc")
+def tcc(circuit: Circuit) -> dict:
+    try:
+        return protection.tcc_study(circuit)
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
 

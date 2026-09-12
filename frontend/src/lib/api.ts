@@ -1,4 +1,5 @@
 import type { CircuitJSON, FaultResult, Issue, SolveResult } from '../types/circuit'
+import type { TccResult } from './tcc'
 
 export interface NrelMeta {
   products: Record<string, { label: string; zones: string[]; buildingTypes: string[] }>
@@ -126,6 +127,8 @@ export const api = {
   solve: (circuit: CircuitJSON) => post<SolveResult>('/api/solve', circuit),
 
   faultStudy: (circuit: CircuitJSON) => post<FaultResult>('/api/faultstudy', circuit),
+
+  tcc: (circuit: CircuitJSON) => post<TccResult>('/api/tcc', circuit),
 
   validate: (circuit: CircuitJSON) =>
     post<{ issues: Issue[] }>('/api/validate', circuit),
