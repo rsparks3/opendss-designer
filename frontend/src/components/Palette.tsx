@@ -178,48 +178,50 @@ export function Palette() {
 
   return (
     <div className="palette">
-      <div className="palette-title">Components</div>
-      {ITEMS.map((item) => (
-        <button
-          key={item.type}
-          className={`palette-item${placementType === item.type ? ' active' : ''}`}
-          onClick={() => setPlacement(placementType === item.type ? null : item.type)}
-          title={`Click (or press ${item.kbd}), then click the canvas to place a ${item.label.toLowerCase()}`}
-        >
-          <span className="palette-icon">{item.icon}</span>
-          {item.label}
-          <kbd className="palette-kbd">{item.kbd}</kbd>
-        </button>
-      ))}
-      <div className="palette-title" style={{ marginTop: 16 }}>
-        Drag to connect
+      <div className="palette-group">
+        <div className="palette-title">Components</div>
+        {ITEMS.map((item) => (
+          <button
+            key={item.type}
+            className={`palette-item${placementType === item.type ? ' active' : ''}`}
+            onClick={() => setPlacement(placementType === item.type ? null : item.type)}
+            title={`Click (or press ${item.kbd}), then click the canvas to place a ${item.label.toLowerCase()}`}
+          >
+            <span className="palette-icon">{item.icon}</span>
+            <span className="palette-label">{item.label}</span>
+            <kbd className="palette-kbd">{item.kbd}</kbd>
+          </button>
+        ))}
       </div>
-      <button
-        className={`palette-item${connectMode === 'wire' ? ' active' : ''}`}
-        onClick={() => setConnectMode('wire')}
-        title="New connections are ideal wires (same electrical bus)"
-      >
-        <span className="palette-icon">
-          <svg viewBox="0 0 32 32">
-            <line x1="2" y1="16" x2="30" y2="16" className="sym" />
-          </svg>
-        </span>
-        Wire
-        <kbd className="palette-kbd">W</kbd>
-      </button>
-      <button
-        className={`palette-item${connectMode === 'line' ? ' active' : ''}`}
-        onClick={() => setConnectMode('line')}
-        title="New connections are OpenDSS Line elements (impedance + length)"
-      >
-        <span className="palette-icon">
-          <svg viewBox="0 0 32 32">
-            <line x1="2" y1="16" x2="30" y2="16" className="sym" strokeWidth="3" />
-          </svg>
-        </span>
-        Line (impedance)
-        <kbd className="palette-kbd">E</kbd>
-      </button>
+      <div className="palette-group">
+        <div className="palette-title">Drag to connect</div>
+        <button
+          className={`palette-item${connectMode === 'wire' ? ' active' : ''}`}
+          onClick={() => setConnectMode('wire')}
+          title="New connections are ideal wires (same electrical bus)"
+        >
+          <span className="palette-icon">
+            <svg viewBox="0 0 32 32">
+              <line x1="2" y1="16" x2="30" y2="16" className="sym" />
+            </svg>
+          </span>
+          <span className="palette-label">Wire</span>
+          <kbd className="palette-kbd">W</kbd>
+        </button>
+        <button
+          className={`palette-item${connectMode === 'line' ? ' active' : ''}`}
+          onClick={() => setConnectMode('line')}
+          title="New connections are OpenDSS Line elements (impedance + length)"
+        >
+          <span className="palette-icon">
+            <svg viewBox="0 0 32 32">
+              <line x1="2" y1="16" x2="30" y2="16" className="sym" strokeWidth="3" />
+            </svg>
+          </span>
+          <span className="palette-label">Line</span>
+          <kbd className="palette-kbd">E</kbd>
+        </button>
+      </div>
       {placementType && (
         <div className="palette-hint">Click the canvas to place. Esc to cancel.</div>
       )}

@@ -135,7 +135,10 @@ export default function App() {
         <Toolbar />
         <TimeBar />
         <div className="main-row">
-          <SidePanel side="left" storageKey="palette" defaultWidth={170} minWidth={120} maxWidth={360} title="components">
+          {/* storageKey bumped with the icon-collapse change: a width saved
+              against the old 170px default now reads as "icons only", which
+              is not what anyone who dragged it there asked for. */}
+          <SidePanel side="left" storageKey="palette2" defaultWidth={210} minWidth={72} maxWidth={360} title="components">
             <Palette />
           </SidePanel>
           <EditorCanvas />

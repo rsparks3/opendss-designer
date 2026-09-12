@@ -5,6 +5,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Changed
+
+- **The components column collapses to symbols when you narrow it.** Dragging
+  it in used to shrink the symbols and clip the names; now the symbols keep
+  their size and the names give way entirely, leaving a tidy icon strip (every
+  button still names itself and its key on hover). The column also starts a
+  little wider, so the longest names fit without being cut.
+
 ### Added
 
 - **Step-voltage regulators** (++v++ in the palette). A regulator is an

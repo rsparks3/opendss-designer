@@ -13,6 +13,16 @@ const TWO_TERMINAL = new Set<string>([
 // bar's left edge, and the symbols are placed 40px apart.
 const BUS_W = 40 * TYPES.length + 40
 
+/** Every x in a path's "x,y" pairs, control points included — a straight drop
+ *  has one x across all of them. The tolerance is physical: the canvas
+ *  transform leaves sub-micron differences that no one can see, and which move
+ *  whenever the layout shifts, so compare a hundredth of a pixel rather than a
+ *  fixed number of decimal places. */
+function isBent(d: string): boolean {
+  const xs = [...d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((m) => Number(m[1]))
+  return xs.length < 2 || Math.max(...xs) - Math.min(...xs) > 0.01
+}
+
 // Every symbol's terminal sits at its container's centre while the canvas snaps
 // the container's top-left corner, so a box dimension that is not a multiple of
 // SYMBOL_PITCH puts the terminal half a grid step off and every wire to a
@@ -70,10 +80,7 @@ test('every symbol wires to a busbar with no bend', async ({ page }) => {
   // the control points, not just the M/L anchors. Pull the x out of EVERY
   // "x,y" pair: a truly vertical drop has exactly one distinct x across all
   // of them.
-  const jogs = paths.filter((p) => {
-    const xs = [...p.d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((m) => Number(m[1]))
-    return xs.length < 2 || new Set(xs.map((x) => x.toFixed(3))).size !== 1
-  })
+  const jogs = paths.filter((p) => isBent(p.d))
 
   // 2. Cross-check against the painted handle rects at zoom 1.
   const rects = await page.evaluate((types: string[]) => {
@@ -147,9 +154,6 @@ test('a pre-pitch circuit opens aligned without dragging', async ({ page }) => {
     })),
   )
   expect(paths.length).toBe(TYPES.length)
-  const jogs = paths.filter((p) => {
-    const xs = [...p.d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((m) => Number(m[1]))
-    return xs.length < 2 || new Set(xs.map((x) => x.toFixed(3))).size !== 1
-  })
+  const jogs = paths.filter((p) => isBent(p.d))
   expect(jogs.map((j) => `${j.id} -> ${j.d}`)).toEqual([])
 })
