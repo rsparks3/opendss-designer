@@ -32,6 +32,12 @@ def test_serves_real_static_files(client):
     assert "SPA" in client.get("/").text
 
 
+def test_index_is_revalidated_so_an_upgrade_is_visible(client):
+    """index.html names the hashed bundle, so a cached copy pins the browser
+    to the previous build: upgrade, restart, and still see the old app."""
+    assert "no-cache" in client.get("/").headers["cache-control"]
+
+
 @pytest.mark.parametrize("path", [
     "/../secret.txt",
     "/%2e%2e/secret.txt",

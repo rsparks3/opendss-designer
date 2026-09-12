@@ -147,13 +147,21 @@ export function RelayNode({ id, data }: NodeProps<AppNode>) {
             fill={closed ? undefined : 'none'}
           />
           <line x1="30" y1="44" x2="30" y2="60" className="sym" />
-          <circle cx="48" cy="12" r="10" className="sym" fill="none" />
-          <text x="48" y="15.5" textAnchor="middle" className="sym-text" fontSize="9">
+          <circle cx="47" cy="12" r="11" className="sym" fill="none" />
+          {/* 51N is a character wider than 51, so it steps down a size rather
+              than filling the circle to its edge. The size lives in CSS: an
+              SVG font-size attribute loses to the class's font shorthand. */}
+          <text
+            x="47"
+            y="15.3"
+            textAnchor="middle"
+            className={`sym-text device-no${device.length > 2 ? ' wide' : ''}`}
+          >
             {device}
           </text>
           {/* The trip signal, routed like a control wire rather than cutting
               the corner, so it reads as a link and not as a stray tick. */}
-          <path d="M48 22 V34 H40" className="sym trip-link" fill="none" />
+          <path d="M47 23 V34 H40" className="sym trip-link" fill="none" />
         </>
       )}
     />

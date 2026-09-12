@@ -116,6 +116,13 @@ def create_app(config: Settings | None = None) -> FastAPI:
     if (STATIC_DIR / "index.html").exists():
         app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
 
+        # index.html names the hashed asset files, so a cached copy of it pins
+        # the browser to an old build: upgrade the package, restart, and still
+        # see the previous version until a hard refresh. It carries no
+        # cache-control of its own, and browsers then guess, so say it plainly.
+        # The assets under /assets are content-hashed and safe to keep.
+        no_store = {"Cache-Control": "no-cache, must-revalidate"}
+
         @app.get("/{path:path}", include_in_schema=False)
         def spa(path: str) -> FileResponse:
             # An unknown /api/* path is a bug, not a deep link; returning the
@@ -128,11 +135,11 @@ def create_app(config: Settings | None = None) -> FastAPI:
             root = STATIC_DIR.resolve()
             index = root / "index.html"
             if not path:
-                return FileResponse(index)
+                return FileResponse(index, headers=no_store)
             candidate = (root / path).resolve()
             if candidate.is_relative_to(root) and candidate.is_file():
-                return FileResponse(candidate)
-            return FileResponse(index)
+                return FileResponse(candidate, headers=no_store)
+            return FileResponse(index, headers=no_store)
 
     return app
 

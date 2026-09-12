@@ -265,6 +265,10 @@ html, body, #root { margin: 0; height: 100%; }
   fill: var(--ink);
   stroke: none;
 }
+/* The `font` shorthand above sets a size, and CSS beats an SVG font-size
+   attribute, so a symbol that wants its own size asks for it here. */
+.sym-text.device-no { font-size: 9px; }
+.sym-text.device-no.wide { font-size: 7px; }
 
 .busbar-bar {
   width: 100%;
