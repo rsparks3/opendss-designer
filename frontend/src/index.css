@@ -213,6 +213,9 @@ html, body, #root { margin: 0; height: 100%; }
 /* ---------- symbols ---------- */
 .sym { stroke: var(--ink); stroke-width: 1.8; fill: none; stroke-linecap: round; }
 .sym-fill { stroke: var(--ink); stroke-width: 1.8; fill: var(--ink); }
+/* The trip signal from a relay to the breaker it operates — a control link,
+   not a conductor, so it is dashed and lighter than the primary. */
+.sym.trip-link { stroke-width: 1.2; stroke-dasharray: 2.5 2.5; }
 
 .symbol-node { position: relative; }
 .react-flow__node.selected .symbol-node { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
@@ -475,6 +478,25 @@ html, body, #root { margin: 0; height: 100%; }
 .tcc-legend { font: 600 11.5px system-ui, sans-serif; fill: #1a1a1a; }
 .tcc-legend.sub { font-weight: 400; font-size: 10.5px; fill: #667; }
 .tcc-legend-row { cursor: pointer; }
+.tcc-switches { margin: 10px 0 4px; max-width: 620px; }
+.tcc-switches-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #778;
+  margin-bottom: 4px;
+}
+.tcc-switches table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+.tcc-switches th {
+  text-align: left;
+  font-weight: 600;
+  color: #667;
+  border-bottom: 1px solid var(--border);
+  padding: 3px 10px 3px 0;
+}
+.tcc-switches td { padding: 3px 10px 3px 0; font-variant-numeric: tabular-nums; }
+.tcc-switches td.over { color: #d32f2f; font-weight: 700; }
+.tcc-kind { color: #99a; font-size: 11px; }
 .tcc-legend-row:hover .tcc-legend { fill: var(--accent); }
 .phase-toggles { display: flex; gap: 8px; font-weight: 700; }
 .phase-toggles label { display: flex; gap: 3px; align-items: center; }

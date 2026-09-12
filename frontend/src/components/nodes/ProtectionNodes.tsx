@@ -21,17 +21,22 @@ function ProtectiveDevice({
   subLabel,
   openWord,
   closedWord,
+  w = 40,
+  h = 60,
 }: {
   id: string
   data: AppNode['data']
+  /** Draws the whole symbol, stubs included, inside a w x h viewBox. */
   symbol: (closed: boolean) => React.ReactNode
   subLabel: string
   openWord: string
   closedWord: string
+  w?: number
+  h?: number
 }) {
   const issueClass = useNodeIssueClass(id)
   const rot = useSymbolRotation(id, data.params)
-  const box = rotatedBox(40, 60, rot)
+  const box = rotatedBox(w, h, rot)
   const updateNodeParams = useCircuitStore((s) => s.updateNodeParams)
   const closed = data.params.closed !== false
   return (
@@ -44,11 +49,9 @@ function ProtectiveDevice({
       }}
       title={`Double-click to ${closed ? openWord : closedWord}`}
     >
-      <SymbolSvg rotation={rot} w={40} h={60}>
-        <svg width="40" height="60" viewBox="0 0 40 60">
-          <line x1="20" y1="0" x2="20" y2="20" className="sym" />
+      <SymbolSvg rotation={rot} w={w} h={h}>
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
           {symbol(closed)}
-          <line x1="20" y1="40" x2="20" y2="60" className="sym" />
         </svg>
       </SymbolSvg>
       <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />
@@ -73,6 +76,8 @@ export function FuseNode({ id, data }: NodeProps<AppNode>) {
       subLabel={rated != null ? `${rated} A` : 'fuse'}
       symbol={(closed) => (
         <>
+          <line x1="20" y1="0" x2="20" y2="20" className="sym" />
+          <line x1="20" y1="40" x2="20" y2="60" className="sym" />
           <rect x="13" y="20" width="14" height="20" className="sym" fill="none" />
           {closed ? (
             <line x1="20" y1="20" x2="20" y2="40" className="sym" />
@@ -99,6 +104,8 @@ export function RecloserNode({ id, data }: NodeProps<AppNode>) {
       subLabel={trip != null ? `${trip} A` : 'recloser'}
       symbol={(closed) => (
         <>
+          <line x1="20" y1="0" x2="20" y2="19" className="sym" />
+          <line x1="20" y1="41" x2="20" y2="60" className="sym" />
           <circle cx="20" cy="30" r="11" className="sym" fill="none" />
           {closed ? (
             <line x1="20" y1="19" x2="20" y2="41" className="sym" />
@@ -114,31 +121,39 @@ export function RecloserNode({ id, data }: NodeProps<AppNode>) {
 export function RelayNode({ id, data }: NodeProps<AppNode>) {
   const trip = data.params.phasetrip
   const ground = data.params.groundcurve
-  // ANSI device numbers: 51 time overcurrent, 51N with a ground unit.
+  // IEEE C37.2 device function numbers: 51 time overcurrent, 51N once a
+  // ground unit is set. Drawn the way a one-line does it — the breaker sits in
+  // the line, the relay is its own circled device number beside it, and the
+  // dashed link is the trip signal between them.
   const device = ground && ground !== 'none' ? '51N' : '51'
   return (
     <ProtectiveDevice
       id={id}
       data={data}
+      w={60}
+      h={60}
       openWord="open"
       closedWord="close"
       subLabel={trip != null ? `${device} · ${trip} A` : device}
       symbol={(closed) => (
         <>
+          <line x1="30" y1="0" x2="30" y2="24" className="sym" />
           <rect
-            x="10"
-            y="20"
+            x="20"
+            y="24"
             width="20"
             height="20"
             className={closed ? 'sym-fill' : 'sym'}
             fill={closed ? undefined : 'none'}
           />
-          {/* Kept inside the 40-wide box and clear of both the stub and the
-              square, so the device number never collides with the symbol. */}
-          <circle cx="31" cy="12" r="8" className="sym" fill="none" />
-          <text x="31" y="15.5" textAnchor="middle" className="sym-text" fontSize="9">
+          <line x1="30" y1="44" x2="30" y2="60" className="sym" />
+          <circle cx="48" cy="12" r="10" className="sym" fill="none" />
+          <text x="48" y="15.5" textAnchor="middle" className="sym-text" fontSize="9">
             {device}
           </text>
+          {/* The trip signal, routed like a control wire rather than cutting
+              the corner, so it reads as a link and not as a stray tick. */}
+          <path d="M48 22 V34 H40" className="sym trip-link" fill="none" />
         </>
       )}
     />

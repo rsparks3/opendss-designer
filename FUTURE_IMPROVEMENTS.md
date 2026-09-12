@@ -119,12 +119,13 @@ All frontend-only; the M1 vitest harness covers the store changes.
   prospective 3φ fault current at each device's downstream bus as a dashed line, a
   dotted flat tail past the end of the curve data, hover readout and a legend that
   toggles devices. `core/protection.py` + `POST /api/tcc`
-- **Coordination checks** — the judgement the plot still leaves to the eye, as
-  `Issue`s in the Problems list: a device whose pickup sits above the fault current
-  available to it (it never operates), and a series pair that miscoordinates at the
-  downstream device's fault current (upstream faster, or inside the margin). Needs an
-  upstream/downstream walk over the series elements, which `connectivity.py` already
-  has the graph for
+- ~~**Coordination checks**~~ — pickup above the available fault current, a series pair
+  inside the 0.25 s margin, and interrupting duty against a new `interruptingka` rating;
+  the upstream/downstream pairing comes from a walk outward from the source over the
+  conducting elements (open switches cut the path). Breakers take part in the duty check
+  and are listed under the plot, since they carry no curve. Still to do here: the 75%
+  melt rule for fuse-to-fuse pairs, and ground-fault coordination (the checks use the
+  3φ fault current)
 - **A user-editable curve library** — the ten curves the engine ships cover the common
   cases; entering a manufacturer's points is what a real study needs next. Shipping the
   editor, never a manufacturer device library — see Out of scope

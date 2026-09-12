@@ -42,6 +42,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'name', label: 'Name', kind: 'text' },
     { key: 'closed', label: 'Closed', kind: 'checkbox' },
     { key: 'normamps', label: 'Rating', kind: 'number', unit: 'A' },
+    { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
   ],
   line: [
@@ -81,6 +82,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'fusecurve', label: 'Fuse link', kind: 'select', options: ['tlink', 'klink'] },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
+    { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
   ],
   recloser: [
@@ -94,6 +96,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'shots', label: 'Shots to lockout', kind: 'number' },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
+    { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
   ],
   relay: [
@@ -105,6 +108,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'groundcurve', label: 'Ground curve', kind: 'select', options: ['none', 'mod_inv', 'very_inv', 'ext_inv', 'definite'] },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
+    { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
   ],
   capacitor: [

@@ -65,21 +65,21 @@
       "type": "fuse",
       "position": { "x": 780, "y": 400 },
       "width": null,
-      "params": { "name": "FU1", "closed": true, "phases": 3, "ratedcurrent": 65, "fusecurve": "tlink", "delay": 0, "normamps": 100 }
+      "params": { "name": "FU1", "closed": true, "phases": 3, "ratedcurrent": 65, "fusecurve": "tlink", "delay": 0, "normamps": 100, "interruptingka": 10 }
     },
     {
       "id": "n_rec",
       "type": "recloser",
       "position": { "x": 860, "y": 400 },
       "width": null,
-      "params": { "name": "REC1", "closed": true, "phases": 3, "phasetrip": 100, "groundtrip": 50, "phasefast": "a", "phasedelayed": "d", "numfast": 1, "shots": 4, "delay": 0, "normamps": 560 }
+      "params": { "name": "REC1", "closed": true, "phases": 3, "phasetrip": 100, "groundtrip": 50, "phasefast": "a", "phasedelayed": "d", "numfast": 1, "shots": 4, "delay": 0, "normamps": 560, "interruptingka": 8 }
     },
     {
       "id": "n_rly",
       "type": "relay",
       "position": { "x": 940, "y": 400 },
       "width": null,
-      "params": { "name": "RLY1", "closed": true, "phases": 3, "phasetrip": 200, "phasecurve": "very_inv", "groundcurve": "very_inv", "groundtrip": 50, "delay": 0, "normamps": 600 }
+      "params": { "name": "RLY1", "closed": true, "phases": 3, "phasetrip": 200, "phasecurve": "very_inv", "groundcurve": "very_inv", "groundtrip": 50, "delay": 0, "normamps": 600, "interruptingka": 12.5 }
     },
     {
       "id": "n_bus5",
@@ -114,7 +114,7 @@
       "type": "breaker",
       "position": { "x": 520, "y": 400 },
       "width": null,
-      "params": { "name": "BRK1", "closed": true, "normamps": 600, "phases": 3 }
+      "params": { "name": "BRK1", "closed": true, "normamps": 600, "phases": 3, "interruptingka": 12.5 }
     },
     {
       "id": "n_load",

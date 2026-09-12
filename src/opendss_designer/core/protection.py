@@ -7,11 +7,13 @@ seconds" into the amps-and-seconds a coordination plot is drawn in.
 """
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import opendssdirect as dss
 
 from .compiler import CompileResult, compile_circuit
+from .connectivity import synthesize
 from .engine import (
     SHAPE_DIR,
     _ensure_init,
@@ -165,6 +167,191 @@ def _read_devices(element_map: dict[str, str]) -> list[dict[str, Any]]:
     return devices
 
 
+SWITCH_TYPES = ("breaker", "fuse", "recloser", "relay")
+
+
+def _read_switches(circuit: Circuit,
+                   compiled: CompileResult) -> list[dict[str, Any]]:
+    """Every switch on the diagram with the fault current it would have to
+    break. A breaker has no curve, so it never appears in the plot — but it is
+    still a device that has to interrupt what the fault study says is there.
+    """
+    conn = compiled.connectivity
+    if conn is None:
+        return []
+    out: list[dict[str, Any]] = []
+    for node in circuit.nodes:
+        if node.type not in SWITCH_TYPES:
+            continue
+        buses = conn.node_buses.get(node.id, [])
+        if len(buses) < 2:
+            continue
+        bus = buses[1]
+        if3, if1 = _fault_currents(bus)
+        rating = node.params.get("interruptingka")
+        out.append({
+            "nodeId": node.id,
+            "name": str(node.params.get("name") or node.id),
+            "kind": node.type,
+            "bus": bus,
+            "faultA3ph": if3,
+            "faultA1ph": if1,
+            "interruptingKa": float(rating) if rating not in (None, "") else None,
+        })
+    return out
+
+
+def _upstream_chain(circuit: Circuit, devices: list[dict[str, Any]]) -> dict[str, list[str]]:
+    """For each device, the devices between it and the source, nearest last.
+
+    Walks the bus graph outward from the source through everything that carries
+    power, noting which protective devices each path passes through. A device
+    is 'upstream' of another when it sits on the path from the source to it,
+    which is exactly the pairing a coordination study looks at.
+    """
+    conn = synthesize(circuit)
+    by_node = {n.id: n for n in circuit.nodes}
+    device_by_node = {d["nodeId"]: d for d in devices if d["nodeId"]}
+
+    # Bus -> list of (other bus, device name or None) for everything that
+    # conducts between two buses.
+    links: dict[str, list[tuple[str, str | None]]] = {}
+
+    def link(a: str, b: str, device: str | None) -> None:
+        links.setdefault(a, []).append((b, device))
+        links.setdefault(b, []).append((a, device))
+
+    for edge in circuit.edges:
+        if edge.type == "line" and edge.id in conn.line_buses:
+            a, b = conn.line_buses[edge.id]
+            link(a, b, None)
+    for node in circuit.nodes:
+        buses = conn.node_buses.get(node.id, [])
+        if len(buses) < 2:
+            continue
+        dev = device_by_node.get(node.id)
+        if dev is None and node.type in ("breaker", "fuse", "recloser", "relay"):
+            # An open switch with no curve of its own still breaks the path.
+            if not by_node[node.id].params.get("closed", True):
+                continue
+        link(buses[0], buses[1], dev["name"] if dev else None)
+
+    sources = [conn.node_buses[n.id][0] for n in circuit.nodes
+               if n.type == "vsource" and conn.node_buses.get(n.id)]
+    seen: dict[str, list[str]] = {bus: [] for bus in sources}
+    queue = list(sources)
+    while queue:
+        bus = queue.pop(0)
+        for nxt, device in links.get(bus, ()):
+            if nxt in seen:
+                continue
+            seen[nxt] = seen[bus] + ([device] if device else [])
+            queue.append(nxt)
+
+    # A device's own upstream chain is what the walk passed through to reach
+    # the bus it feeds from, which is the chain minus the device itself.
+    chains: dict[str, list[str]] = {}
+    for dev in devices:
+        chain = seen.get(dev["bus"] or "", [])
+        chains[dev["name"]] = [name for name in chain if name != dev["name"]]
+    return chains
+
+
+# Downstream protection must clear a fault before the device above it starts to
+# operate. A quarter of a second is the usual working margin for relays and
+# reclosers; anything tighter is worth a second look by the engineer.
+COORDINATION_MARGIN_S = 0.25
+
+
+def _operate_seconds(trace: dict[str, Any], amps: float) -> float | None:
+    """Seconds to operate at a current, interpolated straight on log-log paper
+    — the same reading the plot gives, and flat past the last point."""
+    pts = trace["points"]
+    if not pts or amps < pts[0][0]:
+        return None
+    if amps >= pts[-1][0]:
+        return float(pts[-1][1])
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:], strict=False):
+        if amps <= x1:
+            if x1 == x0:
+                return float(y1)
+            f = ((math.log10(amps) - math.log10(x0))
+                 / (math.log10(x1) - math.log10(x0)))
+            return float(10 ** (math.log10(y0) + f * (math.log10(y1) - math.log10(y0))))
+    return None
+
+
+def _fastest(device: dict[str, Any], amps: float) -> tuple[str, float] | None:
+    """The trace that would operate first at this current, and when."""
+    best: tuple[str, float] | None = None
+    for trace in device["traces"]:
+        secs = _operate_seconds(trace, amps)
+        if secs is not None and (best is None or secs < best[1]):
+            best = (trace["label"], secs)
+    return best
+
+
+def _coordination_issues(devices: list[dict[str, Any]],
+                         switches: list[dict[str, Any]],
+                         chains: dict[str, list[str]]) -> list[Issue]:
+    """What the curves say about the fault currents actually available."""
+    issues: list[Issue] = []
+    by_name = {d["name"]: d for d in devices}
+
+    for dev in devices:
+        fault = dev.get("faultA3ph")
+        if not fault:
+            continue
+        pickup = min(t["points"][0][0] for t in dev["traces"])
+        if fault < pickup:
+            issues.append(Issue(
+                severity="warning", code="pickup-above-fault",
+                message=(f"{dev['kind'].title()} '{dev['name']}' starts operating at "
+                         f"{pickup:.0f} A, but a fault at {dev['bus']} draws only "
+                         f"{fault:.0f} A — it would never trip for a fault it protects."),
+                nodeId=dev["nodeId"]))
+            continue
+
+        mine = _fastest(dev, fault)
+        if mine is None:
+            continue
+        for upstream_name in chains.get(dev["name"], []):
+            upstream = by_name.get(upstream_name)
+            if upstream is None:
+                continue
+            theirs = _fastest(upstream, fault)
+            if theirs is None:
+                continue
+            if theirs[1] - mine[1] < COORDINATION_MARGIN_S:
+                issues.append(Issue(
+                    severity="warning", code="miscoordination",
+                    message=(
+                        f"For a fault at {dev['bus']} ({fault:.0f} A), "
+                        f"'{dev['name']}' operates in {mine[1]:.3f} s ({mine[0]}) but "
+                        f"'{upstream_name}' upstream operates in {theirs[1]:.3f} s "
+                        f"({theirs[0]}) — less than the {COORDINATION_MARGIN_S:g} s "
+                        "margin, so the upstream device may clear the fault first "
+                        "and take out more of the feeder."),
+                    nodeId=dev["nodeId"]))
+
+    # Every switch, protective or not, has to be able to break the fault it
+    # could be asked to break. This is the check a breaker takes part in: it
+    # has no curve, but it does have a rating.
+    for sw in switches:
+        fault = sw.get("faultA3ph")
+        rating_ka = sw.get("interruptingKa")
+        if not fault or not rating_ka:
+            continue
+        if fault > rating_ka * 1000.0:
+            issues.append(Issue(
+                severity="warning", code="interrupting-duty",
+                message=(f"{sw['kind'].title()} '{sw['name']}' is rated to interrupt "
+                         f"{rating_ka:g} kA, but a fault at {sw['bus']} draws "
+                         f"{fault / 1000.0:.1f} kA."),
+                nodeId=sw["nodeId"]))
+    return issues
+
+
 @on_engine_thread
 def tcc_study(circuit: Circuit) -> dict[str, Any]:
     """Curves for every protective device, each with the fault current
@@ -180,6 +367,7 @@ def tcc_study(circuit: Circuit) -> dict[str, Any]:
                 "issues": [i.model_dump() for i in issues]}
 
     devices: list[dict[str, Any]] = []
+    switches: list[dict[str, Any]] = []
     converged = False
     with dss_guard():
         _ensure_init()
@@ -204,9 +392,13 @@ def tcc_study(circuit: Circuit) -> dict[str, Any]:
                         if3, if1 = _fault_currents(dev["bus"])
                         dev["faultA3ph"] = if3
                         dev["faultA1ph"] = if1
+                switches = _read_switches(circuit, compiled)
+                issues.extend(_coordination_issues(
+                    devices, switches, _upstream_chain(circuit, devices)))
 
     return {
         "converged": converged,
         "devices": devices,
+        "switches": switches,
         "issues": [i.model_dump() for i in issues],
     }

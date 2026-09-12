@@ -91,10 +91,11 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
     kbd: 'Y',
     icon: (
       <svg viewBox="0 0 32 32">
-        <line x1="14" y1="4" x2="14" y2="12" className="sym" />
-        <rect x="8" y="12" width="12" height="12" className="sym-fill" />
-        <line x1="14" y1="24" x2="14" y2="30" className="sym" />
-        <circle cx="24" cy="8" r="6" className="sym" fill="none" />
+        <line x1="12" y1="6" x2="12" y2="13" className="sym" />
+        <rect x="6" y="13" width="12" height="12" className="sym-fill" />
+        <line x1="12" y1="25" x2="12" y2="31" className="sym" />
+        <circle cx="24" cy="8" r="7" className="sym" fill="none" />
+        <text x="24" y="11" textAnchor="middle" className="sym-text" fontSize="8">51</text>
       </svg>
     ),
   },

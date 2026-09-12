@@ -5,7 +5,27 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added
+
+- **Coordination checks.** Running the Protection study now also writes
+  findings into the Problems list: a device whose pickup sits above the fault
+  current available at its own bus (it would never trip), a pair in series
+  where the upstream device operates within 0.25 s of the one below it (it may
+  clear the fault first and take out more of the feeder), and a switch whose
+  fault duty exceeds its interrupting rating. Which device is upstream of
+  which comes from walking the circuit outward from the source, so it follows
+  the drawing; an open switch breaks the path, as it does electrically.
+- **Interrupting rating** on breakers, fuses, reclosers and relays, and a
+  table under the Protection plot listing every switch that has no curve —
+  a breaker carries no protection of its own, so it never appears in the plot,
+  but it still has to break whatever fault reaches it.
+
 ### Changed
+
+- **The relay symbol is drawn the way a one-line draws it**: the breaker in
+  the line, the device number (51, or 51N with a ground unit) in its own
+  circle beside it, and a dashed trip link between them — instead of the
+  number sitting on top of the breaker.
 
 - **The components column collapses to symbols when you narrow it.** Dragging
   it in used to shrink the symbols and clip the names; now the symbols keep

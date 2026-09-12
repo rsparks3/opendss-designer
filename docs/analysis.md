@@ -109,9 +109,29 @@ costs a fault-study solve, so it runs when you open the tab and then on
 **Re-run**; editing the circuit marks it stale rather than re-running by
 itself.
 
-!!! note "Reading coordination off the plot"
+#### Switches with no curve
 
-    Devices in series should operate in order, fastest furthest downstream.
-    At the moment that is a judgement you make by eye from the curves; the
-    tool does not yet flag a pair that miscoordinates, or a device whose
-    pickup sits above the fault current available to it.
+A breaker has no protection attached — no curve, no pickup, nothing to plot
+(see [Breaker](components.md#breaker--switch--k)). It still has to break
+whatever fault reaches it, so breakers appear in a table beneath the plot with
+the fault current at their bus against their interrupting rating.
+
+#### What the study checks
+
+Running the study also writes findings into the **Problems** list, where they
+sit with everything else that is wrong with the circuit and highlight the
+element they belong to:
+
+| Check | What it means |
+|---|---|
+| **Pickup above the fault** | The device starts operating above the current a fault at its own bus would draw, so it would never trip for the fault it protects |
+| **Miscoordination** | At the downstream device's fault current, the device above it operates within 0.25 s — so the upstream device may clear the fault first and take out more of the feeder than it needs to |
+| **Interrupting duty** | The fault current at a switch exceeds what it is rated to break |
+
+The upstream/downstream pairing comes from walking the circuit outward from
+the source, so it follows the drawing rather than any naming convention; an
+open switch breaks the path, as it does electrically.
+
+These are warnings, not errors — they never block a solve. The margin used is
+0.25 s, the usual working figure for relays and reclosers; a fuse-to-fuse
+study normally uses the 75% melt rule instead, which this does not yet do.

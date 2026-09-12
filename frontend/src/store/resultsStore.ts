@@ -16,6 +16,11 @@ interface ResultsState {
   solving: boolean
   overlay: OverlayMode
   issues: Issue[]
+  /** Findings from the protection study. They need fault currents, so only
+   *  that study can produce them — and validation, which owns `issues` and
+   *  rewrites it on every edit, would otherwise wipe them a moment later.
+   *  Cleared with the other run results when the circuit changes. */
+  protectionIssues: Issue[]
   flash: string | null
   flashKind: 'error' | 'info'
   /** When on, a solve runs automatically after every circuit change. */
@@ -56,6 +61,7 @@ interface ResultsState {
   setSolving: (b: boolean) => void
   setOverlay: (m: OverlayMode) => void
   setIssues: (issues: Issue[]) => void
+  setProtectionIssues: (issues: Issue[]) => void
   setFlash: (msg: string, kind?: 'error' | 'info', durationMs?: number) => void
 }
 
@@ -69,6 +75,7 @@ export const useResultsStore = create<ResultsState>((set) => ({
   solving: false,
   overlay: 'voltage',
   issues: [],
+  protectionIssues: [],
   flash: null,
   flashKind: 'error',
   autoSolve: false,
@@ -114,10 +121,11 @@ export const useResultsStore = create<ResultsState>((set) => ({
   setResult: (result) => set({ result, stale: false }),
   markStale: () =>
     set({ stale: true, fault: null, timeseries: null, tsIndex: null, scrubResult: null,
-          tsError: null }),
+          tsError: null, protectionIssues: [] }),
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),
   setIssues: (issues) => set({ issues }),
+  setProtectionIssues: (protectionIssues) => set({ protectionIssues }),
   setFlash: (msg, kind = 'error', durationMs = 4000) => {
     clearTimeout(flashTimer)
     set({ flash: msg, flashKind: kind })

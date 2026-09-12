@@ -1,3 +1,5 @@
+import type { Issue } from '../types/circuit'
+
 export interface TccTrace {
   label: string
   curve: string
@@ -17,10 +19,24 @@ export interface TccDevice {
   faultA1ph?: number | null
 }
 
+/** A switch on the diagram, with or without a curve of its own. A breaker has
+ *  no protection attached, so it never appears in the plot — but it still has
+ *  to interrupt whatever the fault study says is available. */
+export interface TccSwitch {
+  nodeId: string
+  name: string
+  kind: 'breaker' | 'fuse' | 'recloser' | 'relay'
+  bus: string
+  faultA3ph?: number | null
+  faultA1ph?: number | null
+  interruptingKa?: number | null
+}
+
 export interface TccResult {
   converged: boolean
   devices: TccDevice[]
-  issues: { severity: string; code: string; message: string; nodeId?: string | null }[]
+  switches: TccSwitch[]
+  issues: Issue[]
 }
 
 /** Seconds to operate at a given current, interpolated the way the curve is

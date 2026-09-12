@@ -78,7 +78,21 @@ open/close it; an open breaker de-energizes everything downstream.
 |---|---|
 | Closed | Switch state |
 | Rating (A) | `normamps`, used for the loading overlay |
+| Interrupting rating (kA) | What it can break; checked against the fault current available at its bus |
 | Phases | 1 / 2 / 3 |
+
+!!! note "A breaker has no protection of its own"
+
+    It carries no time-current curve and never trips by itself — it is the
+    switch someone operates: a tie point, a sectionalizing point, an isolation
+    switch. That is why breakers have no curve in the
+    [Protection plot](analysis.md#protection-time-current-curves); they appear
+    in the table beneath it instead, where their interrupting rating is checked
+    against the fault duty.
+
+    For **a breaker that trips on overcurrent, use a relay** — that element is
+    exactly this breaker plus the relay that watches it, which is how the two
+    are drawn on a real one-line.
 
 ## Fuse — ++f++, Recloser — ++o++, Relay — ++y++
 
@@ -109,7 +123,12 @@ what a device protects.
 | Fast operations | How many trips use the fast curve before switching to the delayed one |
 | Shots to lockout | Trips before it stays open |
 
-**Relay** (overcurrent, ANSI 51 — 51N once a ground curve is set)
+**Relay** (overcurrent, IEEE C37.2 device 51 — 51N once a ground curve is set)
+
+Drawn the way a one-line draws it: the breaker sits in the line, the relay is
+its own circled device number beside it, and the dashed link between them is
+the trip signal. It is a breaker *with* protection — use it wherever a breaker
+should trip on overcurrent rather than be opened by hand.
 
 | Parameter | Meaning |
 |---|---|

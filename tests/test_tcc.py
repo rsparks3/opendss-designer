@@ -105,3 +105,116 @@ def test_curves_are_read_from_the_engine_not_invented(device_type):
         multiples = [round(a / pickup, 4) for a, _ in trace["points"]]
         assert multiples[0] >= 1.0
         assert multiples == sorted(multiples)
+
+
+# --- coordination checks -------------------------------------------------
+
+def _chain_circuit(upstream: dict, downstream: dict) -> Circuit:
+    """Source -> upstream device -> mid bus -> downstream device -> load."""
+    return Circuit.model_validate({
+        "name": "chain",
+        "nodes": [
+            {"id": "src", "type": "vsource",
+             "params": {"name": "SRC1", "basekv": 12.47, "pu": 1.0, "phases": 3,
+                        "mvasc3": 2000, "mvasc1": 2100}},
+            {"id": "b1", "type": "busbar", "params": {"name": "BUS-A", "basekv": 12.47}},
+            {"id": "up", "type": upstream.pop("type"), "params": {"name": "UP", **upstream}},
+            {"id": "b2", "type": "busbar", "params": {"name": "BUS-B", "basekv": 12.47}},
+            {"id": "dn", "type": downstream.pop("type"), "params": {"name": "DN", **downstream}},
+            {"id": "b3", "type": "busbar", "params": {"name": "BUS-C", "basekv": 12.47}},
+            {"id": "ld", "type": "load",
+             "params": {"name": "LOAD1", "kv": 12.47, "kw": 500, "pf": 0.95,
+                        "phases": 3, "conn": "wye", "model": 1}},
+        ],
+        "edges": [
+            {"id": "e1", "type": "wire", "source": "src", "sourceHandle": "t1",
+             "target": "b1", "targetHandle": "b0"},
+            {"id": "e2", "type": "wire", "source": "b1", "sourceHandle": "c0",
+             "target": "up", "targetHandle": "t1"},
+            {"id": "e3", "type": "wire", "source": "up", "sourceHandle": "t2",
+             "target": "b2", "targetHandle": "b0"},
+            {"id": "e4", "type": "wire", "source": "b2", "sourceHandle": "c0",
+             "target": "dn", "targetHandle": "t1"},
+            {"id": "e5", "type": "wire", "source": "dn", "sourceHandle": "t2",
+             "target": "b3", "targetHandle": "b0"},
+            {"id": "e6", "type": "wire", "source": "b3", "sourceHandle": "c0",
+             "target": "ld", "targetHandle": "t1"},
+        ],
+    })
+
+
+def _codes(result) -> list[str]:
+    return [i["code"] for i in result["issues"]]
+
+
+def test_the_walk_finds_which_device_is_upstream_of_which():
+    with open(FIXTURE, encoding="utf-8") as fh:
+        circuit = Circuit.model_validate(json.load(fh))
+    result = protection.tcc_study(circuit)
+    chains = protection._upstream_chain(circuit, result["devices"])
+    # Station relay, then the mid-feeder recloser, then the lateral fuse.
+    assert chains["rly1"] == []
+    assert chains["rec1"] == ["rly1"]
+    assert chains["fu1"] == ["rly1", "rec1"]
+
+
+def test_a_device_that_cannot_see_its_own_fault_is_flagged():
+    # A pickup far above anything the feeder can deliver.
+    result = protection.tcc_study(_feeder("relay", {"phasetrip": 90000,
+                                                    "groundcurve": "none"}))
+    assert "pickup-above-fault" in _codes(result)
+    msg = next(i["message"] for i in result["issues"]
+               if i["code"] == "pickup-above-fault")
+    assert "never trip" in msg
+
+
+def test_a_downstream_device_slower_than_the_one_above_it_is_flagged():
+    # Upstream relay set fast and sensitive, downstream one slow: backwards.
+    result = protection.tcc_study(_chain_circuit(
+        upstream={"type": "relay", "phasetrip": 50, "phasecurve": "definite",
+                  "groundcurve": "none"},
+        downstream={"type": "relay", "phasetrip": 300, "phasecurve": "ext_inv",
+                    "groundcurve": "none", "delay": 2.0},
+    ))
+    assert "miscoordination" in _codes(result)
+    msg = next(i["message"] for i in result["issues"] if i["code"] == "miscoordination")
+    # The engine lowercases element names, so the message names them as it does.
+    assert "'dn'" in msg and "'up'" in msg
+
+
+def test_a_properly_graded_pair_is_not_flagged():
+    # Downstream clears fast, upstream waits well past the margin.
+    result = protection.tcc_study(_chain_circuit(
+        upstream={"type": "relay", "phasetrip": 400, "phasecurve": "very_inv",
+                  "groundcurve": "none", "delay": 3.0},
+        downstream={"type": "relay", "phasetrip": 200, "phasecurve": "ext_inv",
+                    "groundcurve": "none"},
+    ))
+    assert "miscoordination" not in _codes(result)
+
+
+def test_a_breaker_gets_a_duty_check_even_though_it_has_no_curve():
+    circuit = _feeder("breaker", {"interruptingka": 0.5})  # 500 A: far too small
+    result = protection.tcc_study(circuit)
+    assert result["devices"] == []  # nothing to plot, as expected
+    switch = result["switches"][0]
+    assert switch["kind"] == "breaker"
+    assert switch["faultA3ph"] > 500
+    assert "interrupting-duty" in _codes(result)
+    msg = next(i["message"] for i in result["issues"] if i["code"] == "interrupting-duty")
+    assert "0.5 kA" in msg
+
+
+def test_a_breaker_within_its_rating_is_quiet():
+    # The helper feeder has no impedance between source and device, so the
+    # fault is the source's own 2000 MVA level — about 92 kA at 12.47 kV.
+    result = protection.tcc_study(_feeder("breaker", {"interruptingka": 150}))
+    assert "interrupting-duty" not in _codes(result)
+
+
+def test_a_switch_with_no_rating_is_reported_but_not_judged():
+    result = protection.tcc_study(_feeder("breaker", {}))
+    switch = result["switches"][0]
+    assert switch["interruptingKa"] is None
+    assert switch["faultA3ph"] > 0
+    assert "interrupting-duty" not in _codes(result)

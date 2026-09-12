@@ -31,24 +31,24 @@ export function defaultParams(type: NodeType): Params {
     case 'fuse':
       return {
         name: nextName('FU'), closed: true, phases: 3, ratedcurrent: 65,
-        fusecurve: 'tlink', delay: 0, normamps: 100,
+        fusecurve: 'tlink', delay: 0, normamps: 100, interruptingka: 10,
       }
     case 'recloser':
       return {
         name: nextName('REC'), closed: true, phases: 3, phasetrip: 100,
         groundtrip: 50, phasefast: 'a', phasedelayed: 'd', numfast: 1,
-        shots: 4, delay: 0, normamps: 560,
+        shots: 4, delay: 0, normamps: 560, interruptingka: 8,
       }
     case 'relay':
       return {
         name: nextName('RLY'), closed: true, phases: 3, phasetrip: 200,
         phasecurve: 'very_inv', groundcurve: 'very_inv', groundtrip: 50,
-        delay: 0, normamps: 600,
+        delay: 0, normamps: 600, interruptingka: 12.5,
       }
     case 'load':
       return { name: nextName('LOAD'), kv: 12.47, kw: 1000, pf: 0.95, phases: 3, conn: 'wye', model: 1 }
     case 'breaker':
-      return { name: nextName('BRK'), closed: true, normamps: 600, phases: 3 }
+      return { name: nextName('BRK'), closed: true, normamps: 600, phases: 3, interruptingka: 12.5 }
     case 'capacitor':
       return { name: nextName('CAP'), kv: 12.47, kvar: 600, phases: 3, conn: 'wye', numsteps: 1 }
     case 'generator':
@@ -89,7 +89,7 @@ export const NODE_SIZE: Record<NodeType, { w: number; h: number }> = {
   regulator: { w: 40, h: 80 },
   fuse: { w: 40, h: 60 },
   recloser: { w: 40, h: 60 },
-  relay: { w: 40, h: 60 },
+  relay: { w: 60, h: 60 }, // room for the relay circle beside the breaker
   load: { w: 40, h: 60 },
   breaker: { w: 40, h: 60 },
   capacitor: { w: 40, h: 60 },

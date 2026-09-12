@@ -91,10 +91,11 @@ export function TccGraphPanel() {
     window.addEventListener('pointerup', up)
   }
 
-  const deviceCount = useMemo(
-    () => nodes.filter((n) => n.type === 'fuse' || n.type === 'recloser' || n.type === 'relay').length,
-    [nodes],
-  )
+  const counts = useMemo(() => {
+    const curved = nodes.filter(
+      (n) => n.type === 'fuse' || n.type === 'recloser' || n.type === 'relay').length
+    return { curved, switches: curved + nodes.filter((n) => n.type === 'breaker').length }
+  }, [nodes])
 
   // Editing the circuit invalidates the plot; re-running is one click, not
   // automatic, because it costs a fault-study solve.
@@ -112,6 +113,11 @@ export function TccGraphPanel() {
       const result = await api.tcc(toCircuitJSON(useCircuitStore.getState()))
       setData(result)
       setStale(false)
+      // Coordination findings belong in the Problems list with everything
+      // else that is wrong with the circuit, not buried in this tab. They live
+      // in their own slot: validation rewrites `issues` on every edit and
+      // would otherwise wipe them the moment it next runs.
+      useResultsStore.getState().setProtectionIssues(result.issues)
       if (!result.converged) {
         const why = result.issues.find((i) => i.severity === 'error')?.message
         setFlash(why ? `Curves unavailable: ${why}` : 'The fault study did not converge.', 'error', 8000)
@@ -124,13 +130,17 @@ export function TccGraphPanel() {
   }
 
   useEffect(() => {
-    if (deviceCount > 0 && !data && !loading) void run()
+    if (counts.switches > 0 && !data && !loading) void run()
     // Run once on open; afterwards the Re-run button drives it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const devices = data?.devices ?? []
   const visible = devices.filter((d) => !hidden[d.name])
+  // Breakers, and any protective device whose curve could not be read: the
+  // plot has nothing to show for them, so they get a line in a table instead.
+  const plotted = new Set(devices.map((d) => d.nodeId))
+  const plainSwitches = (data?.switches ?? []).filter((s) => !plotted.has(s.nodeId))
 
   const domain = useMemo(() => {
     const xs: number[] = []
@@ -154,14 +164,44 @@ export function TccGraphPanel() {
 
   const controls = (
     <div className="graph-controls">
-      <button onClick={() => void run()} disabled={loading || deviceCount === 0}>
+      <button onClick={() => void run()} disabled={loading || counts.switches === 0}>
         {loading ? 'Running…' : stale ? 'Re-run (circuit changed)' : 'Re-run'}
       </button>
       <span className="graph-hint">
-        {deviceCount === 0
+        {counts.curved === 0
           ? 'Add a fuse, recloser or relay to plot its curve'
           : 'Current across, operating time down · the dashed line is the fault current at that device'}
       </span>
+    </div>
+  )
+
+  const switchTable = plainSwitches.length > 0 && (
+    <div className="tcc-switches">
+      <div className="tcc-switches-title">
+        Switches with no curve — nothing to plot, but they still have to break the fault
+      </div>
+      <table>
+        <thead>
+          <tr><th>Device</th><th>At bus</th><th>3φ fault</th><th>Interrupting</th></tr>
+        </thead>
+        <tbody>
+          {plainSwitches.map((s) => {
+            const over =
+              s.faultA3ph != null && s.interruptingKa != null &&
+              s.faultA3ph > s.interruptingKa * 1000
+            return (
+              <tr key={s.nodeId}>
+                <td>{s.name} <span className="tcc-kind">{s.kind}</span></td>
+                <td>{s.bus}</td>
+                <td className={over ? 'over' : undefined}>
+                  {s.faultA3ph == null ? '—' : `${(s.faultA3ph / 1000).toFixed(1)} kA`}
+                </td>
+                <td>{s.interruptingKa == null ? '—' : `${s.interruptingKa} kA`}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 
@@ -170,12 +210,16 @@ export function TccGraphPanel() {
       <div className="vp-wrap">
         {controls}
         <div className="bp-empty">
-          {deviceCount === 0
-            ? 'No protective devices in this circuit yet.'
+          {counts.switches === 0
+            ? 'No protective devices or switches in this circuit yet.'
             : loading
               ? 'Reading curves from the engine…'
-              : 'No curves to plot.'}
+              : counts.curved === 0
+                ? 'Nothing here carries a time-current curve. A breaker is a switch you operate '
+                  + 'yourself — for a breaker that trips on overcurrent, use a relay.'
+                : 'No curves to plot.'}
         </div>
+        {switchTable}
       </div>
     )
   }
@@ -330,6 +374,7 @@ export function TccGraphPanel() {
           ◢
         </div>
       </div>
+      {switchTable}
       {hover && (
         <div className="result-tooltip" style={{ left: hover.x + 14, top: hover.y + 14 }}>
           <div className="rt-title">
