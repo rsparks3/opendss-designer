@@ -137,7 +137,7 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
       <svg viewBox="0 0 32 32">
         <line x1="16" y1="2" x2="16" y2="8" className="sym" />
         <circle cx="16" cy="19" r="10" className="sym" fill="none" />
-        <text x="16" y="24" textAnchor="middle" className="sym-text" fontSize="11">
+        <text x="16" y="24" textAnchor="middle" className="sym-text icon-glyph">
           G
         </text>
       </svg>
@@ -153,7 +153,7 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
         <circle cx="16" cy="19" r="10" className="sym" fill="none" />
         <line x1="2" y1="6" x2="7" y2="11" className="sym" />
         <line x1="7" y1="3" x2="10" y2="9" className="sym" />
-        <text x="16" y="23" textAnchor="middle" className="sym-text" fontSize="9">
+        <text x="16" y="23" textAnchor="middle" className="sym-text icon-glyph small">
           PV
         </text>
       </svg>

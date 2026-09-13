@@ -274,6 +274,12 @@ html, body, #root { margin: 0; height: 100%; }
 .sym-text.device-no.wide { font-size: 5.5px; font-weight: 600; }
 /* The palette icon draws the same symbol in a 32-unit box instead of 60. */
 .sym-text.device-no.icon { font-size: 7px; }
+/* Letters inside a palette icon's circle. The canvas symbols draw these in a
+   40-unit box where the 16px above is right; the icons use 32, where it
+   overflows the circle. An SVG font-size attribute cannot fix it — the font
+   shorthand above wins — so the size lives here. */
+.sym-text.icon-glyph { font-size: 13px; }
+.sym-text.icon-glyph.small { font-size: 9px; }
 
 .busbar-bar {
   width: 100%;
