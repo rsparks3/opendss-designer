@@ -274,71 +274,85 @@ def _num_array(query: str) -> list[float]:
     return out
 
 
+def _all_of_class(cls: str) -> list[str]:
+    """Every object of a class, disabled ones included.
+
+    The typed iterators (`Fuses.First()/Next()`) walk only enabled objects, so
+    a blown fuse -- which is modelled as a disabled control over an open switch
+    -- was invisible to them, and came back as a plain breaker. AllNames does
+    list it, and property queries work on it.
+    """
+    try:
+        names = {
+            "fuse": dss.Fuses.AllNames,
+            "recloser": dss.Reclosers.AllNames,
+            "relay": dss.Relays.AllNames,
+        }[cls]()
+    except Exception:
+        return []
+    return [str(n) for n in names if n]
+
+
 def _read_protection(warnings: list[str]) -> dict[str, tuple[str, dict[str, Any]]]:
     """Protective devices, keyed by the switch they operate.
 
     Each is modelled in the diagram as one element -- the switch plus its
     control -- so the caller turns the switch it names into that element type
-    rather than into a plain breaker.
+    rather than into a plain breaker. Everything is read by property query
+    rather than through the typed API, because those skip disabled controls.
     """
     devices: dict[str, tuple[str, dict[str, Any]]] = {}
 
-    def switched_line(raw: str) -> str | None:
-        name = str(raw)
-        return name.split(".", 1)[1].lower() if name.lower().startswith("line.") else None
-
-    i = dss.Fuses.First()
-    while i:
-        line = switched_line(dss.Fuses.SwitchedObj())
+    for name in _all_of_class("fuse"):
+        full = f"fuse.{name}"
+        line = _switched_line(_prop(full, "switchedobj"))
         if line:
             devices[line] = ("fuse", {
-                "fusecurve": str(dss.Fuses.TCCCurve()).lower(),
-                "ratedcurrent": dss.Fuses.RatedCurrent(),
-                "delay": dss.Fuses.Delay(),
+                "fusecurve": _prop(full, "fusecurve").lower(),
+                "ratedcurrent": _to_float(_prop(full, "ratedcurrent"), 65.0),
+                "delay": _to_float(_prop(full, "delay")),
             })
-        i = dss.Fuses.Next()
 
-    i = dss.Reclosers.First()
-    while i:
-        line = switched_line(dss.Reclosers.SwitchedObj())
+    for name in _all_of_class("recloser"):
+        full = f"recloser.{name}"
+        line = _switched_line(_prop(full, "switchedobj"))
         if line:
-            full = f"recloser.{dss.Reclosers.Name()}"
             devices[line] = ("recloser", {
                 "phasefast": _prop(full, "phasefast").lower(),
                 "phasedelayed": _prop(full, "phasedelayed").lower(),
                 # No curve means no ground unit, as on a relay.
                 "groundfast": _prop(full, "groundfast").lower() or "none",
                 "grounddelayed": _prop(full, "grounddelayed").lower() or "none",
-                "phasetrip": dss.Reclosers.PhaseTrip(),
-                "groundtrip": dss.Reclosers.GroundTrip(),
-                "numfast": dss.Reclosers.NumFast(),
-                "shots": dss.Reclosers.Shots(),
+                "phasetrip": _to_float(_prop(full, "phasetrip"), 100.0),
+                "groundtrip": _to_float(_prop(full, "groundtrip"), 50.0),
+                "numfast": int(_to_float(_prop(full, "numfast"), 1.0)),
+                "shots": int(_to_float(_prop(full, "shots"), 4.0)),
                 "delay": _to_float(_prop(full, "delay")),
             })
-        i = dss.Reclosers.Next()
 
-    i = dss.Relays.First()
-    while i:
-        name = dss.Relays.Name()
-        line = switched_line(dss.Relays.SwitchedObj())
+    for name in _all_of_class("relay"):
         full = f"relay.{name}"
+        line = _switched_line(_prop(full, "switchedobj"))
         kind = _prop(full, "type").lower()
         if line and kind.startswith("current"):
             devices[line] = ("relay", {
                 "phasecurve": _prop(full, "phasecurve").lower(),
-                "phasetrip": _to_float(_prop(full, "phasetrip")),
-                # No curve means no ground unit; keep that distinction.
+                "phasetrip": _to_float(_prop(full, "phasetrip"), 200.0),
                 "groundcurve": _prop(full, "groundcurve").lower() or "none",
-                "groundtrip": _to_float(_prop(full, "groundtrip")),
+                "groundtrip": _to_float(_prop(full, "groundtrip"), 50.0),
                 "delay": _to_float(_prop(full, "delay")),
             })
         elif line:
             warnings.append(
                 f"Relay.{name} is a '{kind}' relay; only overcurrent relays are "
                 "modelled, so it was imported as a plain switch.")
-        i = dss.Relays.Next()
 
     return devices
+
+
+def _switched_line(raw: str) -> str | None:
+    name = str(raw)
+    return name.split(".", 1)[1].lower() if name.lower().startswith("line.") else None
 
 
 def _to_float(raw: str, default: float = 0.0) -> float:

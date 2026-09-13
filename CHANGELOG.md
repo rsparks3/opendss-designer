@@ -24,6 +24,15 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **An open protective device no longer aborts the engine.** A blown fuse or an
+  open recloser was held open with `action=open` on its control, which works
+  but crashes the Linux build of OpenDSS partway through a solve. It is now a
+  disabled control over an open switch — the same result, and the only other
+  ordering that holds (opening alone is undone when the solve resets the
+  control; disabling after opening re-closes it).
+- **An open device survives export and import.** Being disabled, its control
+  was skipped by the typed iterators, so it came back as a plain breaker with
+  its type and settings lost. Devices are now read by name.
 - **Fault studies no longer carry the control objects into the study.** A fault
   study is a Thévenin impedance per bus, where nothing operates — storage was
   already dropped for crashing it, and regulators, fuses, reclosers and relays

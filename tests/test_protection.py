@@ -122,3 +122,34 @@ def test_a_relay_type_we_do_not_model_imports_as_a_switch_with_a_warning():
     circuit = Circuit.model_validate(imported["circuit"])
     assert [n.type for n in circuit.nodes if n.type in ("relay", "breaker")] == ["breaker"]
     assert any("reversepower" in w for w in imported["warnings"])
+
+
+def test_an_open_device_is_a_stood_down_control_and_an_open_switch():
+    """Order is the whole trick. Opening the switch alone is undone when the
+    solve resets the control; disabling the control after opening re-closes
+    it. Disable first, then open, and it holds — and unlike `action=open` on
+    the control, which also holds, it does not abort the Linux engine."""
+    cmds = "\n".join(compile_circuit(_feeder("fuse", {"closed": False})).commands)
+    assert "action=open" not in cmds
+    disable_at = cmds.index("disable fuse.dev1")
+    open_at = cmds.index("open line.dev1")
+    assert disable_at < open_at, "the control has to stand down before the switch opens"
+
+
+def test_a_closed_device_is_neither_disabled_nor_opened():
+    cmds = "\n".join(compile_circuit(_feeder("recloser", {})).commands)
+    assert "disable" not in cmds
+    assert "open line" not in cmds
+
+
+@pytest.mark.parametrize("device_type", ["fuse", "recloser", "relay"])
+def test_an_open_device_comes_back_as_that_device(device_type):
+    """An open device is a disabled control, and the typed iterators walk only
+    enabled ones — so a blown fuse used to come back as a plain breaker, losing
+    both its type and its settings."""
+    text, _ = export_dss(_feeder(device_type, {"closed": False}))
+    circuit = Circuit.model_validate(import_dss(text)["circuit"])
+    devices = [n for n in circuit.nodes if n.type == device_type]
+    assert len(devices) == 1, [n.type for n in circuit.nodes]
+    assert devices[0].params["closed"] is False
+    assert not [n for n in circuit.nodes if n.type == "breaker"]

@@ -379,31 +379,39 @@ def compile_circuit(circuit: Circuit,
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
             f"switch=yes normamps={normamps:g}")
-        if not p.get("closed", True):
-            # A blown fuse or an open recloser: the switch is open, and the
-            # control object still describes what it would do when reset.
-            cmds.append(f"open line.{name} term=1")
         return name, p
 
-    def monitors(name: str, p: dict) -> str:
-        # Opening the switch is not enough on its own: the control closes what
-        # it switches when the solve resets it, so an open device has to say so
-        # on the control as well.
-        action = "" if p.get("closed", True) else " action=open"
+    def out_of_service(kind: str, name: str, p: dict) -> None:
+        """A blown fuse or an open recloser: the control stands down and its
+        switch is open.
+
+        Order matters, and only this order works. Opening the switch alone is
+        undone when the solve resets the control, and disabling the control
+        after opening re-closes it; disabling first and then opening holds.
+        The obvious alternative -- `action=open` on the control -- does hold,
+        but aborts the process on the Linux build of the engine.
+        """
+        if p.get("closed", True):
+            return
+        cmds.append(f"disable {kind}.{name}")
+        cmds.append(f"open line.{name} term=1")
+
+    def monitors(name: str) -> str:
         return (f"monitoredobj=line.{name} monitoredterm=1 "
-                f"switchedobj=line.{name} switchedterm=1{action}")
+                f"switchedobj=line.{name} switchedterm=1")
 
     for n in fuses:
         name, p = protective_switch(n, DEFAULT_FUSE_AMPS)
         cmds.append(
-            f"new fuse.{name} {monitors(name, p)} "
+            f"new fuse.{name} {monitors(name)} "
             f"fusecurve={curve_ref(p, 'fusecurve', FUSE_CURVES, 'tlink', n.id)} "
             f"ratedcurrent={_num(p, 'ratedcurrent', DEFAULT_FUSE_AMPS):g} "
             f"delay={_num(p, 'delay', 0.0):g}")
+        out_of_service("fuse", name, p)
 
     for n in reclosers:
         name, p = protective_switch(n, DEFAULT_RECLOSER_AMPS)
-        cmd = (f"new recloser.{name} {monitors(name, p)} "
+        cmd = (f"new recloser.{name} {monitors(name)} "
                f"phasefast={curve_ref(p, 'phasefast', RECLOSER_CURVES, 'a', n.id)} "
                f"phasedelayed={curve_ref(p, 'phasedelayed', RECLOSER_CURVES, 'd', n.id)} "
                f"phasetrip={_num(p, 'phasetrip', 100.0):g} "
@@ -421,10 +429,11 @@ def compile_circuit(circuit: Circuit,
             cmd += (f" groundfast={gfast if gfast != 'none' else gdelayed} "
                     f"grounddelayed={gdelayed if gdelayed != 'none' else gfast}")
         cmds.append(cmd)
+        out_of_service("recloser", name, p)
 
     for n in relays:
         name, p = protective_switch(n, DEFAULT_RELAY_AMPS)
-        cmd = (f"new relay.{name} {monitors(name, p)} type=current "
+        cmd = (f"new relay.{name} {monitors(name)} type=current "
                f"phasecurve={curve_ref(p, 'phasecurve', RELAY_CURVES, 'very_inv', n.id)} "
                f"phasetrip={_num(p, 'phasetrip', 200.0):g} "
                f"delay={_num(p, 'delay', 0.0):g}")
@@ -435,6 +444,7 @@ def compile_circuit(circuit: Circuit,
             cmd += (f" groundcurve={ground} "
                     f"groundtrip={_num(p, 'groundtrip', 50.0):g}")
         cmds.append(cmd)
+        out_of_service("relay", name, p)
 
     for n in loads:
         p = n.params
