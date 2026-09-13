@@ -272,6 +272,8 @@ html, body, #root { margin: 0; height: 100%; }
    700 weight makes them heavier still at this size, so the wide variant steps
    down in both. */
 .sym-text.device-no.wide { font-size: 5.5px; font-weight: 600; }
+/* The palette icon draws the same symbol in a 32-unit box instead of 60. */
+.sym-text.device-no.icon { font-size: 7px; }
 
 .busbar-bar {
   width: 100%;

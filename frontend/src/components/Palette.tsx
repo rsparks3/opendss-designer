@@ -90,12 +90,16 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
     label: 'Relay',
     kbd: 'Y',
     icon: (
+      // The canvas symbol in miniature. The trip link is left off: at 28px it
+      // reads as a smudge rather than as a control wire.
       <svg viewBox="0 0 32 32">
-        <line x1="12" y1="6" x2="12" y2="13" className="sym" />
-        <rect x="6" y="13" width="12" height="12" className="sym-fill" />
-        <line x1="12" y1="25" x2="12" y2="31" className="sym" />
-        <circle cx="24" cy="8" r="7" className="sym" fill="none" />
-        <text x="24" y="11" textAnchor="middle" className="sym-text" fontSize="8">51</text>
+        <line x1="9" y1="1" x2="9" y2="9" className="sym" />
+        <rect x="3" y="9" width="12" height="12" className="sym-fill" />
+        <line x1="9" y1="21" x2="9" y2="31" className="sym" />
+        <circle cx="23.5" cy="11" r="6.5" className="sym" fill="none" />
+        <text x="23.5" y="13.6" textAnchor="middle" className="sym-text device-no icon">
+          51
+        </text>
       </svg>
     ),
   },
