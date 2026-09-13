@@ -270,6 +270,9 @@ def _read_protection(warnings: list[str]) -> dict[str, tuple[str, dict[str, Any]
             devices[line] = ("recloser", {
                 "phasefast": _prop(full, "phasefast").lower(),
                 "phasedelayed": _prop(full, "phasedelayed").lower(),
+                # No curve means no ground unit, as on a relay.
+                "groundfast": _prop(full, "groundfast").lower() or "none",
+                "grounddelayed": _prop(full, "grounddelayed").lower() or "none",
                 "phasetrip": dss.Reclosers.PhaseTrip(),
                 "groundtrip": dss.Reclosers.GroundTrip(),
                 "numfast": dss.Reclosers.NumFast(),

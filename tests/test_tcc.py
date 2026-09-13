@@ -114,9 +114,11 @@ def _chain_circuit(upstream: dict, downstream: dict) -> Circuit:
     return Circuit.model_validate({
         "name": "chain",
         "nodes": [
+            # A weak source on purpose: at 2000 MVA the fault is far past the
+            # end of every published curve, where nothing can be graded.
             {"id": "src", "type": "vsource",
              "params": {"name": "SRC1", "basekv": 12.47, "pu": 1.0, "phases": 3,
-                        "mvasc3": 2000, "mvasc1": 2100}},
+                        "mvasc3": 25, "mvasc1": 25}},
             {"id": "b1", "type": "busbar", "params": {"name": "BUS-A", "basekv": 12.47}},
             {"id": "up", "type": upstream.pop("type"), "params": {"name": "UP", **upstream}},
             {"id": "b2", "type": "busbar", "params": {"name": "BUS-B", "basekv": 12.47}},
@@ -218,3 +220,86 @@ def test_a_switch_with_no_rating_is_reported_but_not_judged():
     assert switch["interruptingKa"] is None
     assert switch["faultA3ph"] > 0
     assert "interrupting-duty" not in _codes(result)
+
+
+# --- ground faults and fuse grading --------------------------------------
+
+def test_a_ground_unit_is_checked_against_the_single_phase_fault():
+    # Phase units grade fine; the downstream ground unit is set slower than the
+    # one above it, which only a ground check can see.
+    result = protection.tcc_study(_chain_circuit(
+        upstream={"type": "relay", "phasetrip": 400, "phasecurve": "very_inv",
+                  "groundcurve": "very_inv", "groundtrip": 100, "delay": 3.0},
+        downstream={"type": "relay", "phasetrip": 200, "phasecurve": "ext_inv",
+                    "groundcurve": "definite", "groundtrip": 50, "delay": 5.0},
+    ))
+    grounds = [i for i in result["issues"]
+               if i["code"] == "miscoordination" and "1φ" in i["message"]]
+    assert grounds, [i["message"] for i in result["issues"]]
+    assert "ground" in grounds[0]["message"]
+
+
+def test_traces_say_which_fault_they_answer_to():
+    result = protection.tcc_study(_feeder("relay", {"groundcurve": "very_inv"}))
+    kinds = {t["label"]: t["fault"] for t in _by_name(result, "dev1")["traces"]}
+    assert kinds == {"dev1 phase": "phase", "dev1 ground": "ground"}
+
+
+def test_a_recloser_gets_a_ground_unit_only_when_given_curves():
+    without = protection.tcc_study(_feeder("recloser", {"groundtrip": 50}))
+    assert all(t["fault"] == "phase" for t in _by_name(without, "dev1")["traces"])
+
+    with_ground = protection.tcc_study(_feeder(
+        "recloser", {"groundtrip": 50, "groundfast": "a", "grounddelayed": "d"}))
+    faults = {t["fault"] for t in _by_name(with_ground, "dev1")["traces"]}
+    assert faults == {"phase", "ground"}
+
+
+def test_a_fuse_pair_is_graded_by_the_75_percent_rule():
+    # Both fuses on the same link: the downstream one melts at essentially the
+    # same time as the one above it, which the ratio rule catches and a 0.25 s
+    # margin would not, because both are fast.
+    result = protection.tcc_study(_chain_circuit(
+        upstream={"type": "fuse", "ratedcurrent": 65, "fusecurve": "tlink"},
+        downstream={"type": "fuse", "ratedcurrent": 65, "fusecurve": "tlink"},
+    ))
+    fuse_issues = [i for i in result["issues"] if i["code"] == "miscoordination"]
+    assert fuse_issues, [i["message"] for i in result["issues"]]
+    assert "melting time" in fuse_issues[0]["message"]
+    assert "75%" in fuse_issues[0]["message"]
+
+
+def test_a_well_graded_fuse_pair_passes():
+    # A small link downstream of a much larger one clears far inside 75%.
+    result = protection.tcc_study(_chain_circuit(
+        upstream={"type": "fuse", "ratedcurrent": 200, "fusecurve": "tlink"},
+        downstream={"type": "fuse", "ratedcurrent": 25, "fusecurve": "tlink"},
+    ))
+    assert "miscoordination" not in _codes(result)
+
+
+def test_a_fuse_carries_its_one_curve_into_the_ground_check():
+    # A fuse has no ground unit and needs none: it sees whatever flows.
+    result = protection.tcc_study(_chain_circuit(
+        upstream={"type": "fuse", "ratedcurrent": 65, "fusecurve": "tlink"},
+        downstream={"type": "fuse", "ratedcurrent": 65, "fusecurve": "tlink"},
+    ))
+    assert any("1φ" in i["message"] for i in result["issues"]), \
+        [i["message"] for i in result["issues"]]
+
+
+def test_a_pair_past_the_end_of_its_curves_is_not_judged():
+    """Beyond the last point every curve runs flat, so two very different
+    devices appear to operate at the same instant. That is the extrapolation
+    talking, and grading on it would report a fault that is not there."""
+    strong = _chain_circuit(
+        upstream={"type": "fuse", "ratedcurrent": 200, "fusecurve": "tlink"},
+        downstream={"type": "fuse", "ratedcurrent": 25, "fusecurve": "tlink"},
+    )
+    src = next(n for n in strong.nodes if n.type == "vsource")
+    src.params.update({"mvasc3": 2000, "mvasc1": 2100})
+    result = protection.tcc_study(strong)
+
+    dn = _by_name(result, "dn")
+    assert dn["faultA3ph"] > dn["traces"][0]["points"][-1][0], "fault should be off the curve"
+    assert "miscoordination" not in _codes(result)

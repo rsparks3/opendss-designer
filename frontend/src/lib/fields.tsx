@@ -92,6 +92,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'groundtrip', label: 'Ground pickup', kind: 'number', unit: 'A' },
     { key: 'phasefast', label: 'Fast curve', kind: 'select', options: ['a', 'd', 'tlink', 'klink'] },
     { key: 'phasedelayed', label: 'Delayed curve', kind: 'select', options: ['a', 'd', 'tlink', 'klink'] },
+    { key: 'groundfast', label: 'Ground fast curve', kind: 'select', options: ['none', 'a', 'd', 'tlink', 'klink'] },
+    { key: 'grounddelayed', label: 'Ground delayed curve', kind: 'select', options: ['none', 'a', 'd', 'tlink', 'klink'] },
     { key: 'numfast', label: 'Fast operations', kind: 'number' },
     { key: 'shots', label: 'Shots to lockout', kind: 'number' },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },

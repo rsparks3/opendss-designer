@@ -120,6 +120,7 @@ what a device protects.
 |---|---|
 | Phase / ground pickup | Trip current, in amps |
 | Fast / delayed curve | `a` and `d` are the standard fast and delayed curves |
+| Ground fast / delayed curve | Leave at `none` for no ground unit; the ground pickup alone does not create one |
 | Fast operations | How many trips use the fast curve before switching to the delayed one |
 | Shots to lockout | Trips before it stays open |
 

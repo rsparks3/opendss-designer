@@ -312,7 +312,7 @@ export function TccGraphPanel() {
               d.traces.map((t) => (
                 <g key={`${d.name}-${t.label}`}>
                   <path d={path(t)} fill="none" stroke={colorOf(d.name)}
-                        className={t.label.includes('ground') ? 'vp-trace dashed' : 'vp-trace'} />
+                        className={t.fault === 'ground' ? 'vp-trace dashed' : 'vp-trace'} />
                   {tail(t) && (
                     <path d={tail(t)!} fill="none" stroke={colorOf(d.name)} className="tcc-tail" />
                   )}
@@ -352,7 +352,8 @@ export function TccGraphPanel() {
               <text x={ML + PLOT_W + 14} y={MT + i * 34 + 24} className="tcc-legend sub"
                     opacity={hidden[d.name] ? 0.4 : 1}>
                 {d.kind}
-                {d.faultA3ph ? ` · ${formatAmps(d.faultA3ph)} A` : ''}
+                {d.faultA3ph ? ` · ${formatAmps(d.faultA3ph)}` : ''}
+                {d.faultA1ph ? ` / ${formatAmps(d.faultA1ph)} A` : d.faultA3ph ? ' A' : ''}
               </text>
             </g>
           ))}

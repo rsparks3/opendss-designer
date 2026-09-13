@@ -125,13 +125,32 @@ element they belong to:
 | Check | What it means |
 |---|---|
 | **Pickup above the fault** | The device starts operating above the current a fault at its own bus would draw, so it would never trip for the fault it protects |
-| **Miscoordination** | At the downstream device's fault current, the device above it operates within 0.25 s — so the upstream device may clear the fault first and take out more of the feeder than it needs to |
+| **Miscoordination** | The device above operates too close behind the one below — see the grading rules below |
 | **Interrupting duty** | The fault current at a switch exceeds what it is rated to break |
+
+Everything is checked **twice**: phase units against the 3φ fault current, and
+ground units against the 1φ one. A pair can grade perfectly on phase and not on
+ground, which is exactly the case worth catching. A fuse has no ground unit and
+needs none — it carries whatever current flows through it, so its one curve
+answers for both.
+
+Pairs are graded two ways, because the industry does:
+
+- **Fuse to fuse — the 75% rule.** The fuse below must melt inside 75% of the
+  melting time of the fuse above it, which leaves margin for the upper fuse not
+  to be damaged. (The tool has one curve per fuse, the melt; the full rule
+  compares the lower fuse's *total clearing* time, which is stricter still.)
+- **Everything else — a 0.25 s margin**, the usual working figure for relays
+  and reclosers.
+
+A pair is only graded while **both devices are still on their curve data**.
+Past the last published point every curve runs flat, so two very different
+devices appear to operate at the same instant — that is the extrapolation
+talking, not the devices. A fault that far out is already reported by the
+interrupting-duty check.
 
 The upstream/downstream pairing comes from walking the circuit outward from
 the source, so it follows the drawing rather than any naming convention; an
 open switch breaks the path, as it does electrically.
 
-These are warnings, not errors — they never block a solve. The margin used is
-0.25 s, the usual working figure for relays and reclosers; a fuse-to-fuse
-study normally uses the 75% melt rule instead, which this does not yet do.
+These are warnings, not errors — they never block a solve.

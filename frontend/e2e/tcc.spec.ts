@@ -71,7 +71,7 @@ const STUB = {
     {
       nodeId: 'n_rly', name: 'rly1', kind: 'relay', switch: 'rly1', bus: 'bus_prot',
       faultA3ph: 3192.6, faultA1ph: 2484.7,
-      traces: [{ label: 'rly1 phase', curve: 'very_inv', pickupA: 200,
+      traces: [{ label: 'rly1 phase', curve: 'very_inv', fault: 'phase', pickupA: 200,
                  points: [[220, 93.9], [20000, 0.49]] }],
     },
   ],

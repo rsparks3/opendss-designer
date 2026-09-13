@@ -353,15 +353,24 @@ def compile_circuit(circuit: Circuit,
 
     for n in reclosers:
         name, p = protective_switch(n, DEFAULT_RECLOSER_AMPS)
-        cmds.append(
-            f"new recloser.{name} {monitors(name, p)} "
-            f"phasefast={_enum(p, 'phasefast', RECLOSER_CURVES, 'a')} "
-            f"phasedelayed={_enum(p, 'phasedelayed', RECLOSER_CURVES, 'd')} "
-            f"phasetrip={_num(p, 'phasetrip', 100.0):g} "
-            f"groundtrip={_num(p, 'groundtrip', 50.0):g} "
-            f"numfast={int(_num(p, 'numfast', 1.0) or 1)} "
-            f"shots={int(_num(p, 'shots', 4.0) or 4)} "
-            f"delay={_num(p, 'delay', 0.0):g}")
+        cmd = (f"new recloser.{name} {monitors(name, p)} "
+               f"phasefast={_enum(p, 'phasefast', RECLOSER_CURVES, 'a')} "
+               f"phasedelayed={_enum(p, 'phasedelayed', RECLOSER_CURVES, 'd')} "
+               f"phasetrip={_num(p, 'phasetrip', 100.0):g} "
+               # Emitted whether or not a ground unit exists: it is the user's
+               # setting, and losing it on a round trip would be silent.
+               f"groundtrip={_num(p, 'groundtrip', 50.0):g} "
+               f"numfast={int(_num(p, 'numfast', 1.0) or 1)} "
+               f"shots={int(_num(p, 'shots', 4.0) or 4)} "
+               f"delay={_num(p, 'delay', 0.0):g}")
+        # A recloser only has a ground unit if it is given curves for one, the
+        # same as a relay; the trip setting alone does nothing.
+        gfast = _enum(p, "groundfast", RECLOSER_CURVES | {"none"}, "none")
+        gdelayed = _enum(p, "grounddelayed", RECLOSER_CURVES | {"none"}, "none")
+        if gfast != "none" or gdelayed != "none":
+            cmd += (f" groundfast={gfast if gfast != 'none' else gdelayed} "
+                    f"grounddelayed={gdelayed if gdelayed != 'none' else gfast}")
+        cmds.append(cmd)
 
     for n in relays:
         name, p = protective_switch(n, DEFAULT_RELAY_AMPS)

@@ -6,6 +6,7 @@ import { formatAmps, formatSeconds, logTicks, operateSeconds, type TccTrace } fr
 const line: TccTrace = {
   label: 'test',
   curve: 'x',
+  fault: 'phase',
   pickupA: 100,
   points: [
     [100, 10],

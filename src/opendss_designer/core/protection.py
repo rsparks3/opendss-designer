@@ -52,10 +52,15 @@ def _prop_float(full_name: str, prop: str, default: float = 0.0) -> float:
         return default
 
 
-def _curve_trace(label: str, curve: str, pickup: float,
-                 delay: float) -> dict[str, Any] | None:
+def _curve_trace(label: str, curve: str, pickup: float, delay: float,
+                 fault: str = "phase") -> dict[str, Any] | None:
     """One plottable trace in amps and seconds, or None when the device has no
-    usable curve (no curve name, no pickup, or a curve with a single point)."""
+    usable curve (no curve name, no pickup, or a curve with a single point).
+
+    `fault` says which fault the trace answers to: a ground unit only sees the
+    residual current of an unbalanced fault, so coordination reads the phase
+    traces against a 3-phase fault and the ground traces against a 1-phase one.
+    """
     if not curve or curve == "none" or pickup <= 0:
         return None
     mult = _num_array(f"tcc_curve.{curve}.c_array")
@@ -66,6 +71,7 @@ def _curve_trace(label: str, curve: str, pickup: float,
     return {
         "label": label,
         "curve": curve,
+        "fault": fault,
         "pickupA": round(pickup, 2),
         "points": [[round(mult[i] * pickup, 2), round(secs[i] + delay, 5)]
                    for i in range(n)],
@@ -134,10 +140,16 @@ def _read_devices(element_map: dict[str, str]) -> list[dict[str, Any]]:
                       element_map)
         if dev:
             delay = _prop_float(full, "delay")
-            pickup = dss.Reclosers.PhaseTrip()
-            for label, prop in (("fast", "phasefast"), ("delayed", "phasedelayed")):
+            phase_pickup = dss.Reclosers.PhaseTrip()
+            ground_pickup = dss.Reclosers.GroundTrip()
+            for label, prop, pickup, kind in (
+                ("fast", "phasefast", phase_pickup, "phase"),
+                ("delayed", "phasedelayed", phase_pickup, "phase"),
+                ("ground fast", "groundfast", ground_pickup, "ground"),
+                ("ground delayed", "grounddelayed", ground_pickup, "ground"),
+            ):
                 trace = _curve_trace(f"{name} {label}", _prop(full, prop).lower(),
-                                     pickup, delay)
+                                     pickup, delay, kind)
                 if trace:
                     dev["traces"].append(trace)
             if dev["traces"]:
@@ -157,7 +169,7 @@ def _read_devices(element_map: dict[str, str]) -> list[dict[str, Any]]:
             ):
                 trace = _curve_trace(f"{name} {label}",
                                      _prop(full, curve_prop).lower(),
-                                     _prop_float(full, trip_prop), delay)
+                                     _prop_float(full, trip_prop), delay, label)
                 if trace:
                     dev["traces"].append(trace)
             if dev["traces"]:
@@ -262,6 +274,14 @@ def _upstream_chain(circuit: Circuit, devices: list[dict[str, Any]]) -> dict[str
 # reclosers; anything tighter is worth a second look by the engineer.
 COORDINATION_MARGIN_S = 0.25
 
+# Fuse pairs are graded by ratio rather than by a fixed margin: the protecting
+# fuse must clear inside 75% of the time the fuse above it takes to melt, which
+# leaves room for the melting one to not be damaged. The tool has one curve per
+# fuse (OpenDSS models the melt), so this compares melt to melt -- the standard
+# rule compares the downstream fuse's total clearing time, which is the more
+# demanding side of it.
+FUSE_MELT_FRACTION = 0.75
+
 
 def _operate_seconds(trace: dict[str, Any], amps: float) -> float | None:
     """Seconds to operate at a current, interpolated straight on log-log paper
@@ -281,58 +301,116 @@ def _operate_seconds(trace: dict[str, Any], amps: float) -> float | None:
     return None
 
 
-def _fastest(device: dict[str, Any], amps: float) -> tuple[str, float] | None:
-    """The trace that would operate first at this current, and when."""
-    best: tuple[str, float] | None = None
-    for trace in device["traces"]:
+def _beyond_data(trace: dict[str, Any], amps: float) -> bool:
+    """Is this current past the last point the curve actually defines?"""
+    return bool(trace["points"]) and amps > trace["points"][-1][0]
+
+
+def _fastest(device: dict[str, Any], amps: float,
+             fault: str = "phase") -> tuple[str, float, bool] | None:
+    """The trace that would operate first at this current, and when.
+
+    For a ground fault the ground units answer, where a device has them. A fuse
+    has none and does not need any: it carries whatever current flows through
+    it, so its one curve serves both faults.
+    """
+    traces = [x for x in device["traces"] if x.get("fault", "phase") == fault]
+    if not traces and fault == "ground" and device["kind"] == "fuse":
+        traces = device["traces"]
+    best: tuple[str, float, bool] | None = None
+    for trace in traces:
         secs = _operate_seconds(trace, amps)
         if secs is not None and (best is None or secs < best[1]):
-            best = (trace["label"], secs)
+            best = (trace["label"], secs, _beyond_data(trace, amps))
     return best
+
+
+def _graded(downstream: dict[str, Any], mine: tuple[str, float, bool],
+            upstream: dict[str, Any], theirs: tuple[str, float, bool]) -> str | None:
+    """Why this pair fails to grade, or None when it is fine.
+
+    Two fuses are graded by ratio -- the one below must clear well inside the
+    melting time of the one above -- and everything else by a fixed time margin.
+
+    Past the end of a curve's data every curve runs flat, so two devices there
+    appear to operate at exactly the same moment however different they are.
+    That is the extrapolation talking, not the devices, so a pair is only
+    judged while both are still on data. A fault that far out is already
+    reported by the interrupting-duty check.
+    """
+    if mine[2] or theirs[2]:
+        return None
+    if downstream["kind"] == "fuse" and upstream["kind"] == "fuse":
+        if mine[1] > theirs[1] * FUSE_MELT_FRACTION:
+            pct = mine[1] / theirs[1] * 100 if theirs[1] else float("inf")
+            return (f"{pct:.0f}% of the upstream fuse's melting time, past the "
+                    f"{FUSE_MELT_FRACTION:.0%} a fuse pair is graded to, so the "
+                    "upstream fuse may be damaged or blow with it")
+        return None
+    if theirs[1] - mine[1] < COORDINATION_MARGIN_S:
+        return (f"less than the {COORDINATION_MARGIN_S:g} s margin, so the "
+                "upstream device may clear the fault first and take out more "
+                "of the feeder")
+    return None
 
 
 def _coordination_issues(devices: list[dict[str, Any]],
                          switches: list[dict[str, Any]],
                          chains: dict[str, list[str]]) -> list[Issue]:
-    """What the curves say about the fault currents actually available."""
+    """What the curves say about the fault currents actually available.
+
+    Everything is checked twice: phase units against the 3-phase fault, ground
+    units against the 1-phase one. A pair can grade perfectly on phase and not
+    on ground, which is exactly the case worth catching.
+    """
     issues: list[Issue] = []
     by_name = {d["name"]: d for d in devices}
 
     for dev in devices:
-        fault = dev.get("faultA3ph")
-        if not fault:
-            continue
-        pickup = min(t["points"][0][0] for t in dev["traces"])
-        if fault < pickup:
-            issues.append(Issue(
-                severity="warning", code="pickup-above-fault",
-                message=(f"{dev['kind'].title()} '{dev['name']}' starts operating at "
-                         f"{pickup:.0f} A, but a fault at {dev['bus']} draws only "
-                         f"{fault:.0f} A — it would never trip for a fault it protects."),
-                nodeId=dev["nodeId"]))
-            continue
+        for fault_kind, current_key, label in (
+            ("phase", "faultA3ph", "3φ"),
+            ("ground", "faultA1ph", "1φ"),
+        ):
+            current = dev.get(current_key)
+            if not current:
+                continue
+            traces = [x for x in dev["traces"] if x.get("fault", "phase") == fault_kind]
+            if not traces and not (fault_kind == "ground" and dev["kind"] == "fuse"):
+                # No ground unit at all is a modelling choice, not a defect:
+                # plenty of feeders rely on the phase units for ground faults.
+                continue
 
-        mine = _fastest(dev, fault)
-        if mine is None:
-            continue
-        for upstream_name in chains.get(dev["name"], []):
-            upstream = by_name.get(upstream_name)
-            if upstream is None:
-                continue
-            theirs = _fastest(upstream, fault)
-            if theirs is None:
-                continue
-            if theirs[1] - mine[1] < COORDINATION_MARGIN_S:
+            mine = _fastest(dev, current, fault_kind)
+            if mine is None:
+                pickup = min(x["points"][0][0]
+                             for x in (traces or dev["traces"]))
                 issues.append(Issue(
-                    severity="warning", code="miscoordination",
+                    severity="warning", code="pickup-above-fault",
                     message=(
-                        f"For a fault at {dev['bus']} ({fault:.0f} A), "
-                        f"'{dev['name']}' operates in {mine[1]:.3f} s ({mine[0]}) but "
-                        f"'{upstream_name}' upstream operates in {theirs[1]:.3f} s "
-                        f"({theirs[0]}) — less than the {COORDINATION_MARGIN_S:g} s "
-                        "margin, so the upstream device may clear the fault first "
-                        "and take out more of the feeder."),
+                        f"{dev['kind'].title()} '{dev['name']}' picks up at "
+                        f"{pickup:.0f} A on its {fault_kind} unit, but a {label} "
+                        f"fault at {dev['bus']} draws only {current:.0f} A — it "
+                        "would never trip for a fault it protects."),
                     nodeId=dev["nodeId"]))
+                continue
+
+            for upstream_name in chains.get(dev["name"], []):
+                upstream = by_name.get(upstream_name)
+                if upstream is None:
+                    continue
+                theirs = _fastest(upstream, current, fault_kind)
+                if theirs is None:
+                    continue
+                why = _graded(dev, mine, upstream, theirs)
+                if why:
+                    issues.append(Issue(
+                        severity="warning", code="miscoordination",
+                        message=(
+                            f"For a {label} fault at {dev['bus']} ({current:.0f} A), "
+                            f"'{dev['name']}' ({mine[0]}) operates in {mine[1]:.3f} s "
+                            f"and '{upstream_name}' ({theirs[0]}) above it in "
+                            f"{theirs[1]:.3f} s — {why}."),
+                        nodeId=dev["nodeId"]))
 
     # Every switch, protective or not, has to be able to break the fault it
     # could be asked to break. This is the check a breaker takes part in: it

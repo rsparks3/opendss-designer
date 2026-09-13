@@ -36,7 +36,8 @@ export function defaultParams(type: NodeType): Params {
     case 'recloser':
       return {
         name: nextName('REC'), closed: true, phases: 3, phasetrip: 100,
-        groundtrip: 50, phasefast: 'a', phasedelayed: 'd', numfast: 1,
+        groundtrip: 50, phasefast: 'a', phasedelayed: 'd',
+        groundfast: 'none', grounddelayed: 'none', numfast: 1,
         shots: 4, delay: 0, normamps: 560, interruptingka: 8,
       }
     case 'relay':

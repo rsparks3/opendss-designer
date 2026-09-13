@@ -3,6 +3,27 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **Ground-fault coordination.** Every check now runs twice: phase units
+  against the 3φ fault current, ground units against the 1φ one, so a pair that
+  grades on phase and not on ground is caught. Reclosers gained ground fast and
+  delayed curves (a ground pickup alone never created a ground unit, on a
+  recloser or a relay).
+- **The 75% rule for fuse pairs.** Two fuses in series are graded by ratio —
+  the one below must melt inside 75% of the melting time of the one above —
+  rather than by the 0.25 s margin that suits relays and reclosers.
+
+### Fixed
+
+- **A pair past the end of its curves is no longer graded.** Beyond the last
+  published point every curve runs flat, so two very different devices appeared
+  to operate at the same instant and any pair out there looked like a defect.
+- **A recloser's ground pickup survives export and import** even when it has no
+  ground curves; it was being dropped and coming back as the engine's default.
+
 ## 0.5.5 — 2026-09-13
 
 Protection: the devices, their curves, and what the curves say about each

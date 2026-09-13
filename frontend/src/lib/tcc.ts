@@ -3,6 +3,9 @@ import type { Issue } from '../types/circuit'
 export interface TccTrace {
   label: string
   curve: string
+  /** Which fault this trace answers to: a ground unit only sees the residual
+   *  current of an unbalanced fault. */
+  fault: 'phase' | 'ground'
   pickupA: number
   /** [amps, seconds] pairs, straight lines between them on log-log paper. */
   points: [number, number][]
