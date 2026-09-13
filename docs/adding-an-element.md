@@ -18,7 +18,9 @@ the whole list.
    type, build the `new <class>.<name> ...` command via `element_name()` (which
    registers the element_map entry for results/issue mapping), use
    `conn.node_buses[n.id]` + `_bus_suffix` for bus connections, and
-   `kv_bases.add()` any rated kV.
+   `kv_bases.add()` any rated kV. Pass `p.get("phasing")` to `_bus_suffix` so
+   the element can be pinned to a phase; omit it and the element silently
+   ignores the phase picker.
 3. `core/importer.py` — add the OpenDSS class prefix to `SUPPORTED_PREFIXES`
    and a read-back block in `_read_model_back` (iterate `dss.<Class>.First()/
    Next()`, preserve `busNodes` suffixes, `wire()` terminals to `busbar_for()`).
@@ -31,7 +33,8 @@ the whole list.
 6. `lib/defaults.ts` — `defaultParams()` case (name prefix + sensible params)
    and `NODE_SIZE` entry.
 7. `lib/fields.tsx` — `FIELDS` entry; drives both the properties panel and the
-   spreadsheet tab. If the element can follow a loadshape, give it a
+   spreadsheet tab. If the element has a phase count, give it a `phasing` param
+   with `kind: 'phasing'` right under it (the phase picker). If the element can follow a loadshape, give it a
    `loadshape` param with `kind: 'loadshape'` (renders the shape-library
    dropdown) and append `shape_ref(p, n.id)` to its compiler command (M5).
 8. `components/nodes/<X>Node.tsx` — symbol component: use `useSymbolRotation`,

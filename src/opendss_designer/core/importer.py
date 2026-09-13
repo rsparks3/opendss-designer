@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 import shutil
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ import opendssdirect as dss
 from . import engine
 from .connectivity import sanitize_name
 from .model import Circuit, CircuitEdge, CircuitNode, LoadShapeSpec, Position
+from .phasing import phasing_from_suffix
 
 _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
 
@@ -51,6 +53,35 @@ def _node_suffix(name: str) -> str | None:
     base, dot, rest = name.partition(".")
     suffix = dot + rest if dot else ""
     return suffix if suffix and _NODE_SUFFIX_RE.match(suffix) else None
+
+
+def _record_phasing(params: dict[str, Any], suffixes: Sequence[str | None],
+                    raw_keys: Sequence[str], *, carry: bool = True) -> None:
+    """Record how an imported element connects to its phases.
+
+    Node suffixes become a `phasing` pin -- letters, the thing the editor's
+    phase picker edits -- whenever the letters can say exactly what the text
+    said. A pin has to survive the round trip unchanged, so this is stricter
+    than it looks: a series element carries one phasing through every
+    terminal, so every terminal must agree (`carry`); a transformer's pin
+    applies to its primary only, so the other winding must be bare.
+
+    Everything else -- a neutral, a centre tap, a transposition between two
+    terminals -- keeps the raw text it arrived with, which the compiler still
+    honours and the picker leaves alone rather than silently dropping a node.
+    """
+    head = suffixes[0]
+    rest = suffixes[1:]
+    pin = phasing_from_suffix(head)
+    agrees = all(s == head for s in rest) if carry else not any(rest)
+    if pin and agrees:
+        params["phasing"] = pin
+        return
+    # Deliberately not strict: a switch offers one raw key for its two
+    # terminals, since it takes a single node list for both ends.
+    for key, suffix in zip(raw_keys, suffixes, strict=False):
+        if suffix:
+            params[key] = suffix
 
 
 def _find_main(files: list[dict[str, str]]) -> dict[str, str]:
@@ -468,9 +499,18 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         params: dict[str, Any] = {
             "name": name, "phases": dss.CktElement.NumPhases(),
             "windings": windings, "xhl": dss.Transformers.Xhl()}
-        if any(bus_nodes):
-            params["busNodes"] = bus_nodes
         reg = reg_controls.get(name.lower())
+        # Same rule as _record_phasing, spelled out because the raw fallback
+        # here is a per-winding list rather than one string: a regulator
+        # carries one phasing through both terminals, so they must agree,
+        # while a transformer's pin names its primary only and the secondary
+        # must therefore be bare.
+        pin = phasing_from_suffix(bus_nodes[0])
+        agrees = bus_nodes[0] == bus_nodes[1] if reg is not None else not bus_nodes[1]
+        if pin and agrees:
+            params["phasing"] = pin
+        elif any(bus_nodes):
+            params["busNodes"] = bus_nodes
         if reg is not None:
             # The regulator's own editor carries one kv/kva pair, not a winding
             # list; the RegControl's name is dropped in favour of the
@@ -504,11 +544,14 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             closed = not dss.CktElement.IsOpen(1, 0)
             nid = node_id()
             kind, device = protection.get(name.lower(), ("breaker", {}))
-            nodes.append(CircuitNode(
-                id=nid, type=kind,
-                params={"name": name, "closed": closed,
-                        "normamps": dss.Lines.NormAmps(),
-                        "phases": dss.Lines.Phases(), **device}))
+            params = {"name": name, "closed": closed,
+                      "normamps": dss.Lines.NormAmps(),
+                      "phases": dss.Lines.Phases(), **device}
+            # A switch takes one node list for both of its ends -- it sits
+            # inside a single lateral -- so only the first raw key is offered.
+            _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
+                            ["busNodes"])
+            nodes.append(CircuitNode(id=nid, type=kind, params=params))
             wire(nid, "t1", busbar_for(b1), "b0")
             wire(nid, "t2", busbar_for(b2), "b0")
         else:
@@ -523,11 +566,8 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             linecode = dss.Lines.LineCode()
             if linecode:
                 params["linecode"] = linecode
-            n1, n2 = _node_suffix(raw1), _node_suffix(raw2)
-            if n1:
-                params["nodes1"] = n1
-            if n2:
-                params["nodes2"] = n2
+            _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
+                            ["nodes1", "nodes2"])
             edges.append(CircuitEdge(
                 id=edge_id(), type="line",
                 source=busbar_for(b1), sourceHandle="b0",
@@ -551,9 +591,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         if shape:
             params["loadshape"] = shape
         if buses:
-            suffix = _node_suffix(buses[0])
-            if suffix:
-                params["busNodes"] = suffix
+            _record_phasing(params, [_node_suffix(buses[0])], ["busNodes"])
         nodes.append(CircuitNode(id=nid, type="load", params=params))
         if buses:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
@@ -572,9 +610,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                   "phases": dss.CktElement.NumPhases(),
                   "numsteps": dss.Capacitors.NumSteps()}
         if buses:
-            suffix = _node_suffix(buses[0])
-            if suffix:
-                params["busNodes"] = suffix
+            _record_phasing(params, [_node_suffix(buses[0])], ["busNodes"])
         nodes.append(CircuitNode(id=nid, type="capacitor", params=params))
         if buses:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
@@ -592,9 +628,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                   "phases": dss.CktElement.NumPhases(),
                   "model": dss.Generators.Model()}
         if buses:
-            suffix = _node_suffix(buses[0])
-            if suffix:
-                params["busNodes"] = suffix
+            _record_phasing(params, [_node_suffix(buses[0])], ["busNodes"])
         nodes.append(CircuitNode(id=nid, type="generator", params=params))
         if buses:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
@@ -619,9 +653,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             # A shape driving a PV system is its irradiance profile.
             load_shapes[shape].kind = "irradiance"
         if buses:
-            suffix = _node_suffix(buses[0])
-            if suffix:
-                params["busNodes"] = suffix
+            _record_phasing(params, [_node_suffix(buses[0])], ["busNodes"])
         nodes.append(CircuitNode(id=nid, type="pvsystem", params=params))
         if buses:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
@@ -656,9 +688,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         if shape:
             params["loadshape"] = shape
         if buses:
-            suffix = _node_suffix(buses[0])
-            if suffix:
-                params["busNodes"] = suffix
+            _record_phasing(params, [_node_suffix(buses[0])], ["busNodes"])
         nodes.append(CircuitNode(id=nid, type="storage", params=params))
         if buses:
             wire(nid, "t1", busbar_for(buses[0]), "b0")

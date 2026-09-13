@@ -13,6 +13,39 @@ Parameters are edited in the properties panel (select the element) or in bulk
 on the [Elements spreadsheet](#spreadsheet-view). Anything not listed here is
 left at its OpenDSS default.
 
+## Phases
+
+Every element carries a **Phases** count and a **Phase(s)** picker. The count
+is how many conductors it has; the picker says *which* of A, B and C those
+are, and is what makes single-phase laterals real rather than decorative.
+
+Left at **(default)** an element takes the first N phases — one phase means A,
+two means A-B — which is exactly what OpenDSS assumes when a connection names
+no nodes, so a drawing made before the picker existed still means what it
+always did. Pick a phase and the connection is written with the matching node
+suffix instead: `B` becomes `bus1=lateral.2`.
+
+A pin follows the element. A line, a switch and a regulator keep it on both
+ends, because they sit inside one lateral. A transformer does not: its pin
+names the phase it taps off the primary, and the low side starts at A again,
+which is what lets a single-phase pole-top transformer feed an ordinary
+secondary.
+
+Lines that are not carrying all three phases show the phase beside their name
+on the one-line. Nothing is labelled when it carries A-B-C, so the laterals
+are the ones that stand out.
+
+Pinning is checked. The **Problems** list works out which phases actually
+reach each bus by walking out from the source, and warns when an element asks
+for one that never gets there — a lateral pinned to C hanging off a bus fed
+only by A is a dead element, and the solve would otherwise report it as a
+voltage of zero rather than as a mistake. Setting a 3-phase element to a
+single phase is an error, not a warning, since OpenDSS cannot build it.
+
+An imported `.dss` connection the letters cannot spell — a neutral (`.1.0`), a
+centre tap — is kept exactly as written and shown as "(as imported)"; the
+picker leaves it alone rather than dropping a node.
+
 ## Source — ++s++
 
 An OpenDSS `Vsource`; the first one placed defines the circuit. Every circuit

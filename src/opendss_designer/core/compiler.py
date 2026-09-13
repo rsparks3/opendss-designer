@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .connectivity import ConnectivityResult, sanitize_name, synthesize
 from .model import Circuit, Issue
+from .phasing import nodes_for, phase_count
 
 # Fallback ratings so loading % is at least defined; a warning is attached
 # whenever these are used.
@@ -81,8 +82,7 @@ def _enum(params: dict, key: str, allowed: frozenset[str], default: str) -> str:
 
 def _phases(params: dict, default: int = 3) -> int:
     """Phase count clamped to 1-3; a huge value builds a pathological command."""
-    n = _num(params, "phases", default) or default
-    return min(max(int(n), 1), 3)
+    return phase_count(params, default)
 
 
 def _phase_suffix(phases: int) -> str:
@@ -96,9 +96,19 @@ def _phase_suffix(phases: int) -> str:
 _SUFFIX_RE = re.compile(r"^(\.\d+)+$")
 
 
-def _bus_suffix(explicit, phases: int) -> str:
-    """Explicit node connection (e.g. '.1.2' for a delta spot load, set by
-    the .dss importer) when valid, else the default for the phase count."""
+def _bus_suffix(explicit, phases: int, phasing=None) -> str:
+    """Which nodes this terminal lands on.
+
+    A pinned phasing wins: it is the one of the three the user set in the
+    editor, and it has to take effect when they change it. Next comes an
+    explicit node connection (e.g. '.1.2' for a delta spot load, or a neutral
+    the letters cannot spell) preserved by the .dss importer. Failing both,
+    the default for the phase count, which is what every circuit did before
+    pinning existed.
+    """
+    pinned = nodes_for(phasing)
+    if pinned:
+        return pinned
     if isinstance(explicit, str) and _SUFFIX_RE.match(explicit):
         return explicit
     return _phase_suffix(phases)
@@ -165,7 +175,8 @@ def compile_circuit(circuit: Circuit,
         mvasc3 = _num(p, "mvasc3", 2000.0)
         mvasc1 = _num(p, "mvasc1", 2100.0)
         angle = _num(p, "angle", 0.0)
-        bus = conn.node_buses[n.id][0] + _phase_suffix(phases)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(
+            p.get("busNodes"), phases, p.get("phasing"))
         kv_bases.add(basekv)
         if i == 0:
             circuit_name = sanitize_name(circuit.name) or "circuit1"
@@ -274,8 +285,13 @@ def compile_circuit(circuit: Circuit,
         ]
         buses = conn.node_buses[n.id]
         bus_nodes = p.get("busNodes") or []
+        # A transformer is a phase boundary: the pin names the phase it taps
+        # off the primary, and the secondary is a new bus whose phases start
+        # at A again. Carrying the pin through to the low side would strand
+        # every default-phased element hanging off it.
         bus_list = ", ".join(
-            b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None, phases)
+            b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None,
+                            phases, p.get("phasing") if i == 0 else None)
             for i, b in enumerate(buses[: len(windings)]))
         conns = ", ".join(
             _enum(w if isinstance(w, dict) else {}, "conn", CONN_TYPES, "wye")
@@ -305,8 +321,11 @@ def compile_circuit(circuit: Circuit,
         loadloss = _num(p, "pctloadloss", 0.01)
         buses = conn.node_buses[n.id]
         bus_nodes = p.get("busNodes") or []
+        # Unlike a transformer, a regulator stays inside one feeder at one
+        # voltage, so the pin carries straight through it.
         bus_list = ", ".join(
-            b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None, phases)
+            b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None,
+                            phases, p.get("phasing"))
             for i, b in enumerate(buses[:2]))
         kv_bases.add(kv)
         cmds.append(
@@ -331,8 +350,9 @@ def compile_circuit(circuit: Circuit,
         name = element_name("line", p.get("name"), e.id, e.id)
         phases = _phases(p)
         b1, b2 = conn.line_buses[e.id]
-        sfx1 = _bus_suffix(p.get("nodes1"), phases)
-        sfx2 = _bus_suffix(p.get("nodes2"), phases)
+        pinned = p.get("phasing")
+        sfx1 = _bus_suffix(p.get("nodes1"), phases, pinned)
+        sfx2 = _bus_suffix(p.get("nodes2"), phases, pinned)
         length = _num(p, "length", 1.0)
         units = _enum(p, "units", LINE_UNITS, "km")
         r1 = _num(p, "r1", 0.12)
@@ -357,7 +377,7 @@ def compile_circuit(circuit: Circuit,
         name = element_name("line", p.get("name"), n.id, n.id)
         phases = _phases(p)
         b1, b2 = conn.node_buses[n.id]
-        sfx = _phase_suffix(phases)
+        sfx = _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
         normamps = _num(p, "normamps", DEFAULT_BREAKER_NORMAMPS)
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
@@ -374,7 +394,9 @@ def compile_circuit(circuit: Circuit,
         name = element_name("line", p.get("name"), n.id, n.id)
         phases = _phases(p)
         b1, b2 = conn.node_buses[n.id]
-        sfx = _phase_suffix(phases)
+        # Both terminals alike: a switch sits inside one lateral, so a device
+        # in a pinned lateral has to stay on that phase or it islands the tail.
+        sfx = _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
         normamps = _num(p, "normamps", default_amps)
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
@@ -450,7 +472,8 @@ def compile_circuit(circuit: Circuit,
         p = n.params
         name = element_name("load", p.get("name"), n.id, n.id)
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(
+            p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kw = _num(p, "kw", 100.0)
         pf = _num(p, "pf", 0.95)
@@ -466,7 +489,8 @@ def compile_circuit(circuit: Circuit,
         p = n.params
         name = element_name("capacitor", p.get("name"), n.id, n.id)
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(
+            p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kvar = _num(p, "kvar", 600.0)
         cap_conn = _enum(p, "conn", CONN_TYPES, "wye")
@@ -482,7 +506,8 @@ def compile_circuit(circuit: Circuit,
         p = n.params
         name = element_name("generator", p.get("name"), n.id, n.id)
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(
+            p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kw = _num(p, "kw", 1000.0)
         pf = _num(p, "pf", 1.0)
@@ -507,7 +532,8 @@ def compile_circuit(circuit: Circuit,
         p = n.params
         name = element_name("pvsystem", p.get("name"), n.id, n.id)
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(
+            p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kva = _num(p, "kva", 500.0)
         pmpp = _num(p, "pmpp", 500.0)
@@ -526,7 +552,8 @@ def compile_circuit(circuit: Circuit,
         p = n.params
         name = element_name("storage", p.get("name"), n.id, n.id)
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases)
+        bus = conn.node_buses[n.id][0] + _bus_suffix(
+            p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kwrated = _num(p, "kwrated", 250.0)
         kwhrated = _num(p, "kwhrated", 1000.0)

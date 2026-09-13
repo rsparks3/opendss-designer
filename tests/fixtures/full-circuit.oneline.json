@@ -200,7 +200,8 @@
         "r0": 0.4,
         "x0": 1.2,
         "normamps": 400,
-        "phases": 3
+        "phases": 3,
+        "phasing": "ABC"
       },
       "waypoints": [{ "x": 400, "y": 420 }]
     },

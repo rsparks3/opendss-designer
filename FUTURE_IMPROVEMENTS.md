@@ -130,9 +130,18 @@ All frontend-only; the M1 vitest harness covers the store changes.
   "multiple of pickup, seconds", previewed, saved with the circuit, emitted as
   `TCC_Curve` and read back on import; `GET /api/tcccurves` lists the engine's own.
   Still the editor and never a manufacturer device library — see Out of scope
-- **Phase pinning** — connect 1-phase elements to a chosen phase (`.2`, `.3` suffixes;
-  `compiler.py` already accepts explicit suffixes, so this is mostly UI)
-- **Per-phase display** — phase labels on wires, per-phase voltage readouts
+- ~~**Phase pinning**~~ — a `phasing` param holding letters ("B", "A-C") that every
+  element with a phase count can set; `core/phasing.py` is the only place letters and
+  node suffixes meet. Left at "(default)" an element takes the first N phases, so
+  every circuit drawn before this compiles unchanged. A pin carries through lines,
+  switches and regulators but stops at a transformer, whose secondary starts at A
+  again. The "mostly UI" estimate was wrong in one place: breakers and protective
+  devices hard-coded `.1` on both terminals and the importer dropped their suffixes,
+  so a fuse in a pinned lateral silently islanded everything past it. Validation walks
+  the phases out from the source and flags an element asking for one its bus never
+  receives; lines not carrying all three are labelled on the one-line
+- **Per-phase display** — per-phase voltage readouts (phase labels on lines landed
+  with pinning; the remaining piece is the tooltip/overlay side)
 
 ## M7 — Platform & polish
 

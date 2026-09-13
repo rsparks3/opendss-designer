@@ -34,9 +34,11 @@ def test_multifile_import_with_redirect_and_coords():
     busbars = [n for n in c.nodes if n.type == "busbar"]
     assert len(busbars) == 2
     assert all(n.position is not None for n in busbars)
-    # Exact delta node connection preserved and re-emitted on export.
+    # A delta load across A-B is a connection the phase picker can say, so it
+    # arrives as a pin rather than raw node text -- and still exports as .1.2.
     load = next(n for n in c.nodes if n.type == "load")
-    assert load.params["busNodes"] == ".1.2"
+    assert load.params["phasing"] == "AB"
+    assert "busNodes" not in load.params
     text, _ = export_dss(c)
     assert ".1.2 " in text or ".1.2\n" in text
 

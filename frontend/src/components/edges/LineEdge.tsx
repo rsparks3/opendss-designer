@@ -1,5 +1,6 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
+import { phaseLabel } from '../../lib/phasing'
 import type { AppEdge } from '../../store/circuitStore'
 import { useIsGrabbed } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
@@ -32,6 +33,9 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
   }
 
   const name = String(props.data?.params?.name ?? '')
+  // Only laterals get a phase chip; a 3-phase trunk says nothing by carrying
+  // all three, and labelling every line would hide the ones that matter.
+  const phase = phaseLabel(props.data?.params)
   // A label centred on the midpoint sits on top of a vertical line. Judge the
   // line's overall direction from its endpoints and put the label beside a
   // mostly-vertical one, above a mostly-horizontal one.
@@ -60,6 +64,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
           }}
         >
           <span className="edge-name">{name}</span>
+          {phase && <span className="edge-phase" title={`Phase ${phase}`}>{phase}</span>}
           {resultText && (
             <span className="edge-result" style={{ color: stroke }}>
               {loadingPct != null && <LoadingPie pct={loadingPct} size={15} />}

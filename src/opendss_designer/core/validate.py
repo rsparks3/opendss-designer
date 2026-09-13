@@ -6,12 +6,142 @@ from ..settings import Settings
 from .compiler import compile_circuit
 from .connectivity import synthesize, terminal_key
 from .model import NODE_TERMINALS, Circuit, Issue
+from .phasing import default_phasing, parse_phasing, phase_count, phase_set
 
 # 2-terminal devices that carry power between their two buses. Protective
 # devices are switches, so they conduct unless their `closed` flag says
 # otherwise -- the same rule as a breaker.
 SERIES_TYPES = ("transformer", "regulator", "breaker", "fuse", "recloser", "relay")
 SWITCH_TYPES = ("breaker", "fuse", "recloser", "relay")
+
+# Series types that keep phase identity end to end. A transformer does not: its
+# secondary is a new voltage level whose phases start at A again, which is what
+# the compiler emits and what makes a 1-phase pole-top transformer work.
+CARRY_TYPES = ("regulator", *SWITCH_TYPES)
+
+
+def _phase_issues(circuit: Circuit, conn, sources: list) -> list[Issue]:
+    """Flag elements pinned to a phase their bus never receives.
+
+    Works out what reaches each bus by relaxing outward from the sources: a
+    bus gets whatever phases its feeders carry, a series element passes on
+    only the phases it has itself, and a transformer hands its secondary a
+    fresh set starting at A. Buses the walk never reaches get no entry and are
+    skipped -- being unconnected is already reported as an island, and saying
+    it twice in different words helps nobody.
+    """
+    issues: list[Issue] = []
+    if not sources:
+        return issues
+
+    def phases_of(params: dict) -> frozenset[str]:
+        return phase_set(params.get("phasing"), phase_count(params))
+
+    # Every series path as (bus_in, bus_out, phases it delivers).
+    links: list[tuple[str, str, frozenset[str]]] = []
+    for e in circuit.edges:
+        if e.type == "line" and e.id in conn.line_buses:
+            b1, b2 = conn.line_buses[e.id]
+            carried = phases_of(e.params)
+            links.append((b1, b2, carried))
+            links.append((b2, b1, carried))
+    for n in circuit.nodes:
+        buses = conn.node_buses.get(n.id, [])
+        if n.type not in SERIES_TYPES or len(buses) < 2:
+            continue
+        if n.type in SWITCH_TYPES and not n.params.get("closed", True):
+            continue
+        if n.type in CARRY_TYPES:
+            carried = phases_of(n.params)
+            links.append((buses[0], buses[1], carried))
+            links.append((buses[1], buses[0], carried))
+        else:
+            # A transformer re-establishes phases on its low side, and a
+            # 2-winding one is a two-way path like any other series element.
+            fresh = frozenset(default_phasing(phase_count(n.params)))
+            links.append((buses[0], buses[1], fresh))
+            links.append((buses[1], buses[0], fresh))
+
+    available: dict[str, frozenset[str]] = {}
+    for s in sources:
+        bus = (conn.node_buses.get(s.id) or [None])[0]
+        if bus:
+            available[bus] = available.get(bus, frozenset()) | phases_of(s.params)
+
+    # Relax until nothing grows. Bounded by buses x 3 phases, and a feeder
+    # settles in a handful of passes; the loop guard is for meshed networks.
+    for _ in range(len(links) + 1):
+        changed = False
+        for src, dst, carried in links:
+            upstream = available.get(src)
+            if not upstream:
+                continue
+            delivered = upstream & carried
+            if delivered and not delivered <= available.get(dst, frozenset()):
+                available[dst] = available.get(dst, frozenset()) | delivered
+                changed = True
+        if not changed:
+            break
+
+    for n in circuit.nodes:
+        if n.type == "busbar":
+            continue
+        params = n.params
+        label = str(params.get("name") or n.id)
+        pinned = parse_phasing(params.get("phasing"))
+        count = phase_count(params)
+        if pinned and len(pinned) < count:
+            issues.append(Issue(
+                severity="error", code="phase-count-mismatch",
+                message=f"'{label}' is set to {count} phases but pinned to "
+                        f"only {len(pinned)} ({'-'.join(pinned)}).",
+                nodeId=n.id))
+            continue
+        # A source defines its phases rather than receiving them. Everything
+        # else is judged against every bus it touches, since a two-terminal
+        # device may be fed from either end.
+        if n.type == "vsource":
+            continue
+        reached = [b for b in conn.node_buses.get(n.id, []) if b in available]
+        if not reached:
+            continue
+        here = frozenset().union(*(available[b] for b in reached))
+        missing = sorted(phases_of(params) - here)
+        if missing:
+            issues.append(Issue(
+                severity="warning", code="phase-mismatch",
+                message=f"'{label}' connects to phase{'s' if len(missing) > 1 else ''} "
+                        f"{', '.join(missing)}, which bus '{reached[0]}' does not carry "
+                        f"(it has {', '.join(sorted(here))}).",
+                nodeId=n.id))
+
+    for e in circuit.edges:
+        if e.type != "line" or e.id not in conn.line_buses:
+            continue
+        label = str(e.params.get("name") or e.id)
+        pinned = parse_phasing(e.params.get("phasing"))
+        count = phase_count(e.params)
+        if pinned and len(pinned) < count:
+            issues.append(Issue(
+                severity="error", code="phase-count-mismatch",
+                message=f"Line '{label}' is set to {count} phases but pinned to "
+                        f"only {len(pinned)} ({'-'.join(pinned)}).",
+                edgeId=e.id))
+            continue
+        ends = [b for b in conn.line_buses[e.id] if b in available]
+        if not ends:
+            continue
+        here = frozenset().union(*(available[b] for b in ends))
+        missing = sorted(phases_of(e.params) - here)
+        if missing:
+            issues.append(Issue(
+                severity="warning", code="phase-mismatch",
+                message=f"Line '{label}' takes phase{'s' if len(missing) > 1 else ''} "
+                        f"{', '.join(missing)} from bus '{ends[0]}', which does not "
+                        f"carry {'them' if len(missing) > 1 else 'it'}.",
+                edgeId=e.id))
+
+    return issues
 
 
 def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
@@ -183,6 +313,12 @@ def validate(circuit: Circuit) -> list[Issue]:
             issues.append(Issue(
                 severity="warning", code="empty-loadshape",
                 message=f"Loadshape '{key}' has fewer than 2 points."))
+
+    # Phases, per bus. A pin is only useful if something says when it points at
+    # a phase that never gets there -- a lateral pinned to C hanging off a bus
+    # fed only by A is a dead element, and the solve reports it as a voltage of
+    # zero rather than as a mistake.
+    issues.extend(_phase_issues(circuit, conn, sources))
 
     # kV consistency per bus (rough sanity check on declared voltages).
     bus_kvs: dict[str, dict[str, str]] = {}

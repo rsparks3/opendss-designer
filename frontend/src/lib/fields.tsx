@@ -6,8 +6,9 @@ export interface Field {
   key: string
   label: string
   /** 'loadshape' renders a dropdown of the circuit's loadshape library;
-   *  'curve' one of the engine's time-current curves plus the circuit's own. */
-  kind: 'number' | 'text' | 'select' | 'checkbox' | 'loadshape' | 'curve'
+   *  'curve' one of the engine's time-current curves plus the circuit's own;
+   *  'phasing' which of A/B/C the element connects to. */
+  kind: 'number' | 'text' | 'select' | 'checkbox' | 'loadshape' | 'curve' | 'phasing'
   /** For kind 'loadshape': which shape category the dropdown offers.
    *  Default 'load'; 'any' lists both (storage dispatch). */
   shapeKind?: 'load' | 'irradiance' | 'any'
@@ -26,6 +27,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'pu', label: 'Voltage', kind: 'number', unit: 'pu' },
     { key: 'angle', label: 'Angle', kind: 'number', unit: '°' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'mvasc3', label: '3φ short-circuit', kind: 'number', unit: 'MVA' },
     { key: 'mvasc1', label: '1φ short-circuit', kind: 'number', unit: 'MVA' },
   ],
@@ -39,6 +41,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'kw', label: 'Power', kind: 'number', unit: 'kW' },
     { key: 'pf', label: 'Power factor', kind: 'number' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'model', label: 'Load model', kind: 'select', options: [1, 2, 3, 4, 5] },
     { key: 'loadshape', label: 'Loadshape', kind: 'loadshape' },
@@ -49,6 +52,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'normamps', label: 'Rating', kind: 'number', unit: 'A' },
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
   ],
   line: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -60,16 +64,19 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'x0', label: 'X0', kind: 'number', unit: 'Ω/unit' },
     { key: 'normamps', label: 'Rating', kind: 'number', unit: 'A' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
   ],
   transformer: [
     { key: 'name', label: 'Name', kind: 'text' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'xhl', label: 'Reactance X(H-L)', kind: 'number', unit: '%' },
     { key: 'pctloadloss', label: 'Load loss', kind: 'number', unit: '%' },
   ],
   regulator: [
     { key: 'name', label: 'Name', kind: 'text' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'kv', label: 'Rated kV', kind: 'number', unit: 'kV' },
     { key: 'kva', label: 'Rating', kind: 'number', unit: 'kVA' },
     { key: 'vreg', label: 'Voltage setpoint', kind: 'number', unit: 'V (120 base)' },
@@ -89,6 +96,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
   ],
   recloser: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -105,6 +113,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
   ],
   relay: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -117,12 +126,14 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
   ],
   capacitor: [
     { key: 'name', label: 'Name', kind: 'text' },
     { key: 'kv', label: 'Rated kV', kind: 'number', unit: 'kV' },
     { key: 'kvar', label: 'Size', kind: 'number', unit: 'kvar' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'numsteps', label: 'Steps', kind: 'number' },
   ],
@@ -132,6 +143,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'kw', label: 'Output', kind: 'number', unit: 'kW' },
     { key: 'pf', label: 'Power factor', kind: 'number' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'model', label: 'Mode', kind: 'select', options: [1, 3] }, // 1=const kW/pf, 3=PV (holds vpu)
     { key: 'vpu', label: 'V setpoint (PV mode)', kind: 'number', unit: 'pu' },
@@ -144,6 +156,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'pf', label: 'Power factor', kind: 'number' },
     { key: 'irradiance', label: 'Irradiance', kind: 'number', unit: 'pu' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'loadshape', label: 'Irradiance shape', kind: 'loadshape', shapeKind: 'irradiance' },
   ],
@@ -157,6 +170,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'effcharge', label: 'Charge eff.', kind: 'number', unit: '%' },
     { key: 'effdischarge', label: 'Discharge eff.', kind: 'number', unit: '%' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
+    { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     // 'follow': the shape drives dispatch (+ = discharge, − = charge).
     // 'default': triggers compare against the circuit default loadshape.
@@ -232,6 +246,41 @@ function CurveSelect({
   )
 }
 
+/** Which of the three an element sits on. Left at "(default)" it takes the
+ *  first N phases, the way OpenDSS does when a connection names no nodes --
+ *  so an existing circuit means exactly what it always did. */
+export const PHASE_CHOICES: { value: string; label: string }[] = [
+  { value: '', label: '(default)' },
+  { value: 'A', label: 'A' },
+  { value: 'B', label: 'B' },
+  { value: 'C', label: 'C' },
+  { value: 'AB', label: 'A-B' },
+  { value: 'BC', label: 'B-C' },
+  { value: 'AC', label: 'A-C' },
+  { value: 'ABC', label: 'A-B-C' },
+]
+
+function PhasingSelect({
+  value,
+  onCommit,
+}: {
+  value: unknown
+  onCommit: (v: unknown) => void
+}) {
+  const current = String(value ?? '').toUpperCase()
+  const known = PHASE_CHOICES.some((c) => c.value === current)
+  return (
+    <select value={current} onChange={(e) => onCommit(e.target.value)}>
+      {PHASE_CHOICES.map((c) => (
+        <option key={c.value || 'default'} value={c.value}>{c.label}</option>
+      ))}
+      {/* An imported connection the letters cannot spell -- a neutral, a
+          centre tap -- is shown rather than silently replaced. */}
+      {current && !known && <option value={current}>{current} (as imported)</option>}
+    </select>
+  )
+}
+
 function LoadShapeSelect({
   value,
   shapeKind = 'load',
@@ -283,6 +332,9 @@ export function FieldInput({
       <CurveSelect value={value} curveKind={field.curveKind}
                    allowNone={field.allowNone} onCommit={onCommit} />
     )
+  }
+  if (field.kind === 'phasing') {
+    return <PhasingSelect value={value} onCommit={onCommit} />
   }
   if (field.kind === 'checkbox') {
     return (
