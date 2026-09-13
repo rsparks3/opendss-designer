@@ -20,7 +20,8 @@ MAX_SHAPES = 1_000
 MAX_SHAPE_POINTS = 1_000_000
 
 NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker",
-                   "capacitor", "generator", "pvsystem", "storage"]
+                   "capacitor", "generator", "pvsystem", "storage", "regulator",
+                   "fuse", "recloser", "relay"]
 EdgeType = Literal["wire", "line"]
 
 
@@ -95,7 +96,11 @@ NODE_TERMINALS: dict[str, list[str]] = {
     "vsource": ["t1"],
     "load": ["t1"],
     "transformer": ["t1", "t2"],
+    "regulator": ["t1", "t2"],
     "breaker": ["t1", "t2"],
+    "fuse": ["t1", "t2"],
+    "recloser": ["t1", "t2"],
+    "relay": ["t1", "t2"],
     "capacitor": ["t1"],
     "generator": ["t1"],
     "pvsystem": ["t1"],

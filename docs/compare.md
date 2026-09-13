@@ -64,8 +64,9 @@ and it is AGPL-licensed so it can be read, changed and self-hosted.
 What it is not, as of this writing:
 
 - **Complete.** It covers sources, busbars, two-winding transformers,
-  breakers, lines, loads, capacitors, generators, PV and storage. Voltage
-  regulators, three-winding transformers, fuses, reclosers and relays are on
+  step-voltage regulators, breakers, fuses, reclosers, relays, lines, loads,
+  capacitors, generators, PV and storage. Protective devices are modelled but
+  their curves are not yet plotted, and three-winding transformers are on
   the [roadmap](https://github.com/rsparks3/opendss-designer/blob/main/FUTURE_IMPROVEMENTS.md)
   and not in the tool. If your study needs them today, use OpenDSS-G or
   script it.

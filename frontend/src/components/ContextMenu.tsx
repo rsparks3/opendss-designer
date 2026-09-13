@@ -25,10 +25,18 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
   const items: MenuItem[] = []
 
   if (node) {
-    if (node.type === 'breaker') {
+    // Everything that compiles to a switch can be opened and closed here.
+    const SWITCH_LABELS: Record<string, [string, string]> = {
+      breaker: ['Open breaker', 'Close breaker'],
+      fuse: ['Blow fuse', 'Replace fuse'],
+      recloser: ['Open recloser', 'Close recloser'],
+      relay: ['Open relay', 'Close relay'],
+    }
+    const labels = SWITCH_LABELS[node.type ?? '']
+    if (labels) {
       const closed = node.data.params.closed !== false
       items.push({
-        label: closed ? 'Open breaker' : 'Close breaker',
+        label: closed ? labels[0] : labels[1],
         action: () => store.updateNodeParams(node.id, { closed: !closed }),
       })
     }

@@ -3,6 +3,7 @@ import { fmt, ticks } from '../lib/axis'
 import { computeGraph, X_QUANTITIES, Y_QUANTITIES, type GraphRow } from '../lib/graph'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
+import { TccGraphPanel } from './TccGraphPanel'
 import { TimeGraphPanel } from './TimeGraphPanel'
 
 const ML = 60
@@ -36,12 +37,13 @@ type Domain = { x: [number, number]; y: [number, number] }
  *  (enabled once a time-series run exists) plots quantities over hours. */
 export function GraphPanel() {
   const timeseries = useResultsStore((s) => s.timeseries)
-  const [gmode, setGmode] = useState<'snapshot' | 'time'>('snapshot')
+  const [gmode, setGmode] = useState<'snapshot' | 'time' | 'tcc'>('snapshot')
   // A fresh time-series result pulls the tab into Time mode.
   useEffect(() => {
     if (timeseries) setGmode('time')
   }, [timeseries])
-  const effMode = gmode === 'time' && timeseries ? 'time' : 'snapshot'
+  const effMode =
+    gmode === 'time' && timeseries ? 'time' : gmode === 'tcc' ? 'tcc' : 'snapshot'
   return (
     <div>
       <div className="graph-mode">
@@ -60,8 +62,21 @@ export function GraphPanel() {
         >
           Time
         </button>
+        <button
+          className={`bp-subtab${effMode === 'tcc' ? ' active' : ''}`}
+          title="Time-current curves for the fuses, reclosers and relays in this circuit"
+          onClick={() => setGmode('tcc')}
+        >
+          Protection
+        </button>
       </div>
-      {effMode === 'time' ? <TimeGraphPanel ts={timeseries!} /> : <SnapshotGraph />}
+      {effMode === 'time' ? (
+        <TimeGraphPanel ts={timeseries!} />
+      ) : effMode === 'tcc' ? (
+        <TccGraphPanel />
+      ) : (
+        <SnapshotGraph />
+      )}
     </div>
   )
 }

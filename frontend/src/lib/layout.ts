@@ -7,6 +7,11 @@ const snap = (v: number) => Math.round(v / 10) * 10
 /** 1-terminal shunt devices that hang below their busbar like loads. */
 const SHUNT_TYPES = new Set(['load', 'capacitor', 'generator', 'pvsystem', 'storage'])
 
+/** 2-terminal series devices that sit between the buses they join, t1 upstream. */
+const SERIES_TYPES = new Set([
+  'transformer', 'regulator', 'breaker', 'fuse', 'recloser', 'relay',
+])
+
 /** Lay out an imported circuit hierarchically (mutates in place): source at
  *  the top, power flowing downward, loads hanging directly beneath their
  *  busbars, transformers/breakers centered between the buses they join.
@@ -38,10 +43,10 @@ function orientedEdges(circuit: CircuitJSON): [string, string][] {
     if (t && SHUNT_TYPES.has(t.type)) return [e.source, e.target]
     if (s?.type === 'vsource') return [e.source, e.target]
     if (t?.type === 'vsource') return [e.target, e.source]
-    if (s && (s.type === 'transformer' || s.type === 'breaker')) {
+    if (s && SERIES_TYPES.has(s.type)) {
       return e.sourceHandle === 't1' ? [e.target, e.source] : [e.source, e.target]
     }
-    if (t && (t.type === 'transformer' || t.type === 'breaker')) {
+    if (t && SERIES_TYPES.has(t.type)) {
       return e.targetHandle === 't1' ? [e.source, e.target] : [e.target, e.source]
     }
     return [e.source, e.target]
@@ -78,7 +83,7 @@ function rankWithDagre(circuit: CircuitJSON): void {
 function alignDevicesBetweenBuses(circuit: CircuitJSON): void {
   const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
   for (const n of circuit.nodes) {
-    if (n.type !== 'transformer' && n.type !== 'breaker') continue
+    if (!SERIES_TYPES.has(n.type)) continue
     const neighbors: CircuitNodeJSON[] = []
     for (const e of circuit.edges) {
       const other =

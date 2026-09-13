@@ -3,6 +3,78 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 0.5.5 — 2026-09-13
+
+Protection: the devices, their curves, and what the curves say about each
+other. Nothing here changes an existing circuit — every addition is a new
+element type or a new tab.
+
+### Added
+
+- **Step-voltage regulators** (++v++ in the palette). A regulator is an
+  equal-ratio transformer plus the `RegControl` that taps it, and the editor
+  treats it as one element: voltage setpoint and bandwidth on the 120 V control
+  base, PT ratio (derived from the rated kV when you leave it blank), CT
+  primary, line drop compensation R and X, and the tap change limit per
+  solution. The tap position is OpenDSS's to choose during the solve, and the
+  overlays show what it settled on. Importing a `.dss` file brings a
+  transformer that has a `RegControl` on it back as a regulator rather than as
+  a plain transformer.
+- **Fuses, reclosers and relays** (++f++, ++o++, ++y++). Each is a switch plus
+  the control that watches it, kept together as one element: fuse link and
+  rated current; recloser pickups, fast and delayed curves, fast operations
+  and shots to lockout; relay pickups and IEEE inverse curves, with `none` as
+  a real option for the ground unit. Right-click or double-click blows a fuse
+  or opens a recloser or relay, and everything downstream goes dead. Curve
+  choices are limited to the ones the engine ships, because naming any other
+  stops the solve outright. OpenDSS runs protection in fault and time-domain
+  studies, so in a snapshot these are closed switches with ratings.
+- **Time-current curves** (Graph tab → **Protection**). Every fuse, recloser
+  and relay in the circuit, plotted on log-log paper with a dashed line at the
+  prospective 3φ fault current at each device's own downstream bus — the fault
+  it exists to clear. Hovering reads out what each curve would do at that
+  current; clicking a device in the legend takes it off the plot. The curves
+  are the engine's own `TCC_Curve` objects scaled by each device's pickup, and
+  the fault currents come from the same study the Fault overlay uses, so the
+  plot agrees with both. Past the end of a curve's data a faint dotted line
+  carries it on flat, which is what the engine does and is usually where the
+  fault current lands.
+- **Coordination checks.** Running the study also writes findings into the
+  Problems list: a device whose pickup sits above the fault current available
+  at its own bus (it would never trip), a pair in series where the upstream
+  device operates within 0.25 s of the one below it (it may clear the fault
+  first and take out more of the feeder), and a switch whose fault duty exceeds
+  its interrupting rating. Which device is upstream of which comes from walking
+  the circuit outward from the source, so it follows the drawing; an open
+  switch breaks the path, as it does electrically.
+- **Interrupting rating** on breakers, fuses, reclosers and relays, and a table
+  under the Protection plot listing every switch that has no curve — a breaker
+  carries no protection of its own, so it never appears in the plot, but it
+  still has to break whatever fault reaches it.
+
+### Changed
+
+- **The components column collapses to symbols when you narrow it.** Dragging
+  it in used to shrink the symbols and clip the names; now the symbols keep
+  their size and the names give way entirely, leaving a tidy icon strip (every
+  button still names itself and its key on hover). The column also starts a
+  little wider, so the longest names fit without being cut.
+- **The relay is drawn the way a one-line draws it**: the breaker in the line,
+  the device number (51, or 51N with a ground unit) in its own circle beside
+  it, and a dashed trip link between them.
+- **Startup names the frontend build it is serving**, and when it was made.
+
+### Fixed
+
+- **A new build is no longer hidden behind the browser cache.** `index.html`
+  names the hashed bundle and went out with no cache directives at all, so a
+  browser could keep serving the previous build after an upgrade. It is now
+  revalidated on every load.
+- **Letters inside symbols are the size they were meant to be.** Several were
+  set with an SVG `font-size` attribute, which the stylesheet's `font`
+  shorthand overrides, so they rendered at the shorthand's size — the PV in the
+  palette icon spilled outside its circle.
+
 ## 0.5.4 — 2026-09-07
 
 ### Fixed

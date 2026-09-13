@@ -35,6 +35,19 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
     ),
   },
   {
+    type: 'regulator',
+    label: 'Regulator',
+    kbd: 'V',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <circle cx="16" cy="11" r="8" className="sym" fill="none" />
+        <circle cx="16" cy="21" r="8" className="sym" fill="none" />
+        <line x1="4" y1="26" x2="28" y2="6" className="sym" />
+        <path d="M28 6 L21 7.5 L25.5 12 Z" className="sym" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
     type: 'breaker',
     label: 'Breaker',
     kbd: 'K',
@@ -43,6 +56,50 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
         <line x1="16" y1="2" x2="16" y2="10" className="sym" />
         <rect x="10" y="10" width="12" height="12" className="sym-fill" />
         <line x1="16" y1="22" x2="16" y2="30" className="sym" />
+      </svg>
+    ),
+  },
+  {
+    type: 'fuse',
+    label: 'Fuse',
+    kbd: 'F',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="9" className="sym" />
+        <rect x="9" y="9" width="14" height="14" className="sym" fill="none" />
+        <line x1="16" y1="9" x2="16" y2="23" className="sym" />
+        <line x1="16" y1="23" x2="16" y2="30" className="sym" />
+      </svg>
+    ),
+  },
+  {
+    type: 'recloser',
+    label: 'Recloser',
+    kbd: 'O',
+    icon: (
+      <svg viewBox="0 0 32 32">
+        <line x1="16" y1="2" x2="16" y2="8" className="sym" />
+        <circle cx="16" cy="16" r="8" className="sym" fill="none" />
+        <line x1="16" y1="8" x2="16" y2="24" className="sym" />
+        <line x1="16" y1="24" x2="16" y2="30" className="sym" />
+      </svg>
+    ),
+  },
+  {
+    type: 'relay',
+    label: 'Relay',
+    kbd: 'Y',
+    icon: (
+      // The canvas symbol in miniature. The trip link is left off: at 28px it
+      // reads as a smudge rather than as a control wire.
+      <svg viewBox="0 0 32 32">
+        <line x1="9" y1="1" x2="9" y2="9" className="sym" />
+        <rect x="3" y="9" width="12" height="12" className="sym-fill" />
+        <line x1="9" y1="21" x2="9" y2="31" className="sym" />
+        <circle cx="23.5" cy="11" r="6.5" className="sym" fill="none" />
+        <text x="23.5" y="13.6" textAnchor="middle" className="sym-text device-no icon">
+          51
+        </text>
       </svg>
     ),
   },
@@ -80,7 +137,7 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
       <svg viewBox="0 0 32 32">
         <line x1="16" y1="2" x2="16" y2="8" className="sym" />
         <circle cx="16" cy="19" r="10" className="sym" fill="none" />
-        <text x="16" y="24" textAnchor="middle" className="sym-text" fontSize="11">
+        <text x="16" y="24" textAnchor="middle" className="sym-text icon-glyph">
           G
         </text>
       </svg>
@@ -96,7 +153,7 @@ const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode
         <circle cx="16" cy="19" r="10" className="sym" fill="none" />
         <line x1="2" y1="6" x2="7" y2="11" className="sym" />
         <line x1="7" y1="3" x2="10" y2="9" className="sym" />
-        <text x="16" y="23" textAnchor="middle" className="sym-text" fontSize="9">
+        <text x="16" y="23" textAnchor="middle" className="sym-text icon-glyph small">
           PV
         </text>
       </svg>
@@ -126,48 +183,50 @@ export function Palette() {
 
   return (
     <div className="palette">
-      <div className="palette-title">Components</div>
-      {ITEMS.map((item) => (
-        <button
-          key={item.type}
-          className={`palette-item${placementType === item.type ? ' active' : ''}`}
-          onClick={() => setPlacement(placementType === item.type ? null : item.type)}
-          title={`Click (or press ${item.kbd}), then click the canvas to place a ${item.label.toLowerCase()}`}
-        >
-          <span className="palette-icon">{item.icon}</span>
-          {item.label}
-          <kbd className="palette-kbd">{item.kbd}</kbd>
-        </button>
-      ))}
-      <div className="palette-title" style={{ marginTop: 16 }}>
-        Drag to connect
+      <div className="palette-group">
+        <div className="palette-title">Components</div>
+        {ITEMS.map((item) => (
+          <button
+            key={item.type}
+            className={`palette-item${placementType === item.type ? ' active' : ''}`}
+            onClick={() => setPlacement(placementType === item.type ? null : item.type)}
+            title={`Click (or press ${item.kbd}), then click the canvas to place a ${item.label.toLowerCase()}`}
+          >
+            <span className="palette-icon">{item.icon}</span>
+            <span className="palette-label">{item.label}</span>
+            <kbd className="palette-kbd">{item.kbd}</kbd>
+          </button>
+        ))}
       </div>
-      <button
-        className={`palette-item${connectMode === 'wire' ? ' active' : ''}`}
-        onClick={() => setConnectMode('wire')}
-        title="New connections are ideal wires (same electrical bus)"
-      >
-        <span className="palette-icon">
-          <svg viewBox="0 0 32 32">
-            <line x1="2" y1="16" x2="30" y2="16" className="sym" />
-          </svg>
-        </span>
-        Wire
-        <kbd className="palette-kbd">W</kbd>
-      </button>
-      <button
-        className={`palette-item${connectMode === 'line' ? ' active' : ''}`}
-        onClick={() => setConnectMode('line')}
-        title="New connections are OpenDSS Line elements (impedance + length)"
-      >
-        <span className="palette-icon">
-          <svg viewBox="0 0 32 32">
-            <line x1="2" y1="16" x2="30" y2="16" className="sym" strokeWidth="3" />
-          </svg>
-        </span>
-        Line (impedance)
-        <kbd className="palette-kbd">E</kbd>
-      </button>
+      <div className="palette-group">
+        <div className="palette-title">Drag to connect</div>
+        <button
+          className={`palette-item${connectMode === 'wire' ? ' active' : ''}`}
+          onClick={() => setConnectMode('wire')}
+          title="New connections are ideal wires (same electrical bus)"
+        >
+          <span className="palette-icon">
+            <svg viewBox="0 0 32 32">
+              <line x1="2" y1="16" x2="30" y2="16" className="sym" />
+            </svg>
+          </span>
+          <span className="palette-label">Wire</span>
+          <kbd className="palette-kbd">W</kbd>
+        </button>
+        <button
+          className={`palette-item${connectMode === 'line' ? ' active' : ''}`}
+          onClick={() => setConnectMode('line')}
+          title="New connections are OpenDSS Line elements (impedance + length)"
+        >
+          <span className="palette-icon">
+            <svg viewBox="0 0 32 32">
+              <line x1="2" y1="16" x2="30" y2="16" className="sym" strokeWidth="3" />
+            </svg>
+          </span>
+          <span className="palette-label">Line</span>
+          <kbd className="palette-kbd">E</kbd>
+        </button>
+      </div>
       {placementType && (
         <div className="palette-hint">Click the canvas to place. Esc to cancel.</div>
       )}

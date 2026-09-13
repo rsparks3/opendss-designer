@@ -4,6 +4,25 @@ import type { NodeType } from '../src/types/circuit'
 
 const TYPES = (Object.keys(NODE_SIZE) as NodeType[]).filter((t) => t !== 'busbar')
 
+// Sitting above the bar, a 2-terminal device drops from t2 (bottom); the rest
+// expose only t1. Kept as a set so a new series device joins it by name.
+const TWO_TERMINAL = new Set<string>([
+  'transformer', 'regulator', 'breaker', 'fuse', 'recloser', 'relay',
+])
+// Wide enough that handle b(2*(n-1)) exists: handles sit every 20px from the
+// bar's left edge, and the symbols are placed 40px apart.
+const BUS_W = 40 * TYPES.length + 40
+
+/** Every x in a path's "x,y" pairs, control points included — a straight drop
+ *  has one x across all of them. The tolerance is physical: the canvas
+ *  transform leaves sub-micron differences that no one can see, and which move
+ *  whenever the layout shifts, so compare a hundredth of a pixel rather than a
+ *  fixed number of decimal places. */
+function isBent(d: string): boolean {
+  const xs = [...d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((m) => Number(m[1]))
+  return xs.length < 2 || Math.max(...xs) - Math.min(...xs) > 0.01
+}
+
 // Every symbol's terminal sits at its container's centre while the canvas snaps
 // the container's top-left corner, so a box dimension that is not a multiple of
 // SYMBOL_PITCH puts the terminal half a grid step off and every wire to a
@@ -20,7 +39,7 @@ test('every symbol wires to a busbar with no bend', async ({ page }) => {
   const circuit = {
     version: 1, name: 'gridcheck',
     nodes: [
-      { id: 'bus', type: 'busbar', position: { x: 0, y: 400 }, width: 360, params: { name: 'bus' } },
+      { id: 'bus', type: 'busbar', position: { x: 0, y: 400 }, width: BUS_W, params: { name: 'bus' } },
       ...TYPES.map((t, i) => ({
         id: t, type: t,
         position: {
@@ -32,9 +51,7 @@ test('every symbol wires to a busbar with no bend', async ({ page }) => {
     ],
     edges: TYPES.map((t, i) => ({
       id: `e${i}`, kind: 'wire', source: t,
-      // transformer/breaker are 2-terminal: sitting above the bar they drop
-      // from t2 (bottom). The rest expose only t1.
-      sourceHandle: t === 'transformer' || t === 'breaker' ? 't2' : 't1',
+      sourceHandle: TWO_TERMINAL.has(t) ? 't2' : 't1',
       target: 'bus', targetHandle: `b${2 * i}`, params: {},
     })),
   }
@@ -63,10 +80,7 @@ test('every symbol wires to a busbar with no bend', async ({ page }) => {
   // the control points, not just the M/L anchors. Pull the x out of EVERY
   // "x,y" pair: a truly vertical drop has exactly one distinct x across all
   // of them.
-  const jogs = paths.filter((p) => {
-    const xs = [...p.d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((m) => Number(m[1]))
-    return xs.length < 2 || new Set(xs.map((x) => x.toFixed(3))).size !== 1
-  })
+  const jogs = paths.filter((p) => isBent(p.d))
 
   // 2. Cross-check against the painted handle rects at zoom 1.
   const rects = await page.evaluate((types: string[]) => {
@@ -100,15 +114,20 @@ test('a pre-pitch circuit opens aligned without dragging', async ({ page }) => {
   await page.goto('/')
   await page.waitForFunction(() => !!(window as any).opendssDesigner)
 
-  const OLD_W: Record<string, number> = {
+  // Types added after the pitch change have no legacy width; they were always
+  // on-grid, and the older ones below still supply the off-grid cases.
+  const OLD_W: Record<string, number> = Object.fromEntries(
+    TYPES.map((t) => [t, NODE_SIZE[t].w]),
+  )
+  Object.assign(OLD_W, {
     vsource: 48, transformer: 48, load: 40, breaker: 36,
     capacitor: 40, generator: 44, pvsystem: 44, storage: 44,
-  }
+  })
   const clickX = (i: number) => 40 * i + 10 // where the old build's grid-snapped click landed
   const legacy = {
     version: 1, name: 'legacy',
     nodes: [
-      { id: 'bus', type: 'busbar', position: { x: 0, y: 400 }, width: 360, params: { name: 'bus' } },
+      { id: 'bus', type: 'busbar', position: { x: 0, y: 400 }, width: BUS_W, params: { name: 'bus' } },
       ...TYPES.map((t, i) => ({
         id: t, type: t,
         position: { x: clickX(i) - OLD_W[t] / 2, y: 200 },
@@ -117,7 +136,7 @@ test('a pre-pitch circuit opens aligned without dragging', async ({ page }) => {
     ],
     edges: TYPES.map((t, i) => ({
       id: `e${i}`, kind: 'wire', source: t,
-      sourceHandle: t === 'transformer' || t === 'breaker' ? 't2' : 't1',
+      sourceHandle: TWO_TERMINAL.has(t) ? 't2' : 't1',
       target: 'bus', targetHandle: `b${2 * i}`, params: {},
     })),
   }
@@ -135,9 +154,6 @@ test('a pre-pitch circuit opens aligned without dragging', async ({ page }) => {
     })),
   )
   expect(paths.length).toBe(TYPES.length)
-  const jogs = paths.filter((p) => {
-    const xs = [...p.d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((m) => Number(m[1]))
-    return xs.length < 2 || new Set(xs.map((x) => x.toFixed(3))).size !== 1
-  })
+  const jogs = paths.filter((p) => isBent(p.d))
   expect(jogs.map((j) => `${j.id} -> ${j.d}`)).toEqual([])
 })

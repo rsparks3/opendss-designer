@@ -19,8 +19,12 @@ const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'vsource', label: 'Sources' },
   { key: 'busbar', label: 'Busbars' },
   { key: 'transformer', label: 'Transformers' },
+  { key: 'regulator', label: 'Regulators' },
   { key: 'line', label: 'Lines' },
   { key: 'breaker', label: 'Breakers' },
+  { key: 'fuse', label: 'Fuses' },
+  { key: 'recloser', label: 'Reclosers' },
+  { key: 'relay', label: 'Relays' },
   { key: 'load', label: 'Loads' },
   { key: 'capacitor', label: 'Capacitors' },
   { key: 'generator', label: 'Generators' },
@@ -59,7 +63,10 @@ function StatusLine() {
 }
 
 function ProblemsTab() {
-  const issues = useResultsStore((s) => s.issues)
+  const issues = [
+    ...useResultsStore((s) => s.issues),
+    ...useResultsStore((s) => s.protectionIssues),
+  ]
   const selectOnly = useCircuitStore((s) => s.selectOnly)
   if (!issues.length) return <div className="bp-empty">No problems — the circuit is ready to solve.</div>
   return (
@@ -317,7 +324,11 @@ function initialHeight(): number {
 }
 
 export function BottomPanel() {
-  const issues = useResultsStore((s) => s.issues)
+  // Protection findings count towards the tab's badge like anything else.
+  const issues = [
+    ...useResultsStore((s) => s.issues),
+    ...useResultsStore((s) => s.protectionIssues),
+  ]
   const graphTabSignal = useResultsStore((s) => s.graphTabSignal)
   const [tab, setTab] = useState<MainTab>('problems')
   const [typeTab, setTypeTab] = useState('load')

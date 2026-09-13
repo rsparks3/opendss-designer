@@ -105,12 +105,30 @@ All frontend-only; the M1 vitest harness covers the store changes.
 
 ## M6 — Regulation, protection & phases
 
-- **Voltage regulators** (`RegControl` on an autotransformer) — band, PT ratio, LDC
+- ~~**Voltage regulators**~~ — an equal-ratio transformer plus its `RegControl`,
+  emitted under one name; setpoint/band/PT ratio/CT primary/LDC R and X in the
+  properties panel, PT ratio derived from the rated kV when left blank, and a
+  controlled transformer imports back as a regulator
 - **3-winding transformers** — third handle; the per-winding editor already generalizes
-- **Fuses, reclosers, relays** (`Fuse`, `Recloser`, `Relay`) — pairs with M4's fault study
-- **TCC curves** (`TCC_Curve`) — a user-editable curve library plus a time-current plot
-  in the Graph tab, so a coordination check can be read off the diagram. Shipping the
-  plot, not a manufacturer device library — see Out of scope
+- ~~**Fuses, reclosers, relays**~~ — each is a switch plus its control, kept as one
+  element in the editor; curve choices are limited to the ten the engine ships, since
+  naming any other stops the solve; a relay with no ground curve gets no ground unit;
+  open/close (blow/replace) like a breaker; imports back as the device, not as a switch
+- ~~**TCC curves** (`TCC_Curve`)~~ — Graph tab → Protection plots every device on
+  log-log paper from the engine's own curve objects scaled by each pickup, with the
+  prospective 3φ fault current at each device's downstream bus as a dashed line, a
+  dotted flat tail past the end of the curve data, hover readout and a legend that
+  toggles devices. `core/protection.py` + `POST /api/tcc`
+- ~~**Coordination checks**~~ — pickup above the available fault current, a series pair
+  inside the 0.25 s margin, and interrupting duty against a new `interruptingka` rating;
+  the upstream/downstream pairing comes from a walk outward from the source over the
+  conducting elements (open switches cut the path). Breakers take part in the duty check
+  and are listed under the plot, since they carry no curve. Still to do here: the 75%
+  melt rule for fuse-to-fuse pairs, and ground-fault coordination (the checks use the
+  3φ fault current)
+- **A user-editable curve library** — the ten curves the engine ships cover the common
+  cases; entering a manufacturer's points is what a real study needs next. Shipping the
+  editor, never a manufacturer device library — see Out of scope
 - **Phase pinning** — connect 1-phase elements to a chosen phase (`.2`, `.3` suffixes;
   `compiler.py` already accepts explicit suffixes, so this is mostly UI)
 - **Per-phase display** — phase labels on wires, per-phase voltage readouts

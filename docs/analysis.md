@@ -82,3 +82,56 @@ from the source or bus voltage; the default is a feeder voltage profile.
 
 The plot panel is resizable by its corner grip, and the whole bottom panel by
 its top edge.
+
+### Protection: time-current curves
+
+**Protection** mode plots every fuse, recloser and relay in the circuit on
+log-log paper: current across, operating time down. It answers the question a
+coordination study is for — *for a fault here, which device operates first?*
+
+- Each device gets a colour; a relay's ground curve is dashed, and a
+  recloser's fast and delayed curves share its colour.
+- The dashed vertical line is the **prospective 3φ fault current at that
+  device's own downstream bus** — the fault it exists to clear. It comes from
+  the same `mode=faultstudy` solve the Fault overlay uses, so the plot and the
+  overlay always agree.
+- Where a curve's data ends, a faint dotted line carries it on flat. That is
+  what the engine does when deciding whether a device trips, and the fault
+  current is usually out past the end of the published curve, so the plot has
+  to reach it.
+- Hovering reads out the current and time under the cursor, plus what every
+  visible curve would do at that current ("no trip" below its pickup).
+- Clicking a device in the legend takes it off the plot.
+
+The curves are the engine's own `TCC_Curve` objects scaled by each device's
+pickup, so a plotted curve is the one the solve would use. Running the study
+costs a fault-study solve, so it runs when you open the tab and then on
+**Re-run**; editing the circuit marks it stale rather than re-running by
+itself.
+
+#### Switches with no curve
+
+A breaker has no protection attached — no curve, no pickup, nothing to plot
+(see [Breaker](components.md#breaker--switch--k)). It still has to break
+whatever fault reaches it, so breakers appear in a table beneath the plot with
+the fault current at their bus against their interrupting rating.
+
+#### What the study checks
+
+Running the study also writes findings into the **Problems** list, where they
+sit with everything else that is wrong with the circuit and highlight the
+element they belong to:
+
+| Check | What it means |
+|---|---|
+| **Pickup above the fault** | The device starts operating above the current a fault at its own bus would draw, so it would never trip for the fault it protects |
+| **Miscoordination** | At the downstream device's fault current, the device above it operates within 0.25 s — so the upstream device may clear the fault first and take out more of the feeder than it needs to |
+| **Interrupting duty** | The fault current at a switch exceeds what it is rated to break |
+
+The upstream/downstream pairing comes from walking the circuit outward from
+the source, so it follows the drawing rather than any naming convention; an
+open switch breaks the path, as it does electrically.
+
+These are warnings, not errors — they never block a solve. The margin used is
+0.25 s, the usual working figure for relays and reclosers; a fuse-to-fuse
+study normally uses the 75% melt rule instead, which this does not yet do.

@@ -48,6 +48,27 @@ Two-winding, with a per-winding editor:
 | Load loss (%) | Winding losses at rated load |
 | Per winding: kV, kVA, wye/delta | Ratings and connection for each side |
 
+## Regulator — ++v++
+
+A step-voltage regulator: an equal-ratio transformer plus the `RegControl`
+that moves its taps to hold the load-side voltage. Settings are the ones on a
+real control cabinet, expressed on the 120 V control base.
+
+| Parameter | Meaning |
+|---|---|
+| Phases | 1 or 3 |
+| Rated kV, kVA | Same kV both sides — a regulator boosts, it does not transform |
+| Voltage setpoint | Target voltage on the 120 V base (122 V is typical) |
+| Bandwidth | Total deadband around the setpoint, so ±half this |
+| PT ratio | Turns the line voltage into the 120 V base. Left blank, it is derived from the rated kV |
+| CT primary | Current transformer primary rating, used by line drop compensation |
+| Line drop comp R, X | Volts of compensation, to regulate a point out on the feeder rather than at the regulator |
+| Max tap change / solution | Taps the control may move in one solution |
+
+The tap position is chosen by OpenDSS during the solve; the diagram shows the
+resulting voltages. Importing a `.dss` file turns any transformer with a
+`RegControl` on it back into a regulator.
+
 ## Breaker / switch — ++k++
 
 Emitted as a zero-impedance OpenDSS switch. Double-click (or right-click) to
@@ -57,7 +78,79 @@ open/close it; an open breaker de-energizes everything downstream.
 |---|---|
 | Closed | Switch state |
 | Rating (A) | `normamps`, used for the loading overlay |
+| Interrupting rating (kA) | What it can break; checked against the fault current available at its bus |
 | Phases | 1 / 2 / 3 |
+
+!!! note "A breaker has no protection of its own"
+
+    It carries no time-current curve and never trips by itself — it is the
+    switch someone operates: a tie point, a sectionalizing point, an isolation
+    switch. That is why breakers have no curve in the
+    [Protection plot](analysis.md#protection-time-current-curves); they appear
+    in the table beneath it instead, where their interrupting rating is checked
+    against the fault duty.
+
+    For **a breaker that trips on overcurrent, use a relay** — that element is
+    exactly this breaker plus the relay that watches it, which is how the two
+    are drawn on a real one-line.
+
+## Fuse — ++f++, Recloser — ++o++, Relay — ++y++
+
+Protective devices. Each one is a switch on the diagram plus the control that
+watches it, and the editor keeps the pair together as a single element — the
+switch is what carries current, so loading and losses report against it.
+
+Right-click (or double-click) blows a fuse or opens a recloser or relay, the
+same way a breaker opens. Anything downstream goes dead, which is how you check
+what a device protects.
+
+**Fuse**
+
+| Parameter | Meaning |
+|---|---|
+| Intact | Uncheck to blow it |
+| Rated current | The link's rating, in amps |
+| Fuse link | `tlink` or `klink` — the standard link curves |
+| Added delay | Seconds added to the curve's time |
+| Continuous rating | `normamps`, used for the loading overlay |
+
+**Recloser**
+
+| Parameter | Meaning |
+|---|---|
+| Phase / ground pickup | Trip current, in amps |
+| Fast / delayed curve | `a` and `d` are the standard fast and delayed curves |
+| Fast operations | How many trips use the fast curve before switching to the delayed one |
+| Shots to lockout | Trips before it stays open |
+
+**Relay** (overcurrent, IEEE C37.2 device 51 — 51N once a ground curve is set)
+
+Drawn the way a one-line draws it: the breaker sits in the line, the relay is
+its own circled device number beside it, and the dashed link between them is
+the trip signal. It is a breaker *with* protection — use it wherever a breaker
+should trip on overcurrent rather than be opened by hand.
+
+| Parameter | Meaning |
+|---|---|
+| Phase / ground pickup | Trip current, in amps |
+| Phase / ground curve | `mod_inv`, `very_inv`, `ext_inv` (IEEE moderately, very and extremely inverse) or `definite` |
+| Ground curve `none` | No ground unit at all, which is different from one set to a default |
+
+The curve names are the ones built into the OpenDSS engine, so the dropdown
+only offers those — naming a curve the engine does not hold stops the solve
+outright.
+
+Their curves are plotted in the **Graph tab → Protection** — see
+[Analysis](analysis.md#protection-time-current-curves).
+
+!!! note "What these do today"
+
+    The controls describe how each device *would* operate, and the Protection
+    plot shows when. OpenDSS itself runs protection in fault and time-domain
+    studies, so in a snapshot or a time-series run these behave as closed
+    switches with ratings — nothing trips mid-run. Automatic coordination
+    checks between devices are the next step on the
+    [roadmap](https://github.com/rsparks3/opendss-designer/blob/main/FUTURE_IMPROVEMENTS.md).
 
 ## Load — ++l++
 
