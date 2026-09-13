@@ -20,7 +20,34 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: pytest -q
+      # faulthandler so a crash in the engine names the test it died in: the
+      # suite drives a native library, and a bare exit code says nothing.
+      - name: Run pytest
+        run: |
+          set -o pipefail
+          python -X faulthandler -m pytest -q 2>&1 | tee pytest-out.txt
+      # The log itself needs a token to read; an annotation does not, so put
+      # the tail of the failure where anyone looking at the run can see it.
+      - name: Surface the failure
+        if: failure()
+        run: |
+          python - <<'PY'
+          import pathlib
+          text = pathlib.Path("pytest-out.txt").read_text(errors="replace")[-5000:]
+          # An annotation is a single line: the workflow-command escapes for
+          # CR and LF, written with chr() so no YAML or shell layer eats a
+          # backslash on the way through.
+          enc = (text.replace("%", "%25")
+                     .replace(chr(13), "%0D")
+                     .replace(chr(10), "%0A"))
+          print("::error title=pytest::" + enc)
+          PY
+      - name: Keep the output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-output
+          path: pytest-out.txt
 
   frontend:
     name: Frontend (tsc + vitest)
