@@ -12,6 +12,12 @@ This project follows [Semantic Versioning](https://semver.org/).
   grades on phase and not on ground is caught. Reclosers gained ground fast and
   delayed curves (a ground pickup alone never created a ground unit, on a
   recloser or a relay).
+- **A circuit can carry its own time-current curves.** The new **Curves** tab
+  takes a manufacturer's table as pairs of "multiple of pickup, seconds",
+  previews it on log-log paper, and offers it on every protective device
+  alongside the ten the engine ships. Curves save with the circuit, export to
+  `.dss` as `TCC_Curve` objects and come back on import; a device pointing at a
+  curve that no longer exists falls back to its default and says so.
 - **The 75% rule for fuse pairs.** Two fuses in series are graded by ratio —
   the one below must melt inside 75% of the melting time of the one above —
   rather than by the 0.25 s margin that suits relays and reclosers.

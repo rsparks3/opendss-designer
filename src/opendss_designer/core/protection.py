@@ -26,6 +26,44 @@ from .model import Circuit, Issue
 from .validate import limit_issues
 
 
+_BUILTIN_CACHE: dict[str, list[list[float]]] | None = None
+
+
+def _curve_points(name: str) -> list[list[float]]:
+    mult = _num_array(f"tcc_curve.{name}.c_array")
+    secs = _num_array(f"tcc_curve.{name}.t_array")
+    n = min(len(mult), len(secs))
+    return [[mult[i], secs[i]] for i in range(n)]
+
+
+def loaded_curve_names() -> list[str]:
+    """Every TCC curve the engine currently holds — its own, plus any the
+    circuit just defined. Not the same as the built-in set."""
+    dss.Text.Command("select tcc_curve.tlink")
+    return [str(n).lower() for n in dss.ActiveClass.AllNames()]
+
+
+@on_engine_thread
+def builtin_curves() -> dict[str, Any]:
+    """The engine's own curves and their points, for the curve picker.
+
+    Read once from a scratch circuit and cached: they are compiled into the
+    engine and never change while it is running.
+    """
+    global _BUILTIN_CACHE
+    if _BUILTIN_CACHE is None:
+        with dss_guard():
+            _ensure_init()
+            dss.Text.Command("clear")
+            dss.Text.Command("new circuit.curvelist basekv=12.47 pu=1.0 "
+                             "phases=3 bus1=b1 mvasc3=2000")
+            # Read from a scratch circuit, so nothing user-defined is loaded
+            # and this really is the built-in set.
+            _BUILTIN_CACHE = {n: _curve_points(n) for n in loaded_curve_names()}
+    return {"curves": [{"name": n, "points": pts, "builtin": True}
+                       for n, pts in _BUILTIN_CACHE.items()]}
+
+
 def _num_array(query: str) -> list[float]:
     dss.Text.Command(f"? {query}")
     raw = dss.Text.Result().strip().strip("[]")

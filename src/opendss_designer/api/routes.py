@@ -109,6 +109,16 @@ def fault_study(circuit: Circuit) -> dict:
         raise _busy(exc) from exc
 
 
+@router.get("/tcccurves")
+def tcc_curves() -> dict:
+    """The time-current curves the engine ships. A circuit's own curves come
+    with the circuit, so this is only the built-in half."""
+    try:
+        return protection.builtin_curves()
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
 @router.post("/tcc")
 def tcc(circuit: Circuit) -> dict:
     try:

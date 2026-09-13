@@ -44,6 +44,14 @@ export interface CircuitEdgeJSON {
   waypoints?: { x: number; y: number }[] | null
 }
 
+/** A user-defined time-current curve: multiples of the device's pickup
+ *  against seconds to operate, like the engine's own curves. */
+export interface TccCurveJSON {
+  multiples: number[]
+  seconds: number[]
+  source?: string | null
+}
+
 export interface LoadShapeJSON {
   /** Library category: drives the Shapes tabs, dropdown filtering, and
    *  kind-mismatch validation. Absent (older files) means 'load'. */
@@ -63,6 +71,7 @@ export interface CircuitJSON {
   edges: CircuitEdgeJSON[]
   busNames: Record<string, string>
   loadShapes: Record<string, LoadShapeJSON>
+  tccCurves?: Record<string, TccCurveJSON>
 }
 
 export interface Issue {

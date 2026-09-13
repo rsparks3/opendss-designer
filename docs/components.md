@@ -137,9 +137,12 @@ should trip on overcurrent rather than be opened by hand.
 | Phase / ground curve | `mod_inv`, `very_inv`, `ext_inv` (IEEE moderately, very and extremely inverse) or `definite` |
 | Ground curve `none` | No ground unit at all, which is different from one set to a default |
 
-The curve names are the ones built into the OpenDSS engine, so the dropdown
-only offers those — naming a curve the engine does not hold stops the solve
-outright.
+Every curve dropdown offers the ten built into the OpenDSS engine plus any
+curve this circuit defines in the **Curves** tab (bottom panel), where you can
+type a manufacturer's table in as pairs of "multiple of pickup, seconds". The
+dropdown is limited to curves that exist because naming one the engine does not
+hold stops the solve outright; a curve that goes missing falls back to the
+device's default and says so in the Problems list.
 
 Their curves are plotted in the **Graph tab → Protection** — see
 [Analysis](analysis.md#protection-time-current-curves).

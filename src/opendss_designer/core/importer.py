@@ -28,7 +28,8 @@ _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 
 
 SUPPORTED_PREFIXES = ("vsource.", "transformer.", "line.", "load.",
                       "capacitor.", "generator.", "pvsystem.", "storage.",
-                      "regcontrol.", "fuse.", "recloser.", "relay.")
+                      "regcontrol.", "fuse.", "recloser.", "relay.",
+                      "tcc_curve.")
 
 # Drawing-canvas size that geographic bus coordinates are normalized into.
 _LAYOUT_W, _LAYOUT_H = 1800.0, 1200.0
@@ -236,6 +237,41 @@ def _prop(full_name: str, prop: str) -> str:
     does not expose (recloser curves, everything on a relay)."""
     dss.Text.Command(f"? {full_name}.{prop}")
     return dss.Text.Result().strip()
+
+
+def _read_tcc_curves() -> dict[str, dict[str, Any]]:
+    """Time-current curves the file defined, which is every curve the engine
+    now holds minus the ten it ships with."""
+    from .compiler import ALL_BUILTIN_CURVES
+
+    out: dict[str, dict[str, Any]] = {}
+    try:
+        dss.Text.Command("select tcc_curve.tlink")
+        names = [str(n).lower() for n in dss.ActiveClass.AllNames()]
+    except Exception:
+        return out
+    for name in names:
+        if name in ALL_BUILTIN_CURVES:
+            continue
+        mult = _num_array(f"tcc_curve.{name}.c_array")
+        secs = _num_array(f"tcc_curve.{name}.t_array")
+        n = min(len(mult), len(secs))
+        if n >= 2:
+            out[name] = {"multiples": mult[:n], "seconds": secs[:n],
+                         "source": "imported"}
+    return out
+
+
+def _num_array(query: str) -> list[float]:
+    dss.Text.Command(f"? {query}")
+    raw = dss.Text.Result().strip().strip("[]")
+    out: list[float] = []
+    for tok in raw.split():
+        try:
+            out.append(float(tok))
+        except ValueError:
+            continue
+    return out
 
 
 def _read_protection(warnings: list[str]) -> dict[str, tuple[str, dict[str, Any]]]:
@@ -623,7 +659,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
 
     circuit_name = sanitize_name(dss.Circuit.Name()) or "imported"
     circuit = Circuit(name=circuit_name, nodes=nodes, edges=edges,
-                      loadShapes=load_shapes)
+                      loadShapes=load_shapes, tccCurves=_read_tcc_curves())
     return {"circuit": circuit.model_dump(), "unsupported": unsupported,
             "warnings": warnings}
 

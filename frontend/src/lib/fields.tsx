@@ -5,13 +5,18 @@ import type { Params, Winding } from '../types/circuit'
 export interface Field {
   key: string
   label: string
-  /** 'loadshape' renders a dropdown of the circuit's loadshape library. */
-  kind: 'number' | 'text' | 'select' | 'checkbox' | 'loadshape'
+  /** 'loadshape' renders a dropdown of the circuit's loadshape library;
+   *  'curve' one of the engine's time-current curves plus the circuit's own. */
+  kind: 'number' | 'text' | 'select' | 'checkbox' | 'loadshape' | 'curve'
   /** For kind 'loadshape': which shape category the dropdown offers.
    *  Default 'load'; 'any' lists both (storage dispatch). */
   shapeKind?: 'load' | 'irradiance' | 'any'
   options?: string[] | number[]
   unit?: string
+  /** For kind 'curve': which of the engine's curves suit this device, and
+   *  whether "none" (no unit at all) is a real answer. */
+  curveKind?: 'fuse' | 'recloser' | 'relay'
+  allowNone?: boolean
 }
 
 export const FIELDS: Record<string, Field[]> = {
@@ -79,7 +84,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'name', label: 'Name', kind: 'text' },
     { key: 'closed', label: 'Intact', kind: 'checkbox' },
     { key: 'ratedcurrent', label: 'Rated current', kind: 'number', unit: 'A' },
-    { key: 'fusecurve', label: 'Fuse link', kind: 'select', options: ['tlink', 'klink'] },
+    { key: 'fusecurve', label: 'Fuse link', kind: 'curve', curveKind: 'fuse' },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
@@ -90,10 +95,10 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'closed', label: 'Closed', kind: 'checkbox' },
     { key: 'phasetrip', label: 'Phase pickup', kind: 'number', unit: 'A' },
     { key: 'groundtrip', label: 'Ground pickup', kind: 'number', unit: 'A' },
-    { key: 'phasefast', label: 'Fast curve', kind: 'select', options: ['a', 'd', 'tlink', 'klink'] },
-    { key: 'phasedelayed', label: 'Delayed curve', kind: 'select', options: ['a', 'd', 'tlink', 'klink'] },
-    { key: 'groundfast', label: 'Ground fast curve', kind: 'select', options: ['none', 'a', 'd', 'tlink', 'klink'] },
-    { key: 'grounddelayed', label: 'Ground delayed curve', kind: 'select', options: ['none', 'a', 'd', 'tlink', 'klink'] },
+    { key: 'phasefast', label: 'Fast curve', kind: 'curve', curveKind: 'recloser' },
+    { key: 'phasedelayed', label: 'Delayed curve', kind: 'curve', curveKind: 'recloser' },
+    { key: 'groundfast', label: 'Ground fast curve', kind: 'curve', curveKind: 'recloser', allowNone: true },
+    { key: 'grounddelayed', label: 'Ground delayed curve', kind: 'curve', curveKind: 'recloser', allowNone: true },
     { key: 'numfast', label: 'Fast operations', kind: 'number' },
     { key: 'shots', label: 'Shots to lockout', kind: 'number' },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
@@ -105,9 +110,9 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'name', label: 'Name', kind: 'text' },
     { key: 'closed', label: 'Closed', kind: 'checkbox' },
     { key: 'phasetrip', label: 'Phase pickup', kind: 'number', unit: 'A' },
-    { key: 'phasecurve', label: 'Phase curve', kind: 'select', options: ['mod_inv', 'very_inv', 'ext_inv', 'definite'] },
+    { key: 'phasecurve', label: 'Phase curve', kind: 'curve', curveKind: 'relay' },
     { key: 'groundtrip', label: 'Ground pickup', kind: 'number', unit: 'A' },
-    { key: 'groundcurve', label: 'Ground curve', kind: 'select', options: ['none', 'mod_inv', 'very_inv', 'ext_inv', 'definite'] },
+    { key: 'groundcurve', label: 'Ground curve', kind: 'curve', curveKind: 'relay', allowNone: true },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
@@ -187,6 +192,46 @@ export function windingPatch(params: Params, key: string, value: unknown): Param
   return { windings }
 }
 
+/** The engine's own curves, by the device they belong to. The backend keeps
+ *  the same lists; these decide what the dropdown offers, and a curve the
+ *  circuit defines is offered for any device. */
+const BUILTIN_CURVES: Record<string, string[]> = {
+  fuse: ['tlink', 'klink'],
+  recloser: ['a', 'd', 'tlink', 'klink'],
+  relay: ['mod_inv', 'very_inv', 'ext_inv', 'definite'],
+}
+
+function CurveSelect({
+  value,
+  curveKind = 'relay',
+  allowNone = false,
+  onCommit,
+}: {
+  value: unknown
+  curveKind?: 'fuse' | 'recloser' | 'relay'
+  allowNone?: boolean
+  onCommit: (v: unknown) => void
+}) {
+  const mine = Object.keys(useCircuitStore((s) => s.tccCurves))
+  const builtin = BUILTIN_CURVES[curveKind] ?? []
+  const current = String(value ?? '')
+  const known = [...builtin, ...mine]
+  return (
+    <select value={current} onChange={(e) => onCommit(e.target.value)}>
+      {allowNone && <option value="none">none</option>}
+      {builtin.map((n) => (
+        <option key={n} value={n}>{n}</option>
+      ))}
+      {mine.map((n) => (
+        <option key={n} value={n}>{n} (this circuit)</option>
+      ))}
+      {current && current !== 'none' && !known.includes(current) && (
+        <option value={current}>{current} (missing)</option>
+      )}
+    </select>
+  )
+}
+
 function LoadShapeSelect({
   value,
   shapeKind = 'load',
@@ -232,6 +277,12 @@ export function FieldInput({
 
   if (field.kind === 'loadshape') {
     return <LoadShapeSelect value={value} shapeKind={field.shapeKind} onCommit={onCommit} />
+  }
+  if (field.kind === 'curve') {
+    return (
+      <CurveSelect value={value} curveKind={field.curveKind}
+                   allowNone={field.allowNone} onCommit={onCommit} />
+    )
   }
   if (field.kind === 'checkbox') {
     return (

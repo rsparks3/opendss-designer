@@ -11,7 +11,9 @@ import { temporal } from 'zundo'
 import { create } from 'zustand'
 import { defaultLineParams, defaultParams, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
-import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params } from '../types/circuit'
+import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
+  TccCurveJSON,
+} from '../types/circuit'
 import { SCHEMA_VERSION } from '../lib/schema'
 import { useResultsStore } from './resultsStore'
 
@@ -31,6 +33,7 @@ export interface CircuitState {
   /** Circuit-level loadshape library, keyed by shape name. Always replaced
    *  wholesale (never mutated) so undo can compare it by reference. */
   loadShapes: Record<string, LoadShapeJSON>
+  tccCurves: Record<string, TccCurveJSON>
   placementType: NodeType | null
   connectMode: EdgeKind
   /** True when there are changes not yet saved to a project file. */
@@ -62,6 +65,8 @@ export interface CircuitState {
   selectOnly: (kind: 'node' | 'edge', id: string) => void
   mergeBusNames: (names: Record<string, string>) => void
   setLoadShape: (name: string, spec: LoadShapeJSON) => void
+  setTccCurve: (name: string, spec: TccCurveJSON) => void
+  removeTccCurve: (name: string) => void
   /** Delete a shape and clear any element params still referencing it. */
   deleteLoadShape: (name: string) => void
   /** Rename a shape and rewrite element references to it. */
@@ -315,7 +320,7 @@ function nodeCenter(n: AppNode): XY {
 }
 
 export function toCircuitJSON(
-  s: Pick<CircuitState, 'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes'>,
+  s: Pick<CircuitState, 'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves'>,
 ): CircuitJSON {
   return {
     version: SCHEMA_VERSION,
@@ -339,6 +344,7 @@ export function toCircuitJSON(
     })),
     busNames: s.busNames,
     loadShapes: s.loadShapes,
+    tccCurves: s.tccCurves,
   }
 }
 
@@ -381,6 +387,7 @@ export const useCircuitStore = create<CircuitState>()(
       edges: [],
       busNames: {},
       loadShapes: {},
+      tccCurves: {},
       placementType: null,
       connectMode: 'wire',
       dirty: false,
@@ -571,6 +578,13 @@ export const useCircuitStore = create<CircuitState>()(
         })
       },
       mergeBusNames: (names) => set({ busNames: { ...get().busNames, ...names } }),
+      setTccCurve: (name, spec) => {
+        set({ tccCurves: { ...get().tccCurves, [name]: spec }, dirty: true })
+      },
+      removeTccCurve: (name) => {
+        const { [name]: _gone, ...rest } = get().tccCurves
+        set({ tccCurves: rest, dirty: true })
+      },
       setLoadShape: (name, spec) => {
         set({ loadShapes: { ...get().loadShapes, [name]: spec }, dirty: true })
         markStale()
@@ -613,6 +627,7 @@ export const useCircuitStore = create<CircuitState>()(
           edges,
           busNames: c.busNames ?? {},
           loadShapes: c.loadShapes ?? {},
+          tccCurves: c.tccCurves ?? {},
           dirty: false,
         })
         // Cleared here rather than at each call site: Open used to leave the

@@ -114,6 +114,7 @@ describe('circuit JSON round trip', () => {
       edges,
       busNames: FIXTURE.busNames,
       loadShapes: FIXTURE.loadShapes,
+      tccCurves: FIXTURE.tccCurves ?? {},
     })
     // Serialize both so undefined-vs-absent differences disappear.
     expect(JSON.parse(JSON.stringify(out))).toEqual(JSON.parse(JSON.stringify(FIXTURE)))

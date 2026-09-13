@@ -4,6 +4,8 @@ import json
 import pytest
 
 from opendss_designer.core import protection
+from opendss_designer.core.compiler import compile_circuit
+from opendss_designer.core.importer import import_dss
 from opendss_designer.core.model import Circuit
 
 from test_protection import _feeder
@@ -303,3 +305,86 @@ def test_a_pair_past_the_end_of_its_curves_is_not_judged():
     dn = _by_name(result, "dn")
     assert dn["faultA3ph"] > dn["traces"][0]["points"][-1][0], "fault should be off the curve"
     assert "miscoordination" not in _codes(result)
+
+
+# --- the circuit's own curves --------------------------------------------
+
+def _with_curve(curve_name: str, spec: dict, device_curve: str | None = None) -> Circuit:
+    circuit = _feeder("fuse", {"ratedcurrent": 100,
+                               "fusecurve": device_curve or curve_name})
+    data = circuit.model_dump()
+    data["tccCurves"] = {curve_name: spec}
+    return Circuit.model_validate(data)
+
+
+CUSTOM = {"multiples": [1.5, 2, 5, 20], "seconds": [10, 4, 0.5, 0.06]}
+
+
+def test_a_circuit_can_define_its_own_curve():
+    circuit = _with_curve("acme_k", CUSTOM)
+    joined = "\n".join(compile_circuit(circuit).commands).lower()
+    assert "new tcc_curve.acme_k npts=4" in joined
+    assert "fusecurve=acme_k" in joined
+
+    trace = _by_name(protection.tcc_study(circuit), "dev1")["traces"][0]
+    assert trace["curve"] == "acme_k"
+    # Multiples scaled by the 100 A rating, exactly as for a built-in curve.
+    assert trace["points"][0] == [150.0, 10.0]
+
+
+def test_a_curve_name_that_needs_sanitising_still_resolves():
+    """`lateral-k` is emitted as `lateral_k`; the device's reference has to
+    follow it there, or the solve quietly uses a different curve."""
+    circuit = _with_curve("lateral-k", CUSTOM)
+    res = compile_circuit(circuit)
+    assert not [i for i in res.issues if i.code == "unknown-curve"]
+    joined = "\n".join(res.commands).lower()
+    assert "new tcc_curve.lateral_k" in joined
+    assert "fusecurve=lateral_k" in joined
+
+
+def test_a_missing_curve_falls_back_and_says_so():
+    circuit = _with_curve("acme_k", CUSTOM, device_curve="not_defined")
+    res = compile_circuit(circuit)
+    assert "fusecurve=tlink" in "\n".join(res.commands).lower()
+    warning = next(i for i in res.issues if i.code == "unknown-curve")
+    assert "not_defined" in warning.message
+
+
+def test_a_curve_cannot_shadow_one_the_engine_ships():
+    circuit = _with_curve("tlink", CUSTOM)
+    res = compile_circuit(circuit)
+    assert [i for i in res.issues if i.code == "duplicate-name"]
+    # And the engine's own tlink is left alone.
+    assert "new tcc_curve.tlink" not in "\n".join(res.commands).lower()
+
+
+def test_a_curve_with_one_point_is_ignored_with_a_warning():
+    circuit = _with_curve("stub", {"multiples": [2], "seconds": [1]})
+    res = compile_circuit(circuit)
+    assert [i for i in res.issues if i.code == "empty-curve"]
+
+
+def test_the_engine_curves_are_listed_for_the_picker():
+    listing = protection.builtin_curves()["curves"]
+    names = {c["name"] for c in listing}
+    assert {"tlink", "klink", "a", "d", "very_inv", "definite"} <= names
+    assert all(c["builtin"] for c in listing)
+    assert all(len(c["points"]) >= 2 for c in listing)
+
+
+def test_curves_a_dss_file_defines_are_imported():
+    text = """
+    new circuit.t basekv=12.47 pu=1.0 phases=3 bus1=b1 mvasc3=2000
+    new tcc_curve.acme_k npts=4 c_array=(1.5, 2, 5, 20) t_array=(12, 5, 0.6, 0.05)
+    new line.fs1 bus1=b1 bus2=b2 phases=3 switch=yes normamps=100
+    new fuse.fs1 monitoredobj=line.fs1 monitoredterm=1 switchedobj=line.fs1 switchedterm=1 ratedcurrent=50 fusecurve=acme_k
+    new load.l1 bus1=b2 phases=3 kv=12.47 kw=500 pf=0.95
+    set voltagebases=[12.47]
+    calcvoltagebases
+    """
+    circuit = Circuit.model_validate(import_dss(text)["circuit"])
+    assert list(circuit.tccCurves) == ["acme_k"]
+    assert circuit.tccCurves["acme_k"].multiples == [1.5, 2.0, 5.0, 20.0]
+    # The ten the engine ships are not dragged in as if the file defined them.
+    assert "tlink" not in circuit.tccCurves

@@ -11,9 +11,10 @@ import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { Params } from '../types/circuit'
 import { GraphPanel } from './GraphPanel'
+import { CurvesPanel } from './CurvesPanel'
 import { ShapesPanel } from './ShapesPanel'
 
-type MainTab = 'problems' | 'elements' | 'losses' | 'graph' | 'shapes'
+type MainTab = 'problems' | 'elements' | 'losses' | 'graph' | 'shapes' | 'curves'
 
 const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'vsource', label: 'Sources' },
@@ -427,6 +428,16 @@ export function BottomPanel() {
         >
           Shapes
         </button>
+        <button
+          className={`bp-tab${tab === 'curves' && open ? ' active' : ''}`}
+          title="Time-current curves this circuit defines, for its protective devices"
+          onClick={() => {
+            setTab('curves')
+            setOpen(tab !== 'curves' || !open)
+          }}
+        >
+          Curves
+        </button>
         {tab === 'elements' && open && (
           <span className="bp-subtabs">
             {TYPE_TABS.map((t) => (
@@ -456,6 +467,8 @@ export function BottomPanel() {
             <GraphPanel />
           ) : tab === 'shapes' ? (
             <ShapesPanel />
+          ) : tab === 'curves' ? (
+            <CurvesPanel />
           ) : typeTab === 'buses' ? (
             <BusesTable />
           ) : (

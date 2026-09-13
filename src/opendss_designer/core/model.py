@@ -18,6 +18,8 @@ MAX_NODES = 100_000
 MAX_EDGES = 200_000
 MAX_SHAPES = 1_000
 MAX_SHAPE_POINTS = 1_000_000
+MAX_CURVES = 200
+MAX_CURVE_POINTS = 200
 
 NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker",
                    "capacitor", "generator", "pvsystem", "storage", "regulator",
@@ -66,6 +68,18 @@ class LoadShapeSpec(BaseModel):
     source: str | None = None
 
 
+class TccCurveSpec(BaseModel):
+    """A user-defined time-current curve: multiples of the device's pickup
+    against seconds to operate, the same shape the engine's built-in curves
+    have. Points are plotted and interpolated in the order given."""
+    multiples: Annotated[list[float],
+                         Field(max_length=MAX_CURVE_POINTS)] = Field(default_factory=list)
+    seconds: Annotated[list[float],
+                       Field(max_length=MAX_CURVE_POINTS)] = Field(default_factory=list)
+    # Where it came from, e.g. a manufacturer and link size.
+    source: str | None = None
+
+
 class Circuit(BaseModel):
     version: int = 1
     name: str = "circuit"
@@ -79,6 +93,10 @@ class Circuit(BaseModel):
     # Circuit-level loadshape library, keyed by shape name.
     loadShapes: Annotated[dict[str, LoadShapeSpec],
                           Field(max_length=MAX_SHAPES)] = Field(default_factory=dict)
+    # Circuit-level time-current curve library, keyed by curve name. The engine
+    # ships ten curves of its own; these are the ones a user adds.
+    tccCurves: Annotated[dict[str, TccCurveSpec],
+                         Field(max_length=MAX_CURVES)] = Field(default_factory=dict)
 
 
 class Issue(BaseModel):

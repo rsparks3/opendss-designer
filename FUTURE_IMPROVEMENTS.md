@@ -123,12 +123,13 @@ All frontend-only; the M1 vitest harness covers the store changes.
   inside the 0.25 s margin, and interrupting duty against a new `interruptingka` rating;
   the upstream/downstream pairing comes from a walk outward from the source over the
   conducting elements (open switches cut the path). Breakers take part in the duty check
-  and are listed under the plot, since they carry no curve. Still to do here: the 75%
-  melt rule for fuse-to-fuse pairs, and ground-fault coordination (the checks use the
-  3φ fault current)
-- **A user-editable curve library** — the ten curves the engine ships cover the common
-  cases; entering a manufacturer's points is what a real study needs next. Shipping the
-  editor, never a manufacturer device library — see Out of scope
+  and are listed under the plot, since they carry no curve. The 75% melt rule for fuse
+  pairs and ground-fault coordination landed with them; grading stops where the curve
+  data does, because past it every curve runs flat
+- ~~**A user-editable curve library**~~ — the Curves tab: points typed or pasted as
+  "multiple of pickup, seconds", previewed, saved with the circuit, emitted as
+  `TCC_Curve` and read back on import; `GET /api/tcccurves` lists the engine's own.
+  Still the editor and never a manufacturer device library — see Out of scope
 - **Phase pinning** — connect 1-phase elements to a chosen phase (`.2`, `.3` suffixes;
   `compiler.py` already accepts explicit suffixes, so this is mostly UI)
 - **Per-phase display** — phase labels on wires, per-phase voltage readouts

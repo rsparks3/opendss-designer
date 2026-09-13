@@ -43,6 +43,9 @@ LINE_UNITS = frozenset({"none", "mi", "kft", "km", "m", "ft", "in", "cm"})
 FUSE_CURVES = frozenset({"tlink", "klink"})
 RECLOSER_CURVES = frozenset({"a", "d", "tlink", "klink"})
 RELAY_CURVES = frozenset({"mod_inv", "very_inv", "ext_inv", "definite"})
+# Everything the engine defines for itself, so a user curve cannot shadow one.
+ALL_BUILTIN_CURVES = frozenset(
+    FUSE_CURVES | RECLOSER_CURVES | RELAY_CURVES | {"uv1547", "ov1547"})
 
 
 @dataclass
@@ -199,6 +202,53 @@ def compile_circuit(circuit: Circuit,
             cmds.append(f"new loadshape.{shape} npts={len(spec.points)} "
                         f"minterval={spec.intervalMin:g} mult=({mult})")
 
+    # User-defined time-current curves. Emitted before any protective device
+    # so a device can name one, and validated here rather than trusted: a curve
+    # name the engine does not hold is a hard error that stops the whole solve.
+    curve_names: set[str] = set()
+    for key, spec in circuit.tccCurves.items():
+        curve = sanitize_name(key)
+        if not curve:
+            continue
+        if curve in curve_names or curve in ALL_BUILTIN_CURVES:
+            res.issues.append(Issue(
+                severity="error", code="duplicate-name",
+                message=f"Curve '{curve}' collides with another curve "
+                        "(the engine ships ten of its own)."))
+            continue
+        n = min(len(spec.multiples), len(spec.seconds))
+        if n < 2:
+            res.issues.append(Issue(
+                severity="warning", code="empty-curve",
+                message=f"Curve '{curve}' has fewer than 2 points and is ignored."))
+            continue
+        mult = " ".join(f"{float(v):.5g}" for v in spec.multiples[:n])
+        secs = " ".join(f"{float(v):.5g}" for v in spec.seconds[:n])
+        curve_names.add(curve)
+        cmds.append(f"new tcc_curve.{curve} npts={n} "
+                    f"c_array=({mult}) t_array=({secs})")
+
+    def curve_ref(p: dict, key: str, allowed: frozenset[str], default: str,
+                  ref_id: str) -> str:
+        """A curve name the engine will certainly hold: one of its built-ins,
+        or one this circuit defines above.
+
+        The name goes through the same sanitizing the curve itself did, or a
+        curve called "lateral-k" would be emitted as `lateral_k` and every
+        device pointing at it would quietly fall back to the default.
+        """
+        raw = str(p.get(key, default)).strip().lower()
+        name = sanitize_name(raw) or default
+        if name in allowed or name in curve_names:
+            return name
+        if raw and raw != default:
+            res.issues.append(Issue(
+                severity="warning", code="unknown-curve",
+                message=f"Curve '{raw}' is not defined in this circuit; "
+                        f"using '{default}' instead.",
+                nodeId=ref_id))
+        return default
+
     def shape_ref(p: dict, ref_id: str) -> str:
         """' daily=<n> yearly=<n>' for params.loadshape, or '' when unset.
         The same shape drives both modes; OpenDSS wraps short shapes."""
@@ -347,15 +397,15 @@ def compile_circuit(circuit: Circuit,
         name, p = protective_switch(n, DEFAULT_FUSE_AMPS)
         cmds.append(
             f"new fuse.{name} {monitors(name, p)} "
-            f"fusecurve={_enum(p, 'fusecurve', FUSE_CURVES, 'tlink')} "
+            f"fusecurve={curve_ref(p, 'fusecurve', FUSE_CURVES, 'tlink', n.id)} "
             f"ratedcurrent={_num(p, 'ratedcurrent', DEFAULT_FUSE_AMPS):g} "
             f"delay={_num(p, 'delay', 0.0):g}")
 
     for n in reclosers:
         name, p = protective_switch(n, DEFAULT_RECLOSER_AMPS)
         cmd = (f"new recloser.{name} {monitors(name, p)} "
-               f"phasefast={_enum(p, 'phasefast', RECLOSER_CURVES, 'a')} "
-               f"phasedelayed={_enum(p, 'phasedelayed', RECLOSER_CURVES, 'd')} "
+               f"phasefast={curve_ref(p, 'phasefast', RECLOSER_CURVES, 'a', n.id)} "
+               f"phasedelayed={curve_ref(p, 'phasedelayed', RECLOSER_CURVES, 'd', n.id)} "
                f"phasetrip={_num(p, 'phasetrip', 100.0):g} "
                # Emitted whether or not a ground unit exists: it is the user's
                # setting, and losing it on a round trip would be silent.
@@ -365,8 +415,8 @@ def compile_circuit(circuit: Circuit,
                f"delay={_num(p, 'delay', 0.0):g}")
         # A recloser only has a ground unit if it is given curves for one, the
         # same as a relay; the trip setting alone does nothing.
-        gfast = _enum(p, "groundfast", RECLOSER_CURVES | {"none"}, "none")
-        gdelayed = _enum(p, "grounddelayed", RECLOSER_CURVES | {"none"}, "none")
+        gfast = curve_ref(p, "groundfast", RECLOSER_CURVES | {"none"}, "none", n.id)
+        gdelayed = curve_ref(p, "grounddelayed", RECLOSER_CURVES | {"none"}, "none", n.id)
         if gfast != "none" or gdelayed != "none":
             cmd += (f" groundfast={gfast if gfast != 'none' else gdelayed} "
                     f"grounddelayed={gdelayed if gdelayed != 'none' else gfast}")
@@ -375,12 +425,12 @@ def compile_circuit(circuit: Circuit,
     for n in relays:
         name, p = protective_switch(n, DEFAULT_RELAY_AMPS)
         cmd = (f"new relay.{name} {monitors(name, p)} type=current "
-               f"phasecurve={_enum(p, 'phasecurve', RELAY_CURVES, 'very_inv')} "
+               f"phasecurve={curve_ref(p, 'phasecurve', RELAY_CURVES, 'very_inv', n.id)} "
                f"phasetrip={_num(p, 'phasetrip', 200.0):g} "
                f"delay={_num(p, 'delay', 0.0):g}")
         # No ground curve means no ground unit at all, which is a different
         # relay from one with a ground unit picked up at some default.
-        ground = _enum(p, "groundcurve", RELAY_CURVES | {"none"}, "none")
+        ground = curve_ref(p, "groundcurve", RELAY_CURVES | {"none"}, "none", n.id)
         if ground != "none":
             cmd += (f" groundcurve={ground} "
                     f"groundtrip={_num(p, 'groundtrip', 50.0):g}")

@@ -103,8 +103,9 @@ coordination study is for — *for a fault here, which device operates first?*
   visible curve would do at that current ("no trip" below its pickup).
 - Clicking a device in the legend takes it off the plot.
 
-The curves are the engine's own `TCC_Curve` objects scaled by each device's
-pickup, so a plotted curve is the one the solve would use. Running the study
+The curves are `TCC_Curve` objects scaled by each device's pickup, so a plotted
+curve is the one the solve would use — the ten the engine ships, plus any this
+circuit defines in the **Curves** tab. Running the study
 costs a fault-study solve, so it runs when you open the tab and then on
 **Re-run**; editing the circuit marks it stale rather than re-running by
 itself.

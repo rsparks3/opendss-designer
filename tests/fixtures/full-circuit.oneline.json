@@ -65,7 +65,7 @@
       "type": "fuse",
       "position": { "x": 780, "y": 400 },
       "width": null,
-      "params": { "name": "FU1", "closed": true, "phases": 3, "ratedcurrent": 65, "fusecurve": "tlink", "delay": 0, "normamps": 100, "interruptingka": 10 }
+      "params": { "name": "FU1", "closed": true, "phases": 3, "ratedcurrent": 65, "fusecurve": "lateral-k", "delay": 0, "normamps": 100, "interruptingka": 10 }
     },
     {
       "id": "n_rec",
@@ -356,6 +356,13 @@
     }
   ],
   "busNames": { "n_brk:t2": "tap1" },
+  "tccCurves": {
+    "lateral-k": {
+      "multiples": [2, 2.5, 4, 8, 20, 40],
+      "seconds": [300, 30, 3, 0.4, 0.05, 0.02],
+      "source": "example"
+    }
+  },
   "loadShapes": {
     "day24": {
       "kind": "load",
