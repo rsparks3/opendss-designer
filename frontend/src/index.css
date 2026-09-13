@@ -267,8 +267,11 @@ html, body, #root { margin: 0; height: 100%; }
 }
 /* The `font` shorthand above sets a size, and CSS beats an SVG font-size
    attribute, so a symbol that wants its own size asks for it here. */
-.sym-text.device-no { font-size: 9px; }
-.sym-text.device-no.wide { font-size: 7px; }
+.sym-text.device-no { font-size: 8px; font-weight: 600; }
+/* Three characters at the two-character size fill the bubble wall to wall, and
+   700 weight makes them heavier still at this size, so the wide variant steps
+   down in both. */
+.sym-text.device-no.wide { font-size: 5.5px; font-weight: 600; }
 
 .busbar-bar {
   width: 100%;

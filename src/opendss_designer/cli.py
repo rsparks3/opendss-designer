@@ -53,6 +53,26 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _report_frontend_build() -> None:
+    """Say which frontend build is being served, and when it was made.
+
+    An editable install serves Python straight from the working tree but the
+    browser bundle only changes when someone runs scripts/build_frontend.py --
+    so a stale bundle looks exactly like a change that did not work. Naming it
+    here makes that answerable from the terminal.
+    """
+    from .server import STATIC_DIR
+
+    index = STATIC_DIR / "index.html"
+    if not index.exists():
+        print("  frontend: not built (run python scripts/build_frontend.py)")
+        return
+    built = time.strftime("%Y-%m-%d %H:%M", time.localtime(index.stat().st_mtime))
+    bundles = sorted((STATIC_DIR / "assets").glob("index-*.js"))
+    name = bundles[0].name if bundles else "?"
+    print(f"  frontend build {name}  ({built})")
+
+
 def main() -> None:
     args = build_parser().parse_args()
 
@@ -95,6 +115,7 @@ def main() -> None:
 
     url = f"http://{'127.0.0.1' if host in ('0.0.0.0', '::') else host}:{port}"
     print(f"OpenDSS Designer running at {url}  (Ctrl+C to stop)")
+    _report_frontend_build()
 
     # A server install has no browser to open, and opening one is a hang risk.
     headless = args.no_browser or deployment
