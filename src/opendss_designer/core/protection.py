@@ -21,10 +21,10 @@ from .engine import (
     _write_aux_files,
     dss_guard,
     on_engine_thread,
+    quiet_for_fault_study,
 )
 from .model import Circuit, Issue
 from .validate import limit_issues
-
 
 _BUILTIN_CACHE: dict[str, list[list[float]]] | None = None
 
@@ -492,10 +492,10 @@ def tcc_study(circuit: Circuit) -> dict[str, Any]:
         if built:
             devices = _read_devices(compiled.element_map)
             try:
-                # Storage elements crash faultstudy mode (see engine.fault_study).
-                for full_name in compiled.element_map:
-                    if full_name.startswith("storage."):
-                        dss.Text.Command(f"disable {full_name}")
+                # Curves are read above, so the controls have served their
+                # purpose here; see engine.quiet_for_fault_study for why they
+                # do not go into the study itself.
+                quiet_for_fault_study(compiled.element_map)
                 dss.Text.Command("set mode=faultstudy")
                 dss.Text.Command("solve")
                 converged = True

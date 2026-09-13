@@ -691,6 +691,30 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
     }
 
 
+# A fault study is a Thevenin impedance per bus: nothing here operates, so
+# nothing that operates belongs in it. Storage is a known crasher (an access
+# violation in DSS-Extensions 0.9.4) and its inverter contributes nothing to
+# fault current anyway; the control objects are dropped for the same reason,
+# after a Linux build aborted the whole process partway through a study of a
+# feeder carrying a regulator and three protective devices.
+_FAULT_STUDY_MUTES = ("storage.", "regcontrol.", "fuse.", "recloser.", "relay.")
+
+
+def quiet_for_fault_study(element_map: dict[str, str]) -> None:
+    """Disable everything that has no business in a fault study."""
+    for full_name in element_map:
+        if full_name.startswith(_FAULT_STUDY_MUTES):
+            dss.Text.Command(f"disable {full_name}")
+    # Controls share a name with the switch or transformer they operate, so
+    # they are not in element_map under their own class; name them directly.
+    for cls, names in (("regcontrol", dss.RegControls.AllNames()),
+                       ("fuse", dss.Fuses.AllNames()),
+                       ("recloser", dss.Reclosers.AllNames()),
+                       ("relay", dss.Relays.AllNames())):
+        for name in names:
+            dss.Text.Command(f"disable {cls}.{name}")
+
+
 @on_engine_thread
 def fault_study(circuit: Circuit) -> dict[str, Any]:
     """Short-circuit study (`solve mode=faultstudy`): per-bus Thevenin
@@ -709,12 +733,7 @@ def fault_study(circuit: Circuit) -> dict[str, Any]:
         built = _run_commands(compiled.commands, compiled.element_map, issues)
         if built:
             try:
-                # Storage elements crash faultstudy mode with an access
-                # violation (DSS-Extensions 0.9.4 bug). Inverter-based storage
-                # contributes negligible fault current, so drop them here.
-                for full_name in compiled.element_map:
-                    if full_name.startswith("storage."):
-                        dss.Text.Command(f"disable {full_name}")
+                quiet_for_fault_study(compiled.element_map)
                 dss.Text.Command("set mode=faultstudy")
                 dss.Text.Command("solve")
                 converged = True

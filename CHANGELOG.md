@@ -24,6 +24,11 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Fault studies no longer carry the control objects into the study.** A fault
+  study is a Thévenin impedance per bus, where nothing operates — storage was
+  already dropped for crashing it, and regulators, fuses, reclosers and relays
+  now are too, after a Linux build aborted partway through a study of a feeder
+  carrying them. The answers are unchanged.
 - **A pair past the end of its curves is no longer graded.** Beyond the last
   published point every curve runs flat, so two very different devices appeared
   to operate at the same instant and any pair out there looked like a defect.

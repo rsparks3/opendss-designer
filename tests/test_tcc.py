@@ -2,13 +2,12 @@
 import json
 
 import pytest
+from test_protection import _feeder
 
 from opendss_designer.core import protection
 from opendss_designer.core.compiler import compile_circuit
 from opendss_designer.core.importer import import_dss
 from opendss_designer.core.model import Circuit
-
-from test_protection import _feeder
 
 FIXTURE = "tests/fixtures/full-circuit.oneline.json"
 
@@ -388,3 +387,24 @@ def test_curves_a_dss_file_defines_are_imported():
     assert circuit.tccCurves["acme_k"].multiples == [1.5, 2.0, 5.0, 20.0]
     # The ten the engine ships are not dragged in as if the file defined them.
     assert "tlink" not in circuit.tccCurves
+
+
+def test_controls_take_no_part_in_a_fault_study():
+    """A fault study is a Thevenin impedance per bus; nothing operates in it.
+    Leaving the control objects in aborted the process on a Linux build, and
+    they cannot affect the answer, so the study runs without them."""
+    import opendssdirect as dss
+
+    with open(FIXTURE, encoding="utf-8") as fh:
+        circuit = Circuit.model_validate(json.load(fh))
+    result = protection.tcc_study(circuit)
+    assert result["converged"]
+    # The curves were read first, so nothing is lost by muting the controls.
+    assert {d["kind"] for d in result["devices"]} == {"fuse", "recloser", "relay"}
+
+    for full in ("fuse.fu1", "recloser.rec1", "relay.rly1", "regcontrol.reg1"):
+        dss.Circuit.SetActiveElement(full)
+        assert not dss.CktElement.Enabled(), f"{full} was live during the study"
+    # The switch each one operates still carries current, as it must.
+    dss.Circuit.SetActiveElement("line.fu1")
+    assert dss.CktElement.Enabled()
