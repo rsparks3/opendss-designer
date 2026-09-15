@@ -1,4 +1,5 @@
 import { fmtSimHour } from '../lib/axis'
+import { nodeLetter } from '../lib/phasing'
 import { useCircuitStore } from '../store/circuitStore'
 import { activeResult, activeStale, useResultsStore } from '../store/resultsStore'
 import type { BusResult, ElementResult } from '../types/circuit'
@@ -68,7 +69,7 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
             <tbody>
               {data!.vmagPu.map((v, i) => (
                 <tr key={i}>
-                  <td>ph {data!.nodes[i] ?? i + 1}</td>
+                  <td>ph {nodeLetter(data!.nodes[i] ?? i + 1)}</td>
                   <td>{v.toFixed(4)} pu</td>
                   <td>{(v * data!.kvBase).toFixed(3)} kV</td>
                   <td>{data!.vangDeg?.[i] != null ? `${data!.vangDeg[i].toFixed(1)}°` : ''}</td>
@@ -130,7 +131,7 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
             <tbody>
               {element[1].currents.map((a, i) => (
                 <tr key={i}>
-                  <td>I ph {i + 1}</td>
+                  <td>I ph {nodeLetter(element[1].phaseNodes?.[i] ?? i + 1)}</td>
                   <td colSpan={3}>{a.toFixed(1)} A</td>
                 </tr>
               ))}

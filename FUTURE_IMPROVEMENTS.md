@@ -140,8 +140,11 @@ All frontend-only; the M1 vitest harness covers the store changes.
   so a fuse in a pinned lateral silently islanded everything past it. Validation walks
   the phases out from the source and flags an element asking for one its bus never
   receives; lines not carrying all three are labelled on the one-line
-- **Per-phase display** — per-phase voltage readouts (phase labels on lines landed
-  with pinning; the remaining piece is the tooltip/overlay side)
+- ~~**Per-phase display**~~ — the tooltip names phases A/B/C rather than node
+  positions, element currents are tagged with the phase they flow on (the engine
+  now reports each conductor's node), and the voltage badge names the lowest
+  phase on a lateral or on a three-phase bus whose phases disagree by more than
+  0.002 pu; a balanced bus keeps its plain badge
 
 ## M7 — Platform & polish
 

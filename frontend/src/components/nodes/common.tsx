@@ -2,6 +2,7 @@ import { Handle, Position, useReactFlow, useUpdateNodeInternals, type HandleProp
 import { useEffect, type ReactNode } from 'react'
 import { useAltHeld } from '../../lib/altKey'
 import { loadingColor } from '../../lib/colorScale'
+import { weakestPhase } from '../../lib/phasing'
 import { edgesAtTerminal, useCircuitStore, type EdgeEnd } from '../../store/circuitStore'
 import { beginGrab, useGrabStore } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
@@ -161,13 +162,19 @@ export function VoltageBadge({ nodeId }: { nodeId: string }) {
   const bus = result.nodeBuses[nodeId]?.[0]
   const data = bus ? result.buses[bus] : null
   if (!data || data.vminPu == null) return null
-  return <VBadgeInner v={data.vminPu} />
+  return <VBadgeInner v={data.vminPu} phase={weakestPhase(data)} />
 }
 
-function VBadgeInner({ v }: { v: number }) {
+/** The badge reads the lowest phase; when that is worth knowing -- a lateral,
+ *  or an unbalanced three-phase bus -- it says which phase that is. */
+function VBadgeInner({ v, phase }: { v: number; phase: string | null }) {
   // lazy import to avoid circular: color logic inline
   const color = v < 0.5 ? '#546e7a' : v < 0.95 ? '#0277bd' : v > 1.05 ? '#d32f2f' : '#2e7d32'
-  return <Badge color={color}>{v.toFixed(3)} pu</Badge>
+  return (
+    <Badge color={color}>
+      {v.toFixed(3)} pu{phase && <span className="badge-phase">{phase}</span>}
+    </Badge>
+  )
 }
 
 /** 3-phase prospective fault current at the node's bus ('fault' overlay). */

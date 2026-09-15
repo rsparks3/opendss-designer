@@ -129,6 +129,11 @@ def test_a_pinned_lateral_is_energized_on_its_own_phase(pin, node):
     tap = res["buses"]["bus_tap"]
     assert tap["nodes"] == [node], "the lateral bus should carry one node only"
     assert 0.9 < tap["vmagPu"][0] < 1.05, "and it should be energized"
+    # The readout has to name the phase too, or a current on B reads as
+    # "phase 1" in the tooltip.
+    load = next(el for el in res["elements"].values() if el["id"] == "ld")
+    assert load["phaseNodes"] == [node]
+    assert len(load["currents"]) == 1
 
 
 def test_a_fuse_in_a_pinned_lateral_keeps_the_pin():

@@ -95,6 +95,9 @@ export interface BusResult {
 export interface ElementResult {
   id: string
   currents: number[]
+  /** Node number (1=A, 2=B, 3=C) each entry of `currents` flows on. Absent in
+   *  time-series slices, which record no currents. */
+  phaseNodes?: number[]
   kw: number
   kvar: number
   normAmps: number | null

@@ -69,3 +69,34 @@ test('a pin the feeder cannot supply is reported', async ({ page }) => {
     page.locator('.problems-list li', { hasText: "'LOAD1' connects to phase C" }).first(),
   ).toBeVisible()
 })
+
+// Once a lateral is on B, the results have to say so too: a badge reading
+// "0.98 pu" on a single-phase bus is ambiguous until it names the phase.
+test('results name the phase a lateral is on', async ({ page }) => {
+  await openWithFixture(page)
+
+  await page.evaluate(() => {
+    const store = (window as any).opendssDesigner.circuit.getState()
+    const line = store.edges.find((e: any) => e.data?.params?.name === 'LN1')
+    const load = store.nodes.find((n: any) => n.data?.params?.name === 'LOAD1')
+    store.updateEdgeParams(line.id, { phases: 1, phasing: 'B' })
+    store.updateNodeParams(load.id, { phases: 1, phasing: 'B', kv: 7.2 })
+  })
+  await expect(page.locator('.edge-phase')).toHaveText('B')
+
+  const solve = page.getByRole('button', { name: /Solve/ })
+  await expect(solve).toBeEnabled()
+  await solve.click()
+  const badge = page.locator('.result-badge .badge-phase')
+  await expect(badge.first()).toBeVisible({ timeout: 20_000 })
+  // The lateral's buses are on B; the balanced three-phase trunk says nothing.
+  await expect(badge.first()).toHaveText('B')
+
+  const load = page.locator('.react-flow__node', { hasText: 'LOAD1' })
+  await load.hover()
+  const tooltip = page.locator('.result-tooltip')
+  await expect(tooltip).toBeVisible()
+  await expect(tooltip).toContainText('ph B')
+  await expect(tooltip).toContainText('I ph B')
+  await expect(tooltip).not.toContainText('ph 1')
+})

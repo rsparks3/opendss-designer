@@ -290,8 +290,12 @@ def _extract_elements(element_map: dict[str, str]) -> dict[str, Any]:
         currents = dss.CktElement.CurrentsMagAng()
         powers = dss.CktElement.Powers()
         ncond = dss.CktElement.NumConductors()
-        # Terminal 1 quantities.
+        # Terminal 1 quantities. NodeOrder lists every conductor of every
+        # terminal; the phase conductors of terminal 1 come first, so a
+        # current can be named after the phase it flows on (a load pinned to
+        # B reports [2], not a bare "phase 1").
         t1_amps = currents[0 : 2 * nphases : 2]
+        phase_nodes = list(dss.CktElement.NodeOrder())[:nphases]
         kw = sum(powers[0 : 2 * ncond : 2])
         kvar = sum(powers[1 : 2 * ncond : 2])
         norm_amps = dss.CktElement.NormalAmps()
@@ -309,6 +313,7 @@ def _extract_elements(element_map: dict[str, str]) -> dict[str, Any]:
         elements[full_name] = {
             "id": diagram_id,
             "currents": [round(a, 2) for a in t1_amps],
+            "phaseNodes": [int(n) for n in phase_nodes],
             "kw": round(kw, 2),
             "kvar": round(kvar, 2),
             "normAmps": norm_amps or None,

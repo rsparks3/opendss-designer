@@ -40,15 +40,18 @@ After a solve, results land directly on the diagram. The **Overlay** buttons
 choose what's shown:
 
 - **Voltages** — per-unit voltage badges at every bus (undervoltage < 0.95 pu
-  blue, overvoltage > 1.05 pu red)
+  blue, overvoltage > 1.05 pu red). The badge reads the lowest phase; on a
+  single-phase lateral or an unbalanced three-phase bus it also names that
+  phase, so `0.962 pu B` is the B-phase voltage and a balanced bus stays
+  unlabelled
 - **Loading** — pie charts and percentages on lines, transformers, and
   breakers, colored by severity; overloads (≥ 100 %) in red
 - **Power** — kW/kvar labels on series elements
 - **Fault** — see below
 
-Hovering any element shows a detail tooltip: per-phase voltage magnitude and
-angle at each connected bus, per-phase currents, power, and loading against
-the rating. Results dim when the circuit has changed since they were computed
+Hovering any element shows a detail tooltip: voltage magnitude and angle for
+each phase (A, B, C) at each connected bus, the current on each phase the
+element actually connects to, power, and loading against the rating. Results dim when the circuit has changed since they were computed
 (and note *stale — re-solve* in the status bar).
 
 ## Fault study

@@ -259,6 +259,13 @@ html, body, #root { margin: 0; height: 100%; }
   pointer-events: none;
 }
 .busbar-node .result-badge { margin-bottom: 8px; }
+.result-badge .badge-phase {
+  margin-left: 4px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.28);
+  font-weight: 700;
+}
 
 .sym-text {
   font: 700 16px system-ui, sans-serif;
