@@ -109,7 +109,11 @@ All frontend-only; the M1 vitest harness covers the store changes.
   emitted under one name; setpoint/band/PT ratio/CT primary/LDC R and X in the
   properties panel, PT ratio derived from the rated kV when left blank, and a
   controlled transformer imports back as a regulator
-- **3-winding transformers** — third handle; the per-winding editor already generalizes
+- ~~**3-winding transformers**~~ — a third entry in `windings` grows terminal `t3`
+  (leaving the symbol to the right, name moved to the left), X(H-T) and X(L-T)
+  appear in the properties panel only for a three-winding unit, connectivity and
+  validation take the terminal list from the winding count, and the importer reads
+  three-winding units back instead of reporting them as unsupported
 - ~~**Fuses, reclosers, relays**~~ — each is a switch plus its control, kept as one
   element in the editor; curve choices are limited to the ten the engine ships, since
   naming any other stops the solve; a relay with no ground curve gets no ground unit;

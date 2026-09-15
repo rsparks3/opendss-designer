@@ -72,14 +72,23 @@ exports.
 
 ## Transformer — ++t++
 
-Two-winding, with a per-winding editor:
+Two windings by default, three when a tertiary is added, with a per-winding
+editor:
 
 | Parameter | Meaning |
 |---|---|
 | Phases | 1 or 3 |
-| X(H-L) (%) | Leakage reactance between windings |
+| X(H-L) (%) | Leakage reactance between the primary and secondary |
+| X(H-T), X(L-T) (%) | The other two leakage reactances of a three-winding unit; shown only once it has a tertiary, and taken equal to X(H-L) when left blank |
 | Load loss (%) | Winding losses at rated load |
 | Per winding: kV, kVA, wye/delta | Ratings and connection for each side |
+
+**Add tertiary winding** in the properties panel gives the symbol a third
+circle and a third terminal, `t3`, leaving the symbol to the right; the name
+moves to the left to stay clear of it. Like the secondary, the tertiary is a
+new voltage level whose phases start at A. Removing the tertiary removes the
+terminal, and any wire on it. Three-winding transformers in a `.dss` file
+import with all three windings and both extra reactances.
 
 ## Regulator — ++v++
 

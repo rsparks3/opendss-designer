@@ -3,6 +3,8 @@ import { detachesPreset, presetPatch, useLineCodeStore } from '../lib/lineCodes'
 import { useCircuitStore, type AppEdge, type AppNode } from '../store/circuitStore'
 import type { Params, Winding } from '../types/circuit'
 
+const WINDING_NAMES = ['Primary (t1)', 'Secondary (t2)', 'Tertiary (t3)']
+
 function WindingEditor({
   windings,
   onChange,
@@ -12,11 +14,17 @@ function WindingEditor({
 }) {
   const patch = (i: number, p: Partial<Winding>) =>
     onChange(windings.map((w, j) => (j === i ? { ...w, ...p } : w)))
+  // A third winding starts as a wye at a common tertiary voltage, rated like
+  // the secondary; the engineer edits from there. Removing it also removes
+  // terminal t3 and whatever was wired to it (see setTransformerWindings).
+  const addTertiary = () =>
+    onChange([...windings, { kv: 4.16, kva: windings[1]?.kva ?? windings[0]?.kva ?? 1000, conn: 'wye' }])
+  const removeTertiary = () => onChange(windings.slice(0, 2))
   return (
     <>
       {windings.map((w, i) => (
         <fieldset key={i} className="winding">
-          <legend>{i === 0 ? 'Primary (t1)' : 'Secondary (t2)'}</legend>
+          <legend>{WINDING_NAMES[i] ?? `Winding ${i + 1}`}</legend>
           <label>
             kV (LL)
             <FieldInput
@@ -42,6 +50,16 @@ function WindingEditor({
           </label>
         </fieldset>
       ))}
+      {windings.length === 2 && (
+        <button type="button" className="winding-toggle" onClick={addTertiary}>
+          Add tertiary winding
+        </button>
+      )}
+      {windings.length >= 3 && (
+        <button type="button" className="winding-toggle" onClick={removeTertiary}>
+          Remove tertiary winding
+        </button>
+      )}
     </>
   )
 }
@@ -51,6 +69,7 @@ export function PropertiesPanel() {
   const edges = useCircuitStore((s) => s.edges)
   const lineCodePresets = useLineCodeStore((s) => s.presets)
   const updateNodeParams = useCircuitStore((s) => s.updateNodeParams)
+  const setTransformerWindings = useCircuitStore((s) => s.setTransformerWindings)
   const updateEdgeParams = useCircuitStore((s) => s.updateEdgeParams)
 
   const selNode: AppNode | undefined = nodes.find((n) => n.selected)
@@ -96,7 +115,8 @@ export function PropertiesPanel() {
     )
   }
 
-  const fields = FIELDS[kind] ?? []
+  const current = params
+  const fields = (FIELDS[kind] ?? []).filter((f) => !f.showIf || f.showIf(current))
   const title = kind === 'line' ? 'Line' : kind.charAt(0).toUpperCase() + kind.slice(1)
   return (
     <div className="properties">
@@ -137,10 +157,10 @@ export function PropertiesPanel() {
             <FieldInput field={f} value={params![f.key]} onCommit={(v) => commit!({ [f.key]: v })} />
           </label>
         ))}
-        {kind === 'transformer' && (
+        {kind === 'transformer' && selNode && (
           <WindingEditor
             windings={(params.windings as Winding[]) ?? []}
-            onChange={(w) => commit!({ windings: w })}
+            onChange={(w) => setTransformerWindings(selNode.id, w)}
           />
         )}
       </div>

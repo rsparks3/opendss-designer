@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from 'react'
 import { useAltHeld } from '../../lib/altKey'
 import { loadingColor } from '../../lib/colorScale'
 import { weakestPhase } from '../../lib/phasing'
+import { rotatePoint } from '../../lib/rotatePoint'
 import { edgesAtTerminal, useCircuitStore, type EdgeEnd } from '../../store/circuitStore'
 import { beginGrab, useGrabStore } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
@@ -93,6 +94,25 @@ export function useSymbolRotation(id: string, params: Params): number {
   return rotation
 }
 
+/** Where to put a terminal drawn at (x, y) on the unrotated w×h symbol: the
+ *  side it lands on after rotation, and the inline offset along that side.
+ *  The default handle sits at the middle of its side; a symbol with a
+ *  terminal anywhere else (a three-winding transformer's tertiary) needs the
+ *  offset spelled out, and it has to turn with the symbol. */
+export function terminalPlacement(
+  base: Position,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  rotation: number,
+): { position: Position; style: React.CSSProperties } {
+  const position = rotatePosition(base, rotation)
+  const p = rotatePoint(x, y, w, h, rotation)
+  const along = position === Position.Top || position === Position.Bottom
+  return { position, style: along ? { left: p.x } : { top: p.y } }
+}
+
 /** Outer container size for a w×h symbol at the given rotation. */
 export function rotatedBox(w: number, h: number, rotation: number): { w: number; h: number } {
   return rotation % 180 ? { w: h, h: w } : { w, h }
@@ -140,8 +160,17 @@ export function useNodeIssueClass(id: string): string {
  * under it: series devices (breakers, transformers) have a line leaving the
  * bottom, and a label there always sat on top of that line.
  */
-export function NodeLabel({ children, beside = false }: { children: ReactNode; beside?: boolean }) {
-  return <div className={`node-label${beside ? ' beside' : ''}`}>{children}</div>
+export function NodeLabel({
+  children,
+  beside = false,
+}: {
+  children: ReactNode
+  /** `true` puts the label to the right; 'left' to the left, for a symbol
+   *  whose right side is taken by a terminal. */
+  beside?: boolean | 'left'
+}) {
+  const cls = beside === 'left' ? ' beside left' : beside ? ' beside' : ''
+  return <div className={`node-label${cls}`}>{children}</div>
 }
 
 export function Badge({ color, children }: { color: string; children: ReactNode }) {

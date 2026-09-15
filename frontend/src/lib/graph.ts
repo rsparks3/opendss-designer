@@ -118,8 +118,9 @@ export function computeGraph(
     for (const n of nodes) {
       if (n.type !== 'transformer' && n.type !== 'breaker') continue
       const buses = result.nodeBuses[n.id] ?? []
-      if (buses[0] && buses[1] && buses[0] !== buses[1]) {
-        pairs.push({ a: buses[0], b: buses[1], dashed: true })
+      // Every winding past the primary is its own step (a tertiary too).
+      for (const b of buses.slice(1)) {
+        if (buses[0] && b && buses[0] !== b) pairs.push({ a: buses[0], b, dashed: true })
       }
     }
     for (const p of pairs) {

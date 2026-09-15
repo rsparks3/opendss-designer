@@ -40,3 +40,25 @@ describe('windingPatch', () => {
     expect(windingPatch(params, 'xhl', 8.5)).toEqual({ xhl: 8.5 })
   })
 })
+
+describe('windingPatch', () => {
+  const params = {
+    name: 'T1',
+    windings: [
+      { kv: 115, kva: 10000, conn: 'delta' },
+      { kv: 12.47, kva: 10000, conn: 'wye' },
+    ],
+  }
+  it('edits one winding and leaves the rest alone', () => {
+    const patch = windingPatch(params, 'w1.kv', 13.2) as { windings: { kv: number }[] }
+    expect(patch.windings.map((w) => w.kv)).toEqual([115, 13.2])
+  })
+  it('does nothing for a winding the transformer does not have', () => {
+    // The spreadsheet shows a tertiary column for every transformer; a
+    // two-winding unit must not grow a half-made third winding from it.
+    expect(windingPatch(params, 'w2.kv', 4.16)).toEqual({})
+  })
+  it('passes plain keys through', () => {
+    expect(windingPatch(params, 'xhl', 9)).toEqual({ xhl: 9 })
+  })
+})

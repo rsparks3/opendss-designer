@@ -13,6 +13,7 @@ import { defaultLineParams, defaultParams, nextName, NODE_SIZE, SYMBOL_PITCH } f
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
   TccCurveJSON,
+  Winding,
 } from '../types/circuit'
 import { SCHEMA_VERSION } from '../lib/schema'
 import { useResultsStore } from './resultsStore'
@@ -49,6 +50,10 @@ export interface CircuitState {
   addNodeAt: (type: NodeType, pos: XY) => void
   addBusbarAt: (pos: XY, width: number) => void
   updateNodeParams: (id: string, patch: Params) => void
+  /** Replace a transformer's winding list. Going from three windings to two
+   *  removes terminal t3, so any wire on it goes with it -- an edge on a
+   *  handle that no longer exists would render nowhere and still compile. */
+  setTransformerWindings: (id: string, windings: Winding[]) => void
   updateEdgeParams: (id: string, patch: Params) => void
   /** Move one end of an existing edge to another terminal (the grab
    *  gesture); the edge keeps its id, kind and parameters. */
@@ -465,6 +470,20 @@ export const useCircuitStore = create<CircuitState>()(
           nodes: get().nodes.map((n) =>
             n.id === id ? { ...n, data: { params: { ...n.data.params, ...patch } } } : n,
           ),
+          dirty: true,
+        })
+        markStale()
+      },
+      setTransformerWindings: (id, windings) => {
+        const onT3 = (e: AppEdge) =>
+          (e.source === id && e.sourceHandle === 't3') ||
+          (e.target === id && e.targetHandle === 't3')
+        const edges = get().edges
+        set({
+          nodes: get().nodes.map((n) =>
+            n.id === id ? { ...n, data: { params: { ...n.data.params, windings } } } : n,
+          ),
+          edges: windings.length < 3 && edges.some(onT3) ? edges.filter((e) => !onT3(e)) : edges,
           dirty: true,
         })
         markStale()

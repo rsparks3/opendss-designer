@@ -124,3 +124,22 @@ NODE_TERMINALS: dict[str, list[str]] = {
     "pvsystem": ["t1"],
     "storage": ["t1"],
 }
+
+
+def winding_count(params: dict) -> int:
+    """How many windings a transformer's params describe (2 unless a third
+    is listed). Anything that is not a list of windings counts as two."""
+    windings = params.get("windings")
+    if not isinstance(windings, list):
+        return 2
+    return 3 if len(windings) >= 3 else 2
+
+
+def node_terminals(node: CircuitNode) -> list[str]:
+    """The handles a node exposes. Fixed per type, except a transformer,
+    which grows a third terminal (t3) for a tertiary winding. Busbars are
+    dynamic and return an empty list, as in NODE_TERMINALS."""
+    base = NODE_TERMINALS.get(node.type, [])
+    if node.type == "transformer" and winding_count(node.params) == 3:
+        return [*base, "t3"]
+    return base

@@ -16,7 +16,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .model import NODE_TERMINALS, Circuit, Issue
+from .model import Circuit, Issue, node_terminals
 
 BUSBAR_CANON_HANDLE = "__bus__"
 
@@ -79,7 +79,7 @@ def synthesize(circuit: Circuit) -> ConnectivityResult:
         if n.type == "busbar":
             dsu.add(terminal_key(n.id, BUSBAR_CANON_HANDLE))
         else:
-            for h in NODE_TERMINALS.get(n.type, []):
+            for h in node_terminals(n):
                 dsu.add(terminal_key(n.id, h))
 
     def endpoint(node_id: str, handle: str | None, default: str = "t1") -> str | None:
@@ -181,7 +181,7 @@ def synthesize(circuit: Circuit) -> ConnectivityResult:
             res.node_buses[n.id] = [res.terminal_bus[terminal_key(n.id, BUSBAR_CANON_HANDLE)]]
         else:
             res.node_buses[n.id] = [res.terminal_bus[terminal_key(n.id, h)]
-                                    for h in NODE_TERMINALS.get(n.type, [])]
+                                    for h in node_terminals(n)]
 
     # Per-line-edge buses.
     for eid, (a, b) in line_endpoints.items():

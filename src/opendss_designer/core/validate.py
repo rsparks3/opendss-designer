@@ -5,7 +5,7 @@ from .. import context
 from ..settings import Settings
 from .compiler import compile_circuit
 from .connectivity import synthesize, terminal_key
-from .model import NODE_TERMINALS, Circuit, Issue
+from .model import Circuit, Issue, node_terminals
 from .phasing import default_phasing, parse_phasing, phase_count, phase_set
 
 # 2-terminal devices that carry power between their two buses. Protective
@@ -56,11 +56,14 @@ def _phase_issues(circuit: Circuit, conn, sources: list) -> list[Issue]:
             links.append((buses[0], buses[1], carried))
             links.append((buses[1], buses[0], carried))
         else:
-            # A transformer re-establishes phases on its low side, and a
-            # 2-winding one is a two-way path like any other series element.
+            # A transformer re-establishes phases on every winding it feeds,
+            # and power can enter it by any winding, so each pair of its
+            # buses is a two-way path -- three pairs for a three-winding unit.
             fresh = frozenset(default_phasing(phase_count(n.params)))
-            links.append((buses[0], buses[1], fresh))
-            links.append((buses[1], buses[0], fresh))
+            for i, a in enumerate(buses):
+                for b in buses[i + 1:]:
+                    links.append((a, b, fresh))
+                    links.append((b, a, fresh))
 
     available: dict[str, frozenset[str]] = {}
     for s in sources:
@@ -239,7 +242,7 @@ def validate(circuit: Circuit) -> list[Issue]:
     for n in circuit.nodes:
         if n.type == "busbar":
             continue
-        for h in NODE_TERMINALS.get(n.type, []):
+        for h in node_terminals(n):
             if terminal_key(n.id, h) not in connected:
                 label = n.params.get("name") or n.id
                 issues.append(Issue(
@@ -264,7 +267,8 @@ def validate(circuit: Circuit) -> list[Issue]:
             if n.type in SERIES_TYPES and len(buses) >= 2:
                 if n.type in SWITCH_TYPES and not n.params.get("closed", True):
                     continue
-                link(buses[0], buses[1])
+                for b in buses[1:]:  # a tertiary winding is a third bus
+                    link(buses[0], b)
 
         reachable: set[str] = set()
         stack = [conn.node_buses[s.id][0] for s in sources if s.id in conn.node_buses]

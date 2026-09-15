@@ -18,6 +18,16 @@ export interface Field {
    *  whether "none" (no unit at all) is a real answer. */
   curveKind?: 'fuse' | 'recloser' | 'relay'
   allowNone?: boolean
+  /** Hide the field in the properties panel unless this says otherwise --
+   *  a three-winding transformer's extra reactances mean nothing to a
+   *  two-winding one. The spreadsheet view shows every column regardless. */
+  showIf?: (params: Params) => boolean
+}
+
+/** Windings a transformer's params describe: 2 unless a third is listed. */
+export function windingCount(params: Params | undefined): number {
+  const windings = params?.windings
+  return Array.isArray(windings) && windings.length >= 3 ? 3 : 2
 }
 
 export const FIELDS: Record<string, Field[]> = {
@@ -71,6 +81,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'xhl', label: 'Reactance X(H-L)', kind: 'number', unit: '%' },
+    { key: 'xht', label: 'Reactance X(H-T)', kind: 'number', unit: '%', showIf: (p) => windingCount(p) === 3 },
+    { key: 'xlt', label: 'Reactance X(L-T)', kind: 'number', unit: '%', showIf: (p) => windingCount(p) === 3 },
     { key: 'pctloadloss', label: 'Load loss', kind: 'number', unit: '%' },
   ],
   regulator: [
@@ -183,7 +195,7 @@ export const FIELDS: Record<string, Field[]> = {
 
 /** Flattened winding columns for the transformer spreadsheet view.
  *  Keys look like "w0.kv" and are resolved by windingGet/windingSet. */
-export const TRANSFORMER_WINDING_FIELDS: Field[] = [0, 1].flatMap((i) => [
+export const TRANSFORMER_WINDING_FIELDS: Field[] = [0, 1, 2].flatMap((i) => [
   { key: `w${i}.kv`, label: `W${i + 1} kV`, kind: 'number' as const },
   { key: `w${i}.kva`, label: `W${i + 1} kVA`, kind: 'number' as const },
   { key: `w${i}.conn`, label: `W${i + 1} conn`, kind: 'select' as const, options: ['wye', 'delta'] },
@@ -200,9 +212,12 @@ export function windingPatch(params: Params, key: string, value: unknown): Param
   const m = key.match(/^w(\d+)\.(\w+)$/)
   if (!m) return { [key]: value }
   const i = Number(m[1])
-  const windings = ((params.windings as Winding[]) ?? []).map((w, j) =>
-    j === i ? { ...w, [m[2]]: value } : w,
-  )
+  const current = (params.windings as Winding[]) ?? []
+  // A cell for a winding the transformer does not have (the tertiary column
+  // of a two-winding unit) changes nothing; adding windings is the
+  // properties panel's job, where the new terminal is explained.
+  if (i >= current.length) return {}
+  const windings = current.map((w, j) => (j === i ? { ...w, [m[2]]: value } : w))
   return { windings }
 }
 

@@ -302,10 +302,16 @@ def compile_circuit(circuit: Circuit,
         loadloss = _num(p, "pctloadloss", 0.5)
         for w in windings:
             kv_bases.add(float(w.get("kv", 12.47)))
+        # A third winding brings two more leakage reactances. Left blank they
+        # take the H-L value, which keeps the unit symmetric rather than
+        # falling back on the engine's own (much larger) defaults.
+        tertiary = ""
+        if len(windings) >= 3:
+            tertiary = f" xht={_num(p, 'xht', xhl):g} xlt={_num(p, 'xlt', xhl):g}"
         cmds.append(
             f"new transformer.{name} phases={phases} windings={len(windings)} "
             f"buses=({bus_list}) conns=({conns}) kvs=({kvs}) kvas=({kvas}) "
-            f"xhl={xhl:g} %loadloss={loadloss:g}")
+            f"xhl={xhl:g} %loadloss={loadloss:g}{tertiary}")
 
     # Regulators: an equal-ratio 2-winding transformer plus the RegControl that
     # moves its taps. They share one name — OpenDSS keeps classes in separate

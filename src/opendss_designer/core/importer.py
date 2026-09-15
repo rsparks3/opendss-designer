@@ -477,14 +477,14 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         }
         i = dss.RegControls.Next()
 
-    # Transformers (2-winding supported; others reported)
+    # Transformers (two or three windings; anything else reported)
     i = dss.Transformers.First()
     while i:
         name = dss.Transformers.Name()
         nwdg = dss.Transformers.NumWindings()
         dss.Circuit.SetActiveElement(f"transformer.{name}")
         raw_buses = dss.CktElement.BusNames()
-        if nwdg != 2:
+        if nwdg not in (2, 3):
             unsupported.append(f"Transformer.{name} ({nwdg} windings)")
             i = dss.Transformers.Next()
             continue
@@ -494,19 +494,28 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             windings.append({"kv": dss.Transformers.kV(),
                              "kva": dss.Transformers.kVA(),
                              "conn": "delta" if dss.Transformers.IsDelta() else "wye"})
-        bus_nodes = [_node_suffix(b) for b in raw_buses[:2]]
+        bus_nodes = [_node_suffix(b) for b in raw_buses[:nwdg]]
         nid = node_id()
         params: dict[str, Any] = {
             "name": name, "phases": dss.CktElement.NumPhases(),
             "windings": windings, "xhl": dss.Transformers.Xhl()}
+        if nwdg == 3:
+            params["xht"] = dss.Transformers.Xht()
+            params["xlt"] = dss.Transformers.Xlt()
         reg = reg_controls.get(name.lower())
+        if reg is not None and nwdg != 2:
+            # The regulator element is a two-winding unit by construction.
+            warnings.append(f"RegControl on three-winding Transformer.{name} "
+                            "was dropped; it is imported as a plain transformer.")
+            reg = None
         # Same rule as _record_phasing, spelled out because the raw fallback
         # here is a per-winding list rather than one string: a regulator
         # carries one phasing through both terminals, so they must agree,
         # while a transformer's pin names its primary only and the secondary
         # must therefore be bare.
         pin = phasing_from_suffix(bus_nodes[0])
-        agrees = bus_nodes[0] == bus_nodes[1] if reg is not None else not bus_nodes[1]
+        agrees = (bus_nodes[0] == bus_nodes[1] if reg is not None
+                  else not any(bus_nodes[1:]))
         if pin and agrees:
             params["phasing"] = pin
         elif any(bus_nodes):
@@ -525,7 +534,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             nodes.append(CircuitNode(id=nid, type="regulator", params=params))
         else:
             nodes.append(CircuitNode(id=nid, type="transformer", params=params))
-        for term, bus in enumerate(raw_buses[:2]):
+        for term, bus in enumerate(raw_buses[:nwdg]):
             wire(nid, f"t{term + 1}", busbar_for(bus), "b0")
         i = dss.Transformers.Next()
 

@@ -205,6 +205,18 @@ html, body, #root { margin: 0; height: 100%; }
 .winding legend { font-size: 11px; color: #778; padding: 0 4px; }
 .winding label { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 12px; margin: 4px 0; }
 .winding input, .winding select { width: 110px; border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; }
+.winding-toggle {
+  margin-top: 6px;
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.winding-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ---------- canvas ---------- */
 .canvas-wrap { flex: 1; min-width: 0; }
@@ -229,6 +241,13 @@ html, body, #root { margin: 0; height: 100%; }
   margin-top: 0;
   margin-left: 6px;
   text-align: left;
+}
+.node-label.beside.left {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 6px;
+  text-align: right;
 }
 .node-label {
   position: absolute;
