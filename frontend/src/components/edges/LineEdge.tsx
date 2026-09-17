@@ -1,6 +1,6 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
-import { phaseLabel } from '../../lib/phasing'
+import { effectivePhasing, phaseColor, phaseLabel } from '../../lib/phasing'
 import type { AppEdge } from '../../store/circuitStore'
 import { useIsGrabbed } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
@@ -19,6 +19,11 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
     : null
 
   let stroke = props.selected || grabbed ? '#1976d2' : '#263238'
+  // A line colours by what it carries, which it knows on its own; the wires
+  // and busbars around it colour by what reaches them (see WireEdge).
+  if (overlay === 'phases' && !props.selected && !grabbed) {
+    stroke = phaseColor(effectivePhasing(props.data?.params))
+  }
   let resultText: string | null = null
   let loadingPct: number | null = null
   if (el && !stale) {

@@ -434,6 +434,24 @@ html, body, #root { margin: 0; height: 100%; }
   text-align: center;
 }
 .flash-toast.info { background: #2e7d32; }
+/* Key for the 'phases' overlay; sits clear of the fit-view controls. */
+.phase-legend {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: rgba(250, 250, 247, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 10;
+}
+.phase-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.phase-legend-swatch { width: 14px; height: 4px; border-radius: 2px; display: inline-block; }
 /* Right-click context menu */
 .menu-backdrop {
   position: fixed;

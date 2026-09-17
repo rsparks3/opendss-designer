@@ -17,7 +17,7 @@ from ..core import engine, importer, irradiance, linecodes, nrel, protection, sa
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
-from ..core.validate import validate
+from ..core.validate import phase_map, validate
 from ..settings import settings
 
 logger = logging.getLogger(__name__)
@@ -129,7 +129,10 @@ def tcc(circuit: Circuit) -> dict:
 
 @router.post("/validate")
 def validate_circuit(circuit: Circuit) -> dict:
-    return {"issues": [i.model_dump() for i in validate(circuit)]}
+    """Issues, plus which phases reach each element so the one-line can
+    colour by phase before anything has been solved."""
+    return {"issues": [i.model_dump() for i in validate(circuit)],
+            "phases": phase_map(circuit)}
 
 
 @router.post("/export/dss", response_class=PlainTextResponse)

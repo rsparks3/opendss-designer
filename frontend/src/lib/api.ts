@@ -1,4 +1,4 @@
-import type { CircuitJSON, FaultResult, Issue, SolveResult } from '../types/circuit'
+import type { CircuitJSON, FaultResult, Issue, PhaseMap, SolveResult } from '../types/circuit'
 import type { TccResult } from './tcc'
 
 export interface NrelMeta {
@@ -131,7 +131,7 @@ export const api = {
   tcc: (circuit: CircuitJSON) => post<TccResult>('/api/tcc', circuit),
 
   validate: (circuit: CircuitJSON) =>
-    post<{ issues: Issue[] }>('/api/validate', circuit),
+    post<{ issues: Issue[]; phases: PhaseMap }>('/api/validate', circuit),
 
   exportDss: async (circuit: CircuitJSON): Promise<string> => {
     const res = await fetch('/api/export/dss', {

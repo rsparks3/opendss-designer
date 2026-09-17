@@ -39,6 +39,7 @@ const OVERLAYS: { mode: OverlayMode; label: string }[] = [
   { mode: 'loading', label: 'Loading' },
   { mode: 'power', label: 'Power' },
   { mode: 'fault', label: 'Fault' },
+  { mode: 'phases', label: 'Phases' },
   { mode: 'off', label: 'Off' },
 ]
 
@@ -345,7 +346,13 @@ export function Toolbar() {
             key={o.mode}
             className={overlay === o.mode ? 'active' : ''}
             onClick={() => onOverlay(o.mode)}
-            title={o.mode === 'fault' ? 'Short-circuit study: prospective fault current at each bus' : undefined}
+            title={
+              o.mode === 'fault'
+                ? 'Short-circuit study: prospective fault current at each bus'
+                : o.mode === 'phases'
+                  ? 'Colour lines by the phases they carry and buses by the phases that reach them (no solve needed)'
+                  : undefined
+            }
           >
             {o.label}
           </button>

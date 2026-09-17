@@ -7,7 +7,9 @@ import {
 import { useEffect } from 'react'
 import { beginGesture, busbarHandleCount, endGesture, useCircuitStore, type AppNode } from '../../store/circuitStore'
 import { SYMBOL_PITCH } from '../../lib/defaults'
-import { FaultBadge, NodeLabel, Terminal, useNodeIssueClass, VoltageBadge } from './common'
+import { phaseColor } from '../../lib/phasing'
+import { useResultsStore } from '../../store/resultsStore'
+import { FaultBadge, NodeLabel, PhaseBadge, Terminal, useNodeIssueClass, VoltageBadge } from './common'
 
 const BAR_H = 14
 
@@ -17,6 +19,13 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
   const updateNodeInternals = useUpdateNodeInternals()
   const w = width ?? 240
   const count = busbarHandleCount(w)
+  // The bar is the bus, so in the 'phases' overlay it wears the phases that
+  // reach it. Undefined until validation has answered: plain ink meanwhile.
+  const barColor = useResultsStore((s) => {
+    if (s.overlay !== 'phases') return undefined
+    const letters = s.phases?.nodes[id]?.[0]
+    return letters === undefined ? undefined : phaseColor(letters)
+  })
 
   useEffect(() => {
     updateNodeInternals(id)
@@ -35,7 +44,7 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
           endGesture()
         }}
       />
-      <div className="busbar-bar" />
+      <div className="busbar-bar" style={barColor ? { background: barColor } : undefined} />
       {/* Two handle rows: b<i> route edges upward, c<i> route them downward,
           so elements below the bar connect from beneath instead of looping
           over the top. Electrically every handle is the same bus.
@@ -68,6 +77,7 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
       <NodeLabel>{String(data.params.name ?? '')}</NodeLabel>
       <VoltageBadge nodeId={id} />
       <FaultBadge nodeId={id} />
+      <PhaseBadge nodeId={id} />
     </div>
   )
 }

@@ -210,3 +210,60 @@ def test_an_open_fuse_does_not_deliver_phases_downstream():
     # The load is now islanded, which is already reported as such; the phase
     # walk must stay quiet rather than say the same thing a second way.
     assert "phase-mismatch" not in _codes(circuit)
+
+
+# --- the phase walk, shipped to the one-line -------------------------------
+
+def _phase_map(circuit: Circuit) -> dict:
+    from opendss_designer.core.validate import phase_map
+    return phase_map(circuit)
+
+
+def test_phase_map_names_what_reaches_each_bus():
+    """The drawing colours buses by what actually gets there, so a B lateral
+    has to read B at the tap and the trunk all three."""
+    m = _phase_map(_feeder("B", with_fuse=True))
+    assert m["nodes"]["b1"] == ["ABC"]
+    assert m["nodes"]["b2"] == ["B"]
+    assert m["nodes"]["b3"] == ["B"]
+    assert m["nodes"]["fu"] == ["B", "B"]
+    assert m["nodes"]["ld"] == ["B"]
+    # Wires read as the bus they sit on, whichever end they were drawn from.
+    assert m["wires"]["e1"] == "ABC"
+    assert m["wires"]["e3"] == "B"
+    assert m["wires"]["e5"] == "B"
+    assert "e2" not in m["wires"]  # a line colours by its own phasing
+
+
+def test_phase_map_leaves_an_unreached_bus_blank():
+    """Past an open fuse nothing arrives; that must read as nothing rather
+    than as the default A, or a dead lateral would look live."""
+    circuit = _feeder("B", with_fuse=True)
+    fuse = next(n for n in circuit.nodes if n.type == "fuse")
+    fuse.params["closed"] = False
+    m = _phase_map(circuit)
+    assert m["nodes"]["b2"] == ["B"]
+    assert m["nodes"]["fu"] == ["B", ""]
+    assert m["nodes"]["b3"] == [""]
+    assert m["wires"]["e5"] == ""
+
+
+def test_phase_map_is_empty_without_a_source():
+    circuit = _feeder("B")
+    circuit.nodes = [n for n in circuit.nodes if n.type != "vsource"]
+    circuit.edges = [e for e in circuit.edges if e.id != "e1"]
+    m = _phase_map(circuit)
+    assert all(v == [""] * len(v) for v in m["nodes"].values())
+    assert all(v == "" for v in m["wires"].values())
+
+
+def test_validate_route_ships_the_phase_map():
+    from fastapi.testclient import TestClient
+
+    from opendss_designer import server
+    client = TestClient(server.create_app(), base_url="http://127.0.0.1")
+    resp = client.post("/api/validate", json=_feeder("C").model_dump())
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["phases"]["nodes"]["b2"] == ["C"]
+    assert body["phases"]["wires"]["e3"] == "C"

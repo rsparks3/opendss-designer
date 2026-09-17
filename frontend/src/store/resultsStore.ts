@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { tsIndexNearHour, tsSlice } from '../lib/tsSlice'
-import type { FaultResult, Issue, SolveResult, TimeSeriesResult } from '../types/circuit'
+import type { FaultResult, Issue, PhaseMap, SolveResult, TimeSeriesResult } from '../types/circuit'
 
 export type AnalysisMode = 'snapshot' | 'timeseries'
 
-export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'off'
+export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'phases' | 'off'
 
 interface ResultsState {
   result: SolveResult | null
@@ -16,6 +16,11 @@ interface ResultsState {
   solving: boolean
   overlay: OverlayMode
   issues: Issue[]
+  /** Which phases reach each element, refreshed with `issues` by every
+   *  validation pass. Topology, not a result: the 'phases' overlay works on
+   *  a circuit nobody has solved. */
+  phases: PhaseMap | null
+  setPhases: (p: PhaseMap | null) => void
   /** Findings from the protection study. They need fault currents, so only
    *  that study can produce them — and validation, which owns `issues` and
    *  rewrites it on every edit, would otherwise wipe them a moment later.
@@ -75,6 +80,8 @@ export const useResultsStore = create<ResultsState>((set) => ({
   solving: false,
   overlay: 'voltage',
   issues: [],
+  phases: null,
+  setPhases: (phases) => set({ phases }),
   protectionIssues: [],
   flash: null,
   flashKind: 'error',

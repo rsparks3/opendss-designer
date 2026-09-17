@@ -7,6 +7,7 @@
  *  means exactly what it meant then.
  */
 import type { BusResult, Params } from '../types/circuit'
+import { NEUTRAL } from './colorScale'
 
 export const PHASE_LETTERS = 'ABC'
 
@@ -49,6 +50,37 @@ export function nodeLetter(node: number | undefined): string {
   if (node == null) return '?'
   if (node === 0) return 'N'
   return PHASE_LETTERS[node - 1] ?? String(node)
+}
+
+/** Colours for the 'phases' overlay. There is no universal convention --
+ *  every utility maps its own GIS colours -- so this is one constant to hand
+ *  to a theme later, not a preference now. A three-phase element keeps the
+ *  plain ink so a healthy trunk stays quiet, and a bus nothing reaches gets
+ *  the de-energised grey the voltage overlay already uses. */
+export const PHASE_COLORS: Record<string, string> = { A: '#c62828', B: '#1565c0', C: '#2e7d32' }
+export const TWO_PHASE_COLOR = '#6a1b9a'
+export const THREE_PHASE_COLOR = '#263238'
+export const NO_PHASE_COLOR = NEUTRAL
+
+export const PHASE_LEGEND: { label: string; color: string }[] = [
+  { label: 'A', color: PHASE_COLORS.A },
+  { label: 'B', color: PHASE_COLORS.B },
+  { label: 'C', color: PHASE_COLORS.C },
+  { label: 'Two-phase', color: TWO_PHASE_COLOR },
+  { label: 'Three-phase', color: THREE_PHASE_COLOR },
+  { label: 'Unfed', color: NO_PHASE_COLOR },
+]
+
+/** The stroke for a set of phase letters. `undefined`/`null` is "not known
+ *  yet" (validation has not answered) and draws as plain ink; "" is "known
+ *  to be nothing", which is the case worth seeing. */
+export function phaseColor(letters: string | null | undefined): string {
+  if (letters == null) return THREE_PHASE_COLOR
+  if (letters === '') return NO_PHASE_COLOR
+  const parsed = parsePhasing(letters)
+  if (!parsed || parsed.length === 3) return THREE_PHASE_COLOR
+  if (parsed.length === 2) return TWO_PHASE_COLOR
+  return PHASE_COLORS[parsed]
 }
 
 /** How far apart the phases of a bus may sit before it counts as unbalanced

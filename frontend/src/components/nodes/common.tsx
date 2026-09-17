@@ -2,7 +2,7 @@ import { Handle, Position, useReactFlow, useUpdateNodeInternals, type HandleProp
 import { useEffect, type ReactNode } from 'react'
 import { useAltHeld } from '../../lib/altKey'
 import { loadingColor } from '../../lib/colorScale'
-import { weakestPhase } from '../../lib/phasing'
+import { phaseColor, weakestPhase } from '../../lib/phasing'
 import { rotatePoint } from '../../lib/rotatePoint'
 import { edgesAtTerminal, useCircuitStore, type EdgeEnd } from '../../store/circuitStore'
 import { beginGrab, useGrabStore } from '../../store/grabStore'
@@ -203,6 +203,21 @@ function VBadgeInner({ v, phase }: { v: number; phase: string | null }) {
     <Badge color={color}>
       {v.toFixed(3)} pu{phase && <span className="badge-phase">{phase}</span>}
     </Badge>
+  )
+}
+
+/** Which phases reach the node's bus ('phases' overlay). Three phases say
+ *  nothing worth a badge; fewer name themselves, and a bus the walk never
+ *  reached says so, since a dead lateral drawn in plain ink would look live. */
+export function PhaseBadge({ nodeId }: { nodeId: string }) {
+  const letters = useResultsStore((s) =>
+    s.overlay === 'phases' ? (s.phases?.nodes[nodeId]?.[0] ?? null) : null,
+  )
+  if (letters == null || letters === 'ABC') return null
+  return (
+    <div className="result-badge phase-badge" style={{ background: phaseColor(letters) }}>
+      {letters === '' ? 'unfed' : letters.split('').join('-')}
+    </div>
   )
 }
 

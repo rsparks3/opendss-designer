@@ -21,18 +21,21 @@ function useValidation() {
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
   const setIssues = useResultsStore((s) => s.setIssues)
+  const setPhases = useResultsStore((s) => s.setPhases)
   const timer = useRef<number>(undefined)
 
   useEffect(() => {
     window.clearTimeout(timer.current)
     if (nodes.length === 0) {
       setIssues([])
+      setPhases(null)
       return
     }
     timer.current = window.setTimeout(async () => {
       try {
-        const { issues } = await api.validate(toCircuitJSON(useCircuitStore.getState()))
+        const { issues, phases } = await api.validate(toCircuitJSON(useCircuitStore.getState()))
         setIssues(issues)
+        setPhases(phases ?? null)
         // Auto-solve rides on the validation debounce: once the circuit
         // settles and has no errors, re-run the power flow. Suppressed in
         // time-series mode, where snapshot runs are disabled.
@@ -49,7 +52,7 @@ function useValidation() {
       }
     }, 400)
     return () => window.clearTimeout(timer.current)
-  }, [nodes, edges, setIssues])
+  }, [nodes, edges, setIssues, setPhases])
 }
 
 const AUTOSAVE_KEY = 'autosave'

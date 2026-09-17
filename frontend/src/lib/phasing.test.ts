@@ -2,10 +2,15 @@ import { describe, expect, it } from 'vitest'
 import type { BusResult } from '../types/circuit'
 import {
   effectivePhasing,
+  NO_PHASE_COLOR,
   nodeLetter,
   parsePhasing,
+  PHASE_COLORS,
+  phaseColor,
   phaseCount,
   phaseLabel,
+  THREE_PHASE_COLOR,
+  TWO_PHASE_COLOR,
   weakestPhase,
 } from './phasing'
 
@@ -95,5 +100,30 @@ describe('weakestPhase', () => {
   })
   it('is quiet for a time-series step, which records no per-phase data', () => {
     expect(weakestPhase({ ...bus([], []), vminPu: 0.97, vmaxPu: 0.99 })).toBeNull()
+  })
+})
+
+describe('phaseColor', () => {
+  it('gives each single phase its own colour and pairs a shared one', () => {
+    expect(phaseColor('A')).toBe(PHASE_COLORS.A)
+    expect(phaseColor('B')).toBe(PHASE_COLORS.B)
+    expect(phaseColor('C')).toBe(PHASE_COLORS.C)
+    expect(phaseColor('AB')).toBe(TWO_PHASE_COLOR)
+    expect(phaseColor('BC')).toBe(TWO_PHASE_COLOR)
+    expect(new Set([PHASE_COLORS.A, PHASE_COLORS.B, PHASE_COLORS.C, TWO_PHASE_COLOR]).size).toBe(4)
+  })
+  it('keeps a three-phase element in plain ink so a healthy trunk stays quiet', () => {
+    expect(phaseColor('ABC')).toBe(THREE_PHASE_COLOR)
+    expect(phaseColor('abc')).toBe(THREE_PHASE_COLOR)
+  })
+  it('tells "not known yet" from "known to be nothing"', () => {
+    // Validation has not answered: draw as if nothing were said.
+    expect(phaseColor(undefined)).toBe(THREE_PHASE_COLOR)
+    expect(phaseColor(null)).toBe(THREE_PHASE_COLOR)
+    // The walk reached the bus and found nothing arrives: the dead colour.
+    expect(phaseColor('')).toBe(NO_PHASE_COLOR)
+  })
+  it('does not guess from text it cannot parse', () => {
+    expect(phaseColor('bogus')).toBe(THREE_PHASE_COLOR)
   })
 })

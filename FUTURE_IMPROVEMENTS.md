@@ -149,6 +149,13 @@ All frontend-only; the M1 vitest harness covers the store changes.
   now reports each conductor's node), and the voltage badge names the lowest
   phase on a lateral or on a three-phase bus whose phases disagree by more than
   0.002 pu; a balanced bus keeps its plain badge
+- ~~**Phases overlay**~~ — colour-by-phase on the one-line, the everyday view in
+  WindMil/CYME/Synergi: lines by the phases they carry, wires and busbars by the
+  phases that reach them (`/api/validate` now ships the validation walk's result
+  as `phases`, so the view needs no solve), a bus nothing reaches reads *unfed*,
+  and a legend on the canvas. The palette is one constant in `lib/phasing.ts`;
+  making it a user preference waits for M7's theming rather than growing a
+  settings panel for one value. Symbols themselves stay in ink for now
 
 ## M7 — Platform & polish
 

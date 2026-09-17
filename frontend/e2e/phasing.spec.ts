@@ -100,3 +100,47 @@ test('results name the phase a lateral is on', async ({ page }) => {
   await expect(tooltip).toContainText('I ph B')
   await expect(tooltip).not.toContainText('ph 1')
 })
+
+// Letters on a chip tell you a lateral's phase once you look at it; colour
+// lets you see a whole feeder's phasing at a glance, which is how the
+// commercial planning tools show it. Nothing here needs a solve.
+test('the Phases overlay colours lines by their phase and buses by what reaches them', async ({ page }) => {
+  await openWithFixture(page)
+  await page.getByRole('button', { name: 'Phases', exact: true }).click()
+  await expect(page.locator('.phase-legend')).toBeVisible()
+
+  const rgb = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16)
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`
+  }
+  const strokeOf = (edgeId: string) =>
+    page
+      .locator(`.react-flow__edge[data-id="${edgeId}"] .react-flow__edge-path`)
+      .evaluate((el) => getComputedStyle(el).stroke)
+
+  // Everything is three-phase to begin with: plain ink, no badges.
+  expect(await strokeOf('e4')).toBe(rgb('#263238'))
+  await expect(page.locator('.phase-badge')).toHaveCount(0)
+
+  // Put the lateral on B: the line turns B, and every bus past it does too.
+  await page.evaluate(() => {
+    const store = (window as any).opendssDesigner.circuit.getState()
+    store.updateEdgeParams('e4', { phases: 1, phasing: 'B' })
+  })
+  await expect.poll(() => strokeOf('e4')).toBe(rgb('#1565c0'))
+  // Five busbars hang off the far end of LN1 (feeder, regulator, protection,
+  // lateral, tap); the regulator and the switches carry the pin through.
+  const downstream = page.locator('.phase-badge')
+  await expect(downstream).toHaveCount(5)
+  await expect(downstream.first()).toHaveText('B')
+  const tapBar = page.locator('.react-flow__node', { hasText: 'BUS-TAP' }).locator('.busbar-bar')
+  expect(await tapBar.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb('#1565c0'))
+  // The trunk upstream of the tap is untouched.
+  const trunkBar = page.locator('.react-flow__node', { hasText: 'BUS-MV' }).locator('.busbar-bar')
+  expect(await trunkBar.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb('#263238'))
+
+  // Any other overlay puts the drawing back in ink.
+  await page.getByRole('button', { name: 'Off', exact: true }).click()
+  await expect(page.locator('.phase-legend')).toHaveCount(0)
+  expect(await strokeOf('e4')).toBe(rgb('#263238'))
+})

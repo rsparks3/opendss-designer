@@ -82,6 +82,15 @@ export interface Issue {
   edgeId?: string | null
 }
 
+/** Which phases reach each element, from the validation walk (no solve
+ *  needed). `nodes` holds the letters at each terminal in terminal order;
+ *  `wires` the letters on the bus a wire belongs to. "" means the walk never
+ *  got there. */
+export interface PhaseMap {
+  nodes: Record<string, string[]>
+  wires: Record<string, string>
+}
+
 export interface BusResult {
   vmagPu: number[]
   vangDeg: number[]

@@ -48,6 +48,14 @@ choose what's shown:
   breakers, colored by severity; overloads (≥ 100 %) in red
 - **Power** — kW/kvar labels on series elements
 - **Fault** — see below
+- **Phases** — the one view that needs no solve: lines are coloured by the
+  phases they carry (A red, B blue, C green, two-phase purple, three-phase
+  plain), and wires and busbars by the phases that actually reach them,
+  worked out by the same walk that powers the phase-mismatch checks. A bus
+  nothing reaches is grey and badged *unfed*, so a lateral cut off by an open
+  fuse looks dead rather than defaulting to A. A legend sits in the corner of
+  the canvas while the overlay is on. This is how the commercial distribution
+  planning tools show phasing; the palette is fixed for now
 
 Hovering any element shows a detail tooltip: voltage magnitude and angle for
 each phase (A, B, C) at each connected bus, the current on each phase the

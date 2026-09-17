@@ -4,9 +4,9 @@ from __future__ import annotations
 from .. import context
 from ..settings import Settings
 from .compiler import compile_circuit
-from .connectivity import synthesize, terminal_key
+from .connectivity import BUSBAR_CANON_HANDLE, synthesize, terminal_key
 from .model import Circuit, Issue, node_terminals
-from .phasing import default_phasing, parse_phasing, phase_count, phase_set
+from .phasing import PHASE_LETTERS, default_phasing, parse_phasing, phase_count, phase_set
 
 # 2-terminal devices that carry power between their two buses. Protective
 # devices are switches, so they conduct unless their `closed` flag says
@@ -20,22 +20,22 @@ SWITCH_TYPES = ("breaker", "fuse", "recloser", "relay")
 CARRY_TYPES = ("regulator", *SWITCH_TYPES)
 
 
-def _phase_issues(circuit: Circuit, conn, sources: list) -> list[Issue]:
-    """Flag elements pinned to a phase their bus never receives.
+def _phases_of(params: dict) -> frozenset[str]:
+    return phase_set(params.get("phasing"), phase_count(params))
 
-    Works out what reaches each bus by relaxing outward from the sources: a
-    bus gets whatever phases its feeders carry, a series element passes on
-    only the phases it has itself, and a transformer hands its secondary a
-    fresh set starting at A. Buses the walk never reaches get no entry and are
-    skipped -- being unconnected is already reported as an island, and saying
-    it twice in different words helps nobody.
+
+def phases_available(circuit: Circuit, conn, sources: list) -> dict[str, frozenset[str]]:
+    """Which phases reach each bus, by bus name.
+
+    Relaxes outward from the sources: a bus gets whatever phases its feeders
+    carry, a series element passes on only the phases it has itself, and a
+    transformer hands its secondary a fresh set starting at A. Buses the walk
+    never reaches get no entry -- being unconnected is already reported as an
+    island, and saying it twice in different words helps nobody.
     """
-    issues: list[Issue] = []
     if not sources:
-        return issues
-
-    def phases_of(params: dict) -> frozenset[str]:
-        return phase_set(params.get("phasing"), phase_count(params))
+        return {}
+    phases_of = _phases_of
 
     # Every series path as (bus_in, bus_out, phases it delivers).
     links: list[tuple[str, str, frozenset[str]]] = []
@@ -85,6 +85,43 @@ def _phase_issues(circuit: Circuit, conn, sources: list) -> list[Issue]:
                 changed = True
         if not changed:
             break
+    return available
+
+
+def bus_phases(circuit: Circuit, conn, sources: list) -> dict[str, dict[str, object]]:
+    """The phase walk keyed by diagram id, for the one-line to colour by.
+
+    `nodes` maps a node id to the letters reaching each of its terminals, in
+    terminal order (a busbar has one); `wires` maps a wire id to the letters
+    on the bus it belongs to. A bus the walk never reached reads as "", so a
+    dead lateral looks dead rather than defaulting to A.
+    """
+    available = phases_available(circuit, conn, sources)
+
+    def letters(bus: str | None) -> str:
+        return "".join(sorted(available.get(bus or "", frozenset()), key=PHASE_LETTERS.index))
+
+    nodes = {n.id: [letters(b) for b in conn.node_buses.get(n.id, [])]
+             for n in circuit.nodes}
+    kinds = {n.id: n.type for n in circuit.nodes}
+    wires: dict[str, str] = {}
+    for e in circuit.edges:
+        if e.type != "wire":
+            continue
+        busbar = kinds.get(e.source) == "busbar"
+        handle = BUSBAR_CANON_HANDLE if busbar else (e.sourceHandle or "t1")
+        wires[e.id] = letters(conn.terminal_bus.get(terminal_key(e.source, handle)))
+    return {"nodes": nodes, "wires": wires}
+
+
+def _phase_issues(circuit: Circuit, conn, sources: list) -> list[Issue]:
+    """Flag elements pinned to a phase their bus never receives. Buses the
+    walk never reaches are skipped: see phases_available."""
+    issues: list[Issue] = []
+    available = phases_available(circuit, conn, sources)
+    if not available:
+        return issues
+    phases_of = _phases_of
 
     for n in circuit.nodes:
         if n.type == "busbar":
@@ -208,6 +245,15 @@ def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
 #: are reported further down with a friendlier message, so only the name
 #: clash is taken from the compiler.
 COMPILER_CHECKS = frozenset({"duplicate-name"})
+
+
+def phase_map(circuit: Circuit) -> dict[str, dict[str, object]]:
+    """bus_phases() for a circuit on its own, for /api/validate to ship
+    alongside the issues so the one-line can colour by phase without a
+    solve."""
+    conn = synthesize(circuit)
+    sources = [n for n in circuit.nodes if n.type == "vsource"]
+    return bus_phases(circuit, conn, sources)
 
 
 def validate(circuit: Circuit) -> list[Issue]:

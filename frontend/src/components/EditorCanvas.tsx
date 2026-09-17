@@ -27,6 +27,7 @@ import {
 import { useResultsStore } from '../store/resultsStore'
 import type { NodeType } from '../types/circuit'
 import { ContextMenu, type MenuTarget } from './ContextMenu'
+import { PhaseLegend } from './PhaseLegend'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
 import { BreakerNode } from './nodes/BreakerNode'
 import { BusbarNode } from './nodes/BusbarNode'
@@ -330,6 +331,7 @@ export function EditorCanvas() {
             : `Click to place a ${placementType} — drag from a connection dot to wire it up, Esc to stop`}
         </div>
       )}
+      <PhaseLegend />
       {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
       {menu && <ContextMenu target={menu} onClose={() => setMenu(null)} />}
       {hover && !menu && !busbarDraft && <ResultTooltip target={hover} />}
