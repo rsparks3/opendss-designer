@@ -8,16 +8,18 @@ import {
   SymbolSvg,
   Terminal,
   useNodeIssueClass,
+  usePhaseInk,
   useSymbolRotation,
 } from './common'
 
 export function StorageNode({ id, data }: NodeProps<AppNode>) {
   const issueClass = useNodeIssueClass(id)
+  const phaseInk = usePhaseInk(data.params)
   const rot = useSymbolRotation(id, data.params)
   const box = rotatedBox(40, 60, rot)
   const kwhrated = data.params.kwhrated
   return (
-    <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h }}>
+    <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h, ...phaseInk }}>
       <SymbolSvg rotation={rot} w={40} h={60}>
         <svg width="40" height="60" viewBox="0 0 40 60">
           {/* battery: alternating long/short plates */}

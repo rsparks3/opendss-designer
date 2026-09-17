@@ -8,6 +8,7 @@ import {
   SymbolSvg,
   Terminal,
   useNodeIssueClass,
+  usePhaseInk,
   useSymbolRotation,
 } from './common'
 
@@ -35,6 +36,7 @@ function ProtectiveDevice({
   h?: number
 }) {
   const issueClass = useNodeIssueClass(id)
+  const phaseInk = usePhaseInk(data.params)
   const rot = useSymbolRotation(id, data.params)
   const box = rotatedBox(w, h, rot)
   const updateNodeParams = useCircuitStore((s) => s.updateNodeParams)
@@ -42,7 +44,7 @@ function ProtectiveDevice({
   return (
     <div
       className={`symbol-node${issueClass}`}
-      style={{ width: box.w, height: box.h }}
+      style={{ width: box.w, height: box.h, ...phaseInk }}
       onDoubleClick={(e) => {
         e.stopPropagation()
         updateNodeParams(id, { closed: !closed })

@@ -139,8 +139,26 @@ test('the Phases overlay colours lines by their phase and buses by what reaches 
   const trunkBar = page.locator('.react-flow__node', { hasText: 'BUS-MV' }).locator('.busbar-bar')
   expect(await trunkBar.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb('#263238'))
 
+  // Symbols wear their own phasing. LOAD1 is still three-phase, so it stays
+  // in ink; pinned to C it turns C -- on a B lateral, which is the mistake
+  // the colours exist to show.
+  const loadStroke = () =>
+    page
+      .locator('.react-flow__node', { hasText: 'LOAD1' })
+      .locator('.sym')
+      .first()
+      .evaluate((el) => getComputedStyle(el).stroke)
+  expect(await loadStroke()).toBe(rgb('#263238'))
+  await page.evaluate(() => {
+    const store = (window as any).opendssDesigner.circuit.getState()
+    const load = store.nodes.find((n: any) => n.data?.params?.name === 'LOAD1')
+    store.updateNodeParams(load.id, { phases: 1, phasing: 'C' })
+  })
+  await expect.poll(loadStroke).toBe(rgb('#2e7d32'))
+
   // Any other overlay puts the drawing back in ink.
   await page.getByRole('button', { name: 'Off', exact: true }).click()
   await expect(page.locator('.phase-legend')).toHaveCount(0)
   expect(await strokeOf('e4')).toBe(rgb('#263238'))
+  expect(await loadStroke()).toBe(rgb('#263238'))
 })

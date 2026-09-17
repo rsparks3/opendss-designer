@@ -8,6 +8,7 @@ import {
   SymbolSvg,
   Terminal,
   useNodeIssueClass,
+  usePhaseInk,
   useSymbolRotation,
 } from './common'
 
@@ -15,13 +16,14 @@ import {
  *  tap-changer arrow struck through it. */
 export function RegulatorNode({ id, data }: NodeProps<AppNode>) {
   const issueClass = useNodeIssueClass(id)
+  const phaseInk = usePhaseInk(data.params)
   const rot = useSymbolRotation(id, data.params)
   const box = rotatedBox(40, 80, rot)
   const vreg = data.params.vreg
   const band = data.params.band
   const setpoint = vreg != null ? `${vreg}${band != null ? ` ±${Number(band) / 2}` : ''} V` : ''
   return (
-    <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h }}>
+    <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h, ...phaseInk }}>
       <SymbolSvg rotation={rot} w={40} h={80}>
         <svg width="40" height="80" viewBox="0 0 40 80">
           <line x1="20" y1="0" x2="20" y2="16" className="sym" />

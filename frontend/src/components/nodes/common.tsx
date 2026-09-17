@@ -2,7 +2,7 @@ import { Handle, Position, useReactFlow, useUpdateNodeInternals, type HandleProp
 import { useEffect, type ReactNode } from 'react'
 import { useAltHeld } from '../../lib/altKey'
 import { loadingColor } from '../../lib/colorScale'
-import { phaseColor, weakestPhase } from '../../lib/phasing'
+import { effectivePhasing, PHASE_LETTERS, phaseColor, weakestPhase } from '../../lib/phasing'
 import { rotatePoint } from '../../lib/rotatePoint'
 import { edgesAtTerminal, useCircuitStore, type EdgeEnd } from '../../store/circuitStore'
 import { beginGrab, useGrabStore } from '../../store/grabStore'
@@ -204,6 +204,21 @@ function VBadgeInner({ v, phase }: { v: number; phase: string | null }) {
       {v.toFixed(3)} pu{phase && <span className="badge-phase">{phase}</span>}
     </Badge>
   )
+}
+
+/** Tint for a symbol in the 'phases' overlay: the phases the element itself
+ *  is on, like a line. Every symbol draws in `--ink`, so overriding that one
+ *  variable recolours strokes, fills and the letters inside a circle, while
+ *  the name under the symbol keeps its inherited colour. Setting the element
+ *  beside the wire that feeds it -- which wears what the *bus* receives --
+ *  is what makes a load pinned to C on a B lateral visible at a glance.
+ *  A three-phase element keeps the plain ink. */
+export function usePhaseInk(params: Params): React.CSSProperties | undefined {
+  const on = useResultsStore((s) => s.overlay === 'phases')
+  if (!on) return undefined
+  const letters = effectivePhasing(params)
+  if (letters === PHASE_LETTERS) return undefined
+  return { '--ink': phaseColor(letters) } as React.CSSProperties
 }
 
 /** Which phases reach the node's bus ('phases' overlay). Three phases say
