@@ -103,7 +103,7 @@ All frontend-only; the M1 vitest harness covers the store changes.
   pop an envelope-explanation dialog and keep an "envelope ≈12 h" chip;
   the Time chart draws a synced cursor line
 
-## M6 — Regulation, protection & phases
+## M6 — Regulation, protection & phases — ✅ DONE (2026-09-17)
 
 - ~~**Voltage regulators**~~ — an equal-ratio transformer plus its `RegControl`,
   emitted under one name; setpoint/band/PT ratio/CT primary/LDC R and X in the
@@ -248,10 +248,11 @@ to Synergi and CYME is **interface work, not numerical work** — the engine
 already does unbalanced power flow, fault study, yearly time series, reliability
 indices, and it is what EPRI's DRIVE hosting-capacity method runs on.
 
-Ordering: **M6 first** — regulators, fuses/reclosers/relays, three-winding
-transformers and per-phase laterals are table stakes for anything below, because
-a feeder without them is not a feeder. M7's SVG/PNG export and elkjs layout are
-prerequisites for M10 and M11 respectively. Each milestone below is chosen to be
+Ordering: **M6 came first** (done 2026-09-17) — regulators, fuses/reclosers/relays,
+three-winding transformers and per-phase laterals are table stakes for anything
+below, because a feeder without them is not a feeder. **Next: the two M7 items the
+rest depends on** — SVG/PNG export is the prerequisite for M10's study report, and
+the elkjs layout for M11's real-feeder import. Each milestone below is chosen to be
 useful to someone real on its own, not only at the end of the list.
 
 ## M10 — Study output & proof
