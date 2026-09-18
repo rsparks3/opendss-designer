@@ -88,6 +88,13 @@ results directly on the diagram. See [Shapes & profiles](shapes.md) and
   solver uses — so anything you draw also runs in stock OpenDSS.
 - **Import** loads existing `.dss` files; see
   [Importing DSS files](importing-dss.md).
+- **Image: SVG / PNG** download the drawing as it is on screen, with the
+  active overlay, a colour key and a caption (name, overlay, date). The SVG
+  is a genuine vector file — real paths and text, no embedded screenshot —
+  so it opens and edits in Inkscape, Visio and PowerPoint; the PNG is
+  rendered from it at 2× for reports and slides. Selection is cleared first
+  so nothing carries the editor's blue outline, and the view's zoom and pan
+  do not affect the result.
 
 ## Editor essentials
 

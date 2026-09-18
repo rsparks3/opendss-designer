@@ -60,6 +60,10 @@ choose what's shown:
   the canvas while the overlay is on. This is how the commercial distribution
   planning tools show phasing; the palette is fixed for now
 
+Whatever overlay is on goes into the **Image** export (SVG or PNG) with its
+colour key, so a voltage plot or a phasing map can be dropped into a report
+as drawn — see [Getting started](getting-started.md).
+
 Hovering any element shows a detail tooltip: voltage magnitude and angle for
 each phase (A, B, C) at each connected bus, the current on each phase the
 element actually connects to, power, and loading against the rating. Results dim when the circuit has changed since they were computed

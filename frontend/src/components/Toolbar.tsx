@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type SampleMeta } from '../lib/api'
+import { diagramToSvg, imageFileName, legendFor, OVERLAY_LABELS, svgToPng } from '../lib/exportDiagram'
 import { autoLayout } from '../lib/layout'
 import { loadProject, newProjectId, saveProject } from '../lib/library'
 import { migrateCircuit } from '../lib/schema'
@@ -24,6 +25,22 @@ function tooBig(files: File[], limit: number): string | null {
   if (total <= limit) return null
   const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(1)} MB`
   return `That is ${mb(total)}; the editor handles up to ${mb(limit)}.`
+}
+
+/** Today as YYYY-MM-DD in the user's own time zone; an ISO string would
+ *  date an evening export tomorrow. */
+function localDate(): string {
+  const d = new Date()
+  const two = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`
+}
+
+function downloadBlob(filename: string, blob: Blob) {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(a.href)
 }
 
 function download(filename: string, text: string, type = 'application/json') {
@@ -236,6 +253,37 @@ export function Toolbar() {
     }
   }
 
+  // The drawing as an image, with whatever overlay is on: a phasing map or a
+  // voltage plot is exactly what goes into a report. Selection is dropped
+  // first so no element carries the editor's blue outline, and the export
+  // waits a frame for that to render.
+  const onExportImage = async (kind: 'svg' | 'png') => {
+    const pane = document.querySelector('.react-flow') as HTMLElement | null
+    if (!pane) return
+    useCircuitStore.getState().clearSelection()
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    const rs = useResultsStore.getState()
+    const label = OVERLAY_LABELS[rs.overlay]
+    const unsolved = rs.overlay !== 'off' && rs.overlay !== 'phases' && (rs.stale || !rs.result)
+    const caption = [
+      name || 'circuit',
+      label && `${label} overlay${unsolved ? ' (not solved)' : ''}`,
+      localDate(),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+    try {
+      const svg = diagramToSvg(pane, { caption, legend: legendFor(rs.overlay) })
+      if (kind === 'svg') {
+        download(imageFileName(name, rs.overlay, 'svg'), svg, 'image/svg+xml')
+      } else {
+        downloadBlob(imageFileName(name, rs.overlay, 'png'), await svgToPng(svg))
+      }
+    } catch (err) {
+      flash(`Export failed: ${err instanceof Error ? err.message : err}`)
+    }
+  }
+
   const onExportDss = async () => {
     try {
       download(`${name || 'circuit'}.dss`, await api.exportDss(circuit()), 'text/plain')
@@ -397,6 +445,19 @@ export function Toolbar() {
           Export .json
         </button>
         <button onClick={onExportDss} title="Export as a runnable OpenDSS .dss file">Export .dss</button>
+        <span className="tb-label">Image:</span>
+        <button
+          onClick={() => void onExportImage('svg')}
+          title="Download the drawing as an editable SVG, with the active overlay and a legend"
+        >
+          SVG
+        </button>
+        <button
+          onClick={() => void onExportImage('png')}
+          title="Download the drawing as a PNG at 2× resolution, with the active overlay and a legend"
+        >
+          PNG
+        </button>
         <button
           onClick={() => dssInput.current?.click()}
           title="Import OpenDSS .dss file(s) — select the main file plus anything it references (line codes, BusCoords csv)"

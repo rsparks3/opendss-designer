@@ -65,7 +65,9 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
           className="edge-label nodrag nopan"
           style={{
             transform: labelTransform,
-            opacity: stale ? 0.4 : 1,
+            // Staleness is about results: the name and phase chip are not
+            // stale, so they only dim when this label would carry a result.
+            opacity: stale && (overlay === 'loading' || overlay === 'power') ? 0.4 : 1,
           }}
         >
           <span className="edge-name">{name}</span>

@@ -68,6 +68,8 @@ export interface CircuitState {
   setPlacement: (t: NodeType | null) => void
   setConnectMode: (m: EdgeKind) => void
   selectOnly: (kind: 'node' | 'edge', id: string) => void
+  /** Nothing selected: an exported drawing must not carry a blue outline. */
+  clearSelection: () => void
   mergeBusNames: (names: Record<string, string>) => void
   setLoadShape: (name: string, spec: LoadShapeJSON) => void
   setTccCurve: (name: string, spec: TccCurveJSON) => void
@@ -594,6 +596,13 @@ export const useCircuitStore = create<CircuitState>()(
         set({
           nodes: get().nodes.map((n) => ({ ...n, selected: kind === 'node' && n.id === id })),
           edges: get().edges.map((e) => ({ ...e, selected: kind === 'edge' && e.id === id })),
+        })
+      },
+      clearSelection: () => {
+        if (!get().nodes.some((n) => n.selected) && !get().edges.some((e) => e.selected)) return
+        set({
+          nodes: get().nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+          edges: get().edges.map((e) => (e.selected ? { ...e, selected: false } : e)),
         })
       },
       mergeBusNames: (names) => set({ busNames: { ...get().busNames, ...names } }),

@@ -165,7 +165,15 @@ All frontend-only; the M1 vitest harness covers the store changes.
   buses as plain wires instead of busbars
 - **Automatic wire routing** (elkjs edge routing — shares the elkjs dependency)
 - **File System Access API** in-place saves (localStorage autosave already shipped)
-- **Dark mode**, printable/exportable diagram (SVG/PNG export)
+- ~~**Printable/exportable diagram (SVG/PNG export)**~~ — Image: SVG / PNG in the
+  toolbar. `lib/exportDiagram.ts` reads the rendered canvas and writes it back as
+  native SVG (edge paths with computed strokes, symbol SVGs with styles inlined
+  relative to their parent, HTML text as `<text>`, coloured boxes as `<rect>`),
+  so the file is editable in Inkscape/Visio/PowerPoint rather than a screenshot
+  in a foreignObject. Carries the active overlay with a legend (`legendFor`) and
+  a caption; PNG is the same SVG rasterised at 2× on a canvas. No dependency.
+  This is the M10 study report's diagram source
+- **Dark mode** — also where the phase palette becomes a user setting
 - **Round-trip preservation** of comments and unsupported elements on export
 - **Split line**: drop a bus in the middle of an existing Line edge
 
