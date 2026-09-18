@@ -3,9 +3,46 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 0.6.0 — 2026-09-18
+
+Phases, and the drawing as something you can hand to someone. A feeder is
+mostly single-phase laterals; until now every one of them sat on phase A, and
+nothing you drew could leave the screen. This release also carries 0.5.3 to
+0.5.5, which were never published to PyPI.
 
 ### Added
+
+- **Which phase a lateral is on.** Every element with a phase count has a
+  **Phase(s)** picker: `B`, `A-C`, or left at the default, which takes the
+  first N phases exactly as OpenDSS assumes — so every circuit drawn before
+  this compiles to the same text it did before. A pin carries through lines,
+  switches and regulators and stops at a transformer, whose secondary starts
+  at A again. Validation walks the phases out from the source and warns when
+  an element asks for a phase its bus never receives; a 3-phase element pinned
+  to one phase is an error. Lines short of three phases are labelled on the
+  one-line.
+- **Results say which phase they are on.** Tooltip rows read A, B, C (and N
+  for a neutral) instead of "ph 1", element currents are named after the
+  phase they flow on, and the voltage badge names the weakest phase on any
+  bus short of three phases, or on a three-phase bus whose phases disagree by
+  more than 0.002 pu. A balanced trunk keeps its plain badge.
+- **A Phases overlay** next to Voltages, Loading, Power and Fault: lines and
+  symbols wear the colour of the phases they are on, wires and busbars the
+  colour of the phases that actually reach them, with a legend on the canvas.
+  It needs no solve. A bus nothing reaches is grey and badged *unfed*, so a
+  lateral behind an open fuse looks dead rather than defaulting to A, and a
+  load pinned to C on a B lateral is a green symbol on a blue wire.
+- **Three-winding transformers.** A third entry under windings grows a third
+  terminal leaving the symbol to the right, X(H-T) and X(L-T) appear for a
+  three-winding unit only, removing the tertiary removes its wires, and a
+  three-winding unit in a `.dss` file imports instead of reporting as
+  unsupported.
+- **Image: SVG / PNG.** The drawing as it is on screen, with the active
+  overlay, a colour key and a caption (name, overlay, date). The SVG is a
+  genuine vector file — real paths and text, no embedded screenshot — so it
+  opens and edits in Inkscape, Visio and PowerPoint; the PNG is rendered from
+  it at 2× for reports and slides. Selection is cleared first and the view's
+  zoom and pan do not affect the result.
 
 - **Ground-fault coordination.** Every check now runs twice: phase units
   against the 3φ fault current, ground units against the 1φ one, so a pair that
@@ -21,6 +58,17 @@ This project follows [Semantic Versioning](https://semver.org/).
 - **The 75% rule for fuse pairs.** Two fuses in series are graded by ratio —
   the one below must melt inside 75% of the melting time of the one above —
   rather than by the 0.25 s margin that suits relays and reclosers.
+
+### Changed
+
+- **Import .dss sits next to Open** in the toolbar, with the other ways of
+  opening a circuit, rather than after the exports.
+- **Line labels only dim under the loading and power overlays** when results
+  are stale. They used to fade after any edit, which left a phasing map with
+  faint names.
+- **Breakers and protective devices follow the phase pin on both terminals.**
+  They hard-coded phase A, so a fuse in a pinned lateral silently islanded
+  everything past it; the importer also dropped their node suffixes.
 
 ### Fixed
 
