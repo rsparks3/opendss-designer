@@ -424,6 +424,12 @@ export function Toolbar() {
         <button onClick={() => setLibraryOpen(true)} title="Open a circuit saved in this browser (Ctrl+O)">
           Open…
         </button>
+        <button
+          onClick={() => dssInput.current?.click()}
+          title="Import OpenDSS .dss file(s) — select the main file plus anything it references (line codes, BusCoords csv)"
+        >
+          Import .dss
+        </button>
         {samples.length > 0 && (
           <select
             value=""
@@ -457,12 +463,6 @@ export function Toolbar() {
           title="Download the drawing as a PNG at 2× resolution, with the active overlay and a legend"
         >
           PNG
-        </button>
-        <button
-          onClick={() => dssInput.current?.click()}
-          title="Import OpenDSS .dss file(s) — select the main file plus anything it references (line codes, BusCoords csv)"
-        >
-          Import .dss
         </button>
       </div>
       <span className="tb-spacer" />
