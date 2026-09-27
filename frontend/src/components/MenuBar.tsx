@@ -69,7 +69,10 @@ function useMenuShortcuts(ops: CanvasOps) {
         return
       }
       if (inField(e.target) || ui.dialog) return
-      if (mod && !e.shiftKey && k === 'a') {
+      if (mod && k === 'f') {
+        e.preventDefault()
+        if (useCircuitStore.getState().nodes.length) ui.openDialog('find')
+      } else if (mod && !e.shiftKey && k === 'a') {
         e.preventDefault()
         selectAll()
       } else if (mod && e.shiftKey && k === 'a') {

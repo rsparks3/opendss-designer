@@ -20,6 +20,12 @@ of M7.
   Ctrl+Shift+H), **Solve** on F5, **Clean up** on Ctrl+Shift+L, **View →
   Grid / Snap to grid** and panel toggles (remembered per browser),
   **Help → Keyboard shortcuts** (or `?`) and **About**.
+- **Arrange → Align and Distribute** for a multi-selection (edges, centres,
+  tops, middles, bottoms; even gaps across or down), **Flip horizontally /
+  vertically** (Shift+H / Shift+V, also on the right-click menu) with text
+  inside symbols kept readable and terminals following the mirror, and
+  **Edit → Find** (Ctrl+F) to jump to an element by name. Image exports
+  draw flipped symbols flipped.
 - **Dark mode.** View → Theme → Light, Dark or *Same as the system*; the
   panels, the canvas, the symbols and the plots all follow it. Image exports
   stay on white paper in dark ink whatever the screen shows.

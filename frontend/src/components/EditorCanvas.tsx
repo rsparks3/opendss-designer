@@ -236,6 +236,11 @@ export function EditorCanvas() {
         return
       }
       if (e.altKey) return
+      if (e.shiftKey && (key === 'h' || key === 'v')) {
+        const ids = st.nodes.filter((n) => n.selected).map((n) => n.id)
+        st.flipNodes(ids, key === 'h' ? 'horizontal' : 'vertical')
+        return
+      }
       if (PLACE_KEYS[key]) {
         setPlacement(st.placementType === PLACE_KEYS[key] ? null : PLACE_KEYS[key])
       } else if (key === 'w') {

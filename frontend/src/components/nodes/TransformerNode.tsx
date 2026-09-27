@@ -29,12 +29,15 @@ export function TransformerNode({ id, data }: NodeProps<AppNode>) {
   const h = 80
   const box = rotatedBox(w, h, rot)
   const kvText = windings.length >= 2 ? `${windings.map((wd) => wd.kv).join('/')} kV` : ''
-  const t1 = terminalPlacement(Position.Top, 20, 0, w, h, rot)
-  const t2 = terminalPlacement(Position.Bottom, 20, h, w, h, rot)
-  const t3 = terminalPlacement(Position.Right, w, 40, w, h, rot)
+  const flip = data.params.flip === true
+  const t1 = terminalPlacement(Position.Top, 20, 0, w, h, rot, flip)
+  const t2 = terminalPlacement(Position.Bottom, 20, h, w, h, rot, flip)
+  const t3 = terminalPlacement(Position.Right, w, 40, w, h, rot, flip)
+  // The name sits beside the symbol, on whichever side the tertiary is not.
+  const tertiaryRight = flip === (rot === 180)
   return (
     <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h, ...phaseInk }}>
-      <SymbolSvg rotation={rot} w={w} h={h}>
+      <SymbolSvg rotation={rot} flip={data.params.flip === true} w={w} h={h}>
         <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
           <line x1="20" y1="0" x2="20" y2="16" className="sym" />
           <circle cx="20" cy="30" r="14" className="sym" fill="none" />
@@ -53,7 +56,7 @@ export function TransformerNode({ id, data }: NodeProps<AppNode>) {
       {tertiary && (
         <Terminal nodeId={id} id="t3" type="source" position={t3.position} style={t3.style} className="term" />
       )}
-      <NodeLabel beside={rot % 180 === 0 ? (tertiary ? 'left' : true) : false}>
+      <NodeLabel beside={rot % 180 === 0 ? (tertiary && tertiaryRight ? 'left' : true) : false}>
         {String(data.params.name ?? '')}
         {kvText && <div className="sub-label">{kvText}</div>}
       </NodeLabel>

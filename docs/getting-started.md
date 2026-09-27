@@ -124,6 +124,8 @@ name while there is something to save; click it to save.
 | Select all | ++ctrl+a++ |
 | Solve | ++f5++ |
 | Stop placing | ++esc++ |
+| Find an element | ++ctrl+f++ |
+| Flip left–right / upside down | ++shift+h++ / ++shift+v++ |
 | Every shortcut | `?` |
 
 **View → Theme** switches between light, dark and whatever the operating
@@ -141,6 +143,17 @@ single wire hands that wire over rather than starting a second one, so you can
 walk a line from one component to another in one gesture. Drop it on empty
 canvas or press ++esc++ to leave it where it was; hold ++alt++ to draw a new
 wire from an occupied terminal instead.
+
+### Align, distribute, flip
+
+With several symbols selected, **Arrange → Align** lines up their left
+edges, centres, right edges, tops, middles or bottoms, and **Arrange →
+Distribute** spaces three or more evenly, keeping the outermost two where
+they are. **Flip horizontally** (++shift+h++) mirrors a symbol — a relay's
+device bubble, a regulator's arrow or a three-winding transformer's tertiary
+moves to the other side, and the numbers inside stay readable — and **Flip
+vertically** (++shift+v++) turns it upside down. Each is one undo step.
+**Edit → Find** (++ctrl+f++) jumps to an element by part of its name.
 
 ### Clean up
 

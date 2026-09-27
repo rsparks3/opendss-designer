@@ -59,6 +59,8 @@ export const SHORTCUTS: ShortcutGroup[] = [
     title: 'Arrange',
     items: [
       { keys: 'R', action: 'Rotate the selection 90°' },
+      { keys: 'Shift+H', action: 'Flip the selection left to right' },
+      { keys: 'Shift+V', action: 'Flip the selection upside down' },
       { keys: 'Mod+Shift+L', action: 'Clean up the layout' },
     ],
   },

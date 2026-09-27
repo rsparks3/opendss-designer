@@ -29,7 +29,7 @@ export function BreakerNode({ id, data }: NodeProps<AppNode>) {
       }}
       title={`Double-click to ${closed ? 'open' : 'close'}`}
     >
-      <SymbolSvg rotation={rot} w={40} h={60}>
+      <SymbolSvg rotation={rot} flip={data.params.flip === true} w={40} h={60}>
         <svg width="40" height="60" viewBox="0 0 40 60">
           <line x1="20" y1="0" x2="20" y2="20" className="sym" />
           <rect x="10" y="20" width="20" height="20" className={closed ? 'sym-fill' : 'sym'} fill={closed ? undefined : 'none'} />

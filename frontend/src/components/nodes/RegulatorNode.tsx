@@ -24,7 +24,7 @@ export function RegulatorNode({ id, data }: NodeProps<AppNode>) {
   const setpoint = vreg != null ? `${vreg}${band != null ? ` ±${Number(band) / 2}` : ''} V` : ''
   return (
     <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h, ...phaseInk }}>
-      <SymbolSvg rotation={rot} w={40} h={80}>
+      <SymbolSvg rotation={rot} flip={data.params.flip === true} w={40} h={80}>
         <svg width="40" height="80" viewBox="0 0 40 80">
           <line x1="20" y1="0" x2="20" y2="16" className="sym" />
           <circle cx="20" cy="30" r="14" className="sym" fill="none" />

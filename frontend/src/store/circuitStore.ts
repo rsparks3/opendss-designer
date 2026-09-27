@@ -1,3 +1,4 @@
+import { flipOnScreen, type Axis } from '../lib/arrange'
 import {
   applyEdgeChanges,
   applyNodeChanges,
@@ -112,6 +113,10 @@ export interface CircuitState {
   /** Rotate the given symbol nodes 90° clockwise (busbars are skipped). */
   rotateNodes: (ids: string[]) => void
   rotateSelection: () => void
+  /** Mirror symbols as they appear on screen (see lib/arrange.flipOnScreen). */
+  flipNodes: (ids: string[], axis: Axis) => void
+  /** Move many nodes at once, as one undo step (Align, Distribute). */
+  moveNodes: (positions: Record<string, XY>) => void
 }
 
 // Ids used to be `Date.now()` plus a counter that reset on every page load,
@@ -671,7 +676,7 @@ export const useCircuitStore = create<CircuitState>()(
           nodes: get().nodes.map((n) => {
             const l = nodePos.get(n.id)
             if (!l?.position) return n
-            const { rotation: _r, ...params } = n.data.params
+            const { rotation: _r, flip: _f, ...params } = n.data.params
             const busbar = n.type === 'busbar'
             const width = busbar ? snapBusbarWidth(l.width ?? (n.width as number) ?? NODE_SIZE.busbar.w) : n.width
             return {
@@ -849,6 +854,35 @@ export const useCircuitStore = create<CircuitState>()(
       },
       rotateSelection: () => {
         get().rotateNodes(get().nodes.filter((n) => n.selected).map((n) => n.id))
+      },
+      flipNodes: (ids, axis) => {
+        const idSet = new Set(ids)
+        if (!idSet.size) return
+        set({
+          nodes: get().nodes.map((n) => {
+            if (!idSet.has(n.id) || n.type === 'busbar') return n
+            const { rotation, flip } = flipOnScreen(n.data.params, axis)
+            const { rotation: _r, flip: _f, ...rest } = n.data.params
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                params: { ...rest, ...(rotation ? { rotation } : {}), ...(flip ? { flip } : {}) },
+              },
+            }
+          }),
+          dirty: true,
+        })
+      },
+      moveNodes: (positions) => {
+        let moved = false
+        const nodes = get().nodes.map((n) => {
+          const p = positions[n.id]
+          if (!p || (p.x === n.position.x && p.y === n.position.y)) return n
+          moved = true
+          return { ...n, position: { x: p.x, y: p.y } }
+        })
+        if (moved) set({ nodes, dirty: true })
       },
     }),
     {

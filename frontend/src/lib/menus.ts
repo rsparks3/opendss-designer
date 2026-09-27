@@ -13,6 +13,9 @@ import {
   saveToFile,
 } from './fileActions'
 import { canSaveInPlace } from './fileSystem'
+import { align, distribute, type Alignment, type Axis, type Box } from './arrange'
+import { NODE_SIZE } from './defaults'
+import type { AppNode } from '../store/circuitStore'
 import { runSolve } from './solve'
 import { redo, undo, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore, type OverlayMode } from '../store/resultsStore'
@@ -106,6 +109,34 @@ export function toggleAutoSolve() {
   if (next && !rs.issues.some((i) => i.severity === 'error')) void runSolve()
 }
 
+/** A node's box on the canvas: its measured size where React Flow has
+ *  measured it, the default size where it has not. */
+function boxOf(n: AppNode): Box {
+  const d = NODE_SIZE[n.type as keyof typeof NODE_SIZE] ?? { w: 40, h: 60 }
+  return {
+    id: n.id,
+    x: n.position.x,
+    y: n.position.y,
+    w: n.measured?.width ?? (n.width as number | undefined) ?? d.w,
+    h: n.measured?.height ?? (n.height as number | undefined) ?? d.h,
+  }
+}
+
+export function alignSelection(how: Alignment) {
+  const s = useCircuitStore.getState()
+  s.moveNodes(align(s.nodes.filter((n) => n.selected).map(boxOf), how))
+}
+
+export function distributeSelection(axis: Axis) {
+  const s = useCircuitStore.getState()
+  s.moveNodes(distribute(s.nodes.filter((n) => n.selected).map(boxOf), axis))
+}
+
+export function flipSelection(axis: Axis) {
+  const s = useCircuitStore.getState()
+  s.flipNodes(s.nodes.filter((n) => n.selected).map((n) => n.id), axis)
+}
+
 export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
   const cs = useCircuitStore.getState()
   const rs = useResultsStore.getState()
@@ -192,6 +223,8 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
       sep,
       item('Select all', selectAll, { keys: 'Mod+A', disabled: empty }),
       item('Select none', () => cs.clearSelection(), { keys: 'Mod+Shift+A', disabled: nothingSelected }),
+      sep,
+      item('Find…', () => ui.openDialog('find'), { keys: 'Mod+F', disabled: empty }),
     ],
   }
 
@@ -235,7 +268,43 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
         title: 'Redraw the whole circuit as a tree: loads in a row beneath their bus, buses sized to fit, nothing overlapping. Undo restores the old arrangement.',
       }),
       sep,
+      {
+        kind: 'sub',
+        label: 'Align',
+        disabled: selNodes.length < 2,
+        items: (
+          [
+            ['left', 'Left edges'],
+            ['center', 'Centres'],
+            ['right', 'Right edges'],
+            ['top', 'Tops'],
+            ['middle', 'Middles'],
+            ['bottom', 'Bottoms'],
+          ] as const
+        ).flatMap(([how, label], i) => [
+          ...(i === 3 ? [sep] : []),
+          item(label, () => alignSelection(how)),
+        ]),
+      },
+      {
+        kind: 'sub',
+        label: 'Distribute',
+        disabled: selNodes.length < 3,
+        items: [
+          item('Horizontally', () => distributeSelection('horizontal'), { title: 'Equal gaps left to right' }),
+          item('Vertically', () => distributeSelection('vertical'), { title: 'Equal gaps top to bottom' }),
+        ],
+      },
+      sep,
       item('Rotate 90°', () => cs.rotateSelection(), { keys: 'R', disabled: selNodes.length === 0 }),
+      item('Flip horizontally', () => flipSelection('horizontal'), {
+        keys: 'Shift+H',
+        disabled: selNodes.length === 0,
+      }),
+      item('Flip vertically', () => flipSelection('vertical'), {
+        keys: 'Shift+V',
+        disabled: selNodes.length === 0,
+      }),
       item('Straighten', () => bent.forEach((e) => cs.setEdgeWaypoints(e.id, [])), {
         disabled: bent.length === 0,
         title: 'Remove the routing points from the selected wires and lines',

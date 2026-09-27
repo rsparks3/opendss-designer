@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { imageFileName, legendFor, OVERLAY_LABELS, rotationOf } from './exportDiagram'
+import { imageFileName, legendFor, mirrorsOf, OVERLAY_LABELS, rotationOf } from './exportDiagram'
 import { PHASE_LEGEND } from './phasing'
 
 describe('rotationOf', () => {
@@ -9,6 +9,15 @@ describe('rotationOf', () => {
     expect(rotationOf('matrix(0, 1, -1, 0, 0, 0)')).toBeCloseTo(90)
     expect(rotationOf('matrix(-1, 0, 0, -1, 0, 0)')).toBeCloseTo(180)
     expect(rotationOf('matrix(0, -1, 1, 0, 0, 0)')).toBeCloseTo(-90)
+    // A flipped symbol: rotate(90deg) scaleX(-1) still reads as 90.
+    expect(rotationOf('matrix(0, -1, -1, 0, 0, 0)')).toBeCloseTo(90)
+  })
+
+  it('tells a mirror from a rotation', () => {
+    expect(mirrorsOf('none')).toBe(false)
+    expect(mirrorsOf('matrix(-1, 0, 0, -1, 0, 0)')).toBe(false)
+    expect(mirrorsOf('matrix(-1, 0, 0, 1, 0, 0)')).toBe(true)
+    expect(mirrorsOf('matrix(0, -1, -1, 0, 0, 0)')).toBe(true)
   })
 })
 

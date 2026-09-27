@@ -1,5 +1,5 @@
 import { Handle, Position, useReactFlow, useUpdateNodeInternals, type HandleProps } from '@xyflow/react'
-import { useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useAltHeld } from '../../lib/altKey'
 import { loadingColor } from '../../lib/colorScale'
 import { effectivePhasing, PHASE_LETTERS, phaseColor, weakestPhase } from '../../lib/phasing'
@@ -86,12 +86,28 @@ export function rotatePosition(base: Position, rotation: number): Position {
   return POS_ORDER[(POS_ORDER.indexOf(base) + steps) % 4]
 }
 
-/** Current rotation for a node; re-measures handles when it changes. */
+/** Current rotation for a node; re-measures handles when it or the flip
+ *  changes. */
 export function useSymbolRotation(id: string, params: Params): number {
   const rotation = Number(params.rotation) || 0
+  const flip = params.flip === true
   const updateNodeInternals = useUpdateNodeInternals()
-  useEffect(() => updateNodeInternals(id), [rotation, id, updateNodeInternals])
+  useEffect(() => updateNodeInternals(id), [rotation, flip, id, updateNodeInternals])
   return rotation
+}
+
+// Symbol flip (Arrange → Flip): params.flip mirrors the symbol left-to-right
+// in its own frame, before the rotation. A flip in screen space composes as
+// flipOnScreen() in lib/arrange.ts works out. Text inside a symbol is turned
+// back the right way round by SymText, so "51" never reads "15".
+const FlipContext = createContext(false)
+
+/** Text drawn inside a symbol, kept readable when the symbol is mirrored. */
+export function SymText({ x, ...rest }: React.SVGProps<SVGTextElement> & { x: number }) {
+  const flipped = useContext(FlipContext)
+  return (
+    <text x={x} transform={flipped ? `translate(${2 * x} 0) scale(-1 1)` : undefined} {...rest} />
+  )
 }
 
 /** Where to put a terminal drawn at (x, y) on the unrotated w×h symbol: the
@@ -106,9 +122,12 @@ export function terminalPlacement(
   w: number,
   h: number,
   rotation: number,
+  flip = false,
 ): { position: Position; style: React.CSSProperties } {
-  const position = rotatePosition(base, rotation)
-  const p = rotatePoint(x, y, w, h, rotation)
+  // A mirror swaps left and right in the symbol's own frame, first.
+  const side = flip && base === Position.Left ? Position.Right : flip && base === Position.Right ? Position.Left : base
+  const position = rotatePosition(side, rotation)
+  const p = rotatePoint(flip ? w - x : x, y, w, h, rotation)
   const along = position === Position.Top || position === Position.Bottom
   return { position, style: along ? { left: p.x } : { top: p.y } }
 }
@@ -118,19 +137,22 @@ export function rotatedBox(w: number, h: number, rotation: number): { w: number;
   return rotation % 180 ? { w: h, h: w } : { w, h }
 }
 
-/** Renders the symbol SVG rotated about the container center. */
+/** Renders the symbol SVG rotated (and mirrored) about the container center. */
 export function SymbolSvg({
   rotation,
+  flip = false,
   w,
   h,
   children,
 }: {
   rotation: number
+  flip?: boolean
   w: number
   h: number
   children: ReactNode
 }) {
   const box = rotatedBox(w, h, rotation)
+  const turns = [rotation ? `rotate(${rotation}deg)` : '', flip ? 'scaleX(-1)' : ''].filter(Boolean)
   return (
     <div
       style={{
@@ -139,10 +161,10 @@ export function SymbolSvg({
         top: (box.h - h) / 2,
         width: w,
         height: h,
-        transform: rotation ? `rotate(${rotation}deg)` : undefined,
+        transform: turns.length ? turns.join(' ') : undefined,
       }}
     >
-      {children}
+      <FlipContext.Provider value={flip}>{children}</FlipContext.Provider>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import {
   rotatedBox,
   rotatePosition,
   SymbolSvg,
+  SymText,
   Terminal,
   useNodeIssueClass,
   usePhaseInk,
@@ -20,13 +21,13 @@ export function GeneratorNode({ id, data }: NodeProps<AppNode>) {
   const kw = data.params.kw
   return (
     <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h, ...phaseInk }}>
-      <SymbolSvg rotation={rot} w={40} h={60}>
+      <SymbolSvg rotation={rot} flip={data.params.flip === true} w={40} h={60}>
         <svg width="40" height="60" viewBox="0 0 40 60">
           <line x1="20" y1="0" x2="20" y2="20" className="sym" />
           <circle cx="20" cy="36" r="16" className="sym" fill="none" />
-          <text x="20" y="42" textAnchor="middle" className="sym-text">
+          <SymText x={20} y="42" textAnchor="middle" className="sym-text">
             G
-          </text>
+          </SymText>
         </svg>
       </SymbolSvg>
       <Terminal nodeId={id} id="t1" type="source" position={rotatePosition(Position.Top, rot)} className="term" />

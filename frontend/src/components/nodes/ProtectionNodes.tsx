@@ -6,6 +6,7 @@ import {
   rotatedBox,
   rotatePosition,
   SymbolSvg,
+  SymText,
   Terminal,
   useNodeIssueClass,
   usePhaseInk,
@@ -51,7 +52,7 @@ function ProtectiveDevice({
       }}
       title={`Double-click to ${closed ? openWord : closedWord}`}
     >
-      <SymbolSvg rotation={rot} w={w} h={h}>
+      <SymbolSvg rotation={rot} flip={data.params.flip === true} w={w} h={h}>
         <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
           {symbol(closed)}
         </svg>
@@ -153,14 +154,14 @@ export function RelayNode({ id, data }: NodeProps<AppNode>) {
           {/* 51N is a character wider than 51, so it steps down a size rather
               than filling the circle to its edge. The size lives in CSS: an
               SVG font-size attribute loses to the class's font shorthand. */}
-          <text
-            x="47"
+          <SymText
+            x={47}
             y="15.3"
             textAnchor="middle"
             className={`sym-text device-no${device.length > 2 ? ' wide' : ''}`}
           >
             {device}
-          </text>
+          </SymText>
           {/* The trip signal, routed like a control wire rather than cutting
               the corner, so it reads as a link and not as a stray tick. */}
           <path d="M47 23 V34 H40" className="sym trip-link" fill="none" />

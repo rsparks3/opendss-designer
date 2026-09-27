@@ -20,7 +20,7 @@ export function StorageNode({ id, data }: NodeProps<AppNode>) {
   const kwhrated = data.params.kwhrated
   return (
     <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h, ...phaseInk }}>
-      <SymbolSvg rotation={rot} w={40} h={60}>
+      <SymbolSvg rotation={rot} flip={data.params.flip === true} w={40} h={60}>
         <svg width="40" height="60" viewBox="0 0 40 60">
           {/* battery: alternating long/short plates */}
           <line x1="20" y1="0" x2="20" y2="24" className="sym" />

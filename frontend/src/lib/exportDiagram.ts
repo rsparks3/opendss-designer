@@ -80,9 +80,18 @@ export function imageFileName(name: string, overlay: OverlayMode, ext: 'svg' | '
 export function rotationOf(transform: string): number {
   const m = /matrix\(([^)]+)\)/.exec(transform)
   if (!m) return 0
-  const [a, b] = m[1].split(',').map(Number)
-  const deg = (Math.atan2(b, a) * 180) / Math.PI
+  const [, , c, d] = m[1].split(',').map(Number)
+  // Read off the second column, which a left-right mirror leaves alone.
+  const deg = (Math.atan2(0 - c, d) * 180) / Math.PI // 0 - c: never -0, which reads as -180
   return Math.abs(deg) < 0.01 ? 0 : deg
+}
+
+/** Whether a CSS transform mirrors (a flipped symbol's scaleX(-1)). */
+export function mirrorsOf(transform: string): boolean {
+  const m = /matrix\(([^)]+)\)/.exec(transform)
+  if (!m) return false
+  const [a, b, c, d] = m[1].split(',').map(Number)
+  return a * d - b * c < 0
 }
 
 const esc = (s: string) =>
@@ -193,7 +202,7 @@ export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): strin
   }
 
   // --- HTML: labels, badges, chips, busbars; symbols as nested <svg> -------
-  const walk = (el: Element, rotation: number, opacity: number) => {
+  const walk = (el: Element, rotation: number, opacity: number, mirror = false) => {
     if (SKIP.some((c) => el.classList.contains(c))) return
     const cs = getComputedStyle(el)
     if (cs.display === 'none' || cs.visibility === 'hidden') return
@@ -216,13 +225,18 @@ export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): strin
       copy.setAttribute('width', fmt(w))
       copy.setAttribute('height', fmt(h))
       copy.removeAttribute('xmlns')
-      const rot = rotation ? ` transform="rotate(${fmt(rotation)} ${fmt(cx)} ${fmt(cy)})"` : ''
+      const rot = mirror
+        ? ` transform="translate(${fmt(cx)} ${fmt(cy)}) rotate(${fmt(rotation)}) scale(-1 1) translate(${fmt(-cx)} ${fmt(-cy)})"`
+        : rotation
+          ? ` transform="rotate(${fmt(rotation)} ${fmt(cx)} ${fmt(cy)})"`
+          : ''
       parts.push(`<g${rot}${opacityAttr}>${serializer.serializeToString(copy)}</g>`)
       bounds.add(r)
       return
     }
 
     const rotHere = rotation + rotationOf(cs.transform)
+    const mirrorHere = mirror !== mirrorsOf(cs.transform)
 
     // A coloured box behind whatever the element holds.
     const bg = cs.backgroundColor
@@ -274,7 +288,7 @@ export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): strin
       bounds.add(r)
     }
 
-    for (const child of el.children) walk(child, rotHere, alpha)
+    for (const child of el.children) walk(child, rotHere, alpha, mirrorHere)
   }
 
   const labels = viewport.querySelector('.react-flow__edgelabel-renderer')

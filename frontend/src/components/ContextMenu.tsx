@@ -45,6 +45,7 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
     }
     if (node.type !== 'busbar') {
       items.push({ label: 'Rotate 90°', hint: 'R', action: () => store.rotateNodes([node.id]) })
+      items.push({ label: 'Flip horizontally', hint: 'Shift+H', action: () => store.flipNodes([node.id], 'horizontal') })
     }
     items.push({
       label: 'Duplicate',

@@ -19,7 +19,7 @@ export function VsourceNode({ id, data }: NodeProps<AppNode>) {
   const box = rotatedBox(40, 60, rot)
   return (
     <div className={`symbol-node${issueClass}`} style={{ width: box.w, height: box.h, ...phaseInk }}>
-      <SymbolSvg rotation={rot} w={40} h={60}>
+      <SymbolSvg rotation={rot} flip={data.params.flip === true} w={40} h={60}>
         <svg width="40" height="60" viewBox="0 0 40 60">
           {/* source circle with sine */}
           <circle cx="20" cy="24" r="14" className="sym" fill="none" />

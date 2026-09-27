@@ -6,6 +6,7 @@ import { keyLabel, SHORTCUTS } from '../lib/shortcuts'
 import { DEFAULT_PHASES, PHASE_KEY_LABELS, PHASE_KEYS, type ThemePref } from '../lib/theme'
 import { useCircuitStore } from '../store/circuitStore'
 import { useUiStore } from '../store/uiStore'
+import { FindDialog } from './FindDialog'
 import { LibraryDialog, SaveAsDialog } from './ProjectLibrary'
 
 /** Whichever dialog the UI store says is open. */
@@ -43,6 +44,8 @@ export function Dialogs() {
       return <AboutDialog onClose={close} />
     case 'prefs':
       return <PrefsDialog onClose={close} />
+    case 'find':
+      return <FindDialog onClose={close} />
     default:
       return null
   }
