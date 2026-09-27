@@ -118,6 +118,15 @@ kbd {
   width: 160px;
 }
 .tb-group { display: flex; align-items: center; gap: 4px; }
+.tb-file {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tb-file::before { content: '🗎 '; }
 .toolbar button.tb-dirty {
   border: none;
   background: none;

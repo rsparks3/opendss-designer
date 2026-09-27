@@ -2,6 +2,7 @@ import { chooseOverlay, save } from '../lib/fileActions'
 import { OVERLAY_CHOICES, solveNow, toggleAutoSolve } from '../lib/menus'
 import { redo, undo, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
+import { useUiStore } from '../store/uiStore'
 
 /**
  * The row under the menu bar: only what gets pressed all day. Everything
@@ -12,6 +13,7 @@ export function Toolbar() {
   const setName = useCircuitStore((s) => s.setName)
   const dirty = useCircuitStore((s) => s.dirty)
   const projectId = useCircuitStore((s) => s.projectId)
+  const linkedFile = useUiStore((s) => s.fileHandle?.name)
 
   const solving = useResultsStore((s) => s.solving)
   const tsRunning = useResultsStore((s) => s.tsRunning)
@@ -34,6 +36,11 @@ export function Toolbar() {
         onChange={(e) => setName(e.target.value)}
         title="Circuit name"
       />
+      {linkedFile && (
+        <span className="tb-file" title="Linked file: File → Save to file (Ctrl+Alt+S) writes back over it">
+          {linkedFile}
+        </span>
+      )}
       {dirty && (
         <button
           type="button"

@@ -3,6 +3,14 @@ import { useResultsStore, type OverlayMode } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
 import { api } from './api'
 import { diagramToSvg, imageFileName, legendFor, OVERLAY_LABELS, svgToPng } from './exportDiagram'
+import {
+  canSaveInPlace,
+  pickProjectFile,
+  pickSaveTarget,
+  projectFileName,
+  writeTo,
+  type FileHandle,
+} from './fileSystem'
 import { autoLayout } from './layout'
 import { loadProject, newProjectId, saveProject } from './library'
 import { migrateCircuit } from './schema'
@@ -82,6 +90,9 @@ function resetResults() {
   useResultsStore.setState({ result: null, stale: false, issues: [] })
 }
 
+/** Which file on disk (if any) Save to file writes back to. */
+const linkFile = (h: FileHandle | null) => useUiStore.getState().setFileHandle(h)
+
 export function fitView() {
   window.dispatchEvent(new CustomEvent('opendss:fit-view'))
 }
@@ -94,6 +105,7 @@ export function newCircuit() {
   useCircuitStore.setState({ dirty: false })
   useCircuitStore.temporal.getState().clear()
   resetResults()
+  linkFile(null)
 }
 
 // --- the browser-local project library -------------------------------------
@@ -135,6 +147,7 @@ export async function openFromLibrary(id: string) {
     useCircuitStore.getState().loadCircuit(c)
     useCircuitStore.setState({ projectId: id, dirty: false })
     resetResults()
+    linkFile(null)
     useUiStore.getState().closeDialog()
     fitView()
     if (warning) flash(warning, 'info', 12000)
@@ -150,9 +163,25 @@ export async function exportSaved(id: string) {
 
 // --- files ------------------------------------------------------------------
 
+/** Open a .oneline.json from disk. Where the browser allows it the file
+ *  stays linked, so Save to file writes back over it. */
 export async function openProjectFile(file?: File) {
-  const f = file ?? (await pickFiles('.json'))[0]
+  let f = file
+  let handle: FileHandle | null = null
+  if (!f && canSaveInPlace()) {
+    try {
+      const picked = await pickProjectFile()
+      if (!picked) return
+      f = picked.file
+      handle = picked.handle
+    } catch (err) {
+      flash(`Could not open project: ${errText(err)}`)
+      return
+    }
+  }
+  f ??= (await pickFiles('.json'))[0]
   if (!f) return
+  if (!mayDiscard('open the file')) return
   const oversize = tooBig([f], MAX_PROJECT_BYTES)
   if (oversize) {
     flash(`Could not open project: ${oversize}`)
@@ -162,7 +191,9 @@ export async function openProjectFile(file?: File) {
     const { circuit: c, warning } = migrateCircuit(JSON.parse(await f.text()))
     useCircuitStore.getState().loadCircuit(c)
     // A file from disk is not a library entry until it is saved.
-    useCircuitStore.setState({ projectId: null })
+    useCircuitStore.setState({ projectId: null, dirty: false })
+    resetResults()
+    linkFile(handle)
     useUiStore.getState().closeDialog()
     fitView()
     if (warning) flash(warning, 'info', 12000)
@@ -179,6 +210,7 @@ export async function openSample(id: string) {
     useCircuitStore.setState({ dirty: false, projectId: null })
     useCircuitStore.temporal.getState().clear()
     resetResults()
+    linkFile(null)
     fitView()
   } catch (err) {
     flash(`Could not open sample: ${errText(err)}`)
@@ -199,6 +231,7 @@ export async function importDss(fileList?: File[]) {
     autoLayout(imported)
     useCircuitStore.getState().loadCircuit(imported)
     useCircuitStore.setState({ projectId: null })
+    linkFile(null)
     fitView()
     const notes = [...(warnings ?? [])]
     if (unsupported.length) {
@@ -221,8 +254,30 @@ export async function importDss(fileList?: File[]) {
 
 export function exportJson() {
   const { name } = useCircuitStore.getState()
-  download(`${name || 'circuit'}.oneline.json`, JSON.stringify(circuit(), null, 2))
+  download(projectFileName(name), JSON.stringify(circuit(), null, 2))
   useCircuitStore.getState().markSaved()
+}
+
+/** Save to file: back over the linked file when there is one, otherwise
+ *  (or with `choose`) wherever the user picks. Without the File System
+ *  Access API this is a download. */
+export async function saveToFile(choose = false) {
+  if (!canSaveInPlace()) {
+    exportJson()
+    return
+  }
+  const { name } = useCircuitStore.getState()
+  try {
+    const current = useUiStore.getState().fileHandle
+    const handle = (!choose && current) || (await pickSaveTarget(projectFileName(name)))
+    if (!handle) return
+    await writeTo(handle, JSON.stringify(circuit(), null, 2))
+    linkFile(handle)
+    useCircuitStore.getState().markSaved()
+    flash(`Saved to ${handle.name}`, 'info', 2500)
+  } catch (err) {
+    flash(`Could not save the file: ${errText(err)}`, 'error', 8000)
+  }
 }
 
 export async function exportDss() {

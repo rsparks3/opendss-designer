@@ -26,8 +26,10 @@ export const SHORTCUTS: ShortcutGroup[] = [
     title: 'File',
     items: [
       { keys: 'Mod+O', action: 'Open from this browser' },
-      { keys: 'Mod+S', action: 'Save' },
+      { keys: 'Mod+Shift+O', action: 'Open a project file' },
+      { keys: 'Mod+S', action: 'Save to this browser' },
       { keys: 'Mod+Shift+S', action: 'Save as' },
+      { keys: 'Mod+Alt+S', action: 'Save to file' },
     ],
   },
   {

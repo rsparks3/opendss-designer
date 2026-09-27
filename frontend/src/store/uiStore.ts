@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { FileHandle } from '../lib/fileSystem'
 
 /**
  * Editor chrome state that the menu bar, the toolbar and the panels all need
@@ -20,6 +21,12 @@ interface UiState {
   panelOpen: Record<PanelKey, boolean>
   setPanelOpen: (key: PanelKey, open: boolean) => void
   togglePanel: (key: PanelKey) => void
+
+  /** The file on disk this circuit was opened from or last saved to, where
+   *  the browser can write it in place. Not persisted: a handle only lives
+   *  as long as the page. */
+  fileHandle: FileHandle | null
+  setFileHandle: (h: FileHandle | null) => void
 
   showGrid: boolean
   snapToGrid: boolean
@@ -71,6 +78,9 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set({ panelOpen: { ...get().panelOpen, [key]: open } })
   },
   togglePanel: (key) => get().setPanelOpen(key, !get().panelOpen[key]),
+
+  fileHandle: null,
+  setFileHandle: (fileHandle) => set({ fileHandle }),
 
   showGrid: readFlag('showGrid', true),
   snapToGrid: readFlag('snapToGrid', true),

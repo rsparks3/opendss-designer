@@ -20,6 +20,11 @@ of M7.
   Ctrl+Shift+H), **Solve** on F5, **Clean up** on Ctrl+Shift+L, **View →
   Grid / Snap to grid** and panel toggles (remembered per browser),
   **Help → Keyboard shortcuts** (or `?`) and **About**.
+- **Save to file** (Ctrl+Alt+S) and **Open file…** (Ctrl+Shift+O): in
+  Chrome and Edge a project file opened or saved from disk stays linked, and
+  the next save writes back over the same file instead of downloading a new
+  copy. Other browsers download, as before. The browser library is still
+  what **Save** (Ctrl+S) uses.
 - *Unsaved changes* beside the circuit name while there is anything to save;
   click it to save.
 - **Line codes.** A conductor library that travels with the circuit, the way

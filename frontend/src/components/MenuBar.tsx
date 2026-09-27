@@ -1,7 +1,7 @@
 import { useReactFlow } from '@xyflow/react'
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { api, type SampleMeta } from '../lib/api'
-import { cleanUp, fitView, save } from '../lib/fileActions'
+import { cleanUp, fitView, openProjectFile, save, saveToFile } from '../lib/fileActions'
 import {
   buildMenus,
   cutSelection,
@@ -48,15 +48,18 @@ function useMenuShortcuts(ops: CanvasOps) {
       const mod = e.ctrlKey || e.metaKey
       const k = e.key.toLowerCase()
       // Save and open work from anywhere, a text field included.
-      if (mod && k === 's') {
+      // e.code, because Alt changes e.key on some layouts.
+      if (mod && e.code === 'KeyS') {
         e.preventDefault()
-        if (e.shiftKey) ui.openDialog('saveAs')
+        if (e.altKey) void saveToFile()
+        else if (e.shiftKey) ui.openDialog('saveAs')
         else save()
         return
       }
       if (mod && k === 'o') {
         e.preventDefault()
-        ui.openDialog('library')
+        if (e.shiftKey) void openProjectFile()
+        else ui.openDialog('library')
         return
       }
       if (e.key === 'F5') {

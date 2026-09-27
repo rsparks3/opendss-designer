@@ -4,14 +4,15 @@ import {
   cleanUp,
   exportDss,
   exportImage,
-  exportJson,
   fitView,
   importDss,
   newCircuit,
   openProjectFile,
   openSample,
   save,
+  saveToFile,
 } from './fileActions'
+import { canSaveInPlace } from './fileSystem'
 import { runSolve } from './solve'
 import { redo, undo, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore, type OverlayMode } from '../store/resultsStore'
@@ -118,6 +119,7 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
   const tsMode = rs.analysisMode === 'timeseries'
   const hasErrors = rs.issues.some((i) => i.severity === 'error')
   const bent = selEdges.filter((e) => e.data?.waypoints?.length)
+  const inPlace = canSaveInPlace()
 
   const file: Menu = {
     label: 'File',
@@ -127,8 +129,9 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
         keys: 'Mod+O',
         title: 'Open a circuit saved in this browser',
       }),
-      item('Open project file…', () => void openProjectFile(), {
-        title: 'Open a .oneline.json file from disk',
+      item('Open file…', () => void openProjectFile(), {
+        keys: 'Mod+Shift+O',
+        title: 'Open a .oneline.json project file from disk',
       }),
       {
         kind: 'sub',
@@ -144,14 +147,22 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
       sep,
       item('Save', save, { keys: 'Mod+S', title: 'Save to this browser' }),
       item('Save as…', () => ui.openDialog('saveAs'), { keys: 'Mod+Shift+S' }),
+      item('Save to file', () => void saveToFile(), {
+        keys: 'Mod+Alt+S',
+        title: ui.fileHandle
+          ? `Write over ${ui.fileHandle.name}`
+          : inPlace
+            ? 'Save as a .oneline.json file; later saves write back to the same file'
+            : 'Download as a .oneline.json file',
+      }),
+      ...(inPlace
+        ? [item('Save to file as…', () => void saveToFile(true), { title: 'Save as a different .oneline.json file' })]
+        : []),
       sep,
       {
         kind: 'sub',
         label: 'Export',
         items: [
-          item('Project (.oneline.json)', exportJson, {
-            title: 'Download the project as a file, to move it or back it up',
-          }),
           item('OpenDSS (.dss)', () => void exportDss(), { title: 'A runnable OpenDSS script', disabled: empty }),
           sep,
           item('Image (SVG)', () => void exportImage('svg'), {

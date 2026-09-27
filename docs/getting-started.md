@@ -95,8 +95,13 @@ name while there is something to save; click it to save.
   saves are silent. **Save as…** makes a copy, **Open…** (Ctrl+O) lists what
   is saved with rename, delete and export. Saved circuits live in that
   browser on that device only and are never uploaded.
-- **File → Export → Project (.oneline.json)** and **File → Open project
-  file…** move a project between machines or keep a backup as a file.
+- **File → Save to file** (Ctrl+Alt+S) keeps the project as a
+  `.oneline.json` file on disk, and **File → Open file…** (Ctrl+Shift+O)
+  opens one. In Chrome and Edge the file stays linked — its name shows next
+  to the circuit name — and later saves write straight back over it, which
+  suits a shared folder or a git repository; **Save to file as…** picks a
+  different file. In Firefox and Safari, Save to file downloads a copy
+  instead.
 - **File → Export → OpenDSS (.dss)** writes a runnable `.dss` script — the exact commands the built-in
   solver uses — so anything you draw also runs in stock OpenDSS.
 - **File → Import .dss…** loads existing `.dss` files; see
