@@ -13,6 +13,7 @@ import {
   saveToFile,
 } from './fileActions'
 import { canSaveInPlace } from './fileSystem'
+import { renderedEdgePoints } from './edgeGeometry'
 import { align, distribute, type Alignment, type Axis, type Box } from './arrange'
 import { NODE_SIZE } from './defaults'
 import type { AppNode } from '../store/circuitStore'
@@ -150,6 +151,7 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
   const tsMode = rs.analysisMode === 'timeseries'
   const hasErrors = rs.issues.some((i) => i.severity === 'error')
   const bent = selEdges.filter((e) => e.data?.waypoints?.length)
+  const selLines = selEdges.filter((e) => e.type === 'line')
   const inPlace = canSaveInPlace()
 
   const file: Menu = {
@@ -304,6 +306,10 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
       item('Flip vertically', () => flipSelection('vertical'), {
         keys: 'Shift+V',
         disabled: selNodes.length === 0,
+      }),
+      item('Split line', () => cs.splitLine(selLines[0].id, null, renderedEdgePoints(selLines[0].id)), {
+        disabled: selLines.length !== 1 || selNodes.length > 0,
+        title: 'Put a new bus halfway along the selected line (right-click a line to split it at a point)',
       }),
       item('Straighten', () => bent.forEach((e) => cs.setEdgeWaypoints(e.id, [])), {
         disabled: bent.length === 0,

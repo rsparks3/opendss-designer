@@ -82,21 +82,36 @@ export function EditorCanvas() {
   const addEdgeWaypoint = useCircuitStore((s) => s.addEdgeWaypoint)
   const flash = useResultsStore((s) => s.flash)
   const flashKind = useResultsStore((s) => s.flashKind)
-  const { screenToFlowPosition, fitView } = useReactFlow()
+  const { screenToFlowPosition, fitView, getNodes } = useReactFlow()
   const showGrid = useUiStore((s) => s.showGrid)
   const snap = useUiStore((s) => s.snapToGrid)
   const theme = useUiStore((s) => s.theme)
 
   // Clean up and sample loads redraw the whole circuit; show all of it. The
-  // event is dispatched after the store update, and the frame delay lets
-  // React Flow measure the new node sizes before fitting.
+  // event is dispatched after the store update, but React Flow only counts
+  // nodes it has measured, and a freshly loaded circuit takes a few frames
+  // to get there -- fitting on the first frame framed whatever happened to
+  // be measured, often nothing. So wait (up to half a second) for every
+  // node to have a size, then fit.
   useEffect(() => {
+    let frame = 0
     const onFit = () => {
-      requestAnimationFrame(() => void fitView({ maxZoom: 1.5, padding: 0.1 }))
+      let tries = 0
+      const attempt = () => {
+        const ns = getNodes()
+        const ready = ns.length > 0 && ns.every((n) => n.measured?.width && n.measured?.height)
+        if (ready || ++tries > 30) void fitView({ maxZoom: 1.5, padding: 0.1 })
+        else frame = requestAnimationFrame(attempt)
+      }
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(attempt)
     }
     window.addEventListener('opendss:fit-view', onFit)
-    return () => window.removeEventListener('opendss:fit-view', onFit)
-  }, [fitView])
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('opendss:fit-view', onFit)
+    }
+  }, [fitView, getNodes])
 
   // Busbars are placed by click-dragging to the desired width; a transparent
   // overlay captures that gesture. Other components place on pane clicks so

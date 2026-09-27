@@ -1,3 +1,4 @@
+import { divideLength, midpoint, splitAt } from '../lib/splitLine'
 import { flipOnScreen, type Axis } from '../lib/arrange'
 import {
   applyEdgeChanges,
@@ -117,6 +118,11 @@ export interface CircuitState {
   flipNodes: (ids: string[], axis: Axis) => void
   /** Move many nodes at once, as one undo step (Align, Distribute). */
   moveNodes: (positions: Record<string, XY>) => void
+  /** Split a line with a new busbar at `click` (flow coordinates; the
+   *  midpoint when omitted), dividing its length in proportion. `rendered`
+   *  is the polyline on screen, as for addEdgeWaypoint. Returns the new
+   *  busbar's id. */
+  splitLine: (edgeId: string, click?: XY | null, rendered?: XY[] | null) => string | null
 }
 
 // Ids used to be `Date.now()` plus a counter that reset on every page load,
@@ -203,6 +209,14 @@ function takenNames(s: Pick<CircuitState, 'nodes' | 'edges'>): Set<string> {
     if (typeof nm === 'string') names.add(nm)
   }
   return names
+}
+
+/** `base` itself if free, else base2, base3, ... */
+function uniqueSuffixed(base: string, taken: Set<string>): string {
+  let name = base
+  for (let i = 2; taken.has(name); i++) name = `${base}${i}`
+  taken.add(name)
+  return name
 }
 
 function uniqueName(prefix: string, taken: Set<string>): string {
@@ -873,6 +887,79 @@ export const useCircuitStore = create<CircuitState>()(
           }),
           dirty: true,
         })
+      },
+      splitLine: (edgeId, click, rendered) => {
+        const { nodes, edges } = get()
+        const edge = edges.find((e) => e.id === edgeId)
+        if (!edge || edge.type !== 'line') return null
+        const src = nodes.find((n) => n.id === edge.source)
+        const tgt = nodes.find((n) => n.id === edge.target)
+        if (!src || !tgt) return null
+        const wps = edge.data?.waypoints ?? []
+        // The line as drawn, as addEdgeWaypoint reads it.
+        const drawn = rendered && rendered.length >= 2 && (!wps.length || rendered.length === wps.length + 2)
+        const pts = drawn
+          ? wps.length ? rendered! : simplifyCollinear(rendered!)
+          : [nodeCenter(src), ...wps, nodeCenter(tgt)]
+        const where = splitAt(pts, click ?? midpoint(pts))
+
+        // A short bar whose middle terminal sits on the split point.
+        const width = 60
+        const cx = snapGrid(where.point.x)
+        const cy = where.point.y
+        const params = edge.data?.params ?? {}
+        const taken = takenNames(get())
+        const lineName = String(params.name ?? 'LN')
+        const barName = uniqueSuffixed(`${lineName}_MID`, taken)
+        const kvFrom = [src, tgt].find((n) => n.type === 'busbar' && n.data.params.basekv != null)
+        const bar: AppNode = {
+          id: newId('n'),
+          type: 'busbar',
+          position: { x: cx - width / 2, y: snapGrid(cy - NODE_SIZE.busbar.h / 2) },
+          width,
+          height: NODE_SIZE.busbar.h,
+          selected: true,
+          data: {
+            params: { ...defaultParams('busbar'), name: barName, ...(kvFrom ? { basekv: kvFrom.data.params.basekv } : {}) },
+          },
+        }
+        // Along the bar for a line running across; top and bottom rows for
+        // one running down, so each half meets the bar from its own side.
+        const [inHandle, outHandle] = where.vertical
+          ? where.forward ? ['b1', 'c1'] : ['c1', 'b1']
+          : where.forward ? ['b0', 'b2'] : ['b2', 'b0']
+        const hasLength = typeof params.length === 'number'
+        const [l1, l2] = hasLength ? divideLength(params.length as number, where.fraction) : [undefined, undefined]
+        const first: AppEdge = {
+          ...edge,
+          selected: false,
+          target: bar.id,
+          targetHandle: inHandle,
+          data: {
+            ...edge.data,
+            params: { ...params, ...(hasLength ? { length: l1 } : {}) },
+            waypoints: where.before.length ? where.before : undefined,
+          },
+        }
+        const second: AppEdge = {
+          id: newId('e'),
+          type: 'line',
+          source: bar.id,
+          sourceHandle: outHandle,
+          target: edge.target,
+          targetHandle: edge.targetHandle,
+          data: {
+            params: { ...params, name: uniqueSuffixed(`${lineName}_2`, taken), ...(hasLength ? { length: l2 } : {}) },
+            waypoints: where.after.length ? where.after : undefined,
+          },
+        }
+        set({
+          nodes: [...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)), bar],
+          edges: edges.flatMap((e) => (e.id === edgeId ? [first, second] : e.selected ? [{ ...e, selected: false }] : [e])),
+          dirty: true,
+        })
+        markStale()
+        return bar.id
       },
       moveNodes: (positions) => {
         let moved = false

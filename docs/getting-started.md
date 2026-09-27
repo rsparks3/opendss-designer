@@ -155,6 +155,15 @@ moves to the other side, and the numbers inside stay readable — and **Flip
 vertically** (++shift+v++) turns it upside down. Each is one undo step.
 **Edit → Find** (++ctrl+f++) jumps to an element by part of its name.
 
+### Split a line
+
+Right-click a line and choose **Split line here** to put a new bus in it at
+that point — somewhere to hang a tap, a load or a recloser mid-feeder. The
+line becomes two, with its length divided in proportion to where you clicked
+along the drawn line and every other setting (conductor, phases, phasing)
+kept on both halves. **Arrange → Split line** splits the selected line
+halfway. Undo puts the line back whole.
+
 ### Clean up
 
 **Arrange → Clean up layout** (++ctrl+shift+l++) redraws the whole circuit as a top-down tree:

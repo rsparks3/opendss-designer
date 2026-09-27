@@ -1,4 +1,5 @@
 import { useReactFlow } from '@xyflow/react'
+import { renderedEdgePoints } from '../lib/edgeGeometry'
 import { effectivePhasing } from '../lib/phasing'
 import { allOfType, downstreamOf, onPhase } from '../lib/selection'
 import { useCircuitStore } from '../store/circuitStore'
@@ -20,7 +21,7 @@ interface MenuItem {
 
 /** Right-click menu for nodes and edges. */
 export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: () => void }) {
-  const { deleteElements } = useReactFlow()
+  const { deleteElements, screenToFlowPosition } = useReactFlow()
   const store = useCircuitStore.getState()
   const node = target.kind === 'node' ? store.nodes.find((n) => n.id === target.id) : undefined
   const edge = target.kind === 'edge' ? store.edges.find((e) => e.id === target.id) : undefined
@@ -66,6 +67,15 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
   }
 
   if (edge) {
+    if (edge.type === 'line') {
+      items.push({
+        label: 'Split line here',
+        action: () => {
+          const at = screenToFlowPosition({ x: target.x, y: target.y }, { snapToGrid: false })
+          store.splitLine(edge.id, at, renderedEdgePoints(edge.id))
+        },
+      })
+    }
     if (edge.data?.waypoints?.length) {
       items.push({
         label: 'Straighten (remove waypoints)',

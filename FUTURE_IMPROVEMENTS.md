@@ -194,7 +194,10 @@ All frontend-only; the M1 vitest harness covers the store changes.
   toolbar. Menus are data (`lib/menus.ts`), shortcuts one table
   (`lib/shortcuts.ts`) that Help lists
 - **Round-trip preservation** of comments and unsupported elements on export
-- **Split line**: drop a bus in the middle of an existing Line edge
+- ~~**Split line**~~ — 2026-09-27: right-click → *Split line here* (or Arrange →
+  Split line for the midpoint) inserts a 60 px busbar named `<line>_MID`, keeps
+  the original edge id on the upstream half, and divides `length` by the drawn
+  arc length to the click (`lib/splitLine.ts`)
 
 ## M8 — Public deployment — ✅ DONE (2026-09-01)
 

@@ -26,6 +26,12 @@ of M7.
   inside symbols kept readable and terminals following the mirror, and
   **Edit → Find** (Ctrl+F) to jump to an element by name. Image exports
   draw flipped symbols flipped.
+- **Split line.** Right-click a line → *Split line here* puts a new bus
+  (named after the line, `LN1_MID`) where you clicked and turns the line
+  into two, its length divided in proportion to where the click fell along
+  the drawn line; every other setting carries to both halves, the second
+  named `LN1_2`. **Arrange → Split line** does it halfway along. One undo
+  step.
 - **Dark mode.** View → Theme → Light, Dark or *Same as the system*; the
   panels, the canvas, the symbols and the plots all follow it. Image exports
   stay on white paper in dark ink whatever the screen shows.
@@ -74,6 +80,10 @@ of M7.
   app's own layout).
 
 ### Fixed
+
+- Opening a sample, a saved circuit or an import fitted the view before the
+  new drawing had been measured, so it often zoomed in on one corner. It now
+  waits for the drawing to be laid out, then fits all of it.
 
 - **Importing a real feeder lost every line's impedance.** A `LineCode`
   defined by phase impedance matrices — which is how every real feeder is
