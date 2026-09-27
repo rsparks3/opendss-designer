@@ -37,6 +37,9 @@ def test_fixture_covers_every_type(fixture_json):
     assert any(e.get("waypoints") for e in fixture_json["edges"])
     assert fixture_json["busNames"]
     assert fixture_json["loadShapes"]
+    assert fixture_json["lineCodes"]
+    assert any(e["params"].get("linecode") in fixture_json["lineCodes"]
+               for e in fixture_json["edges"])
 
 
 def test_fixture_validates_and_round_trips(fixture_json):
@@ -47,6 +50,8 @@ def test_fixture_validates_and_round_trips(fixture_json):
     assert dumped["name"] == fixture_json["name"]
     assert dumped["busNames"] == fixture_json["busNames"]
     assert dumped["loadShapes"] == fixture_json["loadShapes"]
+    assert dumped["lineCodes"] == fixture_json["lineCodes"]
+    assert dumped["tccCurves"] == fixture_json["tccCurves"]
     assert dumped["nodes"] == [
         {**n, "height": None} for n in fixture_json["nodes"]
     ], "node round trip drifted (height is backend-optional and absent in exports)"
@@ -62,6 +67,7 @@ def test_fixture_compiles_cleanly(fixture_json):
     # line, breaker (as a switch line), load.
     joined = "\n".join(res.commands)
     for fragment in ("new circuit.", "new transformer.t1", "new line.ln1",
+                     "new linecode.mtx601", "linecode=mtx601",
                      "new line.brk1", "new load.load1",
                      "new capacitor.cap1", "new generator.gen1",
                      "new loadshape.day24", "new loadshape.sun24",

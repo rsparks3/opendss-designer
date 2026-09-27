@@ -113,3 +113,87 @@ describe('autoLayout', () => {
     }
   })
 })
+
+import sample34 from '../../../src/opendss_designer/samples/ieee-34-bus.oneline.json'
+import { SYMBOL_PITCH } from './defaults'
+
+describe('autoLayout on the IEEE 34-bus feeder', () => {
+  const c = JSON.parse(JSON.stringify(sample34)) as CircuitJSON
+  autoLayout(c)
+  const byId = new Map(c.nodes.map((nd) => [nd.id, nd]))
+  const box = (nd: CircuitNodeJSON) => {
+    const w = nd.type === 'busbar' ? (nd.width ?? NODE_SIZE.busbar.w) : NODE_SIZE[nd.type].w
+    const h = NODE_SIZE[nd.type].h
+    return { x: nd.position!.x, y: nd.position!.y, w, h }
+  }
+
+  it('leaves no two elements overlapping', () => {
+    const boxes = c.nodes.map(box)
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = 0; j < i; j++) {
+        const a = boxes[i]
+        const b = boxes[j]
+        const apart =
+          a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y
+        expect(apart, `${c.nodes[i].id} overlaps ${c.nodes[j].id}`).toBe(true)
+      }
+    }
+  })
+
+  it('hangs every load straight beneath its bus, on the handle it is wired to', () => {
+    let hung = 0
+    for (const ed of c.edges) {
+      const s = byId.get(ed.source)!
+      const t = byId.get(ed.target)!
+      const [bus, load, handle] =
+        s.type === 'busbar' && t.type === 'load' ? [s, t, ed.sourceHandle]
+        : t.type === 'busbar' && s.type === 'load' ? [t, s, ed.targetHandle]
+        : [null, null, null]
+      if (!bus || !load) continue
+      hung += 1
+      const m = handle!.match(/^c(\d+)$/)
+      expect(m, `${load.id} should hang from a bottom-row handle`).not.toBeNull()
+      const handleX = bus.position!.x + (Number(m![1]) + 0.5) * SYMBOL_PITCH
+      const loadCx = load.position!.x + NODE_SIZE.load.w / 2
+      expect(loadCx).toBe(handleX)
+      expect(load.position!.y).toBeGreaterThan(bus.position!.y)
+    }
+    expect(hung).toBeGreaterThan(40)
+  })
+
+  it('spaces the loads under one bus evenly and fits them on the bar', () => {
+    const under = new Map<string, number[]>()
+    for (const ed of c.edges) {
+      const s = byId.get(ed.source)!
+      const t = byId.get(ed.target)!
+      const bus = s.type === 'busbar' && t.type === 'load' ? s : t.type === 'busbar' && s.type === 'load' ? t : null
+      const load = bus === s ? t : s
+      if (!bus) continue
+      under.set(bus.id, [...(under.get(bus.id) ?? []), load.position!.x])
+    }
+    for (const [busId, xs] of under) {
+      xs.sort((a, b) => a - b)
+      const bus = byId.get(busId)!
+      const width = bus.width ?? NODE_SIZE.busbar.w
+      for (let i = 1; i < xs.length; i++) expect(xs[i] - xs[i - 1]).toBe(xs[1] - xs[0])
+      expect(xs[0]).toBeGreaterThanOrEqual(bus.position!.x)
+      expect(xs[xs.length - 1] + NODE_SIZE.load.w).toBeLessThanOrEqual(bus.position!.x + width)
+    }
+  })
+
+  it('fans a regulator bank out instead of stacking it', () => {
+    const regs = c.nodes.filter((nd) => nd.type === 'regulator')
+    expect(regs.length).toBe(6)
+    const xs = new Set(regs.map((r) => `${r.position!.x},${r.position!.y}`))
+    expect(xs.size).toBe(6)
+  })
+
+  it('bends a line below the hanging row so it never crosses a load', () => {
+    const routed = c.edges.filter((ed) => ed.type === 'line' && ed.waypoints?.length)
+    expect(routed.length).toBeGreaterThan(10)
+    for (const ed of routed) {
+      const bus = [byId.get(ed.source)!, byId.get(ed.target)!].find((nd) => nd.type === 'busbar')!
+      for (const wp of ed.waypoints!) expect(wp.y).toBeGreaterThan(bus.position!.y + 100)
+    }
+  })
+})

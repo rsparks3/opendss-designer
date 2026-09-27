@@ -42,6 +42,7 @@ nav:
   - Shapes & profiles: shapes.md
   - Time-series analysis: timeseries.md
   - Importing DSS files: importing-dss.md
+  - Validation: validation.md
   - Deploying: deployment.md
   - Hosted service plan: hosted-service.md
   - Security: security.md

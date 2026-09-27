@@ -4,7 +4,7 @@ from __future__ import annotations
 from .. import context
 from ..settings import Settings
 from .compiler import compile_circuit
-from .connectivity import BUSBAR_CANON_HANDLE, synthesize, terminal_key
+from .connectivity import BUSBAR_CANON_HANDLE, sanitize_name, synthesize, terminal_key
 from .model import Circuit, Issue, node_terminals
 from .phasing import PHASE_LETTERS, default_phasing, parse_phasing, phase_count, phase_set
 
@@ -364,35 +364,72 @@ def validate(circuit: Circuit) -> list[Issue]:
                 severity="warning", code="empty-loadshape",
                 message=f"Loadshape '{key}' has fewer than 2 points."))
 
+    # Line-code references. A line naming a code the circuit does not hold
+    # would compile with its own r1/x1/r0/x0 (or the defaults) and look fine;
+    # a code with a different phase count would have the engine resize the
+    # line to the code's count, which silently changes what the lateral is.
+    codes = {sanitize_name(k): (k, spec) for k, spec in circuit.lineCodes.items()}
+    for e in circuit.edges:
+        if e.type != "line":
+            continue
+        raw = e.params.get("linecode")
+        if not raw:
+            continue
+        label = e.params.get("name") or e.id
+        entry = codes.get(sanitize_name(str(raw)))
+        if entry is None:
+            # A conductor preset from linecodes.csv is also a "linecode" tag
+            # and stamps its values into the line, so it is not an error.
+            continue
+        _key, spec = entry
+        phases = int(e.params.get("phases") or 3)
+        if spec.nphases != phases:
+            issues.append(Issue(
+                severity="error", code="linecode-phases",
+                message=f"Line '{label}' is {phases}-phase but its line code "
+                        f"'{raw}' is {spec.nphases}-phase.",
+                edgeId=e.id))
+
     # Phases, per bus. A pin is only useful if something says when it points at
     # a phase that never gets there -- a lateral pinned to C hanging off a bus
     # fed only by A is a dead element, and the solve reports it as a voltage of
     # zero rather than as a mistake.
     issues.extend(_phase_issues(circuit, conn, sources))
 
-    # kV consistency per bus (rough sanity check on declared voltages).
+    # kV consistency per bus (rough sanity check on declared voltages). Every
+    # declaration is brought to line-to-line first: OpenDSS takes a
+    # single-phase wye element's kV as line-to-neutral (a 2.4 kV load on a
+    # 4.16 kV bus is right, not a mismatch), and everything else as
+    # line-to-line.
+    def line_to_line(kv: float, phases: object, conn_: object) -> float:
+        one_phase = phase_count({"phases": phases}) == 1 if phases is not None else False
+        return kv * 3 ** 0.5 if one_phase and str(conn_ or "wye").lower() != "delta" else kv
+
     bus_kvs: dict[str, dict[str, str]] = {}
     for n in circuit.nodes:
         buses = conn.node_buses.get(n.id, [])
         declared: list[tuple[str, float]] = []
+        p = n.params
         if n.type in ("vsource", "busbar"):
-            kv = n.params.get("basekv")
+            kv = p.get("basekv")
             if kv and buses:
                 declared.append((buses[0], float(kv)))
         elif n.type in ("load", "capacitor", "generator", "pvsystem", "storage"):
-            kv = n.params.get("kv")
+            kv = p.get("kv")
             if kv and buses:
-                declared.append((buses[0], float(kv)))
+                declared.append((buses[0], line_to_line(float(kv), p.get("phases"), p.get("conn"))))
         elif n.type == "regulator":
             # Equal ratio, so both sides declare the same kV.
-            kv = n.params.get("kv")
+            kv = p.get("kv")
             if kv:
-                declared.extend((b, float(kv)) for b in buses[:2])
+                ll = line_to_line(float(kv), p.get("phases"), p.get("conn"))
+                declared.extend((b, ll) for b in buses[:2])
         elif n.type == "transformer":
-            windings = n.params.get("windings") or []
+            windings = p.get("windings") or []
             for b, w in zip(buses, windings, strict=False):
                 if w.get("kv"):
-                    declared.append((b, float(w["kv"])))
+                    ll = line_to_line(float(w["kv"]), p.get("phases"), w.get("conn"))
+                    declared.append((b, ll))
         label = str(n.params.get("name") or n.id)
         for bus, kv in declared:
             others = bus_kvs.setdefault(bus, {})

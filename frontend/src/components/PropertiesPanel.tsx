@@ -1,5 +1,6 @@
 import { FIELDS, FieldInput } from '../lib/fields'
 import { detachesPreset, presetPatch, useLineCodeStore } from '../lib/lineCodes'
+import { BulkEditor } from './BulkEditor'
 import { useCircuitStore, type AppEdge, type AppNode } from '../store/circuitStore'
 import type { Params, Winding } from '../types/circuit'
 
@@ -68,11 +69,18 @@ export function PropertiesPanel() {
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
   const lineCodePresets = useLineCodeStore((s) => s.presets)
+  const lineCodes = useCircuitStore((s) => s.lineCodes)
   const updateNodeParams = useCircuitStore((s) => s.updateNodeParams)
   const setTransformerWindings = useCircuitStore((s) => s.setTransformerWindings)
   const updateEdgeParams = useCircuitStore((s) => s.updateEdgeParams)
 
-  const selNode: AppNode | undefined = nodes.find((n) => n.selected)
+  const selectedNodes = nodes.filter((n) => n.selected)
+  const selectedLines = edges.filter((e) => e.selected && e.type === 'line')
+  if (selectedNodes.length + selectedLines.length > 1) {
+    return <BulkEditor nodes={selectedNodes} edges={selectedLines} />
+  }
+
+  const selNode: AppNode | undefined = selectedNodes[0]
   const selEdge: AppEdge | undefined = selNode ? undefined : edges.find((e) => e.selected)
 
   let kind: string | null = null
@@ -124,26 +132,47 @@ export function PropertiesPanel() {
       <div className="props-form">
         {kind === 'line' && (
           <label className="prop-row">
-            <span>Conductor preset</span>
+            <span>Conductor</span>
             <select
               value={String(params.linecode ?? '')}
               onChange={(e) => {
-                const patch = presetPatch(e.target.value)
+                const choice = e.target.value
+                const code = lineCodes[choice]
+                if (code) {
+                  // A code fixes the conductor count as well as its impedance.
+                  commit!({ linecode: choice, phases: code.nphases })
+                  return
+                }
+                const patch = presetPatch(choice)
                 if (patch) commit!(patch)
                 else commit!({ linecode: '' })
               }}
-              title="Stamps the preset's impedances into the fields below (editable afterward). Presets come from config/linecodes.csv — edit that file to customize."
+              title="A line code from this circuit (Line codes tab) gives the line its full impedance matrix. A preset from config/linecodes.csv stamps sequence values into the fields below."
             >
               <option value="">— custom R/X —</option>
-              {lineCodePresets.map((p) => (
-                <option key={p.code} value={p.code}>
-                  {p.label}
-                </option>
-              ))}
+              {Object.keys(lineCodes).length > 0 && (
+                <optgroup label="This circuit's line codes">
+                  {Object.entries(lineCodes).map(([name, c]) => (
+                    <option key={name} value={name}>
+                      {name} ({c.nphases}φ, {c.units})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {lineCodePresets.length > 0 && (
+                <optgroup label="Presets (sequence values)">
+                  {lineCodePresets.map((p) => (
+                    <option key={p.code} value={p.code}>
+                      {p.label}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
               {typeof params.linecode === 'string' &&
                 params.linecode !== '' &&
+                !lineCodes[params.linecode] &&
                 !lineCodePresets.some((p) => p.code === params.linecode) && (
-                  <option value={params.linecode}>{params.linecode} (imported)</option>
+                  <option value={params.linecode}>{params.linecode} (not in this circuit)</option>
                 )}
             </select>
           </label>

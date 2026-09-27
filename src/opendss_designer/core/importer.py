@@ -23,7 +23,7 @@ import opendssdirect as dss
 
 from . import engine
 from .connectivity import sanitize_name
-from .model import Circuit, CircuitEdge, CircuitNode, LoadShapeSpec, Position
+from .model import Circuit, CircuitEdge, CircuitNode, LineCodeSpec, LoadShapeSpec, Position
 from .phasing import phasing_from_suffix
 
 _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
@@ -104,8 +104,10 @@ _FORBIDDEN = {
 # Leading commands that name a companion file. buscoords/latloncoords are
 # cosmetic (bus positions), so a missing one is a warning, not a failure.
 _COSMETIC_REFS = {"buscoords", "latloncoords"}
+# The file name may be bare, quoted, or wrapped in () or [] -- EPRI's own
+# IEEE 123-bus run file writes `Compile (IEEE123Master.dss)`.
 _REF_LINE_RE = re.compile(
-    r'^(\s*)(redirect|compile|buscoords|latloncoords)(\s+)"?([^"\s]+)"?(.*)$',
+    r'^(\s*)(redirect|compile|buscoords|latloncoords)(\s+)["(\[]?([^"()\[\]\s]+)["\])]?(.*)$',
     re.IGNORECASE)
 
 # Property forms that name a data file: `mult=(file=shape.csv)`, `(file=x)`,
@@ -393,6 +395,52 @@ def _to_float(raw: str, default: float = 0.0) -> float:
         return default
 
 
+def _unflatten(values: list[float], n: int) -> list[list[float]] | None:
+    """An n*n row-major list from the API into rows; None if it is not one."""
+    vals = [float(v) for v in values]
+    if n < 1 or len(vals) != n * n:
+        return None
+    return [[round(v, 9) for v in vals[i * n:(i + 1) * n]] for i in range(n)]
+
+
+def _read_line_codes() -> dict[str, LineCodeSpec]:
+    """Every LineCode the file defined, as the matrices the engine built from
+    it. A code written as r1/x1/r0/x0 comes back as the balanced matrix those
+    expand to, which is the same conductor; a code written as a matrix comes
+    back exactly. Capacitance is included because the engine used it."""
+    out: dict[str, LineCodeSpec] = {}
+    i = dss.LineCodes.First()
+    while i:
+        name = dss.LineCodes.Name()
+        n = int(dss.LineCodes.Phases())
+        r = _unflatten(dss.LineCodes.Rmatrix(), n)
+        x = _unflatten(dss.LineCodes.Xmatrix(), n)
+        if r is not None and x is not None:
+            amps = dss.LineCodes.NormAmps()
+            out[name] = LineCodeSpec(
+                nphases=n, units=_UNIT_CODES.get(dss.LineCodes.Units(), "none"),
+                rmatrix=r, xmatrix=x, cmatrix=_unflatten(dss.LineCodes.Cmatrix(), n),
+                normamps=float(amps) if amps else None, source="imported")
+        i = dss.LineCodes.Next()
+    return out
+
+
+def _sequence_matches(matrix: list[list[float]] | None, z1: float, z0: float) -> bool:
+    """True when `matrix` is what the engine builds from sequence values z1/z0:
+    Zs = (2 z1 + z0) / 3 on the diagonal and Zm = (z0 - z1) / 3 off it. A
+    line whose matrix says otherwise was defined by the matrix itself."""
+    if matrix is None:
+        return True
+    zs = (2 * z1 + z0) / 3
+    zm = (z0 - z1) / 3
+    for i, row in enumerate(matrix):
+        for j, v in enumerate(row):
+            want = zs if i == j else zm
+            if abs(v - want) > 1e-6 * max(abs(want), 1e-9) + 1e-12:
+                return False
+    return True
+
+
 def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     nodes: list[CircuitNode] = []
     edges: list[CircuitEdge] = []
@@ -450,11 +498,17 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         dss.Circuit.SetActiveElement(f"vsource.{name}")
         buses = dss.CktElement.BusNames()
         nid = node_id()
+        # Short-circuit strength is what sets the source impedance. A source
+        # written as R1/X1/R0/X0 reads back as the MVAsc the engine derived
+        # from them, which re-emits to the same impedance (to the X/R ratio
+        # the engine assumes, 4, which is negligible next to the value).
         nodes.append(CircuitNode(
             id=nid, type="vsource",
             params={"name": name, "basekv": dss.Vsources.BasekV(),
                     "pu": dss.Vsources.PU(), "phases": dss.Vsources.Phases(),
-                    "angle": dss.Vsources.AngleDeg()}))
+                    "angle": dss.Vsources.AngleDeg(),
+                    "mvasc3": _to_float(dss.Properties.Value("mvasc3"), 2000.0),
+                    "mvasc1": _to_float(dss.Properties.Value("mvasc1"), 2100.0)}))
         if buses:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
         i = dss.Vsources.Next()
@@ -496,9 +550,12 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                              "conn": "delta" if dss.Transformers.IsDelta() else "wye"})
         bus_nodes = [_node_suffix(b) for b in raw_buses[:nwdg]]
         nid = node_id()
+        # %loadloss reads back as the sum of the winding %r values, which is
+        # what the compiler emits (the engine splits it equally again).
         params: dict[str, Any] = {
             "name": name, "phases": dss.CktElement.NumPhases(),
-            "windings": windings, "xhl": dss.Transformers.Xhl()}
+            "windings": windings, "xhl": dss.Transformers.Xhl(),
+            "pctloadloss": _to_float(dss.Properties.Value("%loadloss"), 0.5)}
         if nwdg == 3:
             params["xht"] = dss.Transformers.Xht()
             params["xlt"] = dss.Transformers.Xlt()
@@ -527,7 +584,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             params.pop("windings", None)
             params["kv"] = windings[0]["kv"]
             params["kva"] = windings[0]["kva"]
-            params["pctloadloss"] = 0.01
+            params["conn"] = windings[0]["conn"]
             for key, value in reg.items():
                 if key != "name":
                     params[key] = value
@@ -541,7 +598,13 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     protection = _read_protection(warnings)
 
     # Lines: switches become breaker nodes (or the protective device that
-    # switches them), others become line edges.
+    # switches them), others become line edges. Line codes travel with the
+    # circuit, but only the ones a line uses: a shared code library (the IEEE
+    # feeders all redirect to one file of thirty) would otherwise arrive whole
+    # in every circuit that touched it.
+    all_codes = _read_line_codes()
+    all_codes_lower = {k.lower(): k for k in all_codes}
+    used_codes: dict[str, LineCodeSpec] = {}
     i = dss.Lines.First()
     while i:
         name = dss.Lines.Name()
@@ -553,9 +616,17 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             closed = not dss.CktElement.IsOpen(1, 0)
             nid = node_id()
             kind, device = protection.get(name.lower(), ("breaker", {}))
+            # A switch's impedance is tiny but a trunk has several in series;
+            # the file's values ride along so the export says what the file said.
             params = {"name": name, "closed": closed,
                       "normamps": dss.Lines.NormAmps(),
-                      "phases": dss.Lines.Phases(), **device}
+                      "phases": dss.Lines.Phases(),
+                      "r1": dss.Lines.R1(), "x1": dss.Lines.X1(),
+                      "r0": dss.Lines.R0(), "x0": dss.Lines.X0(),
+                      "c1": dss.Lines.C1(), "c0": dss.Lines.C0(),
+                      "length": dss.Lines.Length(),
+                      "units": _UNIT_CODES.get(dss.Lines.Units(), "none"),
+                      **device}
             # A switch takes one node list for both of its ends -- it sits
             # inside a single lateral -- so only the first raw key is offered.
             _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
@@ -564,17 +635,46 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             wire(nid, "t1", busbar_for(b1), "b0")
             wire(nid, "t2", busbar_for(b2), "b0")
         else:
+            units = _UNIT_CODES.get(dss.Lines.Units(), "none")
+            nph = int(dss.Lines.Phases())
             params = {"name": name, "length": dss.Lines.Length(),
-                      "units": _UNIT_CODES.get(dss.Lines.Units(), "none"),
-                      "r1": dss.Lines.R1(), "x1": dss.Lines.X1(),
-                      "r0": dss.Lines.R0(), "x0": dss.Lines.X0(),
-                      "normamps": dss.Lines.NormAmps(),
-                      "phases": dss.Lines.Phases()}
-            # Impedances above are already resolved from the linecode; keep
-            # the code name as a reference tag.
+                      "units": units, "normamps": dss.Lines.NormAmps(),
+                      "phases": nph}
+            # Where the impedance lives. A line naming a code takes it from
+            # the circuit's copy of that code; one built from a LineGeometry
+            # gets a code named after the geometry, shared with every line on
+            # it; one that wrote its own matrix gets a code of its own name.
+            # Only a line defined by sequence values keeps r1/x1/r0/x0 on the
+            # line, because for any other the engine reports its defaults.
             linecode = dss.Lines.LineCode()
-            if linecode:
-                params["linecode"] = linecode
+            geometry = dss.Lines.Geometry() or dss.Lines.Spacing()
+            rm = _unflatten(dss.Lines.RMatrix(), nph)
+            xm = _unflatten(dss.Lines.XMatrix(), nph)
+            r1, x1, r0, x0 = (dss.Lines.R1(), dss.Lines.X1(),
+                              dss.Lines.R0(), dss.Lines.X0())
+            if linecode and linecode.lower() in all_codes_lower:
+                code_name = all_codes_lower[linecode.lower()]
+                params["linecode"] = code_name
+                used_codes[code_name] = all_codes[code_name]
+            elif rm is not None and xm is not None and (
+                    geometry or not (_sequence_matches(rm, r1, r0)
+                                     and _sequence_matches(xm, x1, x0))):
+                code_name = f"geom_{geometry}" if geometry else name
+                if code_name not in used_codes:
+                    amps = dss.Lines.NormAmps()
+                    used_codes[code_name] = LineCodeSpec(
+                        nphases=nph, units=units, rmatrix=rm, xmatrix=xm,
+                        cmatrix=_unflatten(dss.Lines.CMatrix(), nph),
+                        normamps=float(amps) if amps else None,
+                        source=f"geometry:{geometry}" if geometry else "line matrix")
+                params["linecode"] = code_name
+            else:
+                params.update({"r1": r1, "x1": x1, "r0": r0, "x0": x0,
+                               "c1": dss.Lines.C1(), "c0": dss.Lines.C0()})
+                if linecode:
+                    # A code the file named but the engine no longer holds;
+                    # keep the tag so the export still says where it came from.
+                    params["linecode"] = linecode
             _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
                             ["nodes1", "nodes2"])
             edges.append(CircuitEdge(
@@ -595,7 +695,10 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                   "pf": dss.Loads.PF(),
                   "conn": "delta" if dss.Loads.IsDelta() else "wye",
                   "phases": dss.CktElement.NumPhases(),
-                  "model": dss.Loads.Model()}
+                  "model": dss.Loads.Model(),
+                  # Below this the engine swaps the load model for constant
+                  # impedance; the file's value decides where that happens.
+                  "vminpu": dss.Loads.Vminpu()}
         shape = daily_shape()
         if shape:
             params["loadshape"] = shape
@@ -710,9 +813,17 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
 
     _apply_bus_coords(nodes, bus_node_ids)
 
+    unused = sorted(set(all_codes) - set(used_codes))
+    if unused:
+        shown = ", ".join(unused[:8]) + (", ..." if len(unused) > 8 else "")
+        plural = "s" if len(unused) != 1 else ""
+        warnings.append(
+            f"{len(unused)} line code{plural} no line uses were left out ({shown}).")
+
     circuit_name = sanitize_name(dss.Circuit.Name()) or "imported"
     circuit = Circuit(name=circuit_name, nodes=nodes, edges=edges,
-                      loadShapes=load_shapes, tccCurves=_read_tcc_curves())
+                      loadShapes=load_shapes, tccCurves=_read_tcc_curves(),
+                      lineCodes=used_codes)
     return {"circuit": circuit.model_dump(), "unsupported": unsupported,
             "warnings": warnings}
 

@@ -20,6 +20,7 @@ MAX_SHAPES = 1_000
 MAX_SHAPE_POINTS = 1_000_000
 MAX_CURVES = 200
 MAX_CURVE_POINTS = 200
+MAX_LINE_CODES = 2_000
 
 NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker",
                    "capacitor", "generator", "pvsystem", "storage", "regulator",
@@ -80,6 +81,40 @@ class TccCurveSpec(BaseModel):
     source: str | None = None
 
 
+Matrix = list[list[float]]
+
+
+class LineCodeSpec(BaseModel):
+    """A conductor definition lines refer to by name: OpenDSS's `LineCode`.
+
+    Either a full phase impedance matrix (`rmatrix`/`xmatrix`, optionally
+    `cmatrix`, each `nphases` square, ohms and nF per `units`) or the
+    sequence values `r1 x1 r0 x0` (with optional `c1 c0`) that the engine
+    expands to a matrix itself. A real feeder is almost always the first
+    kind, and the matrix is the whole point: it carries the mutual coupling
+    between phases that four sequence numbers cannot.
+    """
+    nphases: int = 3
+    units: str = "km"
+    rmatrix: Matrix | None = None
+    xmatrix: Matrix | None = None
+    cmatrix: Matrix | None = None
+    r1: float | None = None
+    x1: float | None = None
+    r0: float | None = None
+    x0: float | None = None
+    c1: float | None = None
+    c0: float | None = None
+    normamps: float | None = None
+    # Where it came from: "imported", "typed in", "geometry:<name>" (built by
+    # the engine from a LineGeometry the file defined), "preset:<code>".
+    source: str | None = None
+
+    @property
+    def is_matrix(self) -> bool:
+        return self.rmatrix is not None and self.xmatrix is not None
+
+
 class Circuit(BaseModel):
     version: int = 1
     name: str = "circuit"
@@ -97,6 +132,10 @@ class Circuit(BaseModel):
     # ships ten curves of its own; these are the ones a user adds.
     tccCurves: Annotated[dict[str, TccCurveSpec],
                          Field(max_length=MAX_CURVES)] = Field(default_factory=dict)
+    # Circuit-level conductor library, keyed by line-code name. Lines with a
+    # `linecode` param naming an entry take their impedance from it.
+    lineCodes: Annotated[dict[str, LineCodeSpec],
+                         Field(max_length=MAX_LINE_CODES)] = Field(default_factory=dict)
 
 
 class Issue(BaseModel):

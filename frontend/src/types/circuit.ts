@@ -52,6 +52,28 @@ export interface TccCurveJSON {
   source?: string | null
 }
 
+/** A conductor definition lines refer to by name (OpenDSS's `LineCode`):
+ *  either a full phase impedance matrix, `nphases` square, in ohms and nF per
+ *  `units`, or the sequence values the engine expands to one. A real feeder
+ *  is nearly always the first kind; the matrix carries the mutual coupling
+ *  between phases that four sequence numbers cannot. */
+export interface LineCodeJSON {
+  nphases: number
+  units: string
+  rmatrix?: number[][] | null
+  xmatrix?: number[][] | null
+  cmatrix?: number[][] | null
+  r1?: number | null
+  x1?: number | null
+  r0?: number | null
+  x0?: number | null
+  c1?: number | null
+  c0?: number | null
+  normamps?: number | null
+  /** "imported", "typed in", "geometry:<name>", "preset:<code>". */
+  source?: string | null
+}
+
 export interface LoadShapeJSON {
   /** Library category: drives the Shapes tabs, dropdown filtering, and
    *  kind-mismatch validation. Absent (older files) means 'load'. */
@@ -72,6 +94,7 @@ export interface CircuitJSON {
   busNames: Record<string, string>
   loadShapes: Record<string, LoadShapeJSON>
   tccCurves?: Record<string, TccCurveJSON>
+  lineCodes?: Record<string, LineCodeJSON>
 }
 
 export interface Issue {

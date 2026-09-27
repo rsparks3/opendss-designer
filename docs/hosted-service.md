@@ -253,8 +253,9 @@ a local user can see.
 ## Roadmap
 
 Effort is in focused working days, not calendar time. Each stage leaves the
-site working and is independently shippable. Feature milestones M6 and M7
-resume after Stage 5; only bug fixes to the editor ship in between.
+site working and is independently shippable. The plan was for feature
+milestones M6 and M7 to wait for Stage 5; in the event they resumed once
+Stage 4 was live, with Stage 5 still to do.
 
 ### Stage 0 — Ship the demo as it stands *(about 1 day)*
 

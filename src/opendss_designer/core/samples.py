@@ -27,6 +27,26 @@ _TITLES: dict[str, tuple[str, str]] = {
         "Radial feeder with DER",
         "A four-bus feeder with rooftop PV, a battery and a daily load shape — "
         "the one to open for a time-series run."),
+    # The IEEE PES test feeders, exactly as the Import button reads EPRI's
+    # files (scripts/make_ieee_samples.py regenerates them). The engine's
+    # answers on these are compared with the published solutions on the
+    # docs' validation page.
+    "ieee-13-bus": (
+        "IEEE 13-bus test feeder",
+        "The small unbalanced 4.16 kV benchmark: single-phase regulators, a "
+        "distributed load, matrix line codes, a delta load and a switch."),
+    "ieee-34-bus": (
+        "IEEE 34-bus test feeder",
+        "A long rural 24.9 kV feeder with two three-phase regulator banks, "
+        "single-phase laterals and an in-line transformer."),
+    "ieee-37-bus": (
+        "IEEE 37-bus test feeder",
+        "A three-wire delta 4.8 kV underground feeder with an open-delta "
+        "regulator and delta-connected loads."),
+    "ieee-123-bus": (
+        "IEEE 123-bus test feeder",
+        "The full-size benchmark: four regulators, switches, capacitors and "
+        "single-phase laterals on every phase."),
 }
 
 
@@ -47,8 +67,14 @@ def _load() -> dict[str, dict]:
 
 
 def list_samples() -> list[dict]:
+    """Curated ones first, in the order the titles table gives them (the
+    IEEE feeders read 13, 34, 37, 123, not 123, 13, ...); anything else that
+    is dropped into the folder follows, by file name."""
+    loaded = _load()
+    ordered = [i for i in _TITLES if i in loaded] + sorted(i for i in loaded if i not in _TITLES)
     items = []
-    for sample_id, circuit in _load().items():
+    for sample_id in ordered:
+        circuit = loaded[sample_id]
         title, description = _TITLES.get(sample_id, (sample_id, ""))
         items.append({
             "id": sample_id,

@@ -36,6 +36,8 @@ test('SVG export is a native vector drawing carrying the active overlay', async 
   await page.evaluate(() => {
     const store = (window as any).opendssDesigner.circuit.getState()
     store.updateEdgeParams('e4', { phases: 1, phasing: 'B' })
+    // e4b (LN2) runs in parallel with e4 into the same lateral.
+    store.updateEdgeParams('e4b', { phases: 1, phasing: 'B', linecode: '' })
     store.updateNodeParams('n_xfmr', { rotation: 90 })
     // Something selected: the export must not carry the editor's blue outline.
     store.selectOnly('edge', 'e1')

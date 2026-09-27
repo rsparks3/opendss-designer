@@ -1,0 +1,8672 @@
+{
+ "version": 1,
+ "name": "IEEE 123-bus",
+ "nodes": [
+  {
+   "id": "imp_n1",
+   "type": "vsource",
+   "position": {
+    "x": 270,
+    "y": 50
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "source",
+    "basekv": 4.16,
+    "pu": 1,
+    "phases": 3,
+    "angle": 0,
+    "mvasc3": 173056,
+    "mvasc1": 173056
+   }
+  },
+  {
+   "id": "imp_n2",
+   "type": "busbar",
+   "position": {
+    "x": 230,
+    "y": 170
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "150"
+   }
+  },
+  {
+   "id": "imp_n3",
+   "type": "regulator",
+   "position": {
+    "x": 270,
+    "y": 270
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg1a",
+    "phases": 3,
+    "xhl": 0.001,
+    "pctloadloss": 0.00001,
+    "kv": 4.16,
+    "kva": 5000,
+    "conn": "wye",
+    "vreg": 120,
+    "band": 2,
+    "ptratio": 20,
+    "ctprim": 700,
+    "r": 3,
+    "x": 7.5,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n4",
+   "type": "busbar",
+   "position": {
+    "x": 230,
+    "y": 440
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "150r"
+   }
+  },
+  {
+   "id": "imp_n5",
+   "type": "transformer",
+   "position": {
+    "x": 4020,
+    "y": 4110
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "xfm1",
+    "phases": 3,
+    "windings": [
+     {
+      "kv": 4.16,
+      "kva": 150,
+      "conn": "delta"
+     },
+     {
+      "kv": 0.48,
+      "kva": 150,
+      "conn": "delta"
+     }
+    ],
+    "xhl": 2.72,
+    "pctloadloss": 1.27
+   }
+  },
+  {
+   "id": "imp_n6",
+   "type": "busbar",
+   "position": {
+    "x": 3980,
+    "y": 3900
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "61s"
+   }
+  },
+  {
+   "id": "imp_n7",
+   "type": "busbar",
+   "position": {
+    "x": 3980,
+    "y": 4370
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "610"
+   }
+  },
+  {
+   "id": "imp_n8",
+   "type": "regulator",
+   "position": {
+    "x": 780,
+    "y": 1770
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg2a",
+    "phases": 1,
+    "xhl": 0.01,
+    "pctloadloss": 0.00001,
+    "phasing": "A",
+    "kv": 2.402,
+    "kva": 2000,
+    "conn": "wye",
+    "vreg": 120,
+    "band": 2,
+    "ptratio": 20,
+    "ctprim": 50,
+    "r": 0.4,
+    "x": 0.4,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n9",
+   "type": "busbar",
+   "position": {
+    "x": 700,
+    "y": 1500
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "9"
+   }
+  },
+  {
+   "id": "imp_n10",
+   "type": "busbar",
+   "position": {
+    "x": 740,
+    "y": 2030
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "9r"
+   }
+  },
+  {
+   "id": "imp_n11",
+   "type": "regulator",
+   "position": {
+    "x": 1870,
+    "y": 2700
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg3a",
+    "phases": 1,
+    "xhl": 0.01,
+    "pctloadloss": 0.00001,
+    "phasing": "A",
+    "kv": 2.402,
+    "kva": 2000,
+    "conn": "wye",
+    "vreg": 120,
+    "band": 1,
+    "ptratio": 20,
+    "ctprim": 50,
+    "r": 0.4,
+    "x": 0.4,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n12",
+   "type": "busbar",
+   "position": {
+    "x": 1850,
+    "y": 2500
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "25"
+   }
+  },
+  {
+   "id": "imp_n13",
+   "type": "busbar",
+   "position": {
+    "x": 1760,
+    "y": 2970
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "25r"
+   }
+  },
+  {
+   "id": "imp_n14",
+   "type": "regulator",
+   "position": {
+    "x": 5090,
+    "y": 3870
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg4a",
+    "phases": 1,
+    "xhl": 0.01,
+    "pctloadloss": 0.00001,
+    "phasing": "A",
+    "kv": 2.402,
+    "kva": 2000,
+    "conn": "wye",
+    "vreg": 124,
+    "band": 2,
+    "ptratio": 20,
+    "ctprim": 300,
+    "r": 0.6,
+    "x": 1.3,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n15",
+   "type": "busbar",
+   "position": {
+    "x": 5100,
+    "y": 3670
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "160"
+   }
+  },
+  {
+   "id": "imp_n16",
+   "type": "busbar",
+   "position": {
+    "x": 5000,
+    "y": 4140
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "160r"
+   }
+  },
+  {
+   "id": "imp_n17",
+   "type": "regulator",
+   "position": {
+    "x": 1950,
+    "y": 2700
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg3c",
+    "phases": 1,
+    "xhl": 0.01,
+    "pctloadloss": 0.00001,
+    "phasing": "C",
+    "kv": 2.402,
+    "kva": 2000,
+    "conn": "wye",
+    "vreg": 120,
+    "band": 1,
+    "ptratio": 20,
+    "ctprim": 50,
+    "r": 0.4,
+    "x": 0.4,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n18",
+   "type": "regulator",
+   "position": {
+    "x": 5170,
+    "y": 3870
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg4b",
+    "phases": 1,
+    "xhl": 0.01,
+    "pctloadloss": 0.00001,
+    "phasing": "B",
+    "kv": 2.402,
+    "kva": 2000,
+    "conn": "wye",
+    "vreg": 124,
+    "band": 2,
+    "ptratio": 20,
+    "ctprim": 300,
+    "r": 1.4,
+    "x": 2.6,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n19",
+   "type": "regulator",
+   "position": {
+    "x": 5250,
+    "y": 3870
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg4c",
+    "phases": 1,
+    "xhl": 0.01,
+    "pctloadloss": 0.00001,
+    "phasing": "C",
+    "kv": 2.402,
+    "kva": 2000,
+    "conn": "wye",
+    "vreg": 124,
+    "band": 2,
+    "ptratio": 20,
+    "ctprim": 300,
+    "r": 0.2,
+    "x": 1.4,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n20",
+   "type": "busbar",
+   "position": {
+    "x": 230,
+    "y": 690
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "149"
+   }
+  },
+  {
+   "id": "imp_n21",
+   "type": "busbar",
+   "position": {
+    "x": 110,
+    "y": 800
+   },
+   "width": 360,
+   "height": null,
+   "params": {
+    "name": "1"
+   }
+  },
+  {
+   "id": "imp_n22",
+   "type": "busbar",
+   "position": {
+    "x": 10,
+    "y": 1030
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "2"
+   }
+  },
+  {
+   "id": "imp_n23",
+   "type": "busbar",
+   "position": {
+    "x": 190,
+    "y": 1100
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "3"
+   }
+  },
+  {
+   "id": "imp_n24",
+   "type": "busbar",
+   "position": {
+    "x": 760,
+    "y": 1030
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "7"
+   }
+  },
+  {
+   "id": "imp_n25",
+   "type": "busbar",
+   "position": {
+    "x": 120,
+    "y": 1270
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "4"
+   }
+  },
+  {
+   "id": "imp_n26",
+   "type": "busbar",
+   "position": {
+    "x": 300,
+    "y": 1270
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "5"
+   }
+  },
+  {
+   "id": "imp_n27",
+   "type": "busbar",
+   "position": {
+    "x": 340,
+    "y": 1500
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "6"
+   }
+  },
+  {
+   "id": "imp_n28",
+   "type": "busbar",
+   "position": {
+    "x": 720,
+    "y": 1330
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "8"
+   }
+  },
+  {
+   "id": "imp_n29",
+   "type": "busbar",
+   "position": {
+    "x": 520,
+    "y": 1500
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "12"
+   }
+  },
+  {
+   "id": "imp_n30",
+   "type": "busbar",
+   "position": {
+    "x": 1610,
+    "y": 1560
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "13"
+   }
+  },
+  {
+   "id": "imp_n31",
+   "type": "busbar",
+   "position": {
+    "x": 700,
+    "y": 2270
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "14"
+   }
+  },
+  {
+   "id": "imp_n32",
+   "type": "busbar",
+   "position": {
+    "x": 1010,
+    "y": 1730
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "34"
+   }
+  },
+  {
+   "id": "imp_n33",
+   "type": "busbar",
+   "position": {
+    "x": 1610,
+    "y": 1800
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "18"
+   }
+  },
+  {
+   "id": "imp_n34",
+   "type": "busbar",
+   "position": {
+    "x": 650,
+    "y": 2440
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "11"
+   }
+  },
+  {
+   "id": "imp_n35",
+   "type": "busbar",
+   "position": {
+    "x": 1180,
+    "y": 2440
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "10"
+   }
+  },
+  {
+   "id": "imp_n36",
+   "type": "busbar",
+   "position": {
+    "x": 1010,
+    "y": 2030
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "15"
+   }
+  },
+  {
+   "id": "imp_n37",
+   "type": "busbar",
+   "position": {
+    "x": 960,
+    "y": 2200
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "16"
+   }
+  },
+  {
+   "id": "imp_n38",
+   "type": "busbar",
+   "position": {
+    "x": 1140,
+    "y": 2200
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "17"
+   }
+  },
+  {
+   "id": "imp_n39",
+   "type": "busbar",
+   "position": {
+    "x": 1320,
+    "y": 1970
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "19"
+   }
+  },
+  {
+   "id": "imp_n40",
+   "type": "busbar",
+   "position": {
+    "x": 1650,
+    "y": 2030
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "21"
+   }
+  },
+  {
+   "id": "imp_n41",
+   "type": "busbar",
+   "position": {
+    "x": 1360,
+    "y": 2200
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "20"
+   }
+  },
+  {
+   "id": "imp_n42",
+   "type": "busbar",
+   "position": {
+    "x": 1580,
+    "y": 2200
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "22"
+   }
+  },
+  {
+   "id": "imp_n43",
+   "type": "busbar",
+   "position": {
+    "x": 1760,
+    "y": 2270
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "23"
+   }
+  },
+  {
+   "id": "imp_n44",
+   "type": "busbar",
+   "position": {
+    "x": 1360,
+    "y": 2440
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "24"
+   }
+  },
+  {
+   "id": "imp_n45",
+   "type": "busbar",
+   "position": {
+    "x": 1760,
+    "y": 3200
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "26"
+   }
+  },
+  {
+   "id": "imp_n46",
+   "type": "busbar",
+   "position": {
+    "x": 2110,
+    "y": 2670
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "28"
+   }
+  },
+  {
+   "id": "imp_n47",
+   "type": "busbar",
+   "position": {
+    "x": 1690,
+    "y": 3440
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "27"
+   }
+  },
+  {
+   "id": "imp_n48",
+   "type": "busbar",
+   "position": {
+    "x": 1870,
+    "y": 3370
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "31"
+   }
+  },
+  {
+   "id": "imp_n49",
+   "type": "busbar",
+   "position": {
+    "x": 1690,
+    "y": 3610
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "33"
+   }
+  },
+  {
+   "id": "imp_n50",
+   "type": "busbar",
+   "position": {
+    "x": 2110,
+    "y": 2900
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "29"
+   }
+  },
+  {
+   "id": "imp_n51",
+   "type": "busbar",
+   "position": {
+    "x": 2110,
+    "y": 3140
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "30"
+   }
+  },
+  {
+   "id": "imp_n52",
+   "type": "busbar",
+   "position": {
+    "x": 2150,
+    "y": 3440
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "250"
+   }
+  },
+  {
+   "id": "imp_n53",
+   "type": "busbar",
+   "position": {
+    "x": 1910,
+    "y": 3610
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "32"
+   }
+  },
+  {
+   "id": "imp_n54",
+   "type": "busbar",
+   "position": {
+    "x": 2660,
+    "y": 2440
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "35"
+   }
+  },
+  {
+   "id": "imp_n55",
+   "type": "busbar",
+   "position": {
+    "x": 2460,
+    "y": 2730
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "36"
+   }
+  },
+  {
+   "id": "imp_n56",
+   "type": "busbar",
+   "position": {
+    "x": 2920,
+    "y": 2730
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "40"
+   }
+  },
+  {
+   "id": "imp_n57",
+   "type": "busbar",
+   "position": {
+    "x": 2390,
+    "y": 2900
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "37"
+   }
+  },
+  {
+   "id": "imp_n58",
+   "type": "busbar",
+   "position": {
+    "x": 2570,
+    "y": 2900
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "38"
+   }
+  },
+  {
+   "id": "imp_n59",
+   "type": "busbar",
+   "position": {
+    "x": 2610,
+    "y": 3140
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "39"
+   }
+  },
+  {
+   "id": "imp_n60",
+   "type": "busbar",
+   "position": {
+    "x": 2830,
+    "y": 2900
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "41"
+   }
+  },
+  {
+   "id": "imp_n61",
+   "type": "busbar",
+   "position": {
+    "x": 3010,
+    "y": 2900
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "42"
+   }
+  },
+  {
+   "id": "imp_n62",
+   "type": "busbar",
+   "position": {
+    "x": 2940,
+    "y": 3140
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "43"
+   }
+  },
+  {
+   "id": "imp_n63",
+   "type": "busbar",
+   "position": {
+    "x": 3160,
+    "y": 3200
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "44"
+   }
+  },
+  {
+   "id": "imp_n64",
+   "type": "busbar",
+   "position": {
+    "x": 2810,
+    "y": 3370
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "45"
+   }
+  },
+  {
+   "id": "imp_n65",
+   "type": "busbar",
+   "position": {
+    "x": 3270,
+    "y": 3370
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "47"
+   }
+  },
+  {
+   "id": "imp_n66",
+   "type": "busbar",
+   "position": {
+    "x": 2850,
+    "y": 3610
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "46"
+   }
+  },
+  {
+   "id": "imp_n67",
+   "type": "busbar",
+   "position": {
+    "x": 3090,
+    "y": 3610
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "48"
+   }
+  },
+  {
+   "id": "imp_n68",
+   "type": "busbar",
+   "position": {
+    "x": 3380,
+    "y": 3610
+   },
+   "width": 360,
+   "height": null,
+   "params": {
+    "name": "49"
+   }
+  },
+  {
+   "id": "imp_n69",
+   "type": "busbar",
+   "position": {
+    "x": 3460,
+    "y": 3840
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "50"
+   }
+  },
+  {
+   "id": "imp_n70",
+   "type": "busbar",
+   "position": {
+    "x": 3460,
+    "y": 4070
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "51"
+   }
+  },
+  {
+   "id": "imp_n71",
+   "type": "busbar",
+   "position": {
+    "x": 3500,
+    "y": 4370
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "151"
+   }
+  },
+  {
+   "id": "imp_n72",
+   "type": "busbar",
+   "position": {
+    "x": 4210,
+    "y": 2200
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "52"
+   }
+  },
+  {
+   "id": "imp_n73",
+   "type": "busbar",
+   "position": {
+    "x": 4210,
+    "y": 2440
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "53"
+   }
+  },
+  {
+   "id": "imp_n74",
+   "type": "busbar",
+   "position": {
+    "x": 4170,
+    "y": 2730
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "54"
+   }
+  },
+  {
+   "id": "imp_n75",
+   "type": "busbar",
+   "position": {
+    "x": 3520,
+    "y": 2900
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "55"
+   }
+  },
+  {
+   "id": "imp_n76",
+   "type": "busbar",
+   "position": {
+    "x": 4340,
+    "y": 2970
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "57"
+   }
+  },
+  {
+   "id": "imp_n77",
+   "type": "busbar",
+   "position": {
+    "x": 3560,
+    "y": 3140
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "56"
+   }
+  },
+  {
+   "id": "imp_n78",
+   "type": "busbar",
+   "position": {
+    "x": 3760,
+    "y": 3140
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "58"
+   }
+  },
+  {
+   "id": "imp_n79",
+   "type": "busbar",
+   "position": {
+    "x": 4650,
+    "y": 3140
+   },
+   "width": 360,
+   "height": null,
+   "params": {
+    "name": "60"
+   }
+  },
+  {
+   "id": "imp_n80",
+   "type": "busbar",
+   "position": {
+    "x": 3800,
+    "y": 3370
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "59"
+   }
+  },
+  {
+   "id": "imp_n81",
+   "type": "busbar",
+   "position": {
+    "x": 3980,
+    "y": 3440
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "61"
+   }
+  },
+  {
+   "id": "imp_n82",
+   "type": "busbar",
+   "position": {
+    "x": 4200,
+    "y": 3370
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "62"
+   }
+  },
+  {
+   "id": "imp_n83",
+   "type": "busbar",
+   "position": {
+    "x": 4200,
+    "y": 3610
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "63"
+   }
+  },
+  {
+   "id": "imp_n84",
+   "type": "busbar",
+   "position": {
+    "x": 4200,
+    "y": 3840
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "64"
+   }
+  },
+  {
+   "id": "imp_n85",
+   "type": "busbar",
+   "position": {
+    "x": 4120,
+    "y": 4070
+   },
+   "width": 360,
+   "height": null,
+   "params": {
+    "name": "65"
+   }
+  },
+  {
+   "id": "imp_n86",
+   "type": "busbar",
+   "position": {
+    "x": 4240,
+    "y": 4310
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "66"
+   }
+  },
+  {
+   "id": "imp_n87",
+   "type": "busbar",
+   "position": {
+    "x": 5000,
+    "y": 4370
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "67"
+   }
+  },
+  {
+   "id": "imp_n88",
+   "type": "busbar",
+   "position": {
+    "x": 3890,
+    "y": 4540
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "68"
+   }
+  },
+  {
+   "id": "imp_n89",
+   "type": "busbar",
+   "position": {
+    "x": 4590,
+    "y": 4610
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "72"
+   }
+  },
+  {
+   "id": "imp_n90",
+   "type": "busbar",
+   "position": {
+    "x": 6040,
+    "y": 4610
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "97"
+   }
+  },
+  {
+   "id": "imp_n91",
+   "type": "busbar",
+   "position": {
+    "x": 3890,
+    "y": 4780
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "69"
+   }
+  },
+  {
+   "id": "imp_n92",
+   "type": "busbar",
+   "position": {
+    "x": 3890,
+    "y": 5010
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "70"
+   }
+  },
+  {
+   "id": "imp_n93",
+   "type": "busbar",
+   "position": {
+    "x": 3930,
+    "y": 5240
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "71"
+   }
+  },
+  {
+   "id": "imp_n94",
+   "type": "busbar",
+   "position": {
+    "x": 4150,
+    "y": 4780
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "73"
+   }
+  },
+  {
+   "id": "imp_n95",
+   "type": "busbar",
+   "position": {
+    "x": 4660,
+    "y": 4780
+   },
+   "width": 440,
+   "height": null,
+   "params": {
+    "name": "76"
+   }
+  },
+  {
+   "id": "imp_n96",
+   "type": "busbar",
+   "position": {
+    "x": 4150,
+    "y": 5010
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "74"
+   }
+  },
+  {
+   "id": "imp_n97",
+   "type": "busbar",
+   "position": {
+    "x": 4190,
+    "y": 5240
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "75"
+   }
+  },
+  {
+   "id": "imp_n98",
+   "type": "busbar",
+   "position": {
+    "x": 4520,
+    "y": 5010
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "77"
+   }
+  },
+  {
+   "id": "imp_n99",
+   "type": "busbar",
+   "position": {
+    "x": 5020,
+    "y": 5010
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "86"
+   }
+  },
+  {
+   "id": "imp_n100",
+   "type": "busbar",
+   "position": {
+    "x": 4520,
+    "y": 5310
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "78"
+   }
+  },
+  {
+   "id": "imp_n101",
+   "type": "busbar",
+   "position": {
+    "x": 4450,
+    "y": 5480
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "79"
+   }
+  },
+  {
+   "id": "imp_n102",
+   "type": "busbar",
+   "position": {
+    "x": 4630,
+    "y": 5480
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "80"
+   }
+  },
+  {
+   "id": "imp_n103",
+   "type": "busbar",
+   "position": {
+    "x": 4630,
+    "y": 5780
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "81"
+   }
+  },
+  {
+   "id": "imp_n104",
+   "type": "busbar",
+   "position": {
+    "x": 4500,
+    "y": 5950
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "82"
+   }
+  },
+  {
+   "id": "imp_n105",
+   "type": "busbar",
+   "position": {
+    "x": 4890,
+    "y": 5950
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "84"
+   }
+  },
+  {
+   "id": "imp_n106",
+   "type": "busbar",
+   "position": {
+    "x": 4500,
+    "y": 6180
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "83"
+   }
+  },
+  {
+   "id": "imp_n107",
+   "type": "busbar",
+   "position": {
+    "x": 4930,
+    "y": 6180
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "85"
+   }
+  },
+  {
+   "id": "imp_n108",
+   "type": "busbar",
+   "position": {
+    "x": 4980,
+    "y": 5240
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "87"
+   }
+  },
+  {
+   "id": "imp_n109",
+   "type": "busbar",
+   "position": {
+    "x": 4890,
+    "y": 5480
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "88"
+   }
+  },
+  {
+   "id": "imp_n110",
+   "type": "busbar",
+   "position": {
+    "x": 5150,
+    "y": 5540
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "89"
+   }
+  },
+  {
+   "id": "imp_n111",
+   "type": "busbar",
+   "position": {
+    "x": 5020,
+    "y": 5710
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "90"
+   }
+  },
+  {
+   "id": "imp_n112",
+   "type": "busbar",
+   "position": {
+    "x": 5280,
+    "y": 5780
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "91"
+   }
+  },
+  {
+   "id": "imp_n113",
+   "type": "busbar",
+   "position": {
+    "x": 5150,
+    "y": 5950
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "92"
+   }
+  },
+  {
+   "id": "imp_n114",
+   "type": "busbar",
+   "position": {
+    "x": 5410,
+    "y": 6010
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "93"
+   }
+  },
+  {
+   "id": "imp_n115",
+   "type": "busbar",
+   "position": {
+    "x": 5280,
+    "y": 6180
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "94"
+   }
+  },
+  {
+   "id": "imp_n116",
+   "type": "busbar",
+   "position": {
+    "x": 5650,
+    "y": 6180
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "95"
+   }
+  },
+  {
+   "id": "imp_n117",
+   "type": "busbar",
+   "position": {
+    "x": 5690,
+    "y": 6410
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "96"
+   }
+  },
+  {
+   "id": "imp_n118",
+   "type": "busbar",
+   "position": {
+    "x": 5580,
+    "y": 4780
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "98"
+   }
+  },
+  {
+   "id": "imp_n119",
+   "type": "busbar",
+   "position": {
+    "x": 5580,
+    "y": 5010
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "99"
+   }
+  },
+  {
+   "id": "imp_n120",
+   "type": "busbar",
+   "position": {
+    "x": 5580,
+    "y": 5240
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "100"
+   }
+  },
+  {
+   "id": "imp_n121",
+   "type": "busbar",
+   "position": {
+    "x": 5620,
+    "y": 5540
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "450"
+   }
+  },
+  {
+   "id": "imp_n122",
+   "type": "busbar",
+   "position": {
+    "x": 6210,
+    "y": 5070
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "197"
+   }
+  },
+  {
+   "id": "imp_n123",
+   "type": "busbar",
+   "position": {
+    "x": 6170,
+    "y": 5310
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "101"
+   }
+  },
+  {
+   "id": "imp_n124",
+   "type": "busbar",
+   "position": {
+    "x": 5820,
+    "y": 5480
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "102"
+   }
+  },
+  {
+   "id": "imp_n125",
+   "type": "busbar",
+   "position": {
+    "x": 6300,
+    "y": 5540
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "105"
+   }
+  },
+  {
+   "id": "imp_n126",
+   "type": "busbar",
+   "position": {
+    "x": 5820,
+    "y": 5710
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "103"
+   }
+  },
+  {
+   "id": "imp_n127",
+   "type": "busbar",
+   "position": {
+    "x": 5860,
+    "y": 5950
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "104"
+   }
+  },
+  {
+   "id": "imp_n128",
+   "type": "busbar",
+   "position": {
+    "x": 6080,
+    "y": 5710
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "106"
+   }
+  },
+  {
+   "id": "imp_n129",
+   "type": "busbar",
+   "position": {
+    "x": 6430,
+    "y": 5780
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "108"
+   }
+  },
+  {
+   "id": "imp_n130",
+   "type": "busbar",
+   "position": {
+    "x": 6120,
+    "y": 5950
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "107"
+   }
+  },
+  {
+   "id": "imp_n131",
+   "type": "busbar",
+   "position": {
+    "x": 6320,
+    "y": 5950
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "109"
+   }
+  },
+  {
+   "id": "imp_n132",
+   "type": "busbar",
+   "position": {
+    "x": 6580,
+    "y": 6010
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "300"
+   }
+  },
+  {
+   "id": "imp_n133",
+   "type": "busbar",
+   "position": {
+    "x": 6320,
+    "y": 6240
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "110"
+   }
+  },
+  {
+   "id": "imp_n134",
+   "type": "busbar",
+   "position": {
+    "x": 5910,
+    "y": 6410
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "111"
+   }
+  },
+  {
+   "id": "imp_n135",
+   "type": "busbar",
+   "position": {
+    "x": 6430,
+    "y": 6410
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "112"
+   }
+  },
+  {
+   "id": "imp_n136",
+   "type": "busbar",
+   "position": {
+    "x": 6430,
+    "y": 6650
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "113"
+   }
+  },
+  {
+   "id": "imp_n137",
+   "type": "busbar",
+   "position": {
+    "x": 6470,
+    "y": 6880
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "114"
+   }
+  },
+  {
+   "id": "imp_n138",
+   "type": "busbar",
+   "position": {
+    "x": 2740,
+    "y": 2270
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "135"
+   }
+  },
+  {
+   "id": "imp_n139",
+   "type": "busbar",
+   "position": {
+    "x": 4250,
+    "y": 2030
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "152"
+   }
+  },
+  {
+   "id": "imp_n140",
+   "type": "breaker",
+   "position": {
+    "x": 270,
+    "y": 540
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "sw1",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3,
+    "r1": 0.001,
+    "x1": 0,
+    "r0": 0.001,
+    "x0": 0,
+    "c1": 0,
+    "c0": 0,
+    "length": 0.001,
+    "units": "none"
+   }
+  },
+  {
+   "id": "imp_n141",
+   "type": "breaker",
+   "position": {
+    "x": 3010,
+    "y": 1780
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "sw2",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3,
+    "r1": 0.001,
+    "x1": 0,
+    "r0": 0.001,
+    "x0": 0,
+    "c1": 0,
+    "c0": 0,
+    "length": 0.001,
+    "units": "none"
+   }
+  },
+  {
+   "id": "imp_n142",
+   "type": "breaker",
+   "position": {
+    "x": 2260,
+    "y": 2010
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "sw3",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3,
+    "r1": 0.001,
+    "x1": 0,
+    "r0": 0.001,
+    "x0": 0,
+    "c1": 0,
+    "c0": 0,
+    "length": 0.001,
+    "units": "none"
+   }
+  },
+  {
+   "id": "imp_n143",
+   "type": "breaker",
+   "position": {
+    "x": 5020,
+    "y": 3410
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "sw4",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3,
+    "r1": 0.001,
+    "x1": 0,
+    "r0": 0.001,
+    "x0": 0,
+    "c1": 0,
+    "c0": 0,
+    "length": 0.001,
+    "units": "none"
+   }
+  },
+  {
+   "id": "imp_n144",
+   "type": "breaker",
+   "position": {
+    "x": 6190,
+    "y": 4820
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "sw5",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3,
+    "r1": 0.001,
+    "x1": 0,
+    "r0": 0.001,
+    "x0": 0,
+    "c1": 0,
+    "c0": 0,
+    "length": 0.001,
+    "units": "none"
+   }
+  },
+  {
+   "id": "imp_n145",
+   "type": "breaker",
+   "position": {
+    "x": 4020,
+    "y": 3650
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "sw6",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3,
+    "r1": 0.001,
+    "x1": 0,
+    "r0": 0.001,
+    "x0": 0,
+    "c1": 0,
+    "c0": 0,
+    "length": 0.001,
+    "units": "none"
+   }
+  },
+  {
+   "id": "imp_n146",
+   "type": "breaker",
+   "position": {
+    "x": 3540,
+    "y": 4580
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "sw7",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3,
+    "r1": 0.001,
+    "x1": 0,
+    "r0": 0.001,
+    "x0": 0,
+    "c1": 0,
+    "c0": 0,
+    "length": 0.001,
+    "units": "none"
+   }
+  },
+  {
+   "id": "imp_n147",
+   "type": "busbar",
+   "position": {
+    "x": 3500,
+    "y": 4840
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "300_open"
+   }
+  },
+  {
+   "id": "imp_n148",
+   "type": "breaker",
+   "position": {
+    "x": 4700,
+    "y": 2950
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "sw8",
+    "closed": true,
+    "normamps": 400,
+    "phases": 1,
+    "r1": 0.001,
+    "x1": 0,
+    "r0": 0.001,
+    "x0": 0,
+    "c1": 0,
+    "c0": 0,
+    "length": 0.001,
+    "units": "none",
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n149",
+   "type": "busbar",
+   "position": {
+    "x": 5070,
+    "y": 3200
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "94_open"
+   }
+  },
+  {
+   "id": "imp_n150",
+   "type": "load",
+   "position": {
+    "x": 320,
+    "y": 850
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s1a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n151",
+   "type": "load",
+   "position": {
+    "x": 60,
+    "y": 1080
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s2b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n152",
+   "type": "load",
+   "position": {
+    "x": 170,
+    "y": 1320
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s4c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n153",
+   "type": "load",
+   "position": {
+    "x": 430,
+    "y": 1320
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s5c",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n154",
+   "type": "load",
+   "position": {
+    "x": 390,
+    "y": 1550
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s6c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n155",
+   "type": "load",
+   "position": {
+    "x": 890,
+    "y": 1080
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s7a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n156",
+   "type": "load",
+   "position": {
+    "x": 830,
+    "y": 1550
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s9a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n157",
+   "type": "load",
+   "position": {
+    "x": 1230,
+    "y": 2490
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s10a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n158",
+   "type": "load",
+   "position": {
+    "x": 700,
+    "y": 2490
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s11a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n159",
+   "type": "load",
+   "position": {
+    "x": 570,
+    "y": 1550
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s12b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n160",
+   "type": "load",
+   "position": {
+    "x": 1010,
+    "y": 2250
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s16c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n161",
+   "type": "load",
+   "position": {
+    "x": 1190,
+    "y": 2250
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s17c",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n162",
+   "type": "load",
+   "position": {
+    "x": 1450,
+    "y": 2020
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s19a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n163",
+   "type": "load",
+   "position": {
+    "x": 1410,
+    "y": 2250
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s20a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n164",
+   "type": "load",
+   "position": {
+    "x": 1630,
+    "y": 2250
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s22b",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n165",
+   "type": "load",
+   "position": {
+    "x": 1410,
+    "y": 2490
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s24c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n166",
+   "type": "load",
+   "position": {
+    "x": 2240,
+    "y": 2720
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s28a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n167",
+   "type": "load",
+   "position": {
+    "x": 2240,
+    "y": 2950
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s29a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n168",
+   "type": "load",
+   "position": {
+    "x": 2240,
+    "y": 3190
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s30c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n169",
+   "type": "load",
+   "position": {
+    "x": 2000,
+    "y": 3420
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s31c",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n170",
+   "type": "load",
+   "position": {
+    "x": 1960,
+    "y": 3660
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s32c",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n171",
+   "type": "load",
+   "position": {
+    "x": 1740,
+    "y": 3660
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s33a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n172",
+   "type": "load",
+   "position": {
+    "x": 1140,
+    "y": 1780
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s34c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n173",
+   "type": "load",
+   "position": {
+    "x": 2790,
+    "y": 2490
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s35a",
+    "kv": 4.16,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "delta",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "AB"
+   }
+  },
+  {
+   "id": "imp_n174",
+   "type": "load",
+   "position": {
+    "x": 2440,
+    "y": 2950
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s37a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n175",
+   "type": "load",
+   "position": {
+    "x": 2700,
+    "y": 2950
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s38b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n176",
+   "type": "load",
+   "position": {
+    "x": 2660,
+    "y": 3190
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s39b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n177",
+   "type": "load",
+   "position": {
+    "x": 2880,
+    "y": 2950
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s41c",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n178",
+   "type": "load",
+   "position": {
+    "x": 3140,
+    "y": 2950
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s42a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n179",
+   "type": "load",
+   "position": {
+    "x": 2990,
+    "y": 3190
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s43b",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n180",
+   "type": "load",
+   "position": {
+    "x": 2940,
+    "y": 3420
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s45a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n181",
+   "type": "load",
+   "position": {
+    "x": 2900,
+    "y": 3660
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s46a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n182",
+   "type": "load",
+   "position": {
+    "x": 3400,
+    "y": 3420
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s47",
+    "kv": 4.16,
+    "kw": 105,
+    "pf": 0.813733471206735,
+    "conn": "wye",
+    "phases": 3,
+    "model": 5,
+    "vminpu": 0.95
+   }
+  },
+  {
+   "id": "imp_n183",
+   "type": "load",
+   "position": {
+    "x": 3140,
+    "y": 3660
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s48",
+    "kv": 4.16,
+    "kw": 210,
+    "pf": 0.813733471206735,
+    "conn": "wye",
+    "phases": 3,
+    "model": 2,
+    "vminpu": 0.95
+   }
+  },
+  {
+   "id": "imp_n184",
+   "type": "load",
+   "position": {
+    "x": 3510,
+    "y": 3660
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s49a",
+    "kv": 2.4,
+    "kw": 35,
+    "pf": 0.8137334712067349,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n185",
+   "type": "load",
+   "position": {
+    "x": 3590,
+    "y": 3660
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s49b",
+    "kv": 2.4,
+    "kw": 70,
+    "pf": 0.8137334712067349,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n186",
+   "type": "load",
+   "position": {
+    "x": 3670,
+    "y": 3660
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s49c",
+    "kv": 2.4,
+    "kw": 35,
+    "pf": 0.8682431421244593,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n187",
+   "type": "load",
+   "position": {
+    "x": 3590,
+    "y": 3890
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s50c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n188",
+   "type": "load",
+   "position": {
+    "x": 3590,
+    "y": 4120
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s51a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n189",
+   "type": "load",
+   "position": {
+    "x": 4340,
+    "y": 2250
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s52a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n190",
+   "type": "load",
+   "position": {
+    "x": 4340,
+    "y": 2490
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s53a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n191",
+   "type": "load",
+   "position": {
+    "x": 3650,
+    "y": 2950
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s55a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n192",
+   "type": "load",
+   "position": {
+    "x": 3610,
+    "y": 3190
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s56b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n193",
+   "type": "load",
+   "position": {
+    "x": 3890,
+    "y": 3190
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s58b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n194",
+   "type": "load",
+   "position": {
+    "x": 3850,
+    "y": 3420
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s59b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n195",
+   "type": "load",
+   "position": {
+    "x": 4860,
+    "y": 3190
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s60a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n196",
+   "type": "load",
+   "position": {
+    "x": 4330,
+    "y": 3420
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s62c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n197",
+   "type": "load",
+   "position": {
+    "x": 4330,
+    "y": 3660
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s63a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n198",
+   "type": "load",
+   "position": {
+    "x": 4330,
+    "y": 3890
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s64b",
+    "kv": 2.4,
+    "kw": 75,
+    "pf": 0.9061831399952653,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n199",
+   "type": "load",
+   "position": {
+    "x": 4250,
+    "y": 4120
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s65a",
+    "kv": 4.16,
+    "kw": 35,
+    "pf": 0.8137334712067349,
+    "conn": "delta",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "AB"
+   }
+  },
+  {
+   "id": "imp_n200",
+   "type": "load",
+   "position": {
+    "x": 4330,
+    "y": 4120
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s65b",
+    "kv": 4.16,
+    "kw": 35,
+    "pf": 0.8137334712067349,
+    "conn": "delta",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "BC"
+   }
+  },
+  {
+   "id": "imp_n201",
+   "type": "load",
+   "position": {
+    "x": 4410,
+    "y": 4120
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s65c",
+    "kv": 4.16,
+    "kw": 70,
+    "pf": 0.8137334712067349,
+    "conn": "delta",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "AC"
+   }
+  },
+  {
+   "id": "imp_n202",
+   "type": "load",
+   "position": {
+    "x": 4290,
+    "y": 4360
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s66c",
+    "kv": 2.4,
+    "kw": 75,
+    "pf": 0.9061831399952653,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n203",
+   "type": "load",
+   "position": {
+    "x": 4020,
+    "y": 4590
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s68a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n204",
+   "type": "load",
+   "position": {
+    "x": 4020,
+    "y": 4830
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s69a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n205",
+   "type": "load",
+   "position": {
+    "x": 4020,
+    "y": 5060
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s70a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n206",
+   "type": "load",
+   "position": {
+    "x": 3980,
+    "y": 5290
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s71a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n207",
+   "type": "load",
+   "position": {
+    "x": 4280,
+    "y": 4830
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s73c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n208",
+   "type": "load",
+   "position": {
+    "x": 4280,
+    "y": 5060
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s74c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n209",
+   "type": "load",
+   "position": {
+    "x": 4240,
+    "y": 5290
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s75c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n210",
+   "type": "load",
+   "position": {
+    "x": 4790,
+    "y": 4830
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s76a",
+    "kv": 4.16,
+    "kw": 105,
+    "pf": 0.7954317200324987,
+    "conn": "delta",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "AB"
+   }
+  },
+  {
+   "id": "imp_n211",
+   "type": "load",
+   "position": {
+    "x": 4870,
+    "y": 4830
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s76b",
+    "kv": 4.16,
+    "kw": 70,
+    "pf": 0.8137334712067349,
+    "conn": "delta",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "BC"
+   }
+  },
+  {
+   "id": "imp_n212",
+   "type": "load",
+   "position": {
+    "x": 4950,
+    "y": 4830
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s76c",
+    "kv": 4.16,
+    "kw": 70,
+    "pf": 0.8137334712067349,
+    "conn": "delta",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "AC"
+   }
+  },
+  {
+   "id": "imp_n213",
+   "type": "load",
+   "position": {
+    "x": 4650,
+    "y": 5060
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s77b",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n214",
+   "type": "load",
+   "position": {
+    "x": 4500,
+    "y": 5530
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s79a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n215",
+   "type": "load",
+   "position": {
+    "x": 4760,
+    "y": 5530
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s80b",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n216",
+   "type": "load",
+   "position": {
+    "x": 4630,
+    "y": 6000
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s82a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n217",
+   "type": "load",
+   "position": {
+    "x": 4550,
+    "y": 6230
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s83c",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n218",
+   "type": "load",
+   "position": {
+    "x": 5020,
+    "y": 6000
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s84c",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n219",
+   "type": "load",
+   "position": {
+    "x": 4980,
+    "y": 6230
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s85c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n220",
+   "type": "load",
+   "position": {
+    "x": 5150,
+    "y": 5060
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s86b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n221",
+   "type": "load",
+   "position": {
+    "x": 5110,
+    "y": 5290
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s87b",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n222",
+   "type": "load",
+   "position": {
+    "x": 4940,
+    "y": 5530
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s88a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n223",
+   "type": "load",
+   "position": {
+    "x": 5070,
+    "y": 5760
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s90b",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n224",
+   "type": "load",
+   "position": {
+    "x": 5200,
+    "y": 6000
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s92c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n225",
+   "type": "load",
+   "position": {
+    "x": 5330,
+    "y": 6230
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s94a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n226",
+   "type": "load",
+   "position": {
+    "x": 5780,
+    "y": 6230
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s95b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n227",
+   "type": "load",
+   "position": {
+    "x": 5740,
+    "y": 6460
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s96b",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n228",
+   "type": "load",
+   "position": {
+    "x": 5710,
+    "y": 4830
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s98a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n229",
+   "type": "load",
+   "position": {
+    "x": 5710,
+    "y": 5060
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s99b",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n230",
+   "type": "load",
+   "position": {
+    "x": 5710,
+    "y": 5290
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s100c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n231",
+   "type": "load",
+   "position": {
+    "x": 5950,
+    "y": 5530
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s102c",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n232",
+   "type": "load",
+   "position": {
+    "x": 5950,
+    "y": 5760
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s103c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n233",
+   "type": "load",
+   "position": {
+    "x": 5910,
+    "y": 6000
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s104c",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n234",
+   "type": "load",
+   "position": {
+    "x": 6210,
+    "y": 5760
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s106b",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n235",
+   "type": "load",
+   "position": {
+    "x": 6170,
+    "y": 6000
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s107b",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n236",
+   "type": "load",
+   "position": {
+    "x": 6450,
+    "y": 6000
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s109a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n237",
+   "type": "load",
+   "position": {
+    "x": 5960,
+    "y": 6460
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s111a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n238",
+   "type": "load",
+   "position": {
+    "x": 6560,
+    "y": 6460
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s112a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n239",
+   "type": "load",
+   "position": {
+    "x": 6560,
+    "y": 6700
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s113a",
+    "kv": 2.4,
+    "kw": 40,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n240",
+   "type": "load",
+   "position": {
+    "x": 6520,
+    "y": 6930
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "s114a",
+    "kv": 2.4,
+    "kw": 20,
+    "pf": 0.8944271909999159,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n241",
+   "type": "capacitor",
+   "position": {
+    "x": 4630,
+    "y": 6230
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "c83",
+    "kv": 4.16,
+    "kvar": 600,
+    "conn": "wye",
+    "phases": 3,
+    "numsteps": 1
+   }
+  },
+  {
+   "id": "imp_n242",
+   "type": "capacitor",
+   "position": {
+    "x": 5020,
+    "y": 5530
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "c88a",
+    "kv": 2.402,
+    "kvar": 50,
+    "conn": "wye",
+    "phases": 1,
+    "numsteps": 1,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n243",
+   "type": "capacitor",
+   "position": {
+    "x": 5150,
+    "y": 5760
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "c90b",
+    "kv": 2.402,
+    "kvar": 50,
+    "conn": "wye",
+    "phases": 1,
+    "numsteps": 1,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n244",
+   "type": "capacitor",
+   "position": {
+    "x": 5280,
+    "y": 6000
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "c92c",
+    "kv": 2.402,
+    "kvar": 50,
+    "conn": "wye",
+    "phases": 1,
+    "numsteps": 1,
+    "phasing": "C"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "imp_e1",
+   "type": "wire",
+   "source": "imp_n1",
+   "sourceHandle": "t1",
+   "target": "imp_n2",
+   "targetHandle": "b3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e2",
+   "type": "wire",
+   "source": "imp_n3",
+   "sourceHandle": "t1",
+   "target": "imp_n2",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e3",
+   "type": "wire",
+   "source": "imp_n3",
+   "sourceHandle": "t2",
+   "target": "imp_n4",
+   "targetHandle": "b3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e4",
+   "type": "wire",
+   "source": "imp_n5",
+   "sourceHandle": "t1",
+   "target": "imp_n6",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e5",
+   "type": "wire",
+   "source": "imp_n5",
+   "sourceHandle": "t2",
+   "target": "imp_n7",
+   "targetHandle": "b3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e6",
+   "type": "wire",
+   "source": "imp_n8",
+   "sourceHandle": "t1",
+   "target": "imp_n9",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": [
+    {
+     "x": 800,
+     "y": 1630
+    },
+    {
+     "x": 770,
+     "y": 1630
+    }
+   ]
+  },
+  {
+   "id": "imp_e7",
+   "type": "wire",
+   "source": "imp_n8",
+   "sourceHandle": "t2",
+   "target": "imp_n10",
+   "targetHandle": "b3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e8",
+   "type": "wire",
+   "source": "imp_n11",
+   "sourceHandle": "t1",
+   "target": "imp_n12",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e9",
+   "type": "wire",
+   "source": "imp_n11",
+   "sourceHandle": "t2",
+   "target": "imp_n13",
+   "targetHandle": "b6",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e10",
+   "type": "wire",
+   "source": "imp_n14",
+   "sourceHandle": "t1",
+   "target": "imp_n15",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e11",
+   "type": "wire",
+   "source": "imp_n14",
+   "sourceHandle": "t2",
+   "target": "imp_n16",
+   "targetHandle": "b5",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e12",
+   "type": "wire",
+   "source": "imp_n17",
+   "sourceHandle": "t1",
+   "target": "imp_n12",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e13",
+   "type": "wire",
+   "source": "imp_n17",
+   "sourceHandle": "t2",
+   "target": "imp_n13",
+   "targetHandle": "b9",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e14",
+   "type": "wire",
+   "source": "imp_n18",
+   "sourceHandle": "t1",
+   "target": "imp_n15",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e15",
+   "type": "wire",
+   "source": "imp_n18",
+   "sourceHandle": "t2",
+   "target": "imp_n16",
+   "targetHandle": "b9",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e16",
+   "type": "wire",
+   "source": "imp_n19",
+   "sourceHandle": "t1",
+   "target": "imp_n15",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e17",
+   "type": "wire",
+   "source": "imp_n19",
+   "sourceHandle": "t2",
+   "target": "imp_n16",
+   "targetHandle": "b13",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e18",
+   "type": "line",
+   "source": "imp_n20",
+   "sourceHandle": "c3",
+   "target": "imp_n21",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l115",
+    "length": 0.4,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e19",
+   "type": "line",
+   "source": "imp_n21",
+   "sourceHandle": "c3",
+   "target": "imp_n22",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l1",
+    "length": 0.175,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": [
+    {
+     "x": 180,
+     "y": 930
+    },
+    {
+     "x": 80,
+     "y": 930
+    }
+   ]
+  },
+  {
+   "id": "imp_e20",
+   "type": "line",
+   "source": "imp_n21",
+   "sourceHandle": "c7",
+   "target": "imp_n23",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l2",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": [
+    {
+     "x": 260,
+     "y": 930
+    },
+    {
+     "x": 300,
+     "y": 930
+    }
+   ]
+  },
+  {
+   "id": "imp_e21",
+   "type": "line",
+   "source": "imp_n21",
+   "sourceHandle": "c15",
+   "target": "imp_n24",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l3",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 420,
+     "y": 930
+    },
+    {
+     "x": 870,
+     "y": 930
+    }
+   ]
+  },
+  {
+   "id": "imp_e22",
+   "type": "line",
+   "source": "imp_n23",
+   "sourceHandle": "c3",
+   "target": "imp_n25",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l4",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e23",
+   "type": "line",
+   "source": "imp_n23",
+   "sourceHandle": "c7",
+   "target": "imp_n26",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l5",
+    "length": 0.325,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e24",
+   "type": "line",
+   "source": "imp_n26",
+   "sourceHandle": "c3",
+   "target": "imp_n27",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l6",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": [
+    {
+     "x": 370,
+     "y": 1400
+    },
+    {
+     "x": 410,
+     "y": 1400
+    }
+   ]
+  },
+  {
+   "id": "imp_e25",
+   "type": "line",
+   "source": "imp_n24",
+   "sourceHandle": "c3",
+   "target": "imp_n28",
+   "targetHandle": "b7",
+   "params": {
+    "name": "l7",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 830,
+     "y": 1160
+    },
+    {
+     "x": 870,
+     "y": 1160
+    }
+   ]
+  },
+  {
+   "id": "imp_e26",
+   "type": "line",
+   "source": "imp_n28",
+   "sourceHandle": "c3",
+   "target": "imp_n29",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l8",
+    "length": 0.225,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e27",
+   "type": "line",
+   "source": "imp_n28",
+   "sourceHandle": "c7",
+   "target": "imp_n9",
+   "targetHandle": "b8",
+   "params": {
+    "name": "l9",
+    "length": 0.225,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e28",
+   "type": "line",
+   "source": "imp_n28",
+   "sourceHandle": "c11",
+   "target": "imp_n30",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l10",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e29",
+   "type": "line",
+   "source": "imp_n10",
+   "sourceHandle": "c3",
+   "target": "imp_n31",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l11",
+    "length": 0.425,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e30",
+   "type": "line",
+   "source": "imp_n30",
+   "sourceHandle": "c3",
+   "target": "imp_n32",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l12",
+    "length": 0.15,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e31",
+   "type": "line",
+   "source": "imp_n30",
+   "sourceHandle": "c7",
+   "target": "imp_n33",
+   "targetHandle": "b7",
+   "params": {
+    "name": "l13",
+    "length": 0.825,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "2",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e32",
+   "type": "line",
+   "source": "imp_n31",
+   "sourceHandle": "c3",
+   "target": "imp_n34",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l14",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e33",
+   "type": "line",
+   "source": "imp_n31",
+   "sourceHandle": "c7",
+   "target": "imp_n35",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l15",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e34",
+   "type": "line",
+   "source": "imp_n36",
+   "sourceHandle": "c3",
+   "target": "imp_n37",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l16",
+    "length": 0.375,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e35",
+   "type": "line",
+   "source": "imp_n36",
+   "sourceHandle": "c7",
+   "target": "imp_n38",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l17",
+    "length": 0.35,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e36",
+   "type": "line",
+   "source": "imp_n33",
+   "sourceHandle": "c3",
+   "target": "imp_n39",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l18",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e37",
+   "type": "line",
+   "source": "imp_n33",
+   "sourceHandle": "c7",
+   "target": "imp_n40",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l19",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "2",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e38",
+   "type": "line",
+   "source": "imp_n39",
+   "sourceHandle": "c3",
+   "target": "imp_n41",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l20",
+    "length": 0.325,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": [
+    {
+     "x": 1390,
+     "y": 2100
+    },
+    {
+     "x": 1430,
+     "y": 2100
+    }
+   ]
+  },
+  {
+   "id": "imp_e39",
+   "type": "line",
+   "source": "imp_n40",
+   "sourceHandle": "c3",
+   "target": "imp_n42",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l21",
+    "length": 0.525,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e40",
+   "type": "line",
+   "source": "imp_n40",
+   "sourceHandle": "c7",
+   "target": "imp_n43",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l22",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "2",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e41",
+   "type": "line",
+   "source": "imp_n43",
+   "sourceHandle": "c3",
+   "target": "imp_n44",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l23",
+    "length": 0.55,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e42",
+   "type": "line",
+   "source": "imp_n43",
+   "sourceHandle": "c7",
+   "target": "imp_n12",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l24",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "2",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e43",
+   "type": "line",
+   "source": "imp_n13",
+   "sourceHandle": "c5",
+   "target": "imp_n45",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l25",
+    "length": 0.35,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 2,
+    "linecode": "7",
+    "phasing": "AC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e44",
+   "type": "line",
+   "source": "imp_n12",
+   "sourceHandle": "c11",
+   "target": "imp_n46",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l26",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "2",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e45",
+   "type": "line",
+   "source": "imp_n45",
+   "sourceHandle": "c3",
+   "target": "imp_n47",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l27",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 2,
+    "linecode": "7",
+    "phasing": "AC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e46",
+   "type": "line",
+   "source": "imp_n45",
+   "sourceHandle": "c7",
+   "target": "imp_n48",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l28",
+    "length": 0.225,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e47",
+   "type": "line",
+   "source": "imp_n47",
+   "sourceHandle": "c3",
+   "target": "imp_n49",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l29",
+    "length": 0.5,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e48",
+   "type": "line",
+   "source": "imp_n46",
+   "sourceHandle": "c3",
+   "target": "imp_n50",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l30",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "2",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 2180,
+     "y": 2800
+    },
+    {
+     "x": 2220,
+     "y": 2800
+    }
+   ]
+  },
+  {
+   "id": "imp_e49",
+   "type": "line",
+   "source": "imp_n50",
+   "sourceHandle": "c3",
+   "target": "imp_n51",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l31",
+    "length": 0.35,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "2",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 2180,
+     "y": 3030
+    },
+    {
+     "x": 2220,
+     "y": 3030
+    }
+   ]
+  },
+  {
+   "id": "imp_e50",
+   "type": "line",
+   "source": "imp_n51",
+   "sourceHandle": "c3",
+   "target": "imp_n52",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l32",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "2",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 2180,
+     "y": 3270
+    },
+    {
+     "x": 2220,
+     "y": 3270
+    }
+   ]
+  },
+  {
+   "id": "imp_e51",
+   "type": "line",
+   "source": "imp_n48",
+   "sourceHandle": "c3",
+   "target": "imp_n53",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l33",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": [
+    {
+     "x": 1940,
+     "y": 3500
+    },
+    {
+     "x": 1980,
+     "y": 3500
+    }
+   ]
+  },
+  {
+   "id": "imp_e52",
+   "type": "line",
+   "source": "imp_n32",
+   "sourceHandle": "c3",
+   "target": "imp_n36",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l34",
+    "length": 0.1,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": [
+    {
+     "x": 1080,
+     "y": 1860
+    },
+    {
+     "x": 1120,
+     "y": 1860
+    }
+   ]
+  },
+  {
+   "id": "imp_e53",
+   "type": "line",
+   "source": "imp_n54",
+   "sourceHandle": "c3",
+   "target": "imp_n55",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l35",
+    "length": 0.65,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 2,
+    "linecode": "8",
+    "phasing": "AB"
+   },
+   "waypoints": [
+    {
+     "x": 2730,
+     "y": 2570
+    },
+    {
+     "x": 2570,
+     "y": 2570
+    }
+   ]
+  },
+  {
+   "id": "imp_e54",
+   "type": "line",
+   "source": "imp_n54",
+   "sourceHandle": "c11",
+   "target": "imp_n56",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l36",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 2890,
+     "y": 2570
+    },
+    {
+     "x": 3030,
+     "y": 2570
+    }
+   ]
+  },
+  {
+   "id": "imp_e55",
+   "type": "line",
+   "source": "imp_n55",
+   "sourceHandle": "c3",
+   "target": "imp_n57",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l37",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e56",
+   "type": "line",
+   "source": "imp_n55",
+   "sourceHandle": "c7",
+   "target": "imp_n58",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l38",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e57",
+   "type": "line",
+   "source": "imp_n58",
+   "sourceHandle": "c3",
+   "target": "imp_n59",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l39",
+    "length": 0.325,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": [
+    {
+     "x": 2640,
+     "y": 3030
+    },
+    {
+     "x": 2680,
+     "y": 3030
+    }
+   ]
+  },
+  {
+   "id": "imp_e58",
+   "type": "line",
+   "source": "imp_n56",
+   "sourceHandle": "c3",
+   "target": "imp_n60",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l40",
+    "length": 0.325,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e59",
+   "type": "line",
+   "source": "imp_n56",
+   "sourceHandle": "c7",
+   "target": "imp_n61",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l41",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e60",
+   "type": "line",
+   "source": "imp_n61",
+   "sourceHandle": "c3",
+   "target": "imp_n62",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l42",
+    "length": 0.5,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": [
+    {
+     "x": 3080,
+     "y": 3030
+    },
+    {
+     "x": 3010,
+     "y": 3030
+    }
+   ]
+  },
+  {
+   "id": "imp_e61",
+   "type": "line",
+   "source": "imp_n61",
+   "sourceHandle": "c11",
+   "target": "imp_n63",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l43",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 3240,
+     "y": 3030
+    },
+    {
+     "x": 3270,
+     "y": 3030
+    }
+   ]
+  },
+  {
+   "id": "imp_e62",
+   "type": "line",
+   "source": "imp_n63",
+   "sourceHandle": "c3",
+   "target": "imp_n64",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l44",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e63",
+   "type": "line",
+   "source": "imp_n63",
+   "sourceHandle": "c7",
+   "target": "imp_n65",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l45",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e64",
+   "type": "line",
+   "source": "imp_n64",
+   "sourceHandle": "c3",
+   "target": "imp_n66",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l46",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": [
+    {
+     "x": 2880,
+     "y": 3500
+    },
+    {
+     "x": 2920,
+     "y": 3500
+    }
+   ]
+  },
+  {
+   "id": "imp_e65",
+   "type": "line",
+   "source": "imp_n65",
+   "sourceHandle": "c3",
+   "target": "imp_n67",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l47",
+    "length": 0.15,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "4",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 3340,
+     "y": 3500
+    },
+    {
+     "x": 3160,
+     "y": 3500
+    }
+   ]
+  },
+  {
+   "id": "imp_e66",
+   "type": "line",
+   "source": "imp_n65",
+   "sourceHandle": "c11",
+   "target": "imp_n68",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l48",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "4",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 3500,
+     "y": 3500
+    },
+    {
+     "x": 3570,
+     "y": 3500
+    }
+   ]
+  },
+  {
+   "id": "imp_e67",
+   "type": "line",
+   "source": "imp_n68",
+   "sourceHandle": "c3",
+   "target": "imp_n69",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l49",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "4",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 3450,
+     "y": 3740
+    },
+    {
+     "x": 3570,
+     "y": 3740
+    }
+   ]
+  },
+  {
+   "id": "imp_e68",
+   "type": "line",
+   "source": "imp_n69",
+   "sourceHandle": "c3",
+   "target": "imp_n70",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l50",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "4",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 3530,
+     "y": 3970
+    },
+    {
+     "x": 3570,
+     "y": 3970
+    }
+   ]
+  },
+  {
+   "id": "imp_e69",
+   "type": "line",
+   "source": "imp_n70",
+   "sourceHandle": "c3",
+   "target": "imp_n71",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l51",
+    "length": 0.5,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "4",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 3530,
+     "y": 4200
+    },
+    {
+     "x": 3570,
+     "y": 4200
+    }
+   ]
+  },
+  {
+   "id": "imp_e70",
+   "type": "line",
+   "source": "imp_n72",
+   "sourceHandle": "c3",
+   "target": "imp_n73",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l52",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4280,
+     "y": 2330
+    },
+    {
+     "x": 4320,
+     "y": 2330
+    }
+   ]
+  },
+  {
+   "id": "imp_e71",
+   "type": "line",
+   "source": "imp_n73",
+   "sourceHandle": "c3",
+   "target": "imp_n74",
+   "targetHandle": "b7",
+   "params": {
+    "name": "l53",
+    "length": 0.125,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4280,
+     "y": 2570
+    },
+    {
+     "x": 4320,
+     "y": 2570
+    }
+   ]
+  },
+  {
+   "id": "imp_e72",
+   "type": "line",
+   "source": "imp_n74",
+   "sourceHandle": "c3",
+   "target": "imp_n75",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l54",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e73",
+   "type": "line",
+   "source": "imp_n74",
+   "sourceHandle": "c7",
+   "target": "imp_n76",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l55",
+    "length": 0.35,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e74",
+   "type": "line",
+   "source": "imp_n75",
+   "sourceHandle": "c3",
+   "target": "imp_n77",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l56",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 3590,
+     "y": 3030
+    },
+    {
+     "x": 3630,
+     "y": 3030
+    }
+   ]
+  },
+  {
+   "id": "imp_e75",
+   "type": "line",
+   "source": "imp_n76",
+   "sourceHandle": "c3",
+   "target": "imp_n78",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l57",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e76",
+   "type": "line",
+   "source": "imp_n76",
+   "sourceHandle": "c7",
+   "target": "imp_n79",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l58",
+    "length": 0.75,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e77",
+   "type": "line",
+   "source": "imp_n78",
+   "sourceHandle": "c3",
+   "target": "imp_n80",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l59",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": [
+    {
+     "x": 3830,
+     "y": 3270
+    },
+    {
+     "x": 3870,
+     "y": 3270
+    }
+   ]
+  },
+  {
+   "id": "imp_e78",
+   "type": "line",
+   "source": "imp_n79",
+   "sourceHandle": "c3",
+   "target": "imp_n81",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l60",
+    "length": 0.55,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "5",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4720,
+     "y": 3270
+    },
+    {
+     "x": 4050,
+     "y": 3270
+    }
+   ]
+  },
+  {
+   "id": "imp_e79",
+   "type": "line",
+   "source": "imp_n79",
+   "sourceHandle": "c7",
+   "target": "imp_n82",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l61",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "12",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4800,
+     "y": 3270
+    },
+    {
+     "x": 4310,
+     "y": 3270
+    }
+   ]
+  },
+  {
+   "id": "imp_e80",
+   "type": "line",
+   "source": "imp_n82",
+   "sourceHandle": "c3",
+   "target": "imp_n83",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l62",
+    "length": 0.175,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "12",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4270,
+     "y": 3500
+    },
+    {
+     "x": 4310,
+     "y": 3500
+    }
+   ]
+  },
+  {
+   "id": "imp_e81",
+   "type": "line",
+   "source": "imp_n83",
+   "sourceHandle": "c3",
+   "target": "imp_n84",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l63",
+    "length": 0.35,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "12",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4270,
+     "y": 3740
+    },
+    {
+     "x": 4310,
+     "y": 3740
+    }
+   ]
+  },
+  {
+   "id": "imp_e82",
+   "type": "line",
+   "source": "imp_n84",
+   "sourceHandle": "c3",
+   "target": "imp_n85",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l64",
+    "length": 0.425,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "12",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4270,
+     "y": 3970
+    },
+    {
+     "x": 4310,
+     "y": 3970
+    }
+   ]
+  },
+  {
+   "id": "imp_e83",
+   "type": "line",
+   "source": "imp_n85",
+   "sourceHandle": "c3",
+   "target": "imp_n86",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l65",
+    "length": 0.325,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "12",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4190,
+     "y": 4200
+    },
+    {
+     "x": 4310,
+     "y": 4200
+    }
+   ]
+  },
+  {
+   "id": "imp_e84",
+   "type": "line",
+   "source": "imp_n87",
+   "sourceHandle": "c3",
+   "target": "imp_n88",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l66",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e85",
+   "type": "line",
+   "source": "imp_n87",
+   "sourceHandle": "c7",
+   "target": "imp_n89",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l67",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e86",
+   "type": "line",
+   "source": "imp_n87",
+   "sourceHandle": "c11",
+   "target": "imp_n90",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l68",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e87",
+   "type": "line",
+   "source": "imp_n88",
+   "sourceHandle": "c3",
+   "target": "imp_n91",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l69",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": [
+    {
+     "x": 3960,
+     "y": 4670
+    },
+    {
+     "x": 4000,
+     "y": 4670
+    }
+   ]
+  },
+  {
+   "id": "imp_e88",
+   "type": "line",
+   "source": "imp_n91",
+   "sourceHandle": "c3",
+   "target": "imp_n92",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l70",
+    "length": 0.325,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": [
+    {
+     "x": 3960,
+     "y": 4910
+    },
+    {
+     "x": 4000,
+     "y": 4910
+    }
+   ]
+  },
+  {
+   "id": "imp_e89",
+   "type": "line",
+   "source": "imp_n92",
+   "sourceHandle": "c3",
+   "target": "imp_n93",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l71",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": [
+    {
+     "x": 3960,
+     "y": 5140
+    },
+    {
+     "x": 4000,
+     "y": 5140
+    }
+   ]
+  },
+  {
+   "id": "imp_e90",
+   "type": "line",
+   "source": "imp_n89",
+   "sourceHandle": "c3",
+   "target": "imp_n94",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l72",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e91",
+   "type": "line",
+   "source": "imp_n89",
+   "sourceHandle": "c7",
+   "target": "imp_n95",
+   "targetHandle": "b1",
+   "params": {
+    "name": "l73",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e92",
+   "type": "line",
+   "source": "imp_n94",
+   "sourceHandle": "c3",
+   "target": "imp_n96",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l74",
+    "length": 0.35,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": [
+    {
+     "x": 4220,
+     "y": 4910
+    },
+    {
+     "x": 4260,
+     "y": 4910
+    }
+   ]
+  },
+  {
+   "id": "imp_e93",
+   "type": "line",
+   "source": "imp_n96",
+   "sourceHandle": "c3",
+   "target": "imp_n97",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l75",
+    "length": 0.4,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": [
+    {
+     "x": 4220,
+     "y": 5140
+    },
+    {
+     "x": 4260,
+     "y": 5140
+    }
+   ]
+  },
+  {
+   "id": "imp_e94",
+   "type": "line",
+   "source": "imp_n95",
+   "sourceHandle": "c3",
+   "target": "imp_n98",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l76",
+    "length": 0.4,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4730,
+     "y": 4910
+    },
+    {
+     "x": 4630,
+     "y": 4910
+    }
+   ]
+  },
+  {
+   "id": "imp_e95",
+   "type": "line",
+   "source": "imp_n95",
+   "sourceHandle": "c19",
+   "target": "imp_n99",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l77",
+    "length": 0.7,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 5050,
+     "y": 4910
+    },
+    {
+     "x": 5130,
+     "y": 4910
+    }
+   ]
+  },
+  {
+   "id": "imp_e96",
+   "type": "line",
+   "source": "imp_n98",
+   "sourceHandle": "c3",
+   "target": "imp_n100",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l78",
+    "length": 0.1,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4590,
+     "y": 5140
+    },
+    {
+     "x": 4630,
+     "y": 5140
+    }
+   ]
+  },
+  {
+   "id": "imp_e97",
+   "type": "line",
+   "source": "imp_n100",
+   "sourceHandle": "c3",
+   "target": "imp_n101",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l79",
+    "length": 0.225,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e98",
+   "type": "line",
+   "source": "imp_n100",
+   "sourceHandle": "c7",
+   "target": "imp_n102",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l80",
+    "length": 0.475,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e99",
+   "type": "line",
+   "source": "imp_n102",
+   "sourceHandle": "c3",
+   "target": "imp_n103",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l81",
+    "length": 0.175,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4700,
+     "y": 5610
+    },
+    {
+     "x": 4740,
+     "y": 5610
+    }
+   ]
+  },
+  {
+   "id": "imp_e100",
+   "type": "line",
+   "source": "imp_n103",
+   "sourceHandle": "c3",
+   "target": "imp_n104",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l82",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e101",
+   "type": "line",
+   "source": "imp_n103",
+   "sourceHandle": "c7",
+   "target": "imp_n105",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l83",
+    "length": 0.675,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e102",
+   "type": "line",
+   "source": "imp_n104",
+   "sourceHandle": "c3",
+   "target": "imp_n106",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l84",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 4570,
+     "y": 6080
+    },
+    {
+     "x": 4610,
+     "y": 6080
+    }
+   ]
+  },
+  {
+   "id": "imp_e103",
+   "type": "line",
+   "source": "imp_n105",
+   "sourceHandle": "c3",
+   "target": "imp_n107",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l85",
+    "length": 0.475,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": [
+    {
+     "x": 4960,
+     "y": 6080
+    },
+    {
+     "x": 5000,
+     "y": 6080
+    }
+   ]
+  },
+  {
+   "id": "imp_e104",
+   "type": "line",
+   "source": "imp_n99",
+   "sourceHandle": "c3",
+   "target": "imp_n108",
+   "targetHandle": "b7",
+   "params": {
+    "name": "l86",
+    "length": 0.45,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 5090,
+     "y": 5140
+    },
+    {
+     "x": 5130,
+     "y": 5140
+    }
+   ]
+  },
+  {
+   "id": "imp_e105",
+   "type": "line",
+   "source": "imp_n108",
+   "sourceHandle": "c3",
+   "target": "imp_n109",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l87",
+    "length": 0.175,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": [
+    {
+     "x": 5050,
+     "y": 5370
+    },
+    {
+     "x": 5000,
+     "y": 5370
+    }
+   ]
+  },
+  {
+   "id": "imp_e106",
+   "type": "line",
+   "source": "imp_n108",
+   "sourceHandle": "c11",
+   "target": "imp_n110",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l88",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 5210,
+     "y": 5370
+    },
+    {
+     "x": 5260,
+     "y": 5370
+    }
+   ]
+  },
+  {
+   "id": "imp_e107",
+   "type": "line",
+   "source": "imp_n110",
+   "sourceHandle": "c3",
+   "target": "imp_n111",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l89",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e108",
+   "type": "line",
+   "source": "imp_n110",
+   "sourceHandle": "c7",
+   "target": "imp_n112",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l90",
+    "length": 0.225,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e109",
+   "type": "line",
+   "source": "imp_n112",
+   "sourceHandle": "c3",
+   "target": "imp_n113",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l91",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e110",
+   "type": "line",
+   "source": "imp_n112",
+   "sourceHandle": "c7",
+   "target": "imp_n114",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l92",
+    "length": 0.225,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e111",
+   "type": "line",
+   "source": "imp_n114",
+   "sourceHandle": "c3",
+   "target": "imp_n115",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l93",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e112",
+   "type": "line",
+   "source": "imp_n114",
+   "sourceHandle": "c7",
+   "target": "imp_n116",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l94",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e113",
+   "type": "line",
+   "source": "imp_n116",
+   "sourceHandle": "c3",
+   "target": "imp_n117",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l95",
+    "length": 0.2,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": [
+    {
+     "x": 5720,
+     "y": 6310
+    },
+    {
+     "x": 5760,
+     "y": 6310
+    }
+   ]
+  },
+  {
+   "id": "imp_e114",
+   "type": "line",
+   "source": "imp_n90",
+   "sourceHandle": "c3",
+   "target": "imp_n118",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l96",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e115",
+   "type": "line",
+   "source": "imp_n118",
+   "sourceHandle": "c3",
+   "target": "imp_n119",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l97",
+    "length": 0.55,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 5650,
+     "y": 4910
+    },
+    {
+     "x": 5690,
+     "y": 4910
+    }
+   ]
+  },
+  {
+   "id": "imp_e116",
+   "type": "line",
+   "source": "imp_n119",
+   "sourceHandle": "c3",
+   "target": "imp_n120",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l98",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 5650,
+     "y": 5140
+    },
+    {
+     "x": 5690,
+     "y": 5140
+    }
+   ]
+  },
+  {
+   "id": "imp_e117",
+   "type": "line",
+   "source": "imp_n120",
+   "sourceHandle": "c3",
+   "target": "imp_n121",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l99",
+    "length": 0.8,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 5650,
+     "y": 5370
+    },
+    {
+     "x": 5690,
+     "y": 5370
+    }
+   ]
+  },
+  {
+   "id": "imp_e118",
+   "type": "line",
+   "source": "imp_n122",
+   "sourceHandle": "c3",
+   "target": "imp_n123",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l118",
+    "length": 0.25,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e119",
+   "type": "line",
+   "source": "imp_n123",
+   "sourceHandle": "c3",
+   "target": "imp_n124",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l100",
+    "length": 0.225,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e120",
+   "type": "line",
+   "source": "imp_n123",
+   "sourceHandle": "c7",
+   "target": "imp_n125",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l101",
+    "length": 0.275,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e121",
+   "type": "line",
+   "source": "imp_n124",
+   "sourceHandle": "c3",
+   "target": "imp_n126",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l102",
+    "length": 0.325,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": [
+    {
+     "x": 5890,
+     "y": 5610
+    },
+    {
+     "x": 5930,
+     "y": 5610
+    }
+   ]
+  },
+  {
+   "id": "imp_e122",
+   "type": "line",
+   "source": "imp_n126",
+   "sourceHandle": "c3",
+   "target": "imp_n127",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l103",
+    "length": 0.7,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "11",
+    "phasing": "C"
+   },
+   "waypoints": [
+    {
+     "x": 5890,
+     "y": 5840
+    },
+    {
+     "x": 5930,
+     "y": 5840
+    }
+   ]
+  },
+  {
+   "id": "imp_e123",
+   "type": "line",
+   "source": "imp_n125",
+   "sourceHandle": "c3",
+   "target": "imp_n128",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l104",
+    "length": 0.225,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e124",
+   "type": "line",
+   "source": "imp_n125",
+   "sourceHandle": "c7",
+   "target": "imp_n129",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l105",
+    "length": 0.325,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e125",
+   "type": "line",
+   "source": "imp_n128",
+   "sourceHandle": "c3",
+   "target": "imp_n130",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l106",
+    "length": 0.575,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "10",
+    "phasing": "B"
+   },
+   "waypoints": [
+    {
+     "x": 6150,
+     "y": 5840
+    },
+    {
+     "x": 6190,
+     "y": 5840
+    }
+   ]
+  },
+  {
+   "id": "imp_e126",
+   "type": "line",
+   "source": "imp_n129",
+   "sourceHandle": "c3",
+   "target": "imp_n131",
+   "targetHandle": "b9",
+   "params": {
+    "name": "l107",
+    "length": 0.45,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e127",
+   "type": "line",
+   "source": "imp_n129",
+   "sourceHandle": "c7",
+   "target": "imp_n132",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l108",
+    "length": 1,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "3",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e128",
+   "type": "line",
+   "source": "imp_n131",
+   "sourceHandle": "c3",
+   "target": "imp_n133",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l109",
+    "length": 0.3,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": [
+    {
+     "x": 6390,
+     "y": 6080
+    },
+    {
+     "x": 6430,
+     "y": 6080
+    }
+   ]
+  },
+  {
+   "id": "imp_e129",
+   "type": "line",
+   "source": "imp_n133",
+   "sourceHandle": "c3",
+   "target": "imp_n134",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l110",
+    "length": 0.575,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e130",
+   "type": "line",
+   "source": "imp_n133",
+   "sourceHandle": "c7",
+   "target": "imp_n135",
+   "targetHandle": "b0",
+   "params": {
+    "name": "l111",
+    "length": 0.125,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e131",
+   "type": "line",
+   "source": "imp_n135",
+   "sourceHandle": "c3",
+   "target": "imp_n136",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l112",
+    "length": 0.525,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": [
+    {
+     "x": 6500,
+     "y": 6540
+    },
+    {
+     "x": 6540,
+     "y": 6540
+    }
+   ]
+  },
+  {
+   "id": "imp_e132",
+   "type": "line",
+   "source": "imp_n136",
+   "sourceHandle": "c3",
+   "target": "imp_n137",
+   "targetHandle": "b3",
+   "params": {
+    "name": "l113",
+    "length": 0.325,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "9",
+    "phasing": "A"
+   },
+   "waypoints": [
+    {
+     "x": 6500,
+     "y": 6780
+    },
+    {
+     "x": 6540,
+     "y": 6780
+    }
+   ]
+  },
+  {
+   "id": "imp_e133",
+   "type": "line",
+   "source": "imp_n138",
+   "sourceHandle": "c3",
+   "target": "imp_n54",
+   "targetHandle": "b7",
+   "params": {
+    "name": "l114",
+    "length": 0.375,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "4",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e134",
+   "type": "line",
+   "source": "imp_n139",
+   "sourceHandle": "c3",
+   "target": "imp_n72",
+   "targetHandle": "b5",
+   "params": {
+    "name": "l116",
+    "length": 0.4,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "1",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e135",
+   "type": "line",
+   "source": "imp_n16",
+   "sourceHandle": "c7",
+   "target": "imp_n87",
+   "targetHandle": "b7",
+   "params": {
+    "name": "l117",
+    "length": 0.35,
+    "units": "kft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "6",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e136",
+   "type": "wire",
+   "source": "imp_n140",
+   "sourceHandle": "t1",
+   "target": "imp_n4",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e137",
+   "type": "wire",
+   "source": "imp_n140",
+   "sourceHandle": "t2",
+   "target": "imp_n20",
+   "targetHandle": "b3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e138",
+   "type": "wire",
+   "source": "imp_n141",
+   "sourceHandle": "t1",
+   "target": "imp_n30",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e139",
+   "type": "wire",
+   "source": "imp_n141",
+   "sourceHandle": "t2",
+   "target": "imp_n139",
+   "targetHandle": "b0",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e140",
+   "type": "wire",
+   "source": "imp_n142",
+   "sourceHandle": "t1",
+   "target": "imp_n33",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e141",
+   "type": "wire",
+   "source": "imp_n142",
+   "sourceHandle": "t2",
+   "target": "imp_n138",
+   "targetHandle": "b0",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e142",
+   "type": "wire",
+   "source": "imp_n143",
+   "sourceHandle": "t1",
+   "target": "imp_n79",
+   "targetHandle": "c15",
+   "params": {},
+   "waypoints": [
+    {
+     "x": 5040,
+     "y": 3270
+    },
+    {
+     "x": 4960,
+     "y": 3270
+    }
+   ]
+  },
+  {
+   "id": "imp_e143",
+   "type": "wire",
+   "source": "imp_n143",
+   "sourceHandle": "t2",
+   "target": "imp_n15",
+   "targetHandle": "b0",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e144",
+   "type": "wire",
+   "source": "imp_n144",
+   "sourceHandle": "t1",
+   "target": "imp_n90",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e145",
+   "type": "wire",
+   "source": "imp_n144",
+   "sourceHandle": "t2",
+   "target": "imp_n122",
+   "targetHandle": "b0",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e146",
+   "type": "wire",
+   "source": "imp_n145",
+   "sourceHandle": "t1",
+   "target": "imp_n81",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e147",
+   "type": "wire",
+   "source": "imp_n145",
+   "sourceHandle": "t2",
+   "target": "imp_n6",
+   "targetHandle": "b3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e148",
+   "type": "wire",
+   "source": "imp_n146",
+   "sourceHandle": "t1",
+   "target": "imp_n71",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e149",
+   "type": "wire",
+   "source": "imp_n146",
+   "sourceHandle": "t2",
+   "target": "imp_n147",
+   "targetHandle": "b3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e150",
+   "type": "wire",
+   "source": "imp_n148",
+   "sourceHandle": "t1",
+   "target": "imp_n74",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e151",
+   "type": "wire",
+   "source": "imp_n148",
+   "sourceHandle": "t2",
+   "target": "imp_n149",
+   "targetHandle": "b0",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e152",
+   "type": "wire",
+   "source": "imp_n150",
+   "sourceHandle": "t1",
+   "target": "imp_n21",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e153",
+   "type": "wire",
+   "source": "imp_n151",
+   "sourceHandle": "t1",
+   "target": "imp_n22",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e154",
+   "type": "wire",
+   "source": "imp_n152",
+   "sourceHandle": "t1",
+   "target": "imp_n25",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e155",
+   "type": "wire",
+   "source": "imp_n153",
+   "sourceHandle": "t1",
+   "target": "imp_n26",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e156",
+   "type": "wire",
+   "source": "imp_n154",
+   "sourceHandle": "t1",
+   "target": "imp_n27",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e157",
+   "type": "wire",
+   "source": "imp_n155",
+   "sourceHandle": "t1",
+   "target": "imp_n24",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e158",
+   "type": "wire",
+   "source": "imp_n156",
+   "sourceHandle": "t1",
+   "target": "imp_n9",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e159",
+   "type": "wire",
+   "source": "imp_n157",
+   "sourceHandle": "t1",
+   "target": "imp_n35",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e160",
+   "type": "wire",
+   "source": "imp_n158",
+   "sourceHandle": "t1",
+   "target": "imp_n34",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e161",
+   "type": "wire",
+   "source": "imp_n159",
+   "sourceHandle": "t1",
+   "target": "imp_n29",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e162",
+   "type": "wire",
+   "source": "imp_n160",
+   "sourceHandle": "t1",
+   "target": "imp_n37",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e163",
+   "type": "wire",
+   "source": "imp_n161",
+   "sourceHandle": "t1",
+   "target": "imp_n38",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e164",
+   "type": "wire",
+   "source": "imp_n162",
+   "sourceHandle": "t1",
+   "target": "imp_n39",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e165",
+   "type": "wire",
+   "source": "imp_n163",
+   "sourceHandle": "t1",
+   "target": "imp_n41",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e166",
+   "type": "wire",
+   "source": "imp_n164",
+   "sourceHandle": "t1",
+   "target": "imp_n42",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e167",
+   "type": "wire",
+   "source": "imp_n165",
+   "sourceHandle": "t1",
+   "target": "imp_n44",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e168",
+   "type": "wire",
+   "source": "imp_n166",
+   "sourceHandle": "t1",
+   "target": "imp_n46",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e169",
+   "type": "wire",
+   "source": "imp_n167",
+   "sourceHandle": "t1",
+   "target": "imp_n50",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e170",
+   "type": "wire",
+   "source": "imp_n168",
+   "sourceHandle": "t1",
+   "target": "imp_n51",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e171",
+   "type": "wire",
+   "source": "imp_n169",
+   "sourceHandle": "t1",
+   "target": "imp_n48",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e172",
+   "type": "wire",
+   "source": "imp_n170",
+   "sourceHandle": "t1",
+   "target": "imp_n53",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e173",
+   "type": "wire",
+   "source": "imp_n171",
+   "sourceHandle": "t1",
+   "target": "imp_n49",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e174",
+   "type": "wire",
+   "source": "imp_n172",
+   "sourceHandle": "t1",
+   "target": "imp_n32",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e175",
+   "type": "wire",
+   "source": "imp_n173",
+   "sourceHandle": "t1",
+   "target": "imp_n54",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e176",
+   "type": "wire",
+   "source": "imp_n174",
+   "sourceHandle": "t1",
+   "target": "imp_n57",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e177",
+   "type": "wire",
+   "source": "imp_n175",
+   "sourceHandle": "t1",
+   "target": "imp_n58",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e178",
+   "type": "wire",
+   "source": "imp_n176",
+   "sourceHandle": "t1",
+   "target": "imp_n59",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e179",
+   "type": "wire",
+   "source": "imp_n177",
+   "sourceHandle": "t1",
+   "target": "imp_n60",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e180",
+   "type": "wire",
+   "source": "imp_n178",
+   "sourceHandle": "t1",
+   "target": "imp_n61",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e181",
+   "type": "wire",
+   "source": "imp_n179",
+   "sourceHandle": "t1",
+   "target": "imp_n62",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e182",
+   "type": "wire",
+   "source": "imp_n180",
+   "sourceHandle": "t1",
+   "target": "imp_n64",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e183",
+   "type": "wire",
+   "source": "imp_n181",
+   "sourceHandle": "t1",
+   "target": "imp_n66",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e184",
+   "type": "wire",
+   "source": "imp_n182",
+   "sourceHandle": "t1",
+   "target": "imp_n65",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e185",
+   "type": "wire",
+   "source": "imp_n183",
+   "sourceHandle": "t1",
+   "target": "imp_n67",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e186",
+   "type": "wire",
+   "source": "imp_n184",
+   "sourceHandle": "t1",
+   "target": "imp_n68",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e187",
+   "type": "wire",
+   "source": "imp_n185",
+   "sourceHandle": "t1",
+   "target": "imp_n68",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e188",
+   "type": "wire",
+   "source": "imp_n186",
+   "sourceHandle": "t1",
+   "target": "imp_n68",
+   "targetHandle": "c15",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e189",
+   "type": "wire",
+   "source": "imp_n187",
+   "sourceHandle": "t1",
+   "target": "imp_n69",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e190",
+   "type": "wire",
+   "source": "imp_n188",
+   "sourceHandle": "t1",
+   "target": "imp_n70",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e191",
+   "type": "wire",
+   "source": "imp_n189",
+   "sourceHandle": "t1",
+   "target": "imp_n72",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e192",
+   "type": "wire",
+   "source": "imp_n190",
+   "sourceHandle": "t1",
+   "target": "imp_n73",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e193",
+   "type": "wire",
+   "source": "imp_n191",
+   "sourceHandle": "t1",
+   "target": "imp_n75",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e194",
+   "type": "wire",
+   "source": "imp_n192",
+   "sourceHandle": "t1",
+   "target": "imp_n77",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e195",
+   "type": "wire",
+   "source": "imp_n193",
+   "sourceHandle": "t1",
+   "target": "imp_n78",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e196",
+   "type": "wire",
+   "source": "imp_n194",
+   "sourceHandle": "t1",
+   "target": "imp_n80",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e197",
+   "type": "wire",
+   "source": "imp_n195",
+   "sourceHandle": "t1",
+   "target": "imp_n79",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e198",
+   "type": "wire",
+   "source": "imp_n196",
+   "sourceHandle": "t1",
+   "target": "imp_n82",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e199",
+   "type": "wire",
+   "source": "imp_n197",
+   "sourceHandle": "t1",
+   "target": "imp_n83",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e200",
+   "type": "wire",
+   "source": "imp_n198",
+   "sourceHandle": "t1",
+   "target": "imp_n84",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e201",
+   "type": "wire",
+   "source": "imp_n199",
+   "sourceHandle": "t1",
+   "target": "imp_n85",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e202",
+   "type": "wire",
+   "source": "imp_n200",
+   "sourceHandle": "t1",
+   "target": "imp_n85",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e203",
+   "type": "wire",
+   "source": "imp_n201",
+   "sourceHandle": "t1",
+   "target": "imp_n85",
+   "targetHandle": "c15",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e204",
+   "type": "wire",
+   "source": "imp_n202",
+   "sourceHandle": "t1",
+   "target": "imp_n86",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e205",
+   "type": "wire",
+   "source": "imp_n203",
+   "sourceHandle": "t1",
+   "target": "imp_n88",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e206",
+   "type": "wire",
+   "source": "imp_n204",
+   "sourceHandle": "t1",
+   "target": "imp_n91",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e207",
+   "type": "wire",
+   "source": "imp_n205",
+   "sourceHandle": "t1",
+   "target": "imp_n92",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e208",
+   "type": "wire",
+   "source": "imp_n206",
+   "sourceHandle": "t1",
+   "target": "imp_n93",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e209",
+   "type": "wire",
+   "source": "imp_n207",
+   "sourceHandle": "t1",
+   "target": "imp_n94",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e210",
+   "type": "wire",
+   "source": "imp_n208",
+   "sourceHandle": "t1",
+   "target": "imp_n96",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e211",
+   "type": "wire",
+   "source": "imp_n209",
+   "sourceHandle": "t1",
+   "target": "imp_n97",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e212",
+   "type": "wire",
+   "source": "imp_n210",
+   "sourceHandle": "t1",
+   "target": "imp_n95",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e213",
+   "type": "wire",
+   "source": "imp_n211",
+   "sourceHandle": "t1",
+   "target": "imp_n95",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e214",
+   "type": "wire",
+   "source": "imp_n212",
+   "sourceHandle": "t1",
+   "target": "imp_n95",
+   "targetHandle": "c15",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e215",
+   "type": "wire",
+   "source": "imp_n213",
+   "sourceHandle": "t1",
+   "target": "imp_n98",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e216",
+   "type": "wire",
+   "source": "imp_n214",
+   "sourceHandle": "t1",
+   "target": "imp_n101",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e217",
+   "type": "wire",
+   "source": "imp_n215",
+   "sourceHandle": "t1",
+   "target": "imp_n102",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e218",
+   "type": "wire",
+   "source": "imp_n216",
+   "sourceHandle": "t1",
+   "target": "imp_n104",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e219",
+   "type": "wire",
+   "source": "imp_n217",
+   "sourceHandle": "t1",
+   "target": "imp_n106",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e220",
+   "type": "wire",
+   "source": "imp_n218",
+   "sourceHandle": "t1",
+   "target": "imp_n105",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e221",
+   "type": "wire",
+   "source": "imp_n219",
+   "sourceHandle": "t1",
+   "target": "imp_n107",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e222",
+   "type": "wire",
+   "source": "imp_n220",
+   "sourceHandle": "t1",
+   "target": "imp_n99",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e223",
+   "type": "wire",
+   "source": "imp_n221",
+   "sourceHandle": "t1",
+   "target": "imp_n108",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e224",
+   "type": "wire",
+   "source": "imp_n222",
+   "sourceHandle": "t1",
+   "target": "imp_n109",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e225",
+   "type": "wire",
+   "source": "imp_n223",
+   "sourceHandle": "t1",
+   "target": "imp_n111",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e226",
+   "type": "wire",
+   "source": "imp_n224",
+   "sourceHandle": "t1",
+   "target": "imp_n113",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e227",
+   "type": "wire",
+   "source": "imp_n225",
+   "sourceHandle": "t1",
+   "target": "imp_n115",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e228",
+   "type": "wire",
+   "source": "imp_n226",
+   "sourceHandle": "t1",
+   "target": "imp_n116",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e229",
+   "type": "wire",
+   "source": "imp_n227",
+   "sourceHandle": "t1",
+   "target": "imp_n117",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e230",
+   "type": "wire",
+   "source": "imp_n228",
+   "sourceHandle": "t1",
+   "target": "imp_n118",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e231",
+   "type": "wire",
+   "source": "imp_n229",
+   "sourceHandle": "t1",
+   "target": "imp_n119",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e232",
+   "type": "wire",
+   "source": "imp_n230",
+   "sourceHandle": "t1",
+   "target": "imp_n120",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e233",
+   "type": "wire",
+   "source": "imp_n231",
+   "sourceHandle": "t1",
+   "target": "imp_n124",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e234",
+   "type": "wire",
+   "source": "imp_n232",
+   "sourceHandle": "t1",
+   "target": "imp_n126",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e235",
+   "type": "wire",
+   "source": "imp_n233",
+   "sourceHandle": "t1",
+   "target": "imp_n127",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e236",
+   "type": "wire",
+   "source": "imp_n234",
+   "sourceHandle": "t1",
+   "target": "imp_n128",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e237",
+   "type": "wire",
+   "source": "imp_n235",
+   "sourceHandle": "t1",
+   "target": "imp_n130",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e238",
+   "type": "wire",
+   "source": "imp_n236",
+   "sourceHandle": "t1",
+   "target": "imp_n131",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e239",
+   "type": "wire",
+   "source": "imp_n237",
+   "sourceHandle": "t1",
+   "target": "imp_n134",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e240",
+   "type": "wire",
+   "source": "imp_n238",
+   "sourceHandle": "t1",
+   "target": "imp_n135",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e241",
+   "type": "wire",
+   "source": "imp_n239",
+   "sourceHandle": "t1",
+   "target": "imp_n136",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e242",
+   "type": "wire",
+   "source": "imp_n240",
+   "sourceHandle": "t1",
+   "target": "imp_n137",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e243",
+   "type": "wire",
+   "source": "imp_n241",
+   "sourceHandle": "t1",
+   "target": "imp_n106",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e244",
+   "type": "wire",
+   "source": "imp_n242",
+   "sourceHandle": "t1",
+   "target": "imp_n109",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e245",
+   "type": "wire",
+   "source": "imp_n243",
+   "sourceHandle": "t1",
+   "target": "imp_n111",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e246",
+   "type": "wire",
+   "source": "imp_n244",
+   "sourceHandle": "t1",
+   "target": "imp_n113",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  }
+ ],
+ "busNames": {},
+ "loadShapes": {},
+ "tccCurves": {},
+ "lineCodes": {
+  "1": {
+   "nphases": 3,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.086666667,
+     0.029545455,
+     0.02907197
+    ],
+    [
+     0.029545455,
+     0.088371212,
+     0.029924242
+    ],
+    [
+     0.02907197,
+     0.029924242,
+     0.087405303
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.204166667,
+     0.095018939,
+     0.072897727
+    ],
+    [
+     0.095018939,
+     0.198522727,
+     0.080227273
+    ],
+    [
+     0.072897727,
+     0.080227273,
+     0.201723485
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.851710072,
+     -0.920293787,
+     -0.350755566
+    ],
+    [
+     -0.920293787,
+     3.004631862,
+     -0.585011253
+    ],
+    [
+     -0.350755566,
+     -0.585011253,
+     2.71134756
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "2": {
+   "nphases": 3,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.088371212,
+     0.02992424,
+     0.029545455
+    ],
+    [
+     0.02992424,
+     0.087405303,
+     0.02907197
+    ],
+    [
+     0.029545455,
+     0.02907197,
+     0.086666667
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.198522727,
+     0.080227273,
+     0.095018939
+    ],
+    [
+     0.080227273,
+     0.201723485,
+     0.072897727
+    ],
+    [
+     0.095018939,
+     0.072897727,
+     0.204166667
+    ]
+   ],
+   "cmatrix": [
+    [
+     3.004631862,
+     -0.585011253,
+     -0.920293787
+    ],
+    [
+     -0.585011253,
+     2.71134756,
+     -0.350755566
+    ],
+    [
+     -0.920293787,
+     -0.350755566,
+     2.851710072
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "3": {
+   "nphases": 3,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.087405303,
+     0.02907197,
+     0.029924242
+    ],
+    [
+     0.02907197,
+     0.086666667,
+     0.029545455
+    ],
+    [
+     0.029924242,
+     0.029545455,
+     0.088371212
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.201723485,
+     0.072897727,
+     0.080227273
+    ],
+    [
+     0.072897727,
+     0.204166667,
+     0.095018939
+    ],
+    [
+     0.080227273,
+     0.095018939,
+     0.198522727
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.71134756,
+     -0.350755566,
+     -0.585011253
+    ],
+    [
+     -0.350755566,
+     2.851710072,
+     -0.920293787
+    ],
+    [
+     -0.585011253,
+     -0.920293787,
+     3.004631862
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "4": {
+   "nphases": 3,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.087405303,
+     0.029924242,
+     0.02907197
+    ],
+    [
+     0.029924242,
+     0.088371212,
+     0.029545455
+    ],
+    [
+     0.02907197,
+     0.029545455,
+     0.086666667
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.201723485,
+     0.080227273,
+     0.072897727
+    ],
+    [
+     0.080227273,
+     0.198522727,
+     0.095018939
+    ],
+    [
+     0.072897727,
+     0.095018939,
+     0.204166667
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.71134756,
+     -0.585011253,
+     -0.350755566
+    ],
+    [
+     -0.585011253,
+     3.004631862,
+     -0.920293787
+    ],
+    [
+     -0.350755566,
+     -0.920293787,
+     2.851710072
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "5": {
+   "nphases": 3,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.088371212,
+     0.029545455,
+     0.029924242
+    ],
+    [
+     0.029545455,
+     0.086666667,
+     0.02907197
+    ],
+    [
+     0.029924242,
+     0.02907197,
+     0.087405303
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.198522727,
+     0.095018939,
+     0.080227273
+    ],
+    [
+     0.095018939,
+     0.204166667,
+     0.072897727
+    ],
+    [
+     0.080227273,
+     0.072897727,
+     0.201723485
+    ]
+   ],
+   "cmatrix": [
+    [
+     3.004631862,
+     -0.920293787,
+     -0.585011253
+    ],
+    [
+     -0.920293787,
+     2.851710072,
+     -0.350755566
+    ],
+    [
+     -0.585011253,
+     -0.350755566,
+     2.71134756
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "6": {
+   "nphases": 3,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.086666667,
+     0.02907197,
+     0.029545455
+    ],
+    [
+     0.02907197,
+     0.087405303,
+     0.029924242
+    ],
+    [
+     0.029545455,
+     0.029924242,
+     0.088371212
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.204166667,
+     0.072897727,
+     0.095018939
+    ],
+    [
+     0.072897727,
+     0.201723485,
+     0.080227273
+    ],
+    [
+     0.095018939,
+     0.080227273,
+     0.198522727
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.851710072,
+     -0.350755566,
+     -0.920293787
+    ],
+    [
+     -0.350755566,
+     2.71134756,
+     -0.585011253
+    ],
+    [
+     -0.920293787,
+     -0.585011253,
+     3.004631862
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "7": {
+   "nphases": 2,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.086666667,
+     0.02907197
+    ],
+    [
+     0.02907197,
+     0.087405303
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.204166667,
+     0.072897727
+    ],
+    [
+     0.072897727,
+     0.201723485
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.569829596,
+     -0.52995137
+    ],
+    [
+     -0.52995137,
+     2.597460011
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "8": {
+   "nphases": 2,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.086666667,
+     0.02907197
+    ],
+    [
+     0.02907197,
+     0.087405303
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.204166667,
+     0.072897727
+    ],
+    [
+     0.072897727,
+     0.201723485
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.569829596,
+     -0.52995137
+    ],
+    [
+     -0.52995137,
+     2.597460011
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "9": {
+   "nphases": 1,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.251742424
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.255208333
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.270366128
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "10": {
+   "nphases": 1,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.251742424
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.255208333
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.270366128
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "11": {
+   "nphases": 1,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.251742424
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.255208333
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.270366128
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "12": {
+   "nphases": 3,
+   "units": "kft",
+   "rmatrix": [
+    [
+     0.288049242,
+     0.09844697,
+     0.093257576
+    ],
+    [
+     0.09844697,
+     0.29032197,
+     0.09844697
+    ],
+    [
+     0.093257576,
+     0.09844697,
+     0.288049242
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.142443182,
+     0.052556818,
+     0.040852273
+    ],
+    [
+     0.052556818,
+     0.135643939,
+     0.052556818
+    ],
+    [
+     0.040852273,
+     0.052556818,
+     0.142443182
+    ]
+   ],
+   "cmatrix": [
+    [
+     33.77150149,
+     0,
+     0
+    ],
+    [
+     0,
+     33.77150149,
+     0
+    ],
+    [
+     0,
+     0,
+     33.77150149
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  }
+ }
+}

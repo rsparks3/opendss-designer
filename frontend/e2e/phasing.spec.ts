@@ -57,14 +57,17 @@ test('a pin the feeder cannot supply is reported', async ({ page }) => {
   // phase that never reaches its bus.
   await page.evaluate(() => {
     const store = (window as any).opendssDesigner.circuit.getState()
-    const line = store.edges.find((e: any) => e.data?.params?.name === 'LN1')
+    // LN1 and LN2 run in parallel into the lateral; both have to move.
+    for (const name of ['LN1', 'LN2']) {
+      const line = store.edges.find((e: any) => e.data?.params?.name === name)
+      store.updateEdgeParams(line.id, { phases: 1, phasing: 'B', linecode: '' })
+    }
     const load = store.nodes.find((n: any) => n.data?.params?.name === 'LOAD1')
-    store.updateEdgeParams(line.id, { phases: 1, phasing: 'B' })
     store.updateNodeParams(load.id, { phases: 1, phasing: 'C' })
   })
 
   // The chip proves the edit landed before the Problems list is judged.
-  await expect(page.locator('.edge-phase')).toHaveText('B')
+  await expect(page.locator('.edge-phase').first()).toHaveText('B')
   await expect(
     page.locator('.problems-list li', { hasText: "'LOAD1' connects to phase C" }).first(),
   ).toBeVisible()
@@ -125,7 +128,9 @@ test('the Phases overlay colours lines by their phase and buses by what reaches 
   // Put the lateral on B: the line turns B, and every bus past it does too.
   await page.evaluate(() => {
     const store = (window as any).opendssDesigner.circuit.getState()
+    // e4b (LN2) runs in parallel with e4 into the same lateral.
     store.updateEdgeParams('e4', { phases: 1, phasing: 'B' })
+    store.updateEdgeParams('e4b', { phases: 1, phasing: 'B', linecode: '' })
   })
   await expect.poll(() => strokeOf('e4')).toBe(rgb('#1565c0'))
   // Five busbars hang off the far end of LN1 (feeder, regulator, protection,

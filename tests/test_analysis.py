@@ -50,7 +50,7 @@ def test_solve_reports_element_losses_and_distances():
     # regulator is a transformer to OpenDSS, and every protective device is a
     # switch, so both kinds report losses like the breaker does.
     assert set(losses) == {"transformer.t1", "transformer.reg1",
-                           "line.ln1", "line.brk1",
+                           "line.ln1", "line.ln2", "line.brk1",
                            "line.fu1", "line.rec1", "line.rly1"}
     assert result["elements"]["load.load1"]["lossKw"] is None
     assert losses["transformer.t1"] > 0

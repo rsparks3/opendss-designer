@@ -1135,3 +1135,32 @@ html, body, #root { margin: 0; height: 100%; }
   resize: vertical;
 }
 .curves-used { font-size: 12px; color: #667; margin-top: 4px; }
+
+/* ---- Line codes tab (shares the curves layout) ---- */
+.lc-body { display: flex; flex-direction: column; gap: 8px; padding: 6px 10px; min-width: 0; }
+.lc-row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: flex-end; }
+.lc-row .prop-row { flex-direction: column; align-items: flex-start; gap: 2px; width: auto; }
+.lc-row .prop-row input, .lc-row .prop-row select { width: 96px; }
+.lc-mode { display: inline-flex; border: 1px solid var(--line, #c8ccd2); border-radius: 4px; overflow: hidden; margin-left: auto; }
+.lc-mode button { border: 0; background: transparent; padding: 3px 10px; font: inherit; cursor: pointer; color: inherit; }
+.lc-mode button.active { background: var(--accent, #1565c0); color: #fff; cursor: default; }
+.lc-matrices { display: flex; flex-direction: column; gap: 6px; }
+.lc-matrix { display: flex; flex-direction: column; gap: 2px; }
+.lc-matrix span { font-size: 12px; }
+.lc-matrix em { font-style: normal; opacity: 0.65; }
+.lc-matrix input { width: 100%; max-width: 640px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; box-sizing: border-box; }
+.lc-hint { font-size: 11px; opacity: 0.7; }
+.lc-hint code { font-family: ui-monospace, Consolas, monospace; }
+.lc-source { font-size: 11px; opacity: 0.65; margin: 0 8px; }
+
+/* ---- Bulk edit (properties panel over a multi-selection) ---- */
+.bulk-types { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
+.bulk-chip { border: 1px solid var(--line, #c8ccd2); background: transparent; border-radius: 12px; padding: 2px 10px; font: inherit; font-size: 12px; cursor: pointer; color: inherit; }
+.bulk-chip:hover:not(:disabled) { background: var(--accent, #1565c0); color: #fff; border-color: transparent; }
+.bulk-chip:disabled { cursor: default; opacity: 0.85; }
+.bulk-hint { font-size: 11px; opacity: 0.7; padding: 0 0 6px; }
+.bulk-mixed { font-style: normal; opacity: 0.6; font-size: 11px; }
+.bp-table tr.selected td { background: rgba(21, 101, 192, 0.08); }
+.bp-filter { display: flex; gap: 8px; align-items: center; padding: 6px 10px; flex-wrap: wrap; }
+.bp-filter input { min-width: 260px; font: inherit; font-size: 12px; }
+.bp-filter .bp-count { font-size: 12px; opacity: 0.7; }

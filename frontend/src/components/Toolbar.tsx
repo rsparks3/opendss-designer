@@ -248,6 +248,7 @@ export function Toolbar() {
       useCircuitStore.setState({ dirty: false, projectId: null })
       useCircuitStore.temporal.getState().clear()
       useResultsStore.setState({ result: null, stale: false, issues: [] })
+      window.dispatchEvent(new CustomEvent('opendss:fit-view'))
     } catch (err) {
       flash(`Could not open sample: ${err instanceof Error ? err.message : err}`)
     }
@@ -292,6 +293,16 @@ export function Toolbar() {
     }
   }
 
+  const cleanUp = () => {
+    const s = useCircuitStore.getState()
+    if (!s.nodes.length) return
+    const laidOut = toCircuitJSON(s)
+    autoLayout(laidOut)
+    s.applyLayout(laidOut)
+    // The drawing changed shape; show all of it.
+    window.dispatchEvent(new CustomEvent('opendss:fit-view'))
+  }
+
   const onImportDss = async (fileList: File[]) => {
     const oversize = tooBig(fileList, MAX_DSS_BYTES)
     if (oversize) {
@@ -306,6 +317,7 @@ export function Toolbar() {
       autoLayout(imported)
       loadCircuit(imported)
       useCircuitStore.setState({ projectId: null })
+      window.dispatchEvent(new CustomEvent('opendss:fit-view'))
       const notes = [...(warnings ?? [])]
       if (unsupported.length) {
         const shown = unsupported.slice(0, 5)
@@ -337,6 +349,12 @@ export function Toolbar() {
       <div className="tb-group">
         <button onClick={() => undo()} title="Undo (Ctrl+Z)">↩ Undo</button>
         <button onClick={() => redo()} title="Redo (Ctrl+Y)">↪ Redo</button>
+        <button
+          onClick={cleanUp}
+          title="Redraw the whole circuit as a top-down tree: loads in a row beneath their bus, buses sized to fit, nothing overlapping. Undo restores the old arrangement."
+        >
+          ✦ Clean up
+        </button>
       </div>
       <div className="tb-group">
         <button

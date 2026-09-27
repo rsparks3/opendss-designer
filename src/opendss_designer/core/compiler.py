@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .connectivity import ConnectivityResult, sanitize_name, synthesize
-from .model import Circuit, Issue
+from .model import Circuit, Issue, LineCodeSpec
 from .phasing import nodes_for, phase_count
 
 # Fallback ratings so loading % is at least defined; a warning is attached
@@ -94,6 +94,43 @@ def _phase_suffix(phases: int) -> str:
 
 
 _SUFFIX_RE = re.compile(r"^(\.\d+)+$")
+
+
+def _lower_triangle(matrix: list[list[float]]) -> str:
+    """OpenDSS's matrix syntax: rows separated by '|', lower triangle only,
+    since an impedance matrix is symmetric. `[0.35 | 0.16 0.34 | ...]`."""
+    rows = []
+    for i, row in enumerate(matrix):
+        rows.append(" ".join(f"{float(v):.6g}" for v in row[: i + 1]))
+    return "[" + " | ".join(rows) + "]"
+
+
+def _square(matrix, n: int) -> bool:
+    return (isinstance(matrix, list) and len(matrix) == n
+            and all(isinstance(r, list) and len(r) == n for r in matrix))
+
+
+def _capacitance(p: dict) -> list[str]:
+    """['c1=..', 'c0=..'] when the params carry them. Left out, the engine
+    assumes a few nF per unit length, which is not nothing: a jumper the file
+    gave c=0 solves visibly differently with the default."""
+    return [f"{k}={_num(p, k, 0.0):g}" for k in ("c1", "c0") if _num(p, k) is not None]
+
+
+def _switch_impedance(p: dict) -> str:
+    """' r1=.. x1=.. r0=.. x0=.. length=.. units=..' for a switch that carries
+    its own impedance (an imported one), else '' and the engine's switch
+    default of (1 + j1) milliohm applies. Emitted after `switch=yes`, which
+    is what resets those properties."""
+    if _num(p, "r1") is None:
+        return ""
+    parts = [f"{k}={_num(p, k, 0.0):g}" for k in ("r1", "x1", "r0", "x0")]
+    parts += _capacitance(p)
+    length = _num(p, "length")
+    if length is not None:
+        parts.append(f"length={length:g}")
+        parts.append(f"units={_enum(p, 'units', LINE_UNITS, 'none')}")
+    return " " + " ".join(parts)
 
 
 def _bus_suffix(explicit, phases: int, phasing=None) -> str:
@@ -239,6 +276,59 @@ def compile_circuit(circuit: Circuit,
         cmds.append(f"new tcc_curve.{curve} npts={n} "
                     f"c_array=({mult}) t_array=({secs})")
 
+    # Conductor definitions. Emitted before any line so a line can name one;
+    # a line naming a code that is not emitted would be a hard engine error,
+    # so line_codes is the set a line may reference. Values are kept only when
+    # they make a complete definition; a half-typed code is reported and
+    # skipped rather than emitted as a conductor with default impedance.
+    line_codes: dict[str, LineCodeSpec] = {}  # sanitized name -> spec
+    for key, spec in circuit.lineCodes.items():
+        code = sanitize_name(key)
+        if not code:
+            continue
+        if code in line_codes:
+            res.issues.append(Issue(
+                severity="error", code="duplicate-name",
+                message=f"Two line codes share the OpenDSS name '{code}' "
+                        "after sanitization."))
+            continue
+        n = int(spec.nphases) if spec.nphases in (1, 2, 3) else 3
+        units = spec.units if spec.units in LINE_UNITS else "km"
+        cmd = f"new linecode.{code} nphases={n} units={units}"
+        if spec.is_matrix:
+            if not (_square(spec.rmatrix, n) and _square(spec.xmatrix, n)):
+                res.issues.append(Issue(
+                    severity="error", code="bad-linecode",
+                    message=f"Line code '{key}' is {n}-phase but its R or X "
+                            f"matrix is not {n}x{n}."))
+                continue
+            cmd += (f" rmatrix={_lower_triangle(spec.rmatrix)}"
+                    f" xmatrix={_lower_triangle(spec.xmatrix)}")
+            if spec.cmatrix is not None:
+                if not _square(spec.cmatrix, n):
+                    res.issues.append(Issue(
+                        severity="error", code="bad-linecode",
+                        message=f"Line code '{key}' has a C matrix that is not {n}x{n}."))
+                    continue
+                cmd += f" cmatrix={_lower_triangle(spec.cmatrix)}"
+        else:
+            seq = {k: getattr(spec, k) for k in ("r1", "x1", "r0", "x0")}
+            if any(v is None for v in seq.values()):
+                res.issues.append(Issue(
+                    severity="error", code="bad-linecode",
+                    message=f"Line code '{key}' needs either R and X matrices or "
+                            "all of r1, x1, r0, x0."))
+                continue
+            cmd += " " + " ".join(f"{k}={float(v):g}" for k, v in seq.items())
+            if spec.c1 is not None:
+                cmd += f" c1={float(spec.c1):g}"
+            if spec.c0 is not None:
+                cmd += f" c0={float(spec.c0):g}"
+        if spec.normamps:
+            cmd += f" normamps={float(spec.normamps):g}"
+        line_codes[code] = spec
+        cmds.append(cmd)
+
     def curve_ref(p: dict, key: str, allowed: frozenset[str], default: str,
                   ref_id: str) -> str:
         """A curve name the engine will certainly hold: one of its built-ins,
@@ -334,9 +424,12 @@ def compile_circuit(circuit: Circuit,
                             phases, p.get("phasing"))
             for i, b in enumerate(buses[:2]))
         kv_bases.add(kv)
+        # One connection for both windings: a regulator is an autotransformer
+        # in one phase, wye (line-to-neutral) unless the file said delta.
+        reg_conn = _enum(p, "conn", CONN_TYPES, "wye")
         cmds.append(
             f"new transformer.{name} phases={phases} windings=2 "
-            f"buses=({bus_list}) conns=(wye, wye) kvs=({kv:g}, {kv:g}) "
+            f"buses=({bus_list}) conns=({reg_conn}, {reg_conn}) kvs=({kv:g}, {kv:g}) "
             f"kvas=({kva:g}, {kva:g}) xhl={xhl:g} %loadloss={loadloss:g}")
         # PT ratio defaults to whatever turns the regulated winding's nominal
         # voltage into the 120 V control base.
@@ -361,13 +454,27 @@ def compile_circuit(circuit: Circuit,
         sfx2 = _bus_suffix(p.get("nodes2"), phases, pinned)
         length = _num(p, "length", 1.0)
         units = _enum(p, "units", LINE_UNITS, "km")
-        r1 = _num(p, "r1", 0.12)
-        x1 = _num(p, "x1", 0.38)
-        r0 = _num(p, "r0", 0.4)
-        x0 = _num(p, "x0", 1.2)
+        # A line either names one of the circuit's line codes or carries its
+        # own sequence impedances. Assigning a code sets the line's phase
+        # count to the code's, so validation holds the two equal rather than
+        # letting the engine quietly resize a lateral.
+        code = sanitize_name(str(p.get("linecode") or ""))
+        spec = line_codes.get(code)
+        if spec is not None:
+            impedance = f"linecode={code}"
+        else:
+            r1 = _num(p, "r1", 0.12)
+            x1 = _num(p, "x1", 0.38)
+            r0 = _num(p, "r0", 0.4)
+            x0 = _num(p, "x0", 1.2)
+            impedance = " ".join(
+                [f"r1={r1:g} x1={x1:g} r0={r0:g} x0={x0:g}", *_capacitance(p)])
         normamps = _num(p, "normamps")
-        if normamps is None:
-            normamps = DEFAULT_LINE_NORMAMPS
+        rating = ""
+        if normamps is not None:
+            rating = f" normamps={normamps:g}"
+        elif spec is None or not spec.normamps:
+            rating = f" normamps={DEFAULT_LINE_NORMAMPS:g}"
             res.issues.append(Issue(
                 severity="warning", code="default-rating",
                 message=f"Line '{name}' has no normamps; using default "
@@ -375,8 +482,7 @@ def compile_circuit(circuit: Circuit,
                 edgeId=e.id))
         cmds.append(
             f"new line.{name} bus1={b1}{sfx1} bus2={b2}{sfx2} phases={phases} "
-            f"length={length:g} units={units} r1={r1:g} x1={x1:g} r0={r0:g} x0={x0:g} "
-            f"normamps={normamps:g}")
+            f"{impedance} length={length:g} units={units}{rating}")
 
     for n in breakers:
         p = n.params
@@ -387,7 +493,7 @@ def compile_circuit(circuit: Circuit,
         normamps = _num(p, "normamps", DEFAULT_BREAKER_NORMAMPS)
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
-            f"switch=yes normamps={normamps:g}")
+            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}")
         if not p.get("closed", True):
             cmds.append(f"open line.{name} term=1")
 
@@ -406,7 +512,7 @@ def compile_circuit(circuit: Circuit,
         normamps = _num(p, "normamps", default_amps)
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
-            f"switch=yes normamps={normamps:g}")
+            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}")
         return name, p
 
     def out_of_service(kind: str, name: str, p: dict) -> None:
@@ -485,10 +591,13 @@ def compile_circuit(circuit: Circuit,
         pf = _num(p, "pf", 0.95)
         load_conn = _enum(p, "conn", CONN_TYPES, "wye")
         model = int(_num(p, "model", 1) or 1)
+        # A drawn load keeps the forgiving 0.85 floor so a sketch with a
+        # sagging bus still converges; an imported one carries its file's.
+        vminpu = _num(p, "vminpu", 0.85)
         kv_bases.add(kv)
         cmds.append(
             f"new load.{name} bus1={bus} phases={phases} conn={load_conn} "
-            f"kv={kv:g} kw={kw:g} pf={pf:g} model={model} vminpu=0.85"
+            f"kv={kv:g} kw={kw:g} pf={pf:g} model={model} vminpu={vminpu:g}"
             + shape_ref(p, n.id))
 
     for n in capacitors:

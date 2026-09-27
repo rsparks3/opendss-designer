@@ -115,9 +115,47 @@ describe('circuit JSON round trip', () => {
       busNames: FIXTURE.busNames,
       loadShapes: FIXTURE.loadShapes,
       tccCurves: FIXTURE.tccCurves ?? {},
+      lineCodes: FIXTURE.lineCodes ?? {},
     })
     // Serialize both so undefined-vs-absent differences disappear.
     expect(JSON.parse(JSON.stringify(out))).toEqual(JSON.parse(JSON.stringify(FIXTURE)))
+  })
+})
+
+describe('lineCodes', () => {
+  it('renaming a code re-points the lines on it', () => {
+    useCircuitStore.getState().loadCircuit(FIXTURE)
+    const s = useCircuitStore.getState()
+    expect(Object.keys(s.lineCodes)).toEqual(['mtx601'])
+    s.renameLineCode('mtx601', 'cfg601')
+    const after = useCircuitStore.getState()
+    expect(Object.keys(after.lineCodes)).toEqual(['cfg601'])
+    const ln2 = after.edges.find((e) => e.id === 'e4b')!
+    expect(ln2.data?.params.linecode).toBe('cfg601')
+    // A line on a preset tag is untouched.
+    expect(after.edges.find((e) => e.id === 'e4')!.data?.params.linecode).toBe('acsr-336')
+  })
+
+  it('a rename onto an existing name is refused', () => {
+    useCircuitStore.getState().loadCircuit(FIXTURE)
+    useCircuitStore.getState().setLineCode('other', { nphases: 1, units: 'km', r1: 1, x1: 1, r0: 1, x0: 1 })
+    useCircuitStore.getState().renameLineCode('mtx601', 'other')
+    expect(Object.keys(useCircuitStore.getState().lineCodes).sort()).toEqual(['mtx601', 'other'])
+  })
+
+  it('removing a code leaves the line tagged so validation can say so', () => {
+    useCircuitStore.getState().loadCircuit(FIXTURE)
+    useCircuitStore.getState().removeLineCode('mtx601')
+    const s = useCircuitStore.getState()
+    expect(s.lineCodes).toEqual({})
+    expect(s.edges.find((e) => e.id === 'e4b')!.data?.params.linecode).toBe('mtx601')
+  })
+
+  it('New clears the library along with the drawing', () => {
+    useCircuitStore.getState().loadCircuit(FIXTURE)
+    useCircuitStore.getState().clearAll()
+    expect(useCircuitStore.getState().lineCodes).toEqual({})
+    expect(useCircuitStore.getState().tccCurves).toEqual({})
   })
 })
 

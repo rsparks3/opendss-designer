@@ -171,3 +171,15 @@ def test_capacitor_generator_roundtrip(substation_circuit):
     assert "new generator.g1" in text2.lower()
     solved = engine.solve(circuit)
     assert solved["converged"], solved["issues"]
+
+
+def test_file_reference_in_parentheses_resolves():
+    """EPRI's own IEEE 123-bus run file writes `Compile (IEEE123Master.dss)`;
+    the sanitizer used to read the parenthesis as part of the name and refuse
+    the import as a missing companion."""
+    r = import_dss_files([
+        {"name": "run.dss", "text": "Compile (main.dss)\nsolve\n"},
+        {"name": "main.dss", "text": MAIN_WITH_REDIRECT.replace("buscoords coords.csv", "")},
+        {"name": "codes.dss", "text": CODES},
+    ])
+    assert len(Circuit.model_validate(r["circuit"]).nodes) >= 2

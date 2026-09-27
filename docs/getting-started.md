@@ -114,3 +114,41 @@ single wire hands that wire over rather than starting a second one, so you can
 walk a line from one component to another in one gesture. Drop it on empty
 canvas or press ++esc++ to leave it where it was; hold ++alt++ to draw a new
 wire from an occupied terminal instead.
+
+### Clean up
+
+**✦ Clean up** in the toolbar redraws the whole circuit as a top-down tree:
+the source at the top, power flowing downward, every load, capacitor and DER
+unit in one evenly spaced row directly beneath its busbar, each bar widened
+to fit everything leaving it, a bank of single-phase regulators fanned out
+side by side instead of stacked, and lines bent below the load row so they
+never run through a load. Rotations are reset and routing points redrawn.
+It runs on every `.dss` import; on a drawing you arranged by hand it is one
+undo step away (++ctrl+z++).
+
+### Editing many elements at once
+
+Select more than one element — box-select on the canvas, ++ctrl++-click, or
+one of the picks below — and the properties panel becomes **Edit N
+elements**. It shows the settings every selected type shares; a value you
+enter applies to all of them, and a setting that differs between them reads
+*(mixed)* until you set it. A number also takes a relative edit: `×1.1` or
+`/2` scales each element's own value, `+5` or `-5` shifts it, `=-5` sets a
+negative number. One undo reverts the whole edit.
+
+Ways to pick the elements:
+
+- **Right-click** a bus, line or device → **Select everything downstream**
+  picks the whole lateral it feeds. **Select all loads** (or whichever type
+  you clicked) picks every one in the circuit, and **Select all loads on
+  phase B** narrows that to a phase.
+- A mixed selection shows a chip per type at the top of the panel; click one
+  to keep only that type. The same choice is in the right-click menu.
+- The **Elements** tab has a filter box: a bare word matches names, and
+  `kw>100`, `kv=4.16`, `model!=1` or `loadshape:day` test a setting (several
+  terms, all must hold). **Select matching** turns the rows into the canvas
+  selection, and rows that are selected on the canvas are highlighted, so the
+  table and the diagram always agree.
+
+The table's fill handle (drag the corner of a cell down through other rows)
+is still there for the case where the rows you want are neighbours.

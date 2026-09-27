@@ -37,8 +37,9 @@ All frontend-only; the M1 vitest harness covers the store changes.
   currents, power, loading
 - ~~**Finer undo granularity**~~ — per-gesture grouping via begin/endGesture; selection
   changes excluded from history
-- Still open from this bucket: **multi-select property editing** (deferred to a later
-  milestone; single-element editing plus spreadsheet fill-down covers most of it)
+- ~~**Multi-select property editing**~~ — landed 2026-09-19: a multi-selection turns
+  the properties panel into *Edit N elements* (shared fields, relative number edits),
+  with downstream / all-of-type / on-phase picks and an Elements-table filter
 
 ## M3 — Component pack 1: real-feeder essentials — ✅ DONE (2026-08-30)
 
@@ -161,9 +162,16 @@ All frontend-only; the M1 vitest harness covers the store changes.
 
 ## M7 — Platform & polish
 
-- **Smarter .dss import layout**: elkjs layered layout; keep 2-terminal pass-through
-  buses as plain wires instead of busbars
-- **Automatic wire routing** (elkjs edge routing — shares the elkjs dependency)
+- ~~**Smarter .dss import layout**~~ — 2026-09-19, without elkjs: `lib/layout.ts`
+  now ranks with dagre and does the rest itself (every shunt in one evenly
+  spaced row under its bar, bars sized to their slots, parallel devices fanned
+  out, lines bent below the load row on their own routing points, an overlap
+  sweep), exposed as **✦ Clean up** and run on every import. Ryan chose a
+  top-down tree, everything shunt under the bar, full re-layout with undo, and
+  no elkjs. Still open: keeping 2-terminal pass-through buses as plain wires
+  instead of busbars, and a left-to-right option for long rural feeders
+- **Automatic wire routing** (elkjs edge routing) — declined for now; Clean up
+  routes lines with two bends, which was enough for the IEEE feeders
 - **File System Access API** in-place saves (localStorage autosave already shipped)
 - ~~**Printable/exportable diagram (SVG/PNG export)**~~ — Image: SVG / PNG in the
   toolbar. `lib/exportDiagram.ts` reads the rendered canvas and writes it back as
@@ -201,7 +209,7 @@ split.
 ## M9 — Hosted service (planned 2026-09-04)
 
 A free-with-limits public instance at `opendssdesigner.ryanmsparks.com`, a free
-account that raises the limits, and a paid plan (~$5/month) that sells
+account that raises the limits, and a paid plan ($20 a year) that sells
 **compute** — bigger circuits, longer runs, priority, a monthly engine-time
 budget — and never storage. Full design, plan table and stage-by-stage
 roadmap in `docs/hosted-service.md`. Took priority over M6/M7 while it was
@@ -258,9 +266,9 @@ indices, and it is what EPRI's DRIVE hosting-capacity method runs on.
 
 Ordering: **M6 came first** (done 2026-09-17) — regulators, fuses/reclosers/relays,
 three-winding transformers and per-phase laterals are table stakes for anything
-below, because a feeder without them is not a feeder. **Next: the two M7 items the
-rest depends on** — SVG/PNG export is the prerequisite for M10's study report, and
-the elkjs layout for M11's real-feeder import. Each milestone below is chosen to be
+below, because a feeder without them is not a feeder. The two M7 items the rest
+depended on followed — SVG/PNG export (the prerequisite for M10's study report) and
+Clean up, the import layout for M11's real feeders. Each milestone below is chosen to be
 useful to someone real on its own, not only at the end of the list.
 
 ## M10 — Study output & proof
@@ -268,11 +276,17 @@ useful to someone real on its own, not only at the end of the list.
 The cheapest credibility available, and the first milestone that lets someone
 hand a study to a colleague.
 
-- **IEEE PES test feeder validation** — import the 13, 34, 37 and 123-bus
-  feeders, compare bus voltages against the published solutions, and publish the
-  comparison as a docs page. CYME and WindMil both advertise this benchmark; the
-  engine already passes it, so this is reporting, not work. Worth pinning as a CI
-  fixture alongside `tests/fixtures/full-circuit.oneline.json`
+- ~~**IEEE PES test feeder validation**~~ — done 2026-09-18. EPRI's 13, 34,
+  37 and 123-bus files and Kersting's published voltage profiles live in
+  `tests/fixtures/ieee/`; `tests/test_ieee_feeders.py` holds the engine to the
+  published solution in CI (within 0.002 pu at every node with the published
+  taps, 0.0001 pu on the 37-bus once its regulators are made ideal the way
+  EPRI's own 13-bus file does), and `scripts/ieee_validation.py` writes
+  `docs/validation.md`. "The engine already passes it" was right; "reporting,
+  not work" missed that the same page measures the *import* round trip, and
+  that is where the work is — see M11's first bullet. The round-trip
+  assertions started as strict `xfail`s and became ordinary tests once line
+  codes closed the gap
 - **Study report export** — a PDF/Excel report of violations, losses, element
   tables and the one-line itself. Depends on M7's SVG/PNG diagram export. This is
   the artifact an engineer actually delivers, and no amount of on-screen analysis
@@ -288,8 +302,29 @@ hand a study to a colleague.
 Nobody hand-draws a utility feeder. Until an engineer can open the model they
 already own, the analysis features have no audience — this is the first real gate.
 
-- **Scale to thousands of elements** — `.dss` import of real feeders needs the
-  elkjs layered layout from M7, canvas virtualisation, and a hard look at
+- ~~**Import fidelity**~~ — measured 2026-09-18 on the IEEE feeders and closed
+  2026-09-19; `docs/validation.md` keeps the score. Every element of all four
+  feeders imported and solved, but the answers were off by up to 0.07 pu and
+  the 13-bus lost half its losses, because a `LineCode` with `rmatrix`/
+  `xmatrix`/`cmatrix` was flattened to `r1 x1 r0 x0` — and for a matrix-defined
+  line the engine reports its *defaults* for those (0.058 Ω per unit length),
+  so every line of every real feeder was wrong. The fix is the circuit-level
+  `lineCodes` collection, like `loadShapes` and `tccCurves`: lines reference a
+  code by name, the compiler emits `LineCode` objects, the importer reads them
+  back whole (a `LineGeometry` line gets a code named after the geometry, an
+  inline matrix a code of its own name, and a shared code file's unused
+  entries are left out with a note), and the Line codes tab edits them in
+  OpenDSS's own matrix spelling. Along the way: transformer `%loadloss`,
+  `Vsource` `MVAsc3`/`MVAsc1`, load `vminpu`, a switch's own impedance and
+  capacitance and a regulator's winding connection now survive import; the
+  last 0.0015 pu on the 37-bus was a jumper's `c1=0 c0=0` against the engine's
+  default capacitance. All four feeders now round-trip within 2e-5 pu, and
+  `tests/test_ieee_feeders.py` holds them there. Still engine-side only:
+  `LineGeometry`/`WireData`/`CNData` themselves (their computed matrix comes
+  through; the geometry does not), which can wait until someone needs to edit
+  a pole configuration in the app
+- **Scale to thousands of elements** — `.dss` import of real feeders needs
+  canvas virtualisation (the layout side is M7's Clean up), and a hard look at
   rebuild-per-solve. (The parking-lot "incremental solve" item becomes relevant
   here for *editor responsiveness*; note it trades away the statelessness that
   makes the hosted workers scale horizontally, so if it lands it must stay behind

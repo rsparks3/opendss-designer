@@ -1,0 +1,1632 @@
+{
+ "version": 1,
+ "name": "IEEE 13-bus",
+ "nodes": [
+  {
+   "id": "imp_n1",
+   "type": "vsource",
+   "position": {
+    "x": 530,
+    "y": 50
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "source",
+    "basekv": 115,
+    "pu": 1.0001,
+    "phases": 3,
+    "angle": 30,
+    "mvasc3": 20000,
+    "mvasc1": 21000
+   }
+  },
+  {
+   "id": "imp_n2",
+   "type": "busbar",
+   "position": {
+    "x": 490,
+    "y": 170
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "sourcebus"
+   }
+  },
+  {
+   "id": "imp_n3",
+   "type": "transformer",
+   "position": {
+    "x": 530,
+    "y": 270
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "sub",
+    "phases": 3,
+    "windings": [
+     {
+      "kv": 115,
+      "kva": 5000,
+      "conn": "delta"
+     },
+     {
+      "kv": 4.16,
+      "kva": 5000,
+      "conn": "wye"
+     }
+    ],
+    "xhl": 0.008,
+    "pctloadloss": 0.001
+   }
+  },
+  {
+   "id": "imp_n4",
+   "type": "busbar",
+   "position": {
+    "x": 410,
+    "y": 440
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "650"
+   }
+  },
+  {
+   "id": "imp_n5",
+   "type": "regulator",
+   "position": {
+    "x": 450,
+    "y": 540
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg1",
+    "phases": 1,
+    "xhl": 0.01,
+    "pctloadloss": 0.01,
+    "phasing": "A",
+    "kv": 2.4,
+    "kva": 1666,
+    "conn": "wye",
+    "vreg": 122,
+    "band": 2,
+    "ptratio": 20,
+    "ctprim": 700,
+    "r": 3,
+    "x": 9,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n6",
+   "type": "busbar",
+   "position": {
+    "x": 410,
+    "y": 710
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "rg60"
+   }
+  },
+  {
+   "id": "imp_n7",
+   "type": "regulator",
+   "position": {
+    "x": 530,
+    "y": 540
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg2",
+    "phases": 1,
+    "xhl": 0.01,
+    "pctloadloss": 0.01,
+    "phasing": "B",
+    "kv": 2.4,
+    "kva": 1666,
+    "conn": "wye",
+    "vreg": 122,
+    "band": 2,
+    "ptratio": 20,
+    "ctprim": 700,
+    "r": 3,
+    "x": 9,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n8",
+   "type": "regulator",
+   "position": {
+    "x": 610,
+    "y": 540
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "reg3",
+    "phases": 1,
+    "xhl": 0.01,
+    "pctloadloss": 0.01,
+    "phasing": "C",
+    "kv": 2.4,
+    "kva": 1666,
+    "conn": "wye",
+    "vreg": 122,
+    "band": 2,
+    "ptratio": 20,
+    "ctprim": 700,
+    "r": 3,
+    "x": 9,
+    "maxtapchange": 16
+   }
+  },
+  {
+   "id": "imp_n9",
+   "type": "transformer",
+   "position": {
+    "x": 130,
+    "y": 1190
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "xfm1",
+    "phases": 3,
+    "windings": [
+     {
+      "kv": 4.16,
+      "kva": 500,
+      "conn": "wye"
+     },
+     {
+      "kv": 0.48,
+      "kva": 500,
+      "conn": "wye"
+     }
+    ],
+    "xhl": 2,
+    "pctloadloss": 1.1
+   }
+  },
+  {
+   "id": "imp_n10",
+   "type": "busbar",
+   "position": {
+    "x": 90,
+    "y": 990
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "633"
+   }
+  },
+  {
+   "id": "imp_n11",
+   "type": "busbar",
+   "position": {
+    "x": 10,
+    "y": 1390
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "634"
+   }
+  },
+  {
+   "id": "imp_n12",
+   "type": "busbar",
+   "position": {
+    "x": 410,
+    "y": 820
+   },
+   "width": 280,
+   "height": null,
+   "params": {
+    "name": "632"
+   }
+  },
+  {
+   "id": "imp_n13",
+   "type": "busbar",
+   "position": {
+    "x": 370,
+    "y": 920
+   },
+   "width": 360,
+   "height": null,
+   "params": {
+    "name": "670"
+   }
+  },
+  {
+   "id": "imp_n14",
+   "type": "busbar",
+   "position": {
+    "x": 370,
+    "y": 1160
+   },
+   "width": 360,
+   "height": null,
+   "params": {
+    "name": "671"
+   }
+  },
+  {
+   "id": "imp_n15",
+   "type": "busbar",
+   "position": {
+    "x": 350,
+    "y": 1450
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "680"
+   }
+  },
+  {
+   "id": "imp_n16",
+   "type": "busbar",
+   "position": {
+    "x": 790,
+    "y": 920
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "645"
+   }
+  },
+  {
+   "id": "imp_n17",
+   "type": "busbar",
+   "position": {
+    "x": 830,
+    "y": 1160
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "646"
+   }
+  },
+  {
+   "id": "imp_n18",
+   "type": "busbar",
+   "position": {
+    "x": 450,
+    "y": 1620
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "692"
+   }
+  },
+  {
+   "id": "imp_n19",
+   "type": "busbar",
+   "position": {
+    "x": 370,
+    "y": 1860
+   },
+   "width": 360,
+   "height": null,
+   "params": {
+    "name": "675"
+   }
+  },
+  {
+   "id": "imp_n20",
+   "type": "busbar",
+   "position": {
+    "x": 780,
+    "y": 1450
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "684"
+   }
+  },
+  {
+   "id": "imp_n21",
+   "type": "busbar",
+   "position": {
+    "x": 710,
+    "y": 1620
+   },
+   "width": 200,
+   "height": null,
+   "params": {
+    "name": "611"
+   }
+  },
+  {
+   "id": "imp_n22",
+   "type": "busbar",
+   "position": {
+    "x": 970,
+    "y": 1620
+   },
+   "width": 120,
+   "height": null,
+   "params": {
+    "name": "652"
+   }
+  },
+  {
+   "id": "imp_n23",
+   "type": "breaker",
+   "position": {
+    "x": 530,
+    "y": 1430
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "671692",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3,
+    "r1": 0.0001,
+    "x1": 0,
+    "r0": 0.0001,
+    "x0": 0,
+    "c1": 0,
+    "c0": 0,
+    "length": 0.001,
+    "units": "none"
+   }
+  },
+  {
+   "id": "imp_n24",
+   "type": "load",
+   "position": {
+    "x": 580,
+    "y": 1210
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "671",
+    "kv": 4.16,
+    "kw": 1155,
+    "pf": 0.8682431421244591,
+    "conn": "delta",
+    "phases": 3,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "ABC"
+   }
+  },
+  {
+   "id": "imp_n25",
+   "type": "load",
+   "position": {
+    "x": 60,
+    "y": 1440
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "634a",
+    "kv": 0.277,
+    "kw": 160,
+    "pf": 0.8240419241993675,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n26",
+   "type": "load",
+   "position": {
+    "x": 140,
+    "y": 1440
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "634b",
+    "kv": 0.277,
+    "kw": 120,
+    "pf": 0.8,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n27",
+   "type": "load",
+   "position": {
+    "x": 220,
+    "y": 1440
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "634c",
+    "kv": 0.277,
+    "kw": 120,
+    "pf": 0.8,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n28",
+   "type": "load",
+   "position": {
+    "x": 920,
+    "y": 970
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "645",
+    "kv": 2.4,
+    "kw": 170,
+    "pf": 0.8056510126494245,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n29",
+   "type": "load",
+   "position": {
+    "x": 880,
+    "y": 1210
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "646",
+    "kv": 4.16,
+    "kw": 230,
+    "pf": 0.8673133941933718,
+    "conn": "delta",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "BC"
+   }
+  },
+  {
+   "id": "imp_n30",
+   "type": "load",
+   "position": {
+    "x": 580,
+    "y": 1670
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "692",
+    "kv": 4.16,
+    "kw": 170,
+    "pf": 0.7476519144858309,
+    "conn": "delta",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "AC"
+   }
+  },
+  {
+   "id": "imp_n31",
+   "type": "load",
+   "position": {
+    "x": 420,
+    "y": 1910
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "675a",
+    "kv": 2.4,
+    "kw": 485,
+    "pf": 0.9311010850748034,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n32",
+   "type": "load",
+   "position": {
+    "x": 500,
+    "y": 1910
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "675b",
+    "kv": 2.4,
+    "kw": 68,
+    "pf": 0.7498378553650925,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n33",
+   "type": "load",
+   "position": {
+    "x": 580,
+    "y": 1910
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "675c",
+    "kv": 2.4,
+    "kw": 290,
+    "pf": 0.8072891017918288,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n34",
+   "type": "load",
+   "position": {
+    "x": 760,
+    "y": 1670
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "611",
+    "kv": 2.4,
+    "kw": 170,
+    "pf": 0.9048187022009941,
+    "conn": "wye",
+    "phases": 1,
+    "model": 5,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n35",
+   "type": "load",
+   "position": {
+    "x": 1020,
+    "y": 1670
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "652",
+    "kv": 2.4,
+    "kw": 128,
+    "pf": 0.8300495997825932,
+    "conn": "wye",
+    "phases": 1,
+    "model": 2,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n36",
+   "type": "load",
+   "position": {
+    "x": 500,
+    "y": 970
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "670a",
+    "kv": 2.4,
+    "kw": 17,
+    "pf": 0.8619342151577695,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "A"
+   }
+  },
+  {
+   "id": "imp_n37",
+   "type": "load",
+   "position": {
+    "x": 580,
+    "y": 970
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "670b",
+    "kv": 2.4,
+    "kw": 66,
+    "pf": 0.8666224568741688,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "B"
+   }
+  },
+  {
+   "id": "imp_n38",
+   "type": "load",
+   "position": {
+    "x": 660,
+    "y": 970
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "670c",
+    "kv": 2.4,
+    "kw": 117,
+    "pf": 0.8645818496218686,
+    "conn": "wye",
+    "phases": 1,
+    "model": 1,
+    "vminpu": 0.95,
+    "phasing": "C"
+   }
+  },
+  {
+   "id": "imp_n39",
+   "type": "capacitor",
+   "position": {
+    "x": 660,
+    "y": 1910
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "cap1",
+    "kv": 4.16,
+    "kvar": 600,
+    "conn": "wye",
+    "phases": 3,
+    "numsteps": 1
+   }
+  },
+  {
+   "id": "imp_n40",
+   "type": "capacitor",
+   "position": {
+    "x": 840,
+    "y": 1670
+   },
+   "width": null,
+   "height": null,
+   "params": {
+    "name": "cap2",
+    "kv": 2.4,
+    "kvar": 100,
+    "conn": "wye",
+    "phases": 1,
+    "numsteps": 1,
+    "phasing": "C"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "imp_e1",
+   "type": "wire",
+   "source": "imp_n1",
+   "sourceHandle": "t1",
+   "target": "imp_n2",
+   "targetHandle": "b3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e2",
+   "type": "wire",
+   "source": "imp_n3",
+   "sourceHandle": "t1",
+   "target": "imp_n2",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e3",
+   "type": "wire",
+   "source": "imp_n3",
+   "sourceHandle": "t2",
+   "target": "imp_n4",
+   "targetHandle": "b7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e4",
+   "type": "wire",
+   "source": "imp_n5",
+   "sourceHandle": "t1",
+   "target": "imp_n4",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e5",
+   "type": "wire",
+   "source": "imp_n5",
+   "sourceHandle": "t2",
+   "target": "imp_n6",
+   "targetHandle": "b3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e6",
+   "type": "wire",
+   "source": "imp_n7",
+   "sourceHandle": "t1",
+   "target": "imp_n4",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e7",
+   "type": "wire",
+   "source": "imp_n7",
+   "sourceHandle": "t2",
+   "target": "imp_n6",
+   "targetHandle": "b7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e8",
+   "type": "wire",
+   "source": "imp_n8",
+   "sourceHandle": "t1",
+   "target": "imp_n4",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e9",
+   "type": "wire",
+   "source": "imp_n8",
+   "sourceHandle": "t2",
+   "target": "imp_n6",
+   "targetHandle": "b11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e10",
+   "type": "wire",
+   "source": "imp_n9",
+   "sourceHandle": "t1",
+   "target": "imp_n10",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e11",
+   "type": "wire",
+   "source": "imp_n9",
+   "sourceHandle": "t2",
+   "target": "imp_n11",
+   "targetHandle": "b7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e12",
+   "type": "line",
+   "source": "imp_n6",
+   "sourceHandle": "c7",
+   "target": "imp_n12",
+   "targetHandle": "b7",
+   "params": {
+    "name": "650632",
+    "length": 2000,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "mtx601",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e13",
+   "type": "line",
+   "source": "imp_n12",
+   "sourceHandle": "c7",
+   "target": "imp_n13",
+   "targetHandle": "b9",
+   "params": {
+    "name": "632670",
+    "length": 667,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "mtx601",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e14",
+   "type": "line",
+   "source": "imp_n13",
+   "sourceHandle": "c3",
+   "target": "imp_n14",
+   "targetHandle": "b9",
+   "params": {
+    "name": "670671",
+    "length": 1333,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "mtx601",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 440,
+     "y": 1050
+    },
+    {
+     "x": 560,
+     "y": 1050
+    }
+   ]
+  },
+  {
+   "id": "imp_e15",
+   "type": "line",
+   "source": "imp_n14",
+   "sourceHandle": "c3",
+   "target": "imp_n15",
+   "targetHandle": "b3",
+   "params": {
+    "name": "671680",
+    "length": 1000,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "mtx601",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 440,
+     "y": 1290
+    },
+    {
+     "x": 420,
+     "y": 1290
+    }
+   ]
+  },
+  {
+   "id": "imp_e16",
+   "type": "line",
+   "source": "imp_n12",
+   "sourceHandle": "c3",
+   "target": "imp_n10",
+   "targetHandle": "b5",
+   "params": {
+    "name": "632633",
+    "length": 500,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "mtx602",
+    "phasing": "ABC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e17",
+   "type": "line",
+   "source": "imp_n12",
+   "sourceHandle": "c11",
+   "target": "imp_n16",
+   "targetHandle": "b0",
+   "params": {
+    "name": "632645",
+    "length": 500,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 2,
+    "linecode": "mtx603",
+    "phasing": "BC"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e18",
+   "type": "line",
+   "source": "imp_n16",
+   "sourceHandle": "c3",
+   "target": "imp_n17",
+   "targetHandle": "b3",
+   "params": {
+    "name": "645646",
+    "length": 300,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 2,
+    "linecode": "mtx603",
+    "phasing": "BC"
+   },
+   "waypoints": [
+    {
+     "x": 860,
+     "y": 1050
+    },
+    {
+     "x": 900,
+     "y": 1050
+    }
+   ]
+  },
+  {
+   "id": "imp_e19",
+   "type": "line",
+   "source": "imp_n18",
+   "sourceHandle": "c3",
+   "target": "imp_n19",
+   "targetHandle": "b9",
+   "params": {
+    "name": "692675",
+    "length": 500,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 3,
+    "linecode": "mtx606",
+    "phasing": "ABC"
+   },
+   "waypoints": [
+    {
+     "x": 520,
+     "y": 1750
+    },
+    {
+     "x": 560,
+     "y": 1750
+    }
+   ]
+  },
+  {
+   "id": "imp_e20",
+   "type": "line",
+   "source": "imp_n14",
+   "sourceHandle": "c15",
+   "target": "imp_n20",
+   "targetHandle": "b5",
+   "params": {
+    "name": "671684",
+    "length": 300,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 2,
+    "linecode": "mtx604",
+    "phasing": "AC"
+   },
+   "waypoints": [
+    {
+     "x": 680,
+     "y": 1290
+    },
+    {
+     "x": 890,
+     "y": 1290
+    }
+   ]
+  },
+  {
+   "id": "imp_e21",
+   "type": "line",
+   "source": "imp_n20",
+   "sourceHandle": "c3",
+   "target": "imp_n21",
+   "targetHandle": "b8",
+   "params": {
+    "name": "684611",
+    "length": 300,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "mtx605",
+    "phasing": "C"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e22",
+   "type": "line",
+   "source": "imp_n20",
+   "sourceHandle": "c7",
+   "target": "imp_n22",
+   "targetHandle": "b0",
+   "params": {
+    "name": "684652",
+    "length": 800,
+    "units": "ft",
+    "normamps": 400,
+    "phases": 1,
+    "linecode": "mtx607",
+    "phasing": "A"
+   },
+   "waypoints": null
+  },
+  {
+   "id": "imp_e23",
+   "type": "wire",
+   "source": "imp_n23",
+   "sourceHandle": "t1",
+   "target": "imp_n14",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": [
+    {
+     "x": 550,
+     "y": 1290
+    },
+    {
+     "x": 520,
+     "y": 1290
+    }
+   ]
+  },
+  {
+   "id": "imp_e24",
+   "type": "wire",
+   "source": "imp_n23",
+   "sourceHandle": "t2",
+   "target": "imp_n18",
+   "targetHandle": "b5",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e25",
+   "type": "wire",
+   "source": "imp_n24",
+   "sourceHandle": "t1",
+   "target": "imp_n14",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e26",
+   "type": "wire",
+   "source": "imp_n25",
+   "sourceHandle": "t1",
+   "target": "imp_n11",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e27",
+   "type": "wire",
+   "source": "imp_n26",
+   "sourceHandle": "t1",
+   "target": "imp_n11",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e28",
+   "type": "wire",
+   "source": "imp_n27",
+   "sourceHandle": "t1",
+   "target": "imp_n11",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e29",
+   "type": "wire",
+   "source": "imp_n28",
+   "sourceHandle": "t1",
+   "target": "imp_n16",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e30",
+   "type": "wire",
+   "source": "imp_n29",
+   "sourceHandle": "t1",
+   "target": "imp_n17",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e31",
+   "type": "wire",
+   "source": "imp_n30",
+   "sourceHandle": "t1",
+   "target": "imp_n18",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e32",
+   "type": "wire",
+   "source": "imp_n31",
+   "sourceHandle": "t1",
+   "target": "imp_n19",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e33",
+   "type": "wire",
+   "source": "imp_n32",
+   "sourceHandle": "t1",
+   "target": "imp_n19",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e34",
+   "type": "wire",
+   "source": "imp_n33",
+   "sourceHandle": "t1",
+   "target": "imp_n19",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e35",
+   "type": "wire",
+   "source": "imp_n34",
+   "sourceHandle": "t1",
+   "target": "imp_n21",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e36",
+   "type": "wire",
+   "source": "imp_n35",
+   "sourceHandle": "t1",
+   "target": "imp_n22",
+   "targetHandle": "c3",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e37",
+   "type": "wire",
+   "source": "imp_n36",
+   "sourceHandle": "t1",
+   "target": "imp_n13",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e38",
+   "type": "wire",
+   "source": "imp_n37",
+   "sourceHandle": "t1",
+   "target": "imp_n13",
+   "targetHandle": "c11",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e39",
+   "type": "wire",
+   "source": "imp_n38",
+   "sourceHandle": "t1",
+   "target": "imp_n13",
+   "targetHandle": "c15",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e40",
+   "type": "wire",
+   "source": "imp_n39",
+   "sourceHandle": "t1",
+   "target": "imp_n19",
+   "targetHandle": "c15",
+   "params": {},
+   "waypoints": null
+  },
+  {
+   "id": "imp_e41",
+   "type": "wire",
+   "source": "imp_n40",
+   "sourceHandle": "t1",
+   "target": "imp_n21",
+   "targetHandle": "c7",
+   "params": {},
+   "waypoints": null
+  }
+ ],
+ "busNames": {},
+ "loadShapes": {},
+ "tccCurves": {},
+ "lineCodes": {
+  "mtx601": {
+   "nphases": 3,
+   "units": "mi",
+   "rmatrix": [
+    [
+     0.3465,
+     0.156,
+     0.158
+    ],
+    [
+     0.156,
+     0.3375,
+     0.1535
+    ],
+    [
+     0.158,
+     0.1535,
+     0.3414
+    ]
+   ],
+   "xmatrix": [
+    [
+     1.0179,
+     0.5017,
+     0.4236
+    ],
+    [
+     0.5017,
+     1.0478,
+     0.3849
+    ],
+    [
+     0.4236,
+     0.3849,
+     1.0348
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.8,
+     -0.6,
+     -0.6
+    ],
+    [
+     -0.6,
+     2.8,
+     -0.6
+    ],
+    [
+     -0.6,
+     -0.6,
+     2.8
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "mtx602": {
+   "nphases": 3,
+   "units": "mi",
+   "rmatrix": [
+    [
+     0.7526,
+     0.158,
+     0.156
+    ],
+    [
+     0.158,
+     0.7475,
+     0.1535
+    ],
+    [
+     0.156,
+     0.1535,
+     0.7436
+    ]
+   ],
+   "xmatrix": [
+    [
+     1.1814,
+     0.4236,
+     0.5017
+    ],
+    [
+     0.4236,
+     1.1983,
+     0.3849
+    ],
+    [
+     0.5017,
+     0.3849,
+     1.2112
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.8,
+     -0.6,
+     -0.6
+    ],
+    [
+     -0.6,
+     2.8,
+     -0.6
+    ],
+    [
+     -0.6,
+     -0.6,
+     2.8
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "mtx603": {
+   "nphases": 2,
+   "units": "mi",
+   "rmatrix": [
+    [
+     1.3238,
+     0.2066
+    ],
+    [
+     0.2066,
+     1.3294
+    ]
+   ],
+   "xmatrix": [
+    [
+     1.3569,
+     0.4591
+    ],
+    [
+     0.4591,
+     1.3471
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.8,
+     -0.6
+    ],
+    [
+     -0.6,
+     2.8
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "mtx606": {
+   "nphases": 3,
+   "units": "mi",
+   "rmatrix": [
+    [
+     0.791721,
+     0.318476,
+     0.28345
+    ],
+    [
+     0.318476,
+     0.781649,
+     0.318476
+    ],
+    [
+     0.28345,
+     0.318476,
+     0.791721
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.438352,
+     0.0276838,
+     -0.0184204
+    ],
+    [
+     0.0276838,
+     0.396697,
+     0.0276838
+    ],
+    [
+     -0.0184204,
+     0.0276838,
+     0.438352
+    ]
+   ],
+   "cmatrix": [
+    [
+     383.948,
+     0,
+     0
+    ],
+    [
+     0,
+     383.948,
+     0
+    ],
+    [
+     0,
+     0,
+     383.948
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "mtx604": {
+   "nphases": 2,
+   "units": "mi",
+   "rmatrix": [
+    [
+     1.3238,
+     0.2066
+    ],
+    [
+     0.2066,
+     1.3294
+    ]
+   ],
+   "xmatrix": [
+    [
+     1.3569,
+     0.4591
+    ],
+    [
+     0.4591,
+     1.3471
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.8,
+     -0.6
+    ],
+    [
+     -0.6,
+     2.8
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "mtx605": {
+   "nphases": 1,
+   "units": "mi",
+   "rmatrix": [
+    [
+     1.3292
+    ]
+   ],
+   "xmatrix": [
+    [
+     1.3475
+    ]
+   ],
+   "cmatrix": [
+    [
+     2.8
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  },
+  "mtx607": {
+   "nphases": 1,
+   "units": "mi",
+   "rmatrix": [
+    [
+     1.3425
+    ]
+   ],
+   "xmatrix": [
+    [
+     0.5124
+    ]
+   ],
+   "cmatrix": [
+    [
+     236
+    ]
+   ],
+   "r1": null,
+   "x1": null,
+   "r0": null,
+   "x0": null,
+   "c1": null,
+   "c0": null,
+   "normamps": 400,
+   "source": "imported"
+  }
+ }
+}

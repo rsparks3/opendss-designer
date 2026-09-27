@@ -7,14 +7,16 @@ import {
   windingPatch,
   type Field,
 } from '../lib/fields'
+import { matchesFilter } from '../lib/selection'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { Params } from '../types/circuit'
 import { GraphPanel } from './GraphPanel'
 import { CurvesPanel } from './CurvesPanel'
+import { LineCodesPanel } from './LineCodesPanel'
 import { ShapesPanel } from './ShapesPanel'
 
-type MainTab = 'problems' | 'elements' | 'losses' | 'graph' | 'shapes' | 'curves'
+type MainTab = 'problems' | 'elements' | 'losses' | 'graph' | 'shapes' | 'curves' | 'linecodes'
 
 const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'vsource', label: 'Sources' },
@@ -95,6 +97,7 @@ function ElementTable({ type }: { type: string }) {
   const updateNodeParams = useCircuitStore((s) => s.updateNodeParams)
   const updateEdgeParams = useCircuitStore((s) => s.updateEdgeParams)
   const selectOnly = useCircuitStore((s) => s.selectOnly)
+  const selectMany = useCircuitStore((s) => s.selectMany)
 
   // Excel-style fill handle: the focused cell shows a corner dot; dragging it
   // over other rows copies the value down (or up) through them.
@@ -108,11 +111,15 @@ function ElementTable({ type }: { type: string }) {
       ? [...FIELDS.transformer, ...TRANSFORMER_WINDING_FIELDS]
       : FIELDS[type] ?? []
 
-  const rows: { id: string; params: Params }[] = isEdgeTable
-    ? edges.filter((e) => e.type === 'line').map((e) => ({ id: e.id, params: e.data?.params ?? {} }))
-    : nodes.filter((n) => n.type === type).map((n) => ({ id: n.id, params: n.data.params }))
+  // A filter narrows the rows; "Select matching" turns the rows into a
+  // canvas selection, which the properties panel then edits in bulk.
+  const [filter, setFilter] = useState('')
+  const allRows: { id: string; params: Params; selected: boolean }[] = isEdgeTable
+    ? edges.filter((e) => e.type === 'line').map((e) => ({ id: e.id, params: e.data?.params ?? {}, selected: !!e.selected }))
+    : nodes.filter((n) => n.type === type).map((n) => ({ id: n.id, params: n.data.params, selected: !!n.selected }))
+  const rows = filter.trim() ? allRows.filter((r) => matchesFilter(r.params, filter)) : allRows
 
-  if (!rows.length) return <div className="bp-empty">No {type} elements in the circuit yet.</div>
+  if (!allRows.length) return <div className="bp-empty">No {type} elements in the circuit yet.</div>
 
   const cellValue = (row: { params: Params }, key: string) =>
     type === 'transformer' ? windingGet(row.params, key) : row.params[key]
@@ -164,7 +171,38 @@ function ElementTable({ type }: { type: string }) {
     idx >= Math.min(active.row, fillTo) &&
     idx <= Math.max(active.row, fillTo)
 
+  const selectMatching = () =>
+    selectMany(isEdgeTable
+      ? { nodeIds: [], edgeIds: rows.map((r) => r.id) }
+      : { nodeIds: rows.map((r) => r.id), edgeIds: [] })
+  const selectedCount = allRows.filter((r) => r.selected).length
+
   return (
+    <>
+    <div className="bp-filter">
+      <input
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        placeholder="Filter: name, kw>100, kv=4.16, loadshape:day, phasing=B …"
+        title="Space-separated terms, all must hold. A bare word matches the name; key>value, key<value, key=value, key!=value compare a parameter; key:text means contains."
+        spellCheck={false}
+      />
+      <button
+        className="bp-select-matching"
+        onClick={selectMatching}
+        disabled={!rows.length}
+        title="Select these elements on the diagram; the properties panel then edits them all at once"
+      >
+        Select {filter.trim() ? `${rows.length} matching` : 'all'}
+      </button>
+      <span className="bp-count">
+        {filter.trim() ? `${rows.length} of ${allRows.length}` : `${allRows.length}`}
+        {selectedCount ? ` · ${selectedCount} selected` : ''}
+      </span>
+    </div>
+    {!rows.length ? (
+      <div className="bp-empty">Nothing matches that filter.</div>
+    ) : (
     <table className="bp-table">
       <thead>
         <tr>
@@ -179,7 +217,11 @@ function ElementTable({ type }: { type: string }) {
       </thead>
       <tbody>
         {rows.map((row, rowIdx) => (
-          <tr key={row.id} data-row-idx={rowIdx} className={inFillRange(rowIdx) ? 'fill-range' : ''}>
+          <tr
+            key={row.id}
+            data-row-idx={rowIdx}
+            className={`${inFillRange(rowIdx) ? 'fill-range' : ''}${row.selected ? ' selected' : ''}`}
+          >
             <td data-row-idx={rowIdx}>
               <button
                 className="bp-locate"
@@ -214,6 +256,8 @@ function ElementTable({ type }: { type: string }) {
         ))}
       </tbody>
     </table>
+    )}
+    </>
   )
 }
 
@@ -438,6 +482,16 @@ export function BottomPanel() {
         >
           Curves
         </button>
+        <button
+          className={`bp-tab${tab === 'linecodes' && open ? ' active' : ''}`}
+          title="Conductor definitions (line codes) this circuit defines, for its lines"
+          onClick={() => {
+            setTab('linecodes')
+            setOpen(tab !== 'linecodes' || !open)
+          }}
+        >
+          Line codes
+        </button>
         {tab === 'elements' && open && (
           <span className="bp-subtabs">
             {TYPE_TABS.map((t) => (
@@ -469,6 +523,8 @@ export function BottomPanel() {
             <ShapesPanel />
           ) : tab === 'curves' ? (
             <CurvesPanel />
+          ) : tab === 'linecodes' ? (
+            <LineCodesPanel />
           ) : typeTab === 'buses' ? (
             <BusesTable />
           ) : (

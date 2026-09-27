@@ -24,6 +24,12 @@ export interface Field {
   showIf?: (params: Params) => boolean
 }
 
+/** True unless the line is on one of the circuit's line codes. */
+function ownImpedance(params: Params): boolean {
+  const code = params.linecode
+  return typeof code !== 'string' || !useCircuitStore.getState().lineCodes[code]
+}
+
 /** Windings a transformer's params describe: 2 unless a third is listed. */
 export function windingCount(params: Params | undefined): number {
   const windings = params?.windings
@@ -68,10 +74,12 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'name', label: 'Name', kind: 'text' },
     { key: 'length', label: 'Length', kind: 'number' },
     { key: 'units', label: 'Units', kind: 'select', options: ['km', 'm', 'mi', 'kft', 'ft'] },
-    { key: 'r1', label: 'R1', kind: 'number', unit: 'Ω/unit' },
-    { key: 'x1', label: 'X1', kind: 'number', unit: 'Ω/unit' },
-    { key: 'r0', label: 'R0', kind: 'number', unit: 'Ω/unit' },
-    { key: 'x0', label: 'X0', kind: 'number', unit: 'Ω/unit' },
+    // A line on one of the circuit's line codes takes its impedance from the
+    // code, so its own sequence values are not shown (they would not be used).
+    { key: 'r1', label: 'R1', kind: 'number', unit: 'Ω/unit', showIf: ownImpedance },
+    { key: 'x1', label: 'X1', kind: 'number', unit: 'Ω/unit', showIf: ownImpedance },
+    { key: 'r0', label: 'R0', kind: 'number', unit: 'Ω/unit', showIf: ownImpedance },
+    { key: 'x0', label: 'X0', kind: 'number', unit: 'Ω/unit', showIf: ownImpedance },
     { key: 'normamps', label: 'Rating', kind: 'number', unit: 'A' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
@@ -91,6 +99,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'kv', label: 'Rated kV', kind: 'number', unit: 'kV' },
     { key: 'kva', label: 'Rating', kind: 'number', unit: 'kVA' },
+    { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'vreg', label: 'Voltage setpoint', kind: 'number', unit: 'V (120 base)' },
     { key: 'band', label: 'Bandwidth', kind: 'number', unit: 'V' },
     { key: 'ptratio', label: 'PT ratio', kind: 'number' },

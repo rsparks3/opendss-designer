@@ -12,6 +12,7 @@ import { create } from 'zustand'
 import { defaultLineParams, defaultParams, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
+  LineCodeJSON,
   TccCurveJSON,
   Winding,
 } from '../types/circuit'
@@ -35,6 +36,9 @@ export interface CircuitState {
    *  wholesale (never mutated) so undo can compare it by reference. */
   loadShapes: Record<string, LoadShapeJSON>
   tccCurves: Record<string, TccCurveJSON>
+  /** Conductor library, keyed by line-code name; a line's `linecode` param
+   *  naming an entry takes its impedance from it. */
+  lineCodes: Record<string, LineCodeJSON>
   placementType: NodeType | null
   connectMode: EdgeKind
   /** True when there are changes not yet saved to a project file. */
@@ -70,10 +74,30 @@ export interface CircuitState {
   selectOnly: (kind: 'node' | 'edge', id: string) => void
   /** Nothing selected: an exported drawing must not carry a blue outline. */
   clearSelection: () => void
+  /** Replace the selection with exactly these elements. */
+  selectMany: (picked: { nodeIds: string[]; edgeIds: string[] }) => void
+  /** One parameter patch per element, computed from its current params,
+   *  applied to every listed node and line edge as a single undo step. A
+   *  null patch leaves that element alone. */
+  bulkUpdateParams: (
+    picked: { nodeIds: string[]; edgeIds: string[] },
+    patch: (params: Params) => Params | null,
+  ) => void
+  /** Take positions, busbar widths and busbar handles from a laid-out copy of
+   *  this circuit (lib/layout autoLayout over toCircuitJSON), as one undo
+   *  step. Rotations are reset and routing points dropped: the drawing is
+   *  being redone, not nudged. */
+  applyLayout: (laidOut: CircuitJSON) => void
   mergeBusNames: (names: Record<string, string>) => void
   setLoadShape: (name: string, spec: LoadShapeJSON) => void
   setTccCurve: (name: string, spec: TccCurveJSON) => void
   removeTccCurve: (name: string) => void
+  setLineCode: (name: string, spec: LineCodeJSON) => void
+  /** Delete a code; lines on it keep the tag but compile from their own
+   *  r1/x1/r0/x0 (or the defaults), which validation points out. */
+  removeLineCode: (name: string) => void
+  /** Rename a code and re-point every line that uses it. */
+  renameLineCode: (oldName: string, newName: string) => void
   /** Delete a shape and clear any element params still referencing it. */
   deleteLoadShape: (name: string) => void
   /** Rename a shape and rewrite element references to it. */
@@ -327,7 +351,10 @@ function nodeCenter(n: AppNode): XY {
 }
 
 export function toCircuitJSON(
-  s: Pick<CircuitState, 'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves'>,
+  s: Pick<
+    CircuitState,
+    'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves' | 'lineCodes'
+  >,
 ): CircuitJSON {
   return {
     version: SCHEMA_VERSION,
@@ -352,6 +379,7 @@ export function toCircuitJSON(
     busNames: s.busNames,
     loadShapes: s.loadShapes,
     tccCurves: s.tccCurves,
+    lineCodes: s.lineCodes,
   }
 }
 
@@ -395,6 +423,7 @@ export const useCircuitStore = create<CircuitState>()(
       busNames: {},
       loadShapes: {},
       tccCurves: {},
+      lineCodes: {},
       placementType: null,
       connectMode: 'wire',
       dirty: false,
@@ -605,6 +634,70 @@ export const useCircuitStore = create<CircuitState>()(
           edges: get().edges.map((e) => (e.selected ? { ...e, selected: false } : e)),
         })
       },
+      selectMany: ({ nodeIds, edgeIds }) => {
+        const ns = new Set(nodeIds)
+        const es = new Set(edgeIds)
+        set({
+          nodes: get().nodes.map((n) => (n.selected === ns.has(n.id) ? n : { ...n, selected: ns.has(n.id) })),
+          edges: get().edges.map((e) => (e.selected === es.has(e.id) ? e : { ...e, selected: es.has(e.id) })),
+        })
+      },
+      bulkUpdateParams: ({ nodeIds, edgeIds }, patch) => {
+        const ns = new Set(nodeIds)
+        const es = new Set(edgeIds)
+        let changed = false
+        const nodes = get().nodes.map((n) => {
+          if (!ns.has(n.id)) return n
+          const p = patch(n.data.params)
+          if (!p) return n
+          changed = true
+          return { ...n, data: { ...n.data, params: { ...n.data.params, ...p } } }
+        })
+        const edges = get().edges.map((e) => {
+          if (!es.has(e.id) || e.type !== 'line') return e
+          const p = patch(e.data?.params ?? {})
+          if (!p) return e
+          changed = true
+          return { ...e, data: { ...e.data, params: { ...(e.data?.params ?? {}), ...p } } }
+        })
+        if (!changed) return
+        set({ nodes, edges, dirty: true })
+        markStale()
+      },
+      applyLayout: (laidOut) => {
+        const nodePos = new Map(laidOut.nodes.map((n) => [n.id, n]))
+        const edgeHandles = new Map(laidOut.edges.map((e) => [e.id, e]))
+        set({
+          nodes: get().nodes.map((n) => {
+            const l = nodePos.get(n.id)
+            if (!l?.position) return n
+            const { rotation: _r, ...params } = n.data.params
+            const busbar = n.type === 'busbar'
+            const width = busbar ? snapBusbarWidth(l.width ?? (n.width as number) ?? NODE_SIZE.busbar.w) : n.width
+            return {
+              ...n,
+              position: { x: l.position.x, y: l.position.y },
+              ...(busbar ? { width } : {}),
+              data: { ...n.data, params },
+            }
+          }),
+          edges: get().edges.map((e) => {
+            const l = edgeHandles.get(e.id)
+            if (!l) return e
+            return {
+              ...e,
+              sourceHandle: l.sourceHandle ?? e.sourceHandle,
+              targetHandle: l.targetHandle ?? e.targetHandle,
+              data: {
+                ...e.data,
+                params: e.data?.params ?? {},
+                waypoints: l.waypoints?.length ? l.waypoints : undefined,
+              },
+            }
+          }),
+          dirty: true,
+        })
+      },
       mergeBusNames: (names) => set({ busNames: { ...get().busNames, ...names } }),
       setTccCurve: (name, spec) => {
         set({ tccCurves: { ...get().tccCurves, [name]: spec }, dirty: true })
@@ -612,6 +705,30 @@ export const useCircuitStore = create<CircuitState>()(
       removeTccCurve: (name) => {
         const { [name]: _gone, ...rest } = get().tccCurves
         set({ tccCurves: rest, dirty: true })
+      },
+      setLineCode: (name, spec) => {
+        set({ lineCodes: { ...get().lineCodes, [name]: spec }, dirty: true })
+        markStale()
+      },
+      removeLineCode: (name) => {
+        const { [name]: _gone, ...rest } = get().lineCodes
+        set({ lineCodes: rest, dirty: true })
+        markStale()
+      },
+      renameLineCode: (oldName, newName) => {
+        const codes = get().lineCodes
+        if (!codes[oldName] || codes[newName] || !newName) return
+        const { [oldName]: spec, ...rest } = codes
+        set({
+          lineCodes: { ...rest, [newName]: spec },
+          edges: get().edges.map((e) =>
+            e.type === 'line' && e.data?.params.linecode === oldName
+              ? { ...e, data: { ...e.data, params: { ...e.data.params, linecode: newName } } }
+              : e,
+          ),
+          dirty: true,
+        })
+        markStale()
       },
       setLoadShape: (name, spec) => {
         set({ loadShapes: { ...get().loadShapes, [name]: spec }, dirty: true })
@@ -656,6 +773,7 @@ export const useCircuitStore = create<CircuitState>()(
           busNames: c.busNames ?? {},
           loadShapes: c.loadShapes ?? {},
           tccCurves: c.tccCurves ?? {},
+          lineCodes: c.lineCodes ?? {},
           dirty: false,
         })
         // Cleared here rather than at each call site: Open used to leave the
@@ -664,7 +782,16 @@ export const useCircuitStore = create<CircuitState>()(
         markStale()
       },
       clearAll: () => {
-        set({ nodes: [], edges: [], busNames: {}, loadShapes: {}, dirty: true, projectId: null })
+        set({
+          nodes: [],
+          edges: [],
+          busNames: {},
+          loadShapes: {},
+          tccCurves: {},
+          lineCodes: {},
+          dirty: true,
+          projectId: null,
+        })
         markStale()
       },
 
@@ -726,13 +853,17 @@ export const useCircuitStore = create<CircuitState>()(
     }),
     {
       // Selection flags are stripped so clicking around never pollutes the
-      // undo history (equality below then sees those states as identical).
+      // undo history (equality below then sees those states as identical),
+      // and so are React Flow's measurements: a busbar changing width makes
+      // the canvas report new sizes a frame later, and without this each
+      // report became an undo entry that undid nothing.
       partialize: (s) => ({
         name: s.name,
-        nodes: s.nodes.map(({ selected: _s, ...n }) => n),
+        nodes: s.nodes.map(({ selected: _s, measured: _m, ...n }) => n),
         edges: s.edges.map(({ selected: _s, ...e }) => e),
         busNames: s.busNames,
         loadShapes: s.loadShapes,
+        lineCodes: s.lineCodes,
       }),
       limit: 100,
       // Structural compare; fine at editor scale (revisit if circuits reach

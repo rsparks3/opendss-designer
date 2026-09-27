@@ -278,10 +278,41 @@ Dragging between two terminals creates a connection whose kind follows the
 
 - **Wire** — an ideal connection; the two terminals become the same OpenDSS
   bus (merged via union-find under the hood).
-- **Line** — a real OpenDSS `Line` element: length + units, sequence
-  impedances (R1/X1/R0/X0 per unit length), ampacity, phases. Conductor
-  parameters can be stamped from an editable preset library
-  (`config/linecodes.csv`) or entered directly.
+- **Line** — a real OpenDSS `Line` element: length + units, ampacity,
+  phases, and an impedance that comes from one of three places, chosen under
+  **Conductor** in the properties panel: a **line code** the circuit carries
+  (below), a **preset** from `config/linecodes.csv` that stamps sequence
+  values into the R1/X1/R0/X0 fields, or those fields typed directly.
+
+### Line codes
+
+A line code is a conductor definition lines share by name — OpenDSS's
+`LineCode`. Real feeder models define their conductors this way, as a full
+phase impedance matrix (R, X and optionally C, one row per phase, in ohms
+and nF per unit length) rather than four sequence numbers, because the
+matrix carries the mutual coupling between phases and the asymmetry of a
+real pole configuration. Four sequence numbers cannot.
+
+The **Line codes** tab in the bottom panel holds the circuit's library. An
+imported `.dss` file brings the codes its lines use (a shared code file's
+unused entries are left out, and the import says how many). Add your own
+with **+ New line code**: pick the phase count and units, then paste the R
+and X matrices exactly as a `.dss` file or a conductor table writes them —
+the lower triangle, rows separated by `|`:
+
+```
+0.3465 | 0.1560 0.3375 | 0.1580 0.1535 0.3414
+```
+
+A code can instead hold sequence values (R1/X1/R0/X0 and optional C1/C0),
+which the engine expands to a balanced matrix; that is the same thing a
+preset is, kept with the circuit. A line on a code hides its own R/X fields
+since they would not be used, takes the code's phase count, and inherits the
+code's rating unless it has one of its own. A line whose code has a
+different phase count is a validation error rather than a silent resize.
+Codes save with the circuit, export as `LineCode` objects and come back on
+import unchanged; the [validation page](validation.md) shows the IEEE test
+feeders surviving that round trip to the last digit.
 
 Picking a connect mode exits placement mode, so the next connection is always
 the kind you chose. While a placement mode *is* active, connections default

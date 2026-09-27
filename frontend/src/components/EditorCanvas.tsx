@@ -81,7 +81,18 @@ export function EditorCanvas() {
   const addEdgeWaypoint = useCircuitStore((s) => s.addEdgeWaypoint)
   const flash = useResultsStore((s) => s.flash)
   const flashKind = useResultsStore((s) => s.flashKind)
-  const { screenToFlowPosition } = useReactFlow()
+  const { screenToFlowPosition, fitView } = useReactFlow()
+
+  // Clean up and sample loads redraw the whole circuit; show all of it. The
+  // event is dispatched after the store update, and the frame delay lets
+  // React Flow measure the new node sizes before fitting.
+  useEffect(() => {
+    const onFit = () => {
+      requestAnimationFrame(() => void fitView({ maxZoom: 1.5, padding: 0.1 }))
+    }
+    window.addEventListener('opendss:fit-view', onFit)
+    return () => window.removeEventListener('opendss:fit-view', onFit)
+  }, [fitView])
 
   // Busbars are placed by click-dragging to the desired width; a transparent
   // overlay captures that gesture. Other components place on pane clicks so
