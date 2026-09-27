@@ -21,6 +21,9 @@ MAX_SHAPE_POINTS = 1_000_000
 MAX_CURVES = 200
 MAX_CURVE_POINTS = 200
 MAX_LINE_CODES = 2_000
+MAX_PASSTHROUGH = 20_000
+MAX_PASSTHROUGH_TEXT = 20_000
+MAX_COMMENT_TEXT = 4_000
 
 NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker",
                    "capacitor", "generator", "pvsystem", "storage", "regulator",
@@ -115,6 +118,15 @@ class LineCodeSpec(BaseModel):
         return self.rmatrix is not None and self.xmatrix is not None
 
 
+class PassthroughSpec(BaseModel):
+    """An element from an imported .dss file the editor does not model,
+    kept verbatim: its `New` line, then any `Edit`s of it. See
+    core/passthrough.py for what is kept and when it runs."""
+    # "Monitor.m1", as the file spelled it.
+    name: Annotated[str, Field(max_length=256)]
+    text: Annotated[str, Field(max_length=MAX_PASSTHROUGH_TEXT)]
+
+
 class Circuit(BaseModel):
     version: int = 1
     name: str = "circuit"
@@ -136,6 +148,15 @@ class Circuit(BaseModel):
     # `linecode` param naming an entry take their impedance from it.
     lineCodes: Annotated[dict[str, LineCodeSpec],
                          Field(max_length=MAX_LINE_CODES)] = Field(default_factory=dict)
+    # What an imported file said that the diagram does not show: elements
+    # of classes the editor does not model, and comments. Written back on
+    # export; passthrough elements also run in solves when safe.
+    passthrough: Annotated[list[PassthroughSpec],
+                           Field(max_length=MAX_PASSTHROUGH)] = Field(default_factory=list)
+    # Comment lines, keyed by lowercase "class.name" ("circuit" for the
+    # file's header), written above that element on export.
+    comments: Annotated[dict[str, Annotated[str, Field(max_length=MAX_COMMENT_TEXT)]],
+                        Field(max_length=MAX_NODES)] = Field(default_factory=dict)
 
 
 class Issue(BaseModel):

@@ -116,9 +116,35 @@ describe('circuit JSON round trip', () => {
       loadShapes: FIXTURE.loadShapes,
       tccCurves: FIXTURE.tccCurves ?? {},
       lineCodes: FIXTURE.lineCodes ?? {},
+      passthrough: FIXTURE.passthrough ?? [],
+      comments: FIXTURE.comments ?? {},
     })
     // Serialize both so undefined-vs-absent differences disappear.
     expect(JSON.parse(JSON.stringify(out))).toEqual(JSON.parse(JSON.stringify(FIXTURE)))
+  })
+})
+
+describe('passthrough', () => {
+  it('renaming a line re-points the imported monitor on it and moves its comment', () => {
+    useCircuitStore.getState().loadCircuit(FIXTURE)
+    const s = useCircuitStore.getState()
+    expect(s.passthrough[0].text).toContain('element=line.ln1')
+    const ln1 = s.edges.find((e) => e.data?.params.name === 'LN1')!
+    s.updateEdgeParams(ln1.id, { name: 'TRUNK' })
+    const after = useCircuitStore.getState()
+    expect(after.passthrough[0].text).toContain('element=line.TRUNK')
+    expect(after.comments['line.trunk']).toBe('! the first line')
+    expect(after.comments['line.ln1']).toBeUndefined()
+    // One undo puts both back with the name.
+    useCircuitStore.temporal.getState().undo()
+    expect(useCircuitStore.getState().passthrough[0].text).toContain('element=line.ln1')
+  })
+
+  it('a circuit without any saves without the keys', () => {
+    useCircuitStore.getState().loadCircuit({ ...FIXTURE, passthrough: undefined, comments: undefined })
+    const out = toCircuitJSON(useCircuitStore.getState())
+    expect('passthrough' in out).toBe(false)
+    expect('comments' in out).toBe(false)
   })
 })
 

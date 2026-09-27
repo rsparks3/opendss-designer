@@ -1,3 +1,4 @@
+import { renameComments, renameInPassthrough } from '../lib/passthroughRefs'
 import { divideLength, midpoint, splitAt } from '../lib/splitLine'
 import { flipOnScreen, type Axis } from '../lib/arrange'
 import {
@@ -15,6 +16,7 @@ import { defaultLineParams, defaultParams, nextName, NODE_SIZE, SYMBOL_PITCH } f
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
   LineCodeJSON,
+  PassthroughJSON,
   TccCurveJSON,
   Winding,
 } from '../types/circuit'
@@ -41,6 +43,10 @@ export interface CircuitState {
   /** Conductor library, keyed by line-code name; a line's `linecode` param
    *  naming an entry takes its impedance from it. */
   lineCodes: Record<string, LineCodeJSON>
+  /** What an imported file had that the diagram does not show. */
+  passthrough: PassthroughJSON[]
+  comments: Record<string, string>
+  setPassthrough: (entries: PassthroughJSON[]) => void
   placementType: NodeType | null
   connectMode: EdgeKind
   /** True when there are changes not yet saved to a project file. */
@@ -369,11 +375,26 @@ function nodeCenter(n: AppNode): XY {
   return { x: n.position.x + w / 2, y: n.position.y + size.h / 2 }
 }
 
+/** Passthrough text and comments after an element rename, or nothing when
+ *  the name did not change. */
+function renamed(
+  s: Pick<CircuitState, 'passthrough' | 'comments'>,
+  type: string,
+  oldName: unknown,
+  newName: unknown,
+): Partial<Pick<CircuitState, 'passthrough' | 'comments'>> {
+  if (typeof oldName !== 'string' || typeof newName !== 'string' || oldName === newName) return {}
+  return {
+    passthrough: renameInPassthrough(s.passthrough, type, oldName, newName),
+    comments: renameComments(s.comments, type, oldName, newName),
+  }
+}
+
 export function toCircuitJSON(
   s: Pick<
     CircuitState,
     'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves' | 'lineCodes'
-  >,
+  > & Partial<Pick<CircuitState, 'passthrough' | 'comments'>>,
 ): CircuitJSON {
   return {
     version: SCHEMA_VERSION,
@@ -399,6 +420,10 @@ export function toCircuitJSON(
     loadShapes: s.loadShapes,
     tccCurves: s.tccCurves,
     lineCodes: s.lineCodes,
+    // Only written when there is something: a circuit drawn in the editor
+    // saves exactly as it always has.
+    ...(s.passthrough?.length ? { passthrough: s.passthrough } : {}),
+    ...(s.comments && Object.keys(s.comments).length ? { comments: s.comments } : {}),
   }
 }
 
@@ -443,6 +468,12 @@ export const useCircuitStore = create<CircuitState>()(
       loadShapes: {},
       tccCurves: {},
       lineCodes: {},
+      passthrough: [],
+      comments: {},
+      setPassthrough: (passthrough) => {
+        set({ passthrough, dirty: true })
+        markStale()
+      },
       placementType: null,
       connectMode: 'wire',
       dirty: false,
@@ -516,10 +547,12 @@ export const useCircuitStore = create<CircuitState>()(
         markStale()
       },
       updateNodeParams: (id, patch) => {
+        const node = get().nodes.find((n) => n.id === id)
         set({
           nodes: get().nodes.map((n) =>
             n.id === id ? { ...n, data: { params: { ...n.data.params, ...patch } } } : n,
           ),
+          ...renamed(get(), node?.type ?? '', node?.data.params.name, patch.name),
           dirty: true,
         })
         markStale()
@@ -539,12 +572,14 @@ export const useCircuitStore = create<CircuitState>()(
         markStale()
       },
       updateEdgeParams: (id, patch) => {
+        const edge = get().edges.find((e) => e.id === id)
         set({
           edges: get().edges.map((e) =>
             e.id === id
               ? { ...e, data: { ...e.data, params: { ...(e.data?.params ?? {}), ...patch } } }
               : e,
           ),
+          ...renamed(get(), edge?.type ?? '', edge?.data?.params?.name, patch.name),
           dirty: true,
         })
         markStale()
@@ -793,6 +828,8 @@ export const useCircuitStore = create<CircuitState>()(
           loadShapes: c.loadShapes ?? {},
           tccCurves: c.tccCurves ?? {},
           lineCodes: c.lineCodes ?? {},
+          passthrough: c.passthrough ?? [],
+          comments: c.comments ?? {},
           dirty: false,
         })
         // Cleared here rather than at each call site: Open used to leave the
@@ -808,6 +845,8 @@ export const useCircuitStore = create<CircuitState>()(
           loadShapes: {},
           tccCurves: {},
           lineCodes: {},
+          passthrough: [],
+          comments: {},
           dirty: true,
           projectId: null,
         })
@@ -985,6 +1024,8 @@ export const useCircuitStore = create<CircuitState>()(
         busNames: s.busNames,
         loadShapes: s.loadShapes,
         lineCodes: s.lineCodes,
+        passthrough: s.passthrough,
+        comments: s.comments,
       }),
       limit: 100,
       // Structural compare; fine at editor scale (revisit if circuits reach

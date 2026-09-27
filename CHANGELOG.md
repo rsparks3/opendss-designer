@@ -32,6 +32,13 @@ of M7.
   the drawn line; every other setting carries to both halves, the second
   named `LN1_2`. **Arrange → Split line** does it halfway along. One undo
   step.
+- **Nothing in an imported file is lost any more.** Elements the editor
+  does not draw (monitors, energy meters, capacitor and inverter controls,
+  XY curves, reactors, a four-winding transformer) are kept verbatim in a
+  new **Passthrough** tab, run in solves when safe, and are exported again;
+  the file's comments are written back above the elements they described.
+  Renaming an element rewrites the references to it. Previously these were
+  listed as skipped.
 - **Dark mode.** View → Theme → Light, Dark or *Same as the system*; the
   panels, the canvas, the symbols and the plots all follow it. Image exports
   stay on white paper in dark ink whatever the screen shows.

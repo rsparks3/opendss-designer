@@ -26,7 +26,7 @@ import opendssdirect as dss
 
 from .. import context
 from ..settings import settings
-from . import cache
+from . import cache, passthrough
 from .compiler import CompileResult, compile_circuit
 from .connectivity import ConnectivityResult, synthesize
 from .model import Circuit, Issue
@@ -245,7 +245,7 @@ def _element_for_command(cmd: str, element_map: dict[str, str]) -> str | None:
 
 
 def _run_commands(commands: list[str], element_map: dict[str, str],
-                  issues: list[Issue]) -> bool:
+                  issues: list[Issue], optional: set[str] | frozenset[str] = frozenset()) -> bool:
     ok = True
     for cmd in commands:
         try:
@@ -254,6 +254,16 @@ def _run_commands(commands: list[str], element_map: dict[str, str],
             if result and "error" in result.lower():
                 raise RuntimeError(result)
         except Exception as exc:  # engine raises DSSException on bad commands
+            if cmd in optional:
+                # A passthrough element the engine will not take is left out,
+                # not allowed to sink the circuit it rode in on.
+                _drop_passthrough(cmd)
+                target = cmd.split()[1] if len(cmd.split()) > 1 else cmd
+                issues.append(Issue(
+                    severity="warning", code="passthrough",
+                    message=_redact(f"OpenDSS rejected passthrough {target} — "
+                                    f"left out of the solve ({exc})")))
+                continue
             ok = False
             ref = _element_for_command(cmd, element_map)
             issues.append(Issue(
@@ -261,6 +271,17 @@ def _run_commands(commands: list[str], element_map: dict[str, str],
                 message=_redact(f"OpenDSS rejected: {cmd!r} — {exc}"),
                 nodeId=ref, edgeId=ref))
     return ok
+
+
+def _drop_passthrough(cmd: str) -> None:
+    """Disable whatever part of a rejected passthrough line the engine did
+    create, so a half-defined object cannot skew the solution."""
+    parts = cmd.split()
+    if len(parts) >= 2 and parts[0].lower() in ("new", "edit") and "." in parts[1]:
+        try:
+            dss.Text.Command(f"disable {parts[1]}")
+        except Exception:
+            pass  # nothing was created, which is the usual case
 
 
 def _extract_buses() -> dict[str, Any]:
@@ -382,7 +403,8 @@ def solve(circuit: Circuit) -> dict[str, Any]:
     with dss_guard():
         _ensure_init()
         _write_aux_files(compiled)
-        built = _run_commands(compiled.commands, compiled.element_map, issues)
+        built = _run_commands(compiled.commands, compiled.element_map, issues,
+                               compiled.optional_commands)
         converged = False
         iterations = 0
         buses: dict[str, Any] = {}
@@ -524,7 +546,8 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
     with dss_guard():
         _ensure_init()
         _write_aux_files(compiled)
-        built = _run_commands(compiled.commands, compiled.element_map, issues)
+        built = _run_commands(compiled.commands, compiled.element_map, issues,
+                               compiled.optional_commands)
         if not built:
             return {"converged": False, "issues": [i.model_dump() for i in issues],
                     "buses": {}, "elements": {}, "totals": {}, "summary": None}
@@ -705,10 +728,15 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
 _FAULT_STUDY_MUTES = ("storage.", "regcontrol.", "fuse.", "recloser.", "relay.")
 
 
-def quiet_for_fault_study(element_map: dict[str, str]) -> None:
+def quiet_for_fault_study(element_map: dict[str, str],
+                          passthrough_names: list[str] | None = None) -> None:
     """Disable everything that has no business in a fault study."""
     for full_name in element_map:
         if full_name.startswith(_FAULT_STUDY_MUTES):
+            dss.Text.Command(f"disable {full_name}")
+    # Meters and controls an imported file brought with it sit out too.
+    for full_name in passthrough_names or []:
+        if full_name.split(".", 1)[0] in passthrough.FAULT_STUDY_MUTES:
             dss.Text.Command(f"disable {full_name}")
     # Controls share a name with the switch or transformer they operate, so
     # they are not in element_map under their own class; name them directly.
@@ -735,10 +763,11 @@ def fault_study(circuit: Circuit) -> dict[str, Any]:
     with dss_guard():
         _ensure_init()
         _write_aux_files(compiled)
-        built = _run_commands(compiled.commands, compiled.element_map, issues)
+        built = _run_commands(compiled.commands, compiled.element_map, issues,
+                               compiled.optional_commands)
         if built:
             try:
-                quiet_for_fault_study(compiled.element_map)
+                quiet_for_fault_study(compiled.element_map, compiled.passthrough_names)
                 dss.Text.Command("set mode=faultstudy")
                 dss.Text.Command("solve")
                 converged = True

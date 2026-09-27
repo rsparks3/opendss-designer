@@ -488,14 +488,15 @@ def tcc_study(circuit: Circuit) -> dict[str, Any]:
     with dss_guard():
         _ensure_init()
         _write_aux_files(compiled)
-        built = _run_commands(compiled.commands, compiled.element_map, issues)
+        built = _run_commands(compiled.commands, compiled.element_map, issues,
+                               compiled.optional_commands)
         if built:
             devices = _read_devices(compiled.element_map)
             try:
                 # Curves are read above, so the controls have served their
                 # purpose here; see engine.quiet_for_fault_study for why they
                 # do not go into the study itself.
-                quiet_for_fault_study(compiled.element_map)
+                quiet_for_fault_study(compiled.element_map, compiled.passthrough_names)
                 dss.Text.Command("set mode=faultstudy")
                 dss.Text.Command("solve")
                 converged = True

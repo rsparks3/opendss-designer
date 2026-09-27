@@ -244,7 +244,7 @@ def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
 #: is cheap enough to run on the validation debounce. Missing load shapes
 #: are reported further down with a friendlier message, so only the name
 #: clash is taken from the compiler.
-COMPILER_CHECKS = frozenset({"duplicate-name"})
+COMPILER_CHECKS = frozenset({"duplicate-name", "passthrough"})
 
 
 def phase_map(circuit: Circuit) -> dict[str, dict[str, object]]:
@@ -262,9 +262,12 @@ def validate(circuit: Circuit) -> list[Issue]:
     issues.extend(conn.issues)
     seen = {(i.code, i.nodeId) for i in issues}
     for i in compile_circuit(circuit).issues:
-        if i.code in COMPILER_CHECKS and (i.code, i.nodeId) not in seen:
+        # Passthrough findings belong to no node, so they are told apart by
+        # what they say.
+        key = (i.code, i.nodeId or i.message)
+        if i.code in COMPILER_CHECKS and key not in seen:
             issues.append(i)
-            seen.add((i.code, i.nodeId))
+            seen.add(key)
 
     sources = [n for n in circuit.nodes if n.type == "vsource"]
     if not sources:

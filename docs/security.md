@@ -38,6 +38,13 @@ rather than opening a public issue.
   or change the working directory are switched off.
 - **Element property values are allowlisted** before they reach OpenDSS command
   text, so a crafted circuit cannot append properties to its own elements.
+- **Passthrough elements are data too.** The elements an import keeps
+  verbatim (monitors, controls, curves; see [Importing](importing-dss.md))
+  reach a solve only when every line is a `New` or `Edit` naming the element
+  itself, its class is on a short list of measurement, control, curve and
+  simple circuit objects, and nothing in it names a file. Anything else —
+  including text a user typed into the Passthrough tab — is kept for export
+  and never sent to the engine.
 - **Responses carry no server detail:** no filesystem paths, no generated
   command list, and an unexpected failure returns a generic message with the
   detail logged server-side.

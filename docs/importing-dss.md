@@ -38,9 +38,33 @@ windings; a transformer with a `RegControl` becomes a regulator), switches
 overcurrent `Relay` becomes that device), `Load`, `Capacitor`, `Generator`,
 `PVSystem`, `Storage`, `LoadShape` and `TCC_Curve` onto diagram elements.
 
-Anything else in the file (e.g. reactors, monitors, line geometries) is
-**reported, not silently dropped**: the import completes and lists the
-unsupported elements so you know exactly what was left out.
+## Everything else: passthrough elements and comments
+
+Anything else in the file — monitors, energy meters, capacitor and inverter
+controls, XY curves, reactors, a four-winding transformer — is **kept as the
+file wrote it**, in the order it was defined, and listed in the
+**Passthrough** tab. It is written back on export, and it runs in every solve
+after the elements on the drawing, so a `CapControl` still switches its
+capacitor and a `Reactor` still grounds its bus. The tab lets you read, edit
+or delete each one, or type in one of your own.
+
+A few things keep a passthrough element out of the solve (it is still
+exported, and the Problems list says why):
+
+- it refers to something that is no longer in the circuit — a monitor on a
+  line you deleted. Renaming an element in the editor rewrites the
+  references to it, so a rename never causes this. On export the element is
+  written commented out, so the file still compiles;
+- it reads a file (`mult=(file=...)`, `csvfile=`), which the server does not
+  have;
+- it is of a class outside a short list of measurement, control, curve and
+  simple circuit objects, or it is anything other than `New` and `Edit`
+  lines naming itself — a passthrough element is data, never a script;
+- the engine rejects it when the solve runs.
+
+**Comments** come through too: the comment lines directly above an element,
+and a comment at the end of its line, are written back above it on export,
+and the comments at the top of the main file stay at the top.
 
 !!! note
     Round-tripping is a design goal: export the imported circuit and you get a

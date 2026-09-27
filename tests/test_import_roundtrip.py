@@ -75,13 +75,15 @@ def test_export_import_roundtrip(substation_circuit):
     assert abs(v_new - v_old) < 1e-3
 
 
-def test_import_reports_unsupported(substation_circuit):
+def test_import_keeps_unmodelled_elements(substation_circuit):
     text, _ = export_dss(substation_circuit)
     text = text.replace("set mode=snapshot",
                         "new reactor.r1 bus1=main_bus kv=12.47 kvar=300\n"
                         "set mode=snapshot")
     imported = import_dss(text)
-    assert any("reactor" in u.lower() for u in imported["unsupported"])
+    # Not dropped any more: kept as a passthrough element (test_passthrough.py).
+    assert imported["unsupported"] == []
+    assert imported["passthrough"] == ["reactor.r1"]
 
 
 def test_pvsystem_storage_roundtrip(substation_circuit):

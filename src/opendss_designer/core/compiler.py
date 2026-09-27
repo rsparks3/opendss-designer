@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import passthrough
 from .connectivity import ConnectivityResult, sanitize_name, synthesize
 from .model import Circuit, Issue, LineCodeSpec
 from .phasing import nodes_for, phase_count
@@ -60,6 +61,11 @@ class CompileResult:
     # Side files referenced by the commands (filename -> content); the engine
     # writes them into its shape directory before running the commands.
     aux_files: dict[str, str] = field(default_factory=dict)
+    # Passthrough lines: the engine runs them, but one it rejects is left
+    # out with a warning instead of failing the whole circuit.
+    optional_commands: set[str] = field(default_factory=set)
+    # Lowercase class.name of each passthrough element that runs.
+    passthrough_names: list[str] = field(default_factory=list)
 
 
 def _num(params: dict, key: str, default: float | None = None) -> float | None:
@@ -152,11 +158,14 @@ def _bus_suffix(explicit, phases: int, phasing=None) -> str:
 
 
 def compile_circuit(circuit: Circuit,
-                    shape_dir: Path | None = None) -> CompileResult:
+                    shape_dir: Path | None = None,
+                    export: bool = False) -> CompileResult:
     """Compile to Text commands. With `shape_dir` (the solve path), large
     loadshapes become `mult=(file=...)` references plus aux_files entries;
     without it (the .dss export path), everything stays inline so exports
-    remain a single portable file."""
+    remain a single portable file. `export` writes every passthrough
+    element, the ones a solve would leave out included (commented out when
+    they refer to something that is gone)."""
     res = CompileResult()
     conn = synthesize(circuit)
     res.connectivity = conn
@@ -693,6 +702,21 @@ def compile_circuit(circuit: Circuit,
                     f" chargetrigger={_num(p, 'chargetrigger', 0.0):g}")
         cmds.append(cmd)
 
+    # What the imported file had that the diagram does not: after every
+    # modelled element, so their references resolve, in the file's order.
+    if circuit.passthrough:
+        defined = {c.split()[1].lower() for c in cmds if c.lower().startswith("new ")}
+        # `new circuit.x` makes the first source, vsource.source.
+        defined.add("vsource.source")
+        buses = {b.lower() for bs in conn.node_buses.values() for b in bs}
+        checked, pt_issues = passthrough.check(circuit.passthrough, defined, buses)
+        res.issues.extend(pt_issues)
+        pt_cmds = passthrough.commands(checked, export)
+        cmds.extend(pt_cmds)
+        res.optional_commands.update(pt_cmds)
+        res.passthrough_names = [
+            f"{c.cls}.{c.entry.name.split('.', 1)[1].lower()}" for c in checked if c.solvable]
+
     for n in circuit.nodes:
         if n.type == "busbar":
             basekv = _num(n.params, "basekv")
@@ -708,16 +732,43 @@ def compile_circuit(circuit: Circuit,
 
 
 def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:
-    """Render the .dss file text (without solve directives)."""
-    res = compile_circuit(circuit)
+    """Render the .dss file text (without solve directives). Comments an
+    imported file had go back above the elements they described."""
+    res = compile_circuit(circuit, export=True)
+    notes = {k.lower(): v for k, v in circuit.comments.items()}
+    body: list[str] = []
+    for cmd in res.commands:
+        m = _NEW_TARGET_RE.match(cmd)
+        if m:
+            cls = m.group(1).lower()
+            key = "circuit" if cls == "circuit" else f"{cls}.{m.group(2).lower()}"
+            if key != "circuit" and key in notes:
+                body.extend(_as_comment(notes[key]))
+        body.append(cmd)
+    header = _as_comment(notes["circuit"]) + [""] if "circuit" in notes else []
     lines = [
         f"// {circuit.name} — exported by opendss-designer",
         "// Compile this file with OpenDSS / OpenDSSDirect, then: solve",
         "",
-        *res.commands,
+        *header,
+        *body,
         "",
         "set mode=snapshot",
         "solve",
         "",
     ]
     return "\n".join(lines), res.issues
+
+
+_NEW_TARGET_RE = re.compile(r'^new\s+(?:object\s*=\s*)?"?([A-Za-z_]\w*)\.([^\s"=]+)', re.IGNORECASE)
+
+
+def _as_comment(text: str) -> list[str]:
+    """Stored comment text as .dss comment lines. A line that lost its
+    marker (typed in by hand, say) gets one, so nothing reaches the engine."""
+    out = []
+    for ln in text.splitlines():
+        t = ln.strip()
+        if t:
+            out.append(t if t.startswith(("!", "//")) else f"! {t}")
+    return out

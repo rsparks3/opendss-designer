@@ -1288,6 +1288,20 @@ kbd {
 }
 
 /* ---------- curve library (Curves tab) ---------- */
+.pt-state { color: var(--ok); font-size: 11px; margin-left: 8px; }
+.pt-state.off { color: var(--warn); }
+.pt-count { color: var(--faint); font-weight: 400; }
+.pt-text {
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 12px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: var(--panel);
+  color: var(--ink);
+  resize: vertical;
+}
 .curves-panel { display: flex; gap: 16px; padding: 8px; align-items: flex-start; }
 .curves-list { display: flex; flex-direction: column; gap: 4px; width: 190px; flex: 0 0 auto; }
 .curves-add {

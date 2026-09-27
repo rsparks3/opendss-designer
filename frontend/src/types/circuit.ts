@@ -95,6 +95,19 @@ export interface CircuitJSON {
   loadShapes: Record<string, LoadShapeJSON>
   tccCurves?: Record<string, TccCurveJSON>
   lineCodes?: Record<string, LineCodeJSON>
+  /** Elements an imported .dss file had that the editor does not model,
+   *  verbatim (core/passthrough.py). */
+  passthrough?: PassthroughJSON[]
+  /** Comment lines from an imported file, keyed by lowercase "class.name"
+   *  ("circuit" for the header), written back above each element on export. */
+  comments?: Record<string, string>
+}
+
+export interface PassthroughJSON {
+  /** "Monitor.m1", as the file spelled it. */
+  name: string
+  /** Its New line, then any Edits of it. */
+  text: string
 }
 
 export interface Issue {

@@ -15,9 +15,10 @@ import type { Params } from '../types/circuit'
 import { GraphPanel } from './GraphPanel'
 import { CurvesPanel } from './CurvesPanel'
 import { LineCodesPanel } from './LineCodesPanel'
+import { PassthroughPanel } from './PassthroughPanel'
 import { ShapesPanel } from './ShapesPanel'
 
-type MainTab = 'problems' | 'elements' | 'losses' | 'graph' | 'shapes' | 'curves' | 'linecodes'
+type MainTab = 'problems' | 'elements' | 'losses' | 'graph' | 'shapes' | 'curves' | 'linecodes' | 'passthrough'
 
 const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'vsource', label: 'Sources' },
@@ -376,6 +377,7 @@ export function BottomPanel() {
     ...useResultsStore((s) => s.protectionIssues),
   ]
   const graphTabSignal = useResultsStore((s) => s.graphTabSignal)
+  const passthroughCount = useCircuitStore((s) => s.passthrough.length)
   const [tab, setTab] = useState<MainTab>('problems')
   const [typeTab, setTypeTab] = useState('load')
   // Open/closed lives in the UI store so View → Bottom panel can drive it.
@@ -495,6 +497,18 @@ export function BottomPanel() {
         >
           Line codes
         </button>
+        {(passthroughCount > 0 || tab === 'passthrough') && (
+          <button
+            className={`bp-tab${tab === 'passthrough' && open ? ' active' : ''}`}
+            title="Elements an imported .dss file defined that the drawing does not show"
+            onClick={() => {
+              setTab('passthrough')
+              setOpen(tab !== 'passthrough' || !open)
+            }}
+          >
+            Passthrough <span className="pt-count">{passthroughCount}</span>
+          </button>
+        )}
         {tab === 'elements' && open && (
           <span className="bp-subtabs">
             {TYPE_TABS.map((t) => (
@@ -528,6 +542,8 @@ export function BottomPanel() {
             <CurvesPanel />
           ) : tab === 'linecodes' ? (
             <LineCodesPanel />
+          ) : tab === 'passthrough' ? (
+            <PassthroughPanel />
           ) : typeTab === 'buses' ? (
             <BusesTable />
           ) : (

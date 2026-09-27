@@ -193,7 +193,16 @@ All frontend-only; the M1 vitest harness covers the store changes.
   Arrange / Analysis / Help the way draw.io lays them out, over a slimmed
   toolbar. Menus are data (`lib/menus.ts`), shortcuts one table
   (`lib/shortcuts.ts`) that Help lists
-- **Round-trip preservation** of comments and unsupported elements on export
+- ~~**Round-trip preservation** of comments and unsupported elements~~ —
+  2026-09-27. `core/passthrough.py` reads the sanitized upload in compile
+  order and keeps every `New` of an unmodelled element (plus its `Edit`s) as
+  `Circuit.passthrough`, and comments as `Circuit.comments` keyed by
+  class.name. Ryan chose export *and* solve: `check()` admits only New/Edit
+  lines of an allowlisted class that read no file and whose element/bus
+  references exist; the engine treats a rejected one as a warning. A stale
+  entry is exported commented out so the file still compiles (a judgement
+  call: "still exported" was the decision, a file that no longer compiles
+  was not). Renames rewrite references (`lib/passthroughRefs.ts`)
 - ~~**Split line**~~ — 2026-09-27: right-click → *Split line here* (or Arrange →
   Split line for the midpoint) inserts a 60 px busbar named `<line>_MID`, keeps
   the original edge id on the upstream half, and divides `length` by the drawn

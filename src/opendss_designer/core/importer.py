@@ -21,7 +21,7 @@ from typing import Any
 
 import opendssdirect as dss
 
-from . import engine
+from . import engine, passthrough
 from .connectivity import sanitize_name
 from .model import Circuit, CircuitEdge, CircuitNode, LineCodeSpec, LoadShapeSpec, Position
 from .phasing import phasing_from_suffix
@@ -254,6 +254,7 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
             except Exception as exc:
                 raise ImportFailure(f"OpenDSS could not compile the file: {exc}") from exc
             result = _read_model_back(warnings)
+            _keep_passthrough(result, files, main["name"])
         finally:
             # Compiling moved OpenDSS's working dir into tmpdir; move it back
             # so the directory can be removed (best-effort — it's in temp).
@@ -263,6 +264,21 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
                 pass
             shutil.rmtree(tmpdir, ignore_errors=True)
     return result
+
+
+def _keep_passthrough(result: dict[str, Any], files: list[dict[str, str]], main: str) -> None:
+    """Keep what the diagram cannot show -- unmodelled elements and the
+    file's comments -- on the imported circuit (see core/passthrough.py)."""
+    unsupported = {u.split(" ")[0].lower() for u in result["unsupported"]}
+    entries, comments = passthrough.collect(files, main, unsupported)
+    result["circuit"]["passthrough"] = [e.model_dump() for e in entries]
+    result["circuit"]["comments"] = comments
+    kept = {e.name.lower() for e in entries}
+    result["passthrough"] = [e.name for e in entries]
+    # Whatever could not be found in the text (defined by some construct the
+    # scan does not follow) is still reported as dropped.
+    result["unsupported"] = [
+        u for u in result["unsupported"] if u.split(" ")[0].lower() not in kept]
 
 
 def _prop(full_name: str, prop: str) -> str:

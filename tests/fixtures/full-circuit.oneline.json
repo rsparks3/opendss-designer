@@ -410,5 +410,15 @@
       "points": [0, 0, 0, 0, 0, 0.05, 0.2, 0.42, 0.62, 0.78, 0.9, 0.97, 1.0, 0.97, 0.9, 0.78, 0.62, 0.42, 0.2, 0.05, 0, 0, 0, 0],
       "source": "csv"
     }
+  },
+  "passthrough": [
+    {
+      "name": "Monitor.m1",
+      "text": "new monitor.m1 element=line.ln1 terminal=1\nedit monitor.m1 ppolar=no"
+    }
+  ],
+  "comments": {
+    "circuit": "! Schema fixture",
+    "line.ln1": "! the first line"
   }
 }

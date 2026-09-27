@@ -144,7 +144,7 @@ export const api = {
   },
 
   importDss: (files: { name: string; text: string }[]) =>
-    post<{ circuit: CircuitJSON; unsupported: string[]; warnings: string[] }>(
+    post<{ circuit: CircuitJSON; unsupported: string[]; passthrough?: string[]; warnings: string[] }>(
       '/api/import/dss', { files }),
 
   nrelMeta: async (): Promise<NrelMeta> => {

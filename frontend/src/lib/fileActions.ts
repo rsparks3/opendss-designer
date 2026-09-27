@@ -228,13 +228,17 @@ export async function importDss(fileList?: File[]) {
   }
   try {
     const texts = await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })))
-    const { circuit: imported, unsupported, warnings } = await api.importDss(texts)
+    const { circuit: imported, unsupported, passthrough, warnings } = await api.importDss(texts)
     autoLayout(imported)
     useCircuitStore.getState().loadCircuit(imported)
     useCircuitStore.setState({ projectId: null })
     linkFile(null)
     fitView()
     const notes = [...(warnings ?? [])]
+    if (passthrough?.length) {
+      notes.push(`Kept ${passthrough.length} element${passthrough.length === 1 ? '' : 's'} the drawing does not ` +
+        'show (see the Passthrough tab); they are exported again and solved when safe.')
+    }
     if (unsupported.length) {
       const shown = unsupported.slice(0, 5)
       const more = unsupported.length - shown.length
