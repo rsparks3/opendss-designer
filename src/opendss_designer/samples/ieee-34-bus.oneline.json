@@ -66,13 +66,14 @@
    "id": "imp_n4",
    "type": "busbar",
    "position": {
-    "x": 450,
+    "x": 480,
     "y": 440
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "800"
+    "name": "800",
+    "compact": true
    }
   },
   {
@@ -107,7 +108,7 @@
    "id": "imp_n6",
    "type": "busbar",
    "position": {
-    "x": 930,
+    "x": 920,
     "y": 3640
    },
    "width": 440,
@@ -120,20 +121,21 @@
    "id": "imp_n7",
    "type": "busbar",
    "position": {
-    "x": 10,
+    "x": 40,
     "y": 4170
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "888"
+    "name": "888",
+    "compact": true
    }
   },
   {
    "id": "imp_n8",
    "type": "regulator",
    "position": {
-    "x": 550,
+    "x": 540,
     "y": 1580
    },
    "width": null,
@@ -160,7 +162,7 @@
    "id": "imp_n9",
    "type": "busbar",
    "position": {
-    "x": 460,
+    "x": 450,
     "y": 1480
    },
    "width": 280,
@@ -173,7 +175,7 @@
    "id": "imp_n10",
    "type": "busbar",
    "position": {
-    "x": 560,
+    "x": 550,
     "y": 1750
    },
    "width": 280,
@@ -186,7 +188,7 @@
    "id": "imp_n11",
    "type": "regulator",
    "position": {
-    "x": 630,
+    "x": 620,
     "y": 1580
    },
    "width": null,
@@ -213,7 +215,7 @@
    "id": "imp_n12",
    "type": "regulator",
    "position": {
-    "x": 710,
+    "x": 700,
     "y": 1580
    },
    "width": null,
@@ -240,7 +242,7 @@
    "id": "imp_n13",
    "type": "regulator",
    "position": {
-    "x": 1050,
+    "x": 1040,
     "y": 3370
    },
    "width": null,
@@ -267,7 +269,7 @@
    "id": "imp_n14",
    "type": "busbar",
    "position": {
-    "x": 1010,
+    "x": 1000,
     "y": 3200
    },
    "width": 280,
@@ -280,7 +282,7 @@
    "id": "imp_n15",
    "type": "busbar",
    "position": {
-    "x": 1010,
+    "x": 1000,
     "y": 3540
    },
    "width": 280,
@@ -293,7 +295,7 @@
    "id": "imp_n16",
    "type": "regulator",
    "position": {
-    "x": 1130,
+    "x": 1120,
     "y": 3370
    },
    "width": null,
@@ -320,7 +322,7 @@
    "id": "imp_n17",
    "type": "regulator",
    "position": {
-    "x": 1210,
+    "x": 1200,
     "y": 3370
    },
    "width": null,
@@ -386,7 +388,7 @@
    "id": "imp_n21",
    "type": "busbar",
    "position": {
-    "x": 360,
+    "x": 380,
     "y": 1250
    },
    "width": 120,
@@ -399,33 +401,35 @@
    "id": "imp_n22",
    "type": "busbar",
    "position": {
-    "x": 540,
+    "x": 560,
     "y": 1310
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "812"
+    "name": "812",
+    "compact": true
    }
   },
   {
    "id": "imp_n23",
    "type": "busbar",
    "position": {
-    "x": 640,
+    "x": 660,
     "y": 1860
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "850"
+    "name": "850",
+    "compact": true
    }
   },
   {
    "id": "imp_n24",
    "type": "busbar",
    "position": {
-    "x": 560,
+    "x": 550,
     "y": 1960
    },
    "width": 280,
@@ -438,7 +442,7 @@
    "id": "imp_n25",
    "type": "busbar",
    "position": {
-    "x": 340,
+    "x": 330,
     "y": 2200
    },
    "width": 200,
@@ -451,7 +455,7 @@
    "id": "imp_n26",
    "type": "busbar",
    "position": {
-    "x": 670,
+    "x": 660,
     "y": 2200
    },
    "width": 440,
@@ -464,7 +468,7 @@
    "id": "imp_n27",
    "type": "busbar",
    "position": {
-    "x": 300,
+    "x": 290,
     "y": 2430
    },
    "width": 280,
@@ -477,7 +481,7 @@
    "id": "imp_n28",
    "type": "busbar",
    "position": {
-    "x": 380,
+    "x": 370,
     "y": 2660
    },
    "width": 120,
@@ -490,7 +494,7 @@
    "id": "imp_n29",
    "type": "busbar",
    "position": {
-    "x": 700,
+    "x": 690,
     "y": 2430
    },
    "width": 120,
@@ -503,7 +507,7 @@
    "id": "imp_n30",
    "type": "busbar",
    "position": {
-    "x": 880,
+    "x": 870,
     "y": 2430
    },
    "width": 280,
@@ -516,7 +520,7 @@
    "id": "imp_n31",
    "type": "busbar",
    "position": {
-    "x": 800,
+    "x": 790,
     "y": 2660
    },
    "width": 440,
@@ -529,7 +533,7 @@
    "id": "imp_n32",
    "type": "busbar",
    "position": {
-    "x": 880,
+    "x": 870,
     "y": 2900
    },
    "width": 280,
@@ -672,7 +676,7 @@
    "id": "imp_n43",
    "type": "busbar",
    "position": {
-    "x": 830,
+    "x": 820,
     "y": 3130
    },
    "width": 120,
@@ -685,7 +689,7 @@
    "id": "imp_n44",
    "type": "busbar",
    "position": {
-    "x": 330,
+    "x": 320,
     "y": 4110
    },
    "width": 120,
@@ -804,7 +808,7 @@
    "id": "imp_n51",
    "type": "load",
    "position": {
-    "x": 930,
+    "x": 920,
     "y": 2710
    },
    "width": null,
@@ -825,7 +829,7 @@
    "id": "imp_n52",
    "type": "load",
    "position": {
-    "x": 1010,
+    "x": 1000,
     "y": 2710
    },
    "width": null,
@@ -846,7 +850,7 @@
    "id": "imp_n53",
    "type": "load",
    "position": {
-    "x": 1090,
+    "x": 1080,
     "y": 2710
    },
    "width": null,
@@ -992,7 +996,7 @@
    "id": "imp_n60",
    "type": "load",
    "position": {
-    "x": 410,
+    "x": 430,
     "y": 1300
    },
    "width": null,
@@ -1013,7 +1017,7 @@
    "id": "imp_n61",
    "type": "load",
    "position": {
-    "x": 470,
+    "x": 460,
     "y": 2250
    },
    "width": null,
@@ -1034,7 +1038,7 @@
    "id": "imp_n62",
    "type": "load",
    "position": {
-    "x": 430,
+    "x": 420,
     "y": 2480
    },
    "width": null,
@@ -1055,7 +1059,7 @@
    "id": "imp_n63",
    "type": "load",
    "position": {
-    "x": 510,
+    "x": 500,
     "y": 2480
    },
    "width": null,
@@ -1076,7 +1080,7 @@
    "id": "imp_n64",
    "type": "load",
    "position": {
-    "x": 430,
+    "x": 420,
     "y": 2710
    },
    "width": null,
@@ -1097,7 +1101,7 @@
    "id": "imp_n65",
    "type": "load",
    "position": {
-    "x": 690,
+    "x": 680,
     "y": 2010
    },
    "width": null,
@@ -1118,7 +1122,7 @@
    "id": "imp_n66",
    "type": "load",
    "position": {
-    "x": 800,
+    "x": 790,
     "y": 2250
    },
    "width": null,
@@ -1139,7 +1143,7 @@
    "id": "imp_n67",
    "type": "load",
    "position": {
-    "x": 880,
+    "x": 870,
     "y": 2250
    },
    "width": null,
@@ -1160,7 +1164,7 @@
    "id": "imp_n68",
    "type": "load",
    "position": {
-    "x": 750,
+    "x": 740,
     "y": 2480
    },
    "width": null,
@@ -1181,7 +1185,7 @@
    "id": "imp_n69",
    "type": "load",
    "position": {
-    "x": 960,
+    "x": 950,
     "y": 2250
    },
    "width": null,
@@ -1202,7 +1206,7 @@
    "id": "imp_n70",
    "type": "load",
    "position": {
-    "x": 1010,
+    "x": 1000,
     "y": 2480
    },
    "width": null,
@@ -1223,7 +1227,7 @@
    "id": "imp_n71",
    "type": "load",
    "position": {
-    "x": 1090,
+    "x": 1080,
     "y": 2480
    },
    "width": null,
@@ -1244,7 +1248,7 @@
    "id": "imp_n72",
    "type": "load",
    "position": {
-    "x": 1170,
+    "x": 1160,
     "y": 2710
    },
    "width": null,
@@ -1265,7 +1269,7 @@
    "id": "imp_n73",
    "type": "load",
    "position": {
-    "x": 1010,
+    "x": 1000,
     "y": 2950
    },
    "width": null,
@@ -1286,7 +1290,7 @@
    "id": "imp_n74",
    "type": "load",
    "position": {
-    "x": 880,
+    "x": 870,
     "y": 3180
    },
    "width": null,
@@ -1307,7 +1311,7 @@
    "id": "imp_n75",
    "type": "load",
    "position": {
-    "x": 1140,
+    "x": 1050,
     "y": 3690
    },
    "width": null,
@@ -1349,7 +1353,7 @@
    "id": "imp_n77",
    "type": "load",
    "position": {
-    "x": 1220,
+    "x": 1130,
     "y": 3690
    },
    "width": null,
@@ -1391,7 +1395,7 @@
    "id": "imp_n79",
    "type": "load",
    "position": {
-    "x": 1300,
+    "x": 1210,
     "y": 3690
    },
    "width": null,
@@ -1454,7 +1458,7 @@
    "id": "imp_n82",
    "type": "load",
    "position": {
-    "x": 380,
+    "x": 370,
     "y": 4160
    },
    "width": null,
@@ -2207,7 +2211,7 @@
    "source": "imp_n3",
    "sourceHandle": "t2",
    "target": "imp_n4",
-   "targetHandle": "b3",
+   "targetHandle": "b1",
    "params": {},
    "waypoints": null
   },
@@ -2225,7 +2229,7 @@
      "y": 3770
     },
     {
-     "x": 1000,
+     "x": 990,
      "y": 3770
     }
    ]
@@ -2236,7 +2240,7 @@
    "source": "imp_n5",
    "sourceHandle": "t2",
    "target": "imp_n7",
-   "targetHandle": "b5",
+   "targetHandle": "b2",
    "params": {},
    "waypoints": null
   },
@@ -2364,7 +2368,7 @@
    "id": "imp_e18",
    "type": "line",
    "source": "imp_n4",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n18",
    "targetHandle": "b7",
    "params": {
@@ -2454,7 +2458,7 @@
      "y": 1140
     },
     {
-     "x": 430,
+     "x": 450,
      "y": 1140
     }
    ]
@@ -2465,7 +2469,7 @@
    "source": "imp_n20",
    "sourceHandle": "c11",
    "target": "imp_n22",
-   "targetHandle": "b3",
+   "targetHandle": "b1",
    "params": {
     "name": "l5",
     "length": 37.5,
@@ -2481,7 +2485,7 @@
      "y": 1140
     },
     {
-     "x": 610,
+     "x": 590,
      "y": 1140
     }
    ]
@@ -2490,7 +2494,7 @@
    "id": "imp_e23",
    "type": "line",
    "source": "imp_n22",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n9",
    "targetHandle": "b7",
    "params": {
@@ -2510,7 +2514,7 @@
    "source": "imp_n10",
    "sourceHandle": "c7",
    "target": "imp_n23",
-   "targetHandle": "b3",
+   "targetHandle": "b1",
    "params": {
     "name": "l7",
     "length": 0.01,
@@ -2540,11 +2544,11 @@
    },
    "waypoints": [
     {
-     "x": 630,
+     "x": 620,
      "y": 2090
     },
     {
-     "x": 450,
+     "x": 440,
      "y": 2090
     }
    ]
@@ -2567,11 +2571,11 @@
    },
    "waypoints": [
     {
-     "x": 790,
+     "x": 780,
      "y": 2090
     },
     {
-     "x": 900,
+     "x": 890,
      "y": 2090
     }
    ]
@@ -2594,11 +2598,11 @@
    },
    "waypoints": [
     {
-     "x": 410,
+     "x": 400,
      "y": 2330
     },
     {
-     "x": 450,
+     "x": 440,
      "y": 2330
     }
    ]
@@ -2621,11 +2625,11 @@
    },
    "waypoints": [
     {
-     "x": 370,
+     "x": 360,
      "y": 2560
     },
     {
-     "x": 450,
+     "x": 440,
      "y": 2560
     }
    ]
@@ -2648,11 +2652,11 @@
    },
    "waypoints": [
     {
-     "x": 740,
+     "x": 730,
      "y": 2330
     },
     {
-     "x": 770,
+     "x": 760,
      "y": 2330
     }
    ]
@@ -2675,11 +2679,11 @@
    },
    "waypoints": [
     {
-     "x": 1060,
+     "x": 1050,
      "y": 2330
     },
     {
-     "x": 1030,
+     "x": 1020,
      "y": 2330
     }
    ]
@@ -2702,11 +2706,11 @@
    },
    "waypoints": [
     {
-     "x": 950,
+     "x": 940,
      "y": 2560
     },
     {
-     "x": 1030,
+     "x": 1020,
      "y": 2560
     }
    ]
@@ -2729,11 +2733,11 @@
    },
    "waypoints": [
     {
-     "x": 870,
+     "x": 860,
      "y": 2790
     },
     {
-     "x": 1030,
+     "x": 1020,
      "y": 2790
     }
    ]
@@ -2742,7 +2746,7 @@
    "id": "imp_e33",
    "type": "line",
    "source": "imp_n6",
-   "sourceHandle": "c7",
+   "sourceHandle": "c19",
    "target": "imp_n33",
    "targetHandle": "b19",
    "params": {
@@ -2756,7 +2760,7 @@
    },
    "waypoints": [
     {
-     "x": 1080,
+     "x": 1310,
      "y": 3770
     },
     {
@@ -2958,7 +2962,7 @@
    "id": "imp_e41",
    "type": "line",
    "source": "imp_n23",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n24",
    "targetHandle": "b7",
    "params": {
@@ -3008,11 +3012,11 @@
    },
    "waypoints": [
     {
-     "x": 950,
+     "x": 940,
      "y": 3030
     },
     {
-     "x": 900,
+     "x": 890,
      "y": 3030
     }
    ]
@@ -3035,11 +3039,11 @@
    },
    "waypoints": [
     {
-     "x": 1110,
+     "x": 1100,
      "y": 3030
     },
     {
-     "x": 1160,
+     "x": 1150,
      "y": 3030
     }
    ]
@@ -3066,7 +3070,7 @@
      "y": 4000
     },
     {
-     "x": 400,
+     "x": 390,
      "y": 4000
     }
    ]
@@ -3156,7 +3160,7 @@
    "id": "imp_e49",
    "type": "line",
    "source": "imp_n7",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n46",
    "targetHandle": "b3",
    "params": {
@@ -3456,7 +3460,7 @@
    "source": "imp_n75",
    "sourceHandle": "t1",
    "target": "imp_n6",
-   "targetHandle": "c11",
+   "targetHandle": "c7",
    "params": {},
    "waypoints": null
   },
@@ -3476,7 +3480,7 @@
    "source": "imp_n77",
    "sourceHandle": "t1",
    "target": "imp_n6",
-   "targetHandle": "c15",
+   "targetHandle": "c11",
    "params": {},
    "waypoints": null
   },
@@ -3496,7 +3500,7 @@
    "source": "imp_n79",
    "sourceHandle": "t1",
    "target": "imp_n6",
-   "targetHandle": "c19",
+   "targetHandle": "c15",
    "params": {},
    "waypoints": null
   },
@@ -4082,5 +4086,35 @@
    "normamps": 400,
    "source": "imported"
   }
+ },
+ "passthrough": [],
+ "comments": {
+  "circuit": "! Standard (Mod 1) model of IEEE 34 Bus Test Feeder\n! Note: Mod 2 better accounts for distributed load.",
+  "transformer.subxf": "! Substation Transformer  -- Modification: Make source very stiff by defining a tiny leakage Z\n! normally 8\n!reduce %r, too",
+  "linecode.7": "!!!~ rmatrix = (0.088205 | 0.0306264 0.0889665 | 0.0312137 0.0316143 0.0901946 )\n!!!~ xmatrix = (0.20744 | 0.0760312 0.204877 | 0.0935314 0.0855879 0.200783 )\n!!!~ cmatrix = (2.90301 | -0.22313 2.8965 | -0.679335 -0.481416 3.15896 )",
+  "linecode.8": "!!!~ rmatrix = (0.088205 | 0.0306264 0.0889665 )\n!!!~ xmatrix = (0.20744 | 0.0760312 0.204877 )\n!!!~ cmatrix = (2.75692 | -0.326659 2.82313 )",
+  "linecode.9": "!!!~ rmatrix = (0.088205 | 0.0306264 0.0889665 )\n!!!~ xmatrix = (0.20744 | 0.0760312 0.204877 )\n!!!~ cmatrix = (2.75692 | -0.326659 2.82313 )",
+  "linecode.10": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.11": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.12": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.300": "! ohms per 1000ft  Corrected 11/30/05\n!ABC ORDER",
+  "linecode.602": "!!!~ rmatrix = (0.0674673 | 0.0312137 0.0654777 | 0.0316143 0.0306264 0.0662392 )\n!!!~ xmatrix = (0.195204  | 0.0935314 0.201861 | 0.0855879 0.0760312 0.199298 )\n!!!~ cmatrix = (3.32591   | -0.743055 3.04217 | -0.525237 -0.238111 3.03116 )",
+  "linecode.603": "!!!~ rmatrix = (0.144361 | 0.0316143 0.143133 | 0.0312137 0.0306264 0.142372 )\n!!!~ xmatrix = (0.226028 | 0.0855879 0.230122 | 0.0935314 0.0760312 0.232686 )\n!!!~ cmatrix = (3.01091  | -0.443561 2.77543  | -0.624494 -0.209615 2.77847 )",
+  "linecode.604": "!!!~ rmatrix = (0.254472 | 0.0417943 0.253371 )\n!!!~ xmatrix = (0.259467 | 0.0912376 0.261431 )\n!!!~ cmatrix = (2.54676  | -0.28882 2.49502 )",
+  "linecode.605": "!!!~ rmatrix = (0.253371 | 0.0417943 0.254472 )\n!!!~ xmatrix = (0.261431 | 0.0912376 0.259467 )\n!!!~ cmatrix = (2.49502 | -0.28882 2.54676 )",
+  "linecode.606": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.607": "!!!~ rmatrix = (0.152193 | 0.0611362 0.15035 | 0.0546992 0.0611362 0.152193 )\n!!!~ xmatrix = (0.0825685 | 0.00548281 0.0745027 | -0.00339824 0.00548281 0.0825685 )\n!!!~ cmatrix = (72.7203 | 0 72.7203 | 0 0 72.7203 )",
+  "linecode.722": "!!!~ rmatrix = (0.0554906 | 0.0127467 0.0501597 | 0.00640446 0.0127467 0.0554906 )\n!!!~ xmatrix = (0.0372331 | -0.00704588 0.0358645 | -0.00796424 -0.00704588 0.0372331 )\n!!!~ cmatrix = (124.851 | 0 124.851 | 0 0 124.851 )",
+  "linecode.723": "!!!~ rmatrix = (0.0902251 | 0.0309584 0.0851482 | 0.0234946 0.0309584 0.0902251 )\n!!!~ xmatrix = (0.055991 | -0.00646552 0.0504025 | -0.0117669 -0.00646552 0.055991 )\n!!!~ cmatrix = (93.4896 | 0 93.4896 | 0 0 93.4896 )",
+  "linecode.724": "!!!~ rmatrix = (0.247572 | 0.0947678 0.249104 | 0.0893782 0.0947678 0.247572 )\n!!!~ xmatrix = (0.126339 | 0.0390337 0.118816 | 0.0279344 0.0390337 0.126339 )\n!!!~ cmatrix = (58.108 | 0 58.108 | 0 0 58.108 )",
+  "line.l1": "! Lines",
+  "transformer.xfm1": "! 24.9/4.16 kV  Transformer",
+  "line.l28": "! 9-17-10 858-864 changed to phase A per error report",
+  "capacitor.c844": "! Capacitors",
+  "transformer.reg1a": "! Regulators - three independent phases\n! Regulator 1",
+  "transformer.reg2a": "! Regulator 2",
+  "load.s860": "! spot loads",
+  "load.d802_806sb": "! distributed loads",
+  "load.d858_864sb": "! 9-17-10 858-864 changed to phase A per error report"
  }
 }

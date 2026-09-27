@@ -160,7 +160,7 @@ All frontend-only; the M1 vitest harness covers the store changes.
   settings panel for one value. A transformer is tinted whole by its primary
   pin, though its secondary starts again at A
 
-## M7 — Platform & polish
+## M7 — Platform & polish — ✅ DONE (2026-09-27, branch `m7`)
 
 - ~~**Smarter .dss import layout**~~ — 2026-09-19, without elkjs: `lib/layout.ts`
   now ranks with dagre and does the rest itself (every shunt in one evenly
@@ -168,10 +168,17 @@ All frontend-only; the M1 vitest harness covers the store changes.
   out, lines bent below the load row on their own routing points, an overlap
   sweep), exposed as **✦ Clean up** and run on every import. Ryan chose a
   top-down tree, everything shunt under the bar, full re-layout with undo, and
-  no elkjs. Still open: keeping 2-terminal pass-through buses as plain wires
-  instead of busbars, and a left-to-right option for long rural feeders
-- **Automatic wire routing** (elkjs edge routing) — declined for now; Clean up
-  routes lines with two bends, which was enough for the IEEE feeders
+  no elkjs. The two follow-ups landed 2026-09-27: pass-through buses become
+  **compact** bars (60 px, no label; Ryan chose a tiny bar over a new junction
+  node type), and **Layout direction → Left to right** (series devices turned
+  270°) for either engine
+- ~~**Automatic wire routing** (elkjs)~~ — 2026-09-27: Arrange → Layered layout
+  with routed wires (`lib/elkLayout.ts`, dynamic import, its own 436 kB gz
+  chunk). A bar and its hanging row are one ELK box, symbol terminals are
+  FIXED_POS ports, and bend points become waypoints re-attached to the snapped
+  handles. Left to right puts every bar port on top, since horizontal bars with
+  bottom ports stair-step. Dagre Clean up stays the default and the import
+  layout until ELK proves itself on real feeders
 - ~~**File System Access API** in-place saves~~ — File → Save to file / Open file
   (2026-09-26). The browser library stays primary (Ryan's choice); a file opened
   or saved from disk stays linked and later saves write back over it in Chrome
@@ -291,7 +298,9 @@ Ordering: **M6 came first** (done 2026-09-17) — regulators, fuses/reclosers/re
 three-winding transformers and per-phase laterals are table stakes for anything
 below, because a feeder without them is not a feeder. The two M7 items the rest
 depended on followed — SVG/PNG export (the prerequisite for M10's study report) and
-Clean up, the import layout for M11's real feeders. Each milestone below is chosen to be
+Clean up, the import layout for M11's real feeders — and the rest of M7 with
+them (2026-09-27). **Next: M10's study report**, whose diagram source now
+exists. Each milestone below is chosen to be
 useful to someone real on its own, not only at the end of the list.
 
 ## M10 — Study output & proof

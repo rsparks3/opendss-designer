@@ -2,6 +2,7 @@ import type { SampleMeta } from './api'
 import {
   chooseOverlay,
   cleanUp,
+  elkCleanUp,
   exportDss,
   exportImage,
   fitView,
@@ -269,6 +270,25 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
         disabled: empty,
         title: 'Redraw the whole circuit as a tree: loads in a row beneath their bus, buses sized to fit, nothing overlapping. Undo restores the old arrangement.',
       }),
+      item('Layered layout with routed wires', () => void elkCleanUp(), {
+        disabled: empty,
+        title: 'Redraw with the ELK layered engine, which also routes every line around the symbols in right angles. Loads the engine on first use.',
+      }),
+      {
+        kind: 'sub',
+        label: 'Layout direction',
+        items: [
+          item('Top to bottom', () => ui.setLayoutDirection('TB'), {
+            radio: true,
+            checked: ui.layoutDirection === 'TB',
+          }),
+          item('Left to right', () => ui.setLayoutDirection('LR'), {
+            radio: true,
+            checked: ui.layoutDirection === 'LR',
+            title: 'For long rural feeders: power runs across the page, series devices on their side',
+          }),
+        ],
+      },
       sep,
       {
         kind: 'sub',

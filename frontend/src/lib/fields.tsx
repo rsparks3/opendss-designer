@@ -50,6 +50,10 @@ export const FIELDS: Record<string, Field[]> = {
   busbar: [
     { key: 'name', label: 'Bus name', kind: 'text' },
     { key: 'basekv', label: 'Base kV (LL)', kind: 'number', unit: 'kV' },
+    // Clean up sets this on a bus that only joins two lines (a pass-through
+    // bus on an imported feeder): drawn short and without its name, so a
+    // long feeder is not a column of full-width bars. Hover still names it.
+    { key: 'compact', label: 'Compact (pass-through)', kind: 'checkbox' },
   ],
   load: [
     { key: 'name', label: 'Name', kind: 'text' },

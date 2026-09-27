@@ -175,6 +175,18 @@ never run through a load. Rotations are reset and routing points redrawn.
 It runs on every `.dss` import; on a drawing you arranged by hand it is one
 undo step away (++ctrl+z++).
 
+A bus that only joins two lines — most buses on an imported feeder — is
+drawn **compact**: a short bar without its name, so a long feeder is not a
+ladder of labels (hover it for the name, or untick *Compact* in its
+properties). **Arrange → Layout direction → Left to right** lays the next
+clean-up across the page instead, series devices on their side, which suits
+a long rural feeder.
+
+**Arrange → Layered layout with routed wires** is the alternative: the
+Eclipse Layout Kernel's layered engine places the circuit by the same rules
+and also routes every line around the symbols in right angles. It loads the
+first time you use it. Clean up stays the default, and the one imports use.
+
 ### Editing many elements at once
 
 Select more than one element — box-select on the canvas, ++ctrl++-click, or

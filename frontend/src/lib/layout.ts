@@ -30,9 +30,24 @@ function busbarHandleCount(width: number): number {
 
 const snapBusbarWidth = (w: number) => Math.max(60, Math.round(w / SYMBOL_PITCH) * SYMBOL_PITCH)
 
+/** Which way power runs on the drawing. Busbars are horizontal either way;
+ *  left-to-right turns the series devices on their side instead, so a long
+ *  rural feeder reads across the page rather than down several of them. */
+export type LayoutDirection = 'TB' | 'LR'
+
+export interface LayoutOptions {
+  direction?: LayoutDirection
+}
+
+/** A compact bar: the shortest a bar can be. */
+export const COMPACT_BUS_W = 60
+
 function sizeOf(n: CircuitNodeJSON): { w: number; h: number } {
   const size = NODE_SIZE[n.type]
-  return { w: n.type === 'busbar' ? (n.width ?? size.w) : size.w, h: size.h }
+  if (n.type === 'busbar') return { w: n.width ?? size.w, h: size.h }
+  // A symbol on its side swaps its box, as rotatedBox does on the canvas.
+  const turned = (Number(n.params?.rotation) || 0) % 180 !== 0
+  return turned ? { w: size.h, h: size.w } : { w: size.w, h: size.h }
 }
 
 function center(n: CircuitNodeJSON): { x: number; y: number } {
@@ -122,7 +137,8 @@ function orientedEdges(circuit: CircuitJSON, dist: Map<string, number>): [string
  * widths, and with each bar tall enough to hold its hanging row so the next
  * rank starts beneath the loads.
  */
-export function autoLayout(circuit: CircuitJSON): void {
+export function autoLayout(circuit: CircuitJSON, opts: LayoutOptions = {}): void {
+  const direction = opts.direction ?? 'TB'
   const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
   const dist = distancesFromSources(circuit)
   const oriented = orientedEdges(circuit, dist)
@@ -138,10 +154,7 @@ export function autoLayout(circuit: CircuitJSON): void {
       hungIds.add(n.id)
     }
   }
-  for (const n of circuit.nodes) {
-    n.params = { ...n.params }
-    delete n.params.rotation
-  }
+  prepareNodes(circuit, hung, direction)
   for (const e of circuit.edges) e.waypoints = null
 
   const ranked = circuit.nodes.filter((n) => !hungIds.has(n.id))
@@ -149,7 +162,7 @@ export function autoLayout(circuit: CircuitJSON): void {
 
   const run = () => {
     const g = new dagre.graphlib.Graph()
-    g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 60 })
+    g.setGraph({ rankdir: direction, nodesep: 40, ranksep: direction === 'LR' ? 80 : 60 })
     g.setDefaultEdgeLabel(() => ({}))
     for (const n of ranked) {
       const { w, h } = sizeOf(n)
@@ -172,20 +185,62 @@ export function autoLayout(circuit: CircuitJSON): void {
   run()
   sizeBusbars(circuit, hung)
   run()
-  spreadDevicesBetweenBuses(circuit, hungIds)
+  spreadDevicesBetweenBuses(circuit, hungIds, direction)
   centerSourcesAboveBuses(circuit)
   separateOverlaps(circuit, hungIds)
   arrangeBelowBusbars(circuit, hung)
   assignUpwardHandles(circuit)
 }
 
+/** A bus that only carries power through -- two connections, both to lines
+ *  or series devices, nothing hanging off it. On an imported feeder most
+ *  buses are like this, and drawing each as a full bar with its name turns
+ *  the feeder into a ladder of labels. */
+export function isPassThrough(
+  bus: CircuitNodeJSON,
+  circuit: CircuitJSON,
+  hung: Map<string, CircuitNodeJSON[]>,
+): boolean {
+  if (bus.type !== 'busbar' || hung.get(bus.id)?.length) return false
+  const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
+  const attached = circuit.edges.filter((e) => e.source === bus.id || e.target === bus.id)
+  if (attached.length !== 2) return false
+  return attached.every((e) => {
+    const other = byId.get(e.source === bus.id ? e.target : e.source)
+    return !!other && !SHUNT_TYPES.has(other.type) && other.type !== 'vsource'
+  })
+}
+
+/** Reset what the layout decides: rotations (series devices turn on their
+ *  side for a left-to-right drawing), flips, and which bars are compact. */
+export function prepareNodes(
+  circuit: CircuitJSON,
+  hung: Map<string, CircuitNodeJSON[]>,
+  direction: LayoutDirection,
+): void {
+  for (const n of circuit.nodes) {
+    n.params = { ...n.params }
+    delete n.params.rotation
+    delete n.params.flip
+    delete n.params.compact
+    if (direction === 'LR' && SERIES_TYPES.has(n.type)) n.params.rotation = 270
+  }
+  for (const n of circuit.nodes) {
+    if (isPassThrough(n, circuit, hung)) n.params.compact = true
+  }
+}
+
 /** A bar is as wide as the busier of its two sides needs: one slot for
  *  every hanging device and every connection leaving downward, one for every
- *  connection arriving from above. */
+ *  connection arriving from above. A compact pass-through bar stays short. */
 function sizeBusbars(circuit: CircuitJSON, hung: Map<string, CircuitNodeJSON[]>): void {
   const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
   for (const bus of circuit.nodes) {
     if (bus.type !== 'busbar') continue
+    if (bus.params?.compact) {
+      bus.width = COMPACT_BUS_W
+      continue
+    }
     const busY = bus.position?.y ?? 0
     let above = 0
     let below = hung.get(bus.id)?.length ?? 0
@@ -204,7 +259,11 @@ function sizeBusbars(circuit: CircuitJSON, hung: Map<string, CircuitNodeJSON[]>)
 /** Two-terminal devices sit midway between the buses they connect. Several
  *  joining the same pair (a bank of single-phase regulators) fan out around
  *  that midpoint instead of landing on top of each other. */
-function spreadDevicesBetweenBuses(circuit: CircuitJSON, hungIds: Set<string>): void {
+function spreadDevicesBetweenBuses(
+  circuit: CircuitJSON,
+  hungIds: Set<string>,
+  direction: LayoutDirection = 'TB',
+): void {
   const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
   const groups = new Map<string, CircuitNodeJSON[]>()
   const neighbours = new Map<string, CircuitNodeJSON[]>()
@@ -224,8 +283,18 @@ function spreadDevicesBetweenBuses(circuit: CircuitJSON, hungIds: Set<string>): 
   for (const group of groups.values()) {
     const buses = neighbours.get(group[0].id)!
     const mid = buses.reduce((sum, b) => sum + center(b).x, 0) / buses.length
+    const { w, h } = sizeOf(group[0])
+    if (direction === 'LR') {
+      // Across the page the fan runs downward, one device under another.
+      const midY = buses.reduce((sum, b) => sum + center(b).y, 0) / buses.length
+      group.sort((a, b) => (a.position?.y ?? 0) - (b.position?.y ?? 0))
+      group.forEach((n, i) => {
+        const offset = (i - (group.length - 1) / 2) * SLOT
+        n.position = { x: snap(mid - w / 2), y: snap(midY + offset - h / 2) }
+      })
+      continue
+    }
     group.sort((a, b) => (a.position?.x ?? 0) - (b.position?.x ?? 0))
-    const w = NODE_SIZE[group[0].type].w
     group.forEach((n, i) => {
       const offset = (i - (group.length - 1) / 2) * SLOT
       n.position = { x: snap(mid + offset - w / 2), y: n.position?.y ?? 0 }
@@ -397,6 +466,40 @@ function assignUpwardHandles(circuit: CircuitJSON): void {
       else w.e.targetHandle = handle
     }
   }
+}
+
+/** Everything a layout pass shares, for the ELK layout (lib/elkLayout.ts)
+ *  to build on: which shunts hang under which bar, and the edges pointed
+ *  the way power flows. */
+export function layoutBasics(circuit: CircuitJSON) {
+  const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
+  const dist = distancesFromSources(circuit)
+  const oriented = orientedEdges(circuit, dist)
+  const hung = new Map<string, CircuitNodeJSON[]>()
+  const hungIds = new Set<string>()
+  for (const n of circuit.nodes) {
+    const bus = hangingBus(n, circuit, byId)
+    if (bus) {
+      hung.set(bus.id, [...(hung.get(bus.id) ?? []), n])
+      hungIds.add(n.id)
+    }
+  }
+  return { byId, oriented, hung, hungIds }
+}
+
+export {
+  arrangeBelowBusbars,
+  assignUpwardHandles,
+  busbarHandleCount,
+  centerSourcesAboveBuses,
+  HANG_ROW_H,
+  separateOverlaps,
+  sizeOf,
+  SERIES_TYPES,
+  SLOT,
+  BUS_MARGIN,
+  MIN_BUS_W,
+  snapBusbarWidth,
 }
 
 /** Positions, widths and handles from a laid-out copy, keyed by id, for

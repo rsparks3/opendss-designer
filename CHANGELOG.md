@@ -39,6 +39,15 @@ of M7.
   the file's comments are written back above the elements they described.
   Renaming an element rewrites the references to it. Previously these were
   listed as skipped.
+- **A second layout engine, and a left-to-right layout.** Arrange →
+  *Layered layout with routed wires* uses ELK (elkjs, loaded on first use)
+  to place the circuit under Clean up's rules and route every line in right
+  angles around the symbols. Arrange → *Layout direction → Left to right*
+  lays long feeders across the page, series devices on their side, for
+  either engine.
+- **Compact pass-through buses.** A bus that only joins two lines is drawn
+  as a short, unlabelled bar after Clean up or an import — most of an
+  imported feeder's buses — with a *Compact* checkbox to undo it.
 - **Dark mode.** View → Theme → Light, Dark or *Same as the system*; the
   panels, the canvas, the symbols and the plots all follow it. Image exports
   stay on white paper in dark ink whatever the screen shows.
@@ -81,13 +90,16 @@ of M7.
   the loads selected*; a filter in the Elements tab (`kw>100 loadshape:day`)
   with *Select matching*; and the table highlights whatever is selected on
   the canvas.
-- **The IEEE 13, 34, 37 and 123-bus test feeders as samples**, in the
+- **The IEEE 13, 34, 37 and 123-bus test feeders as samples** (with EPRI's
+  comments kept and pass-through buses compact), in the
   Samples… menu, exactly as the Import button reads EPRI's files
   (`scripts/make_ieee_samples.py` regenerates them, laying them out with the
   app's own layout).
 
 ### Fixed
 
+- The view could not zoom out past 20 %, too close to show a large feeder
+  whole; it now goes to 5 %.
 - Opening a sample, a saved circuit or an import fitted the view before the
   new drawing had been measured, so it often zoomed in on one corner. It now
   waits for the drawing to be laid out, then fits all of it.

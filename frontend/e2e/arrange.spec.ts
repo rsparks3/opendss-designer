@@ -113,3 +113,23 @@ test('Ctrl+F finds an element by part of its name and selects it', async ({ page
   await expect(find).toHaveCount(0)
   await expect(page.locator('[data-id="n_load2"]')).toHaveClass(/selected/)
 })
+
+test('Layered layout routes the wires, remembers the direction, and is one undo step', async ({ page }) => {
+  await openWithFixture(page)
+  const before = await nodes(page)
+  await menu(page, 'Arrange', 'Layout direction', 'Left to right')
+  await menu(page, 'Arrange', 'Layered layout with routed wires')
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as any).opendssDesigner.circuit.getState().edges.filter((e: any) => e.data?.waypoints?.length).length,
+      ),
+    )
+    .toBeGreaterThan(3)
+  const after = await nodes(page)
+  // Left to right: the regulator lies on its side.
+  expect(after.n_reg.params.rotation).toBe(270)
+  expect(await page.evaluate(() => localStorage.getItem('opendss-designer.layoutDirection'))).toBe('LR')
+  await menu(page, 'Edit', 'Undo')
+  expect(await nodes(page)).toEqual(before)
+})

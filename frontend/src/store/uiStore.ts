@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { FileHandle } from '../lib/fileSystem'
+import type { LayoutDirection } from '../lib/layout'
 import {
   applyPhasePalette,
   applyTheme,
@@ -46,6 +47,9 @@ interface UiState {
   themePref: ThemePref
   theme: Theme
   setThemePref: (p: ThemePref) => void
+  /** Which way Clean up (and import) lay a circuit out. */
+  layoutDirection: LayoutDirection
+  setLayoutDirection: (d: LayoutDirection) => void
   /** Phase colours the user picked; anything missing uses the theme's. */
   phasePalette: PhasePalette
   setPhasePalette: (p: PhasePalette) => void
@@ -134,6 +138,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
     const theme = resolveTheme(themePref)
     applyTheme(theme)
     set({ themePref, theme })
+  },
+  layoutDirection: readPref('layoutDirection') === 'LR' ? 'LR' : 'TB',
+  setLayoutDirection: (layoutDirection) => {
+    writePref('layoutDirection', layoutDirection)
+    set({ layoutDirection })
   },
   phasePalette: initialPalette,
   setPhasePalette: (phasePalette) => {

@@ -725,8 +725,15 @@ export const useCircuitStore = create<CircuitState>()(
           nodes: get().nodes.map((n) => {
             const l = nodePos.get(n.id)
             if (!l?.position) return n
-            const { rotation: _r, flip: _f, ...params } = n.data.params
+            const { rotation: _r, flip: _f, compact: _c, ...kept } = n.data.params
             const busbar = n.type === 'busbar'
+            // The layout decides orientation (rotation, for a left-to-right
+            // drawing) and which bars are compact pass-throughs.
+            const params = {
+              ...kept,
+              ...(l.params?.rotation ? { rotation: l.params.rotation } : {}),
+              ...(busbar && l.params?.compact ? { compact: true } : {}),
+            }
             const width = busbar ? snapBusbarWidth(l.width ?? (n.width as number) ?? NODE_SIZE.busbar.w) : n.width
             return {
               ...n,

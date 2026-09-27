@@ -201,13 +201,14 @@
    "id": "imp_n10",
    "type": "busbar",
    "position": {
-    "x": 90,
+    "x": 120,
     "y": 990
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "633"
+    "name": "633",
+    "compact": true
    }
   },
   {
@@ -331,7 +332,7 @@
    "id": "imp_n20",
    "type": "busbar",
    "position": {
-    "x": 780,
+    "x": 770,
     "y": 1450
    },
    "width": 200,
@@ -840,7 +841,7 @@
    "source": "imp_n9",
    "sourceHandle": "t1",
    "target": "imp_n10",
-   "targetHandle": "c3",
+   "targetHandle": "c1",
    "params": {},
    "waypoints": null
   },
@@ -950,7 +951,7 @@
    "source": "imp_n12",
    "sourceHandle": "c3",
    "target": "imp_n10",
-   "targetHandle": "b5",
+   "targetHandle": "b2",
    "params": {
     "name": "632633",
     "length": 500,
@@ -1056,7 +1057,7 @@
      "y": 1290
     },
     {
-     "x": 890,
+     "x": 880,
      "y": 1290
     }
    ]
@@ -1628,5 +1629,31 @@
    "normamps": 400,
    "source": "imported"
   }
+ },
+ "passthrough": [],
+ "comments": {
+  "transformer.sub": "!SUB TRANSFORMER DEFINITION\n! Although this data was given, it does not appear to be used in the test case results\n! The published test case starts at 1.0 per unit at Bus 650. To make this happen, we will change the impedance\n! on the transformer to something tiny by dividing by 1000 using the DSS in-line RPN math",
+  "transformer.xfm1": "!TRANSFORMER DEFINITION",
+  "linecode.7": "!!!~ rmatrix = (0.088205 | 0.0306264 0.0889665 | 0.0312137 0.0316143 0.0901946 )\n!!!~ xmatrix = (0.20744 | 0.0760312 0.204877 | 0.0935314 0.0855879 0.200783 )\n!!!~ cmatrix = (2.90301 | -0.22313 2.8965 | -0.679335 -0.481416 3.15896 )",
+  "linecode.8": "!!!~ rmatrix = (0.088205 | 0.0306264 0.0889665 )\n!!!~ xmatrix = (0.20744 | 0.0760312 0.204877 )\n!!!~ cmatrix = (2.75692 | -0.326659 2.82313 )",
+  "linecode.9": "!!!~ rmatrix = (0.088205 | 0.0306264 0.0889665 )\n!!!~ xmatrix = (0.20744 | 0.0760312 0.204877 )\n!!!~ cmatrix = (2.75692 | -0.326659 2.82313 )",
+  "linecode.10": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.11": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.12": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.300": "! ohms per 1000ft  Corrected 11/30/05\n!ABC ORDER",
+  "linecode.602": "!!!~ rmatrix = (0.0674673 | 0.0312137 0.0654777 | 0.0316143 0.0306264 0.0662392 )\n!!!~ xmatrix = (0.195204  | 0.0935314 0.201861 | 0.0855879 0.0760312 0.199298 )\n!!!~ cmatrix = (3.32591   | -0.743055 3.04217 | -0.525237 -0.238111 3.03116 )",
+  "linecode.603": "!!!~ rmatrix = (0.144361 | 0.0316143 0.143133 | 0.0312137 0.0306264 0.142372 )\n!!!~ xmatrix = (0.226028 | 0.0855879 0.230122 | 0.0935314 0.0760312 0.232686 )\n!!!~ cmatrix = (3.01091  | -0.443561 2.77543  | -0.624494 -0.209615 2.77847 )",
+  "linecode.604": "!!!~ rmatrix = (0.254472 | 0.0417943 0.253371 )\n!!!~ xmatrix = (0.259467 | 0.0912376 0.261431 )\n!!!~ cmatrix = (2.54676  | -0.28882 2.49502 )",
+  "linecode.605": "!!!~ rmatrix = (0.253371 | 0.0417943 0.254472 )\n!!!~ xmatrix = (0.261431 | 0.0912376 0.259467 )\n!!!~ cmatrix = (2.49502 | -0.28882 2.54676 )",
+  "linecode.606": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.607": "!!!~ rmatrix = (0.152193 | 0.0611362 0.15035 | 0.0546992 0.0611362 0.152193 )\n!!!~ xmatrix = (0.0825685 | 0.00548281 0.0745027 | -0.00339824 0.00548281 0.0825685 )\n!!!~ cmatrix = (72.7203 | 0 72.7203 | 0 0 72.7203 )",
+  "linecode.722": "!!!~ rmatrix = (0.0554906 | 0.0127467 0.0501597 | 0.00640446 0.0127467 0.0554906 )\n!!!~ xmatrix = (0.0372331 | -0.00704588 0.0358645 | -0.00796424 -0.00704588 0.0372331 )\n!!!~ cmatrix = (124.851 | 0 124.851 | 0 0 124.851 )",
+  "linecode.723": "!!!~ rmatrix = (0.0902251 | 0.0309584 0.0851482 | 0.0234946 0.0309584 0.0902251 )\n!!!~ xmatrix = (0.055991 | -0.00646552 0.0504025 | -0.0117669 -0.00646552 0.055991 )\n!!!~ cmatrix = (93.4896 | 0 93.4896 | 0 0 93.4896 )",
+  "linecode.724": "!!!~ rmatrix = (0.247572 | 0.0947678 0.249104 | 0.0893782 0.0947678 0.247572 )\n!!!~ xmatrix = (0.126339 | 0.0390337 0.118816 | 0.0279344 0.0390337 0.126339 )\n!!!~ cmatrix = (58.108 | 0 58.108 | 0 0 58.108 )",
+  "linecode.mtx601": "// these are local matrix line codes\n// corrected 9-14-2011",
+  "load.671": "!LOAD DEFINITIONS",
+  "capacitor.cap1": "!CAPACITOR DEFINITIONS",
+  "line.650632": "!LINE DEFINITIONS",
+  "line.671692": "!SWITCH DEFINITIONS"
  }
 }

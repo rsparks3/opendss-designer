@@ -229,7 +229,7 @@ export async function importDss(fileList?: File[]) {
   try {
     const texts = await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })))
     const { circuit: imported, unsupported, passthrough, warnings } = await api.importDss(texts)
-    autoLayout(imported)
+    autoLayout(imported, { direction: direction() })
     useCircuitStore.getState().loadCircuit(imported)
     useCircuitStore.setState({ projectId: null })
     linkFile(null)
@@ -329,13 +329,32 @@ export async function exportImage(kind: 'svg' | 'png') {
 
 // --- arrange and analysis ------------------------------------------------------
 
+const direction = () => useUiStore.getState().layoutDirection
+
 export function cleanUp() {
   const s = useCircuitStore.getState()
   if (!s.nodes.length) return
   const laidOut = toCircuitJSON(s)
-  autoLayout(laidOut)
+  autoLayout(laidOut, { direction: direction() })
   s.applyLayout(laidOut)
   // The drawing changed shape; show all of it.
+  fitView()
+}
+
+/** Arrange → Layered layout: the ELK engine, loaded on first use, which
+ *  also routes every wire around the symbols. */
+export async function elkCleanUp() {
+  const s = useCircuitStore.getState()
+  if (!s.nodes.length) return
+  const laidOut = toCircuitJSON(s)
+  try {
+    const { elkLayout } = await import('./elkLayout')
+    await elkLayout(laidOut, { direction: direction() })
+  } catch (err) {
+    flash(`Layout failed: ${errText(err)}`)
+    return
+  }
+  useCircuitStore.getState().applyLayout(laidOut)
   fitView()
 }
 

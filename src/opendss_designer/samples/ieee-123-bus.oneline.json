@@ -64,20 +64,21 @@
    "id": "imp_n4",
    "type": "busbar",
    "position": {
-    "x": 230,
+    "x": 260,
     "y": 440
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "150r"
+    "name": "150r",
+    "compact": true
    }
   },
   {
    "id": "imp_n5",
    "type": "transformer",
    "position": {
-    "x": 4020,
+    "x": 4010,
     "y": 4110
    },
    "width": null,
@@ -105,20 +106,21 @@
    "id": "imp_n6",
    "type": "busbar",
    "position": {
-    "x": 3980,
+    "x": 4000,
     "y": 3900
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "61s"
+    "name": "61s",
+    "compact": true
    }
   },
   {
    "id": "imp_n7",
    "type": "busbar",
    "position": {
-    "x": 3980,
+    "x": 3970,
     "y": 4370
    },
    "width": 120,
@@ -171,20 +173,21 @@
    "id": "imp_n10",
    "type": "busbar",
    "position": {
-    "x": 740,
+    "x": 770,
     "y": 2030
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "9r"
+    "name": "9r",
+    "compact": true
    }
   },
   {
    "id": "imp_n11",
    "type": "regulator",
    "position": {
-    "x": 1870,
+    "x": 1880,
     "y": 2700
    },
    "width": null,
@@ -224,7 +227,7 @@
    "id": "imp_n13",
    "type": "busbar",
    "position": {
-    "x": 1760,
+    "x": 1780,
     "y": 2970
    },
    "width": 200,
@@ -237,7 +240,7 @@
    "id": "imp_n14",
    "type": "regulator",
    "position": {
-    "x": 5090,
+    "x": 5080,
     "y": 3870
    },
    "width": null,
@@ -264,7 +267,7 @@
    "id": "imp_n15",
    "type": "busbar",
    "position": {
-    "x": 5100,
+    "x": 5090,
     "y": 3670
    },
    "width": 280,
@@ -277,7 +280,7 @@
    "id": "imp_n16",
    "type": "busbar",
    "position": {
-    "x": 5000,
+    "x": 4990,
     "y": 4140
    },
    "width": 280,
@@ -290,7 +293,7 @@
    "id": "imp_n17",
    "type": "regulator",
    "position": {
-    "x": 1950,
+    "x": 1960,
     "y": 2700
    },
    "width": null,
@@ -317,7 +320,7 @@
    "id": "imp_n18",
    "type": "regulator",
    "position": {
-    "x": 5170,
+    "x": 5160,
     "y": 3870
    },
    "width": null,
@@ -344,7 +347,7 @@
    "id": "imp_n19",
    "type": "regulator",
    "position": {
-    "x": 5250,
+    "x": 5240,
     "y": 3870
    },
    "width": null,
@@ -371,13 +374,14 @@
    "id": "imp_n20",
    "type": "busbar",
    "position": {
-    "x": 230,
+    "x": 260,
     "y": 690
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "149"
+    "name": "149",
+    "compact": true
    }
   },
   {
@@ -696,7 +700,7 @@
    "id": "imp_n45",
    "type": "busbar",
    "position": {
-    "x": 1760,
+    "x": 1780,
     "y": 3200
    },
    "width": 200,
@@ -722,13 +726,14 @@
    "id": "imp_n47",
    "type": "busbar",
    "position": {
-    "x": 1690,
+    "x": 1750,
     "y": 3440
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "27"
+    "name": "27",
+    "compact": true
    }
   },
   {
@@ -748,7 +753,7 @@
    "id": "imp_n49",
    "type": "busbar",
    "position": {
-    "x": 1690,
+    "x": 1720,
     "y": 3610
    },
    "width": 120,
@@ -1034,13 +1039,14 @@
    "id": "imp_n71",
    "type": "busbar",
    "position": {
-    "x": 3500,
+    "x": 3530,
     "y": 4370
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "151"
+    "name": "151",
+    "compact": true
    }
   },
   {
@@ -1086,7 +1092,7 @@
    "id": "imp_n75",
    "type": "busbar",
    "position": {
-    "x": 3520,
+    "x": 3540,
     "y": 2900
    },
    "width": 200,
@@ -1112,7 +1118,7 @@
    "id": "imp_n77",
    "type": "busbar",
    "position": {
-    "x": 3560,
+    "x": 3580,
     "y": 3140
    },
    "width": 120,
@@ -1125,7 +1131,7 @@
    "id": "imp_n78",
    "type": "busbar",
    "position": {
-    "x": 3760,
+    "x": 3780,
     "y": 3140
    },
    "width": 200,
@@ -1138,7 +1144,7 @@
    "id": "imp_n79",
    "type": "busbar",
    "position": {
-    "x": 4650,
+    "x": 4640,
     "y": 3140
    },
    "width": 360,
@@ -1151,7 +1157,7 @@
    "id": "imp_n80",
    "type": "busbar",
    "position": {
-    "x": 3800,
+    "x": 3820,
     "y": 3370
    },
    "width": 120,
@@ -1164,20 +1170,21 @@
    "id": "imp_n81",
    "type": "busbar",
    "position": {
-    "x": 3980,
+    "x": 4000,
     "y": 3440
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "61"
+    "name": "61",
+    "compact": true
    }
   },
   {
    "id": "imp_n82",
    "type": "busbar",
    "position": {
-    "x": 4200,
+    "x": 4190,
     "y": 3370
    },
    "width": 200,
@@ -1190,7 +1197,7 @@
    "id": "imp_n83",
    "type": "busbar",
    "position": {
-    "x": 4200,
+    "x": 4190,
     "y": 3610
    },
    "width": 200,
@@ -1203,7 +1210,7 @@
    "id": "imp_n84",
    "type": "busbar",
    "position": {
-    "x": 4200,
+    "x": 4190,
     "y": 3840
    },
    "width": 200,
@@ -1216,7 +1223,7 @@
    "id": "imp_n85",
    "type": "busbar",
    "position": {
-    "x": 4120,
+    "x": 4110,
     "y": 4070
    },
    "width": 360,
@@ -1229,7 +1236,7 @@
    "id": "imp_n86",
    "type": "busbar",
    "position": {
-    "x": 4240,
+    "x": 4230,
     "y": 4310
    },
    "width": 120,
@@ -1242,7 +1249,7 @@
    "id": "imp_n87",
    "type": "busbar",
    "position": {
-    "x": 5000,
+    "x": 4990,
     "y": 4370
    },
    "width": 280,
@@ -1268,7 +1275,7 @@
    "id": "imp_n89",
    "type": "busbar",
    "position": {
-    "x": 4590,
+    "x": 4580,
     "y": 4610
    },
    "width": 200,
@@ -1281,7 +1288,7 @@
    "id": "imp_n90",
    "type": "busbar",
    "position": {
-    "x": 6040,
+    "x": 6030,
     "y": 4610
    },
    "width": 200,
@@ -1346,7 +1353,7 @@
    "id": "imp_n95",
    "type": "busbar",
    "position": {
-    "x": 4660,
+    "x": 4650,
     "y": 4780
    },
    "width": 440,
@@ -1385,7 +1392,7 @@
    "id": "imp_n98",
    "type": "busbar",
    "position": {
-    "x": 4520,
+    "x": 4510,
     "y": 5010
    },
    "width": 200,
@@ -1398,7 +1405,7 @@
    "id": "imp_n99",
    "type": "busbar",
    "position": {
-    "x": 5020,
+    "x": 5010,
     "y": 5010
    },
    "width": 200,
@@ -1411,7 +1418,7 @@
    "id": "imp_n100",
    "type": "busbar",
    "position": {
-    "x": 4520,
+    "x": 4510,
     "y": 5310
    },
    "width": 200,
@@ -1424,7 +1431,7 @@
    "id": "imp_n101",
    "type": "busbar",
    "position": {
-    "x": 4450,
+    "x": 4440,
     "y": 5480
    },
    "width": 120,
@@ -1437,7 +1444,7 @@
    "id": "imp_n102",
    "type": "busbar",
    "position": {
-    "x": 4630,
+    "x": 4620,
     "y": 5480
    },
    "width": 200,
@@ -1450,7 +1457,7 @@
    "id": "imp_n103",
    "type": "busbar",
    "position": {
-    "x": 4630,
+    "x": 4620,
     "y": 5780
    },
    "width": 200,
@@ -1463,7 +1470,7 @@
    "id": "imp_n104",
    "type": "busbar",
    "position": {
-    "x": 4500,
+    "x": 4490,
     "y": 5950
    },
    "width": 200,
@@ -1476,7 +1483,7 @@
    "id": "imp_n105",
    "type": "busbar",
    "position": {
-    "x": 4890,
+    "x": 4880,
     "y": 5950
    },
    "width": 200,
@@ -1489,7 +1496,7 @@
    "id": "imp_n106",
    "type": "busbar",
    "position": {
-    "x": 4500,
+    "x": 4490,
     "y": 6180
    },
    "width": 200,
@@ -1502,7 +1509,7 @@
    "id": "imp_n107",
    "type": "busbar",
    "position": {
-    "x": 4930,
+    "x": 4920,
     "y": 6180
    },
    "width": 120,
@@ -1515,7 +1522,7 @@
    "id": "imp_n108",
    "type": "busbar",
    "position": {
-    "x": 4980,
+    "x": 4970,
     "y": 5240
    },
    "width": 280,
@@ -1528,7 +1535,7 @@
    "id": "imp_n109",
    "type": "busbar",
    "position": {
-    "x": 4890,
+    "x": 4880,
     "y": 5480
    },
    "width": 200,
@@ -1541,7 +1548,7 @@
    "id": "imp_n110",
    "type": "busbar",
    "position": {
-    "x": 5150,
+    "x": 5140,
     "y": 5540
    },
    "width": 200,
@@ -1554,7 +1561,7 @@
    "id": "imp_n111",
    "type": "busbar",
    "position": {
-    "x": 5020,
+    "x": 5010,
     "y": 5710
    },
    "width": 200,
@@ -1567,7 +1574,7 @@
    "id": "imp_n112",
    "type": "busbar",
    "position": {
-    "x": 5280,
+    "x": 5270,
     "y": 5780
    },
    "width": 200,
@@ -1580,7 +1587,7 @@
    "id": "imp_n113",
    "type": "busbar",
    "position": {
-    "x": 5150,
+    "x": 5140,
     "y": 5950
    },
    "width": 200,
@@ -1593,7 +1600,7 @@
    "id": "imp_n114",
    "type": "busbar",
    "position": {
-    "x": 5410,
+    "x": 5400,
     "y": 6010
    },
    "width": 200,
@@ -1606,7 +1613,7 @@
    "id": "imp_n115",
    "type": "busbar",
    "position": {
-    "x": 5280,
+    "x": 5270,
     "y": 6180
    },
    "width": 120,
@@ -1619,7 +1626,7 @@
    "id": "imp_n116",
    "type": "busbar",
    "position": {
-    "x": 5650,
+    "x": 5640,
     "y": 6180
    },
    "width": 200,
@@ -1632,7 +1639,7 @@
    "id": "imp_n117",
    "type": "busbar",
    "position": {
-    "x": 5690,
+    "x": 5680,
     "y": 6410
    },
    "width": 120,
@@ -1645,7 +1652,7 @@
    "id": "imp_n118",
    "type": "busbar",
    "position": {
-    "x": 5580,
+    "x": 5570,
     "y": 4780
    },
    "width": 200,
@@ -1658,7 +1665,7 @@
    "id": "imp_n119",
    "type": "busbar",
    "position": {
-    "x": 5580,
+    "x": 5570,
     "y": 5010
    },
    "width": 200,
@@ -1671,7 +1678,7 @@
    "id": "imp_n120",
    "type": "busbar",
    "position": {
-    "x": 5580,
+    "x": 5570,
     "y": 5240
    },
    "width": 200,
@@ -1684,7 +1691,7 @@
    "id": "imp_n121",
    "type": "busbar",
    "position": {
-    "x": 5620,
+    "x": 5610,
     "y": 5540
    },
    "width": 120,
@@ -1697,20 +1704,21 @@
    "id": "imp_n122",
    "type": "busbar",
    "position": {
-    "x": 6210,
+    "x": 6230,
     "y": 5070
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "197"
+    "name": "197",
+    "compact": true
    }
   },
   {
    "id": "imp_n123",
    "type": "busbar",
    "position": {
-    "x": 6170,
+    "x": 6160,
     "y": 5310
    },
    "width": 200,
@@ -1723,7 +1731,7 @@
    "id": "imp_n124",
    "type": "busbar",
    "position": {
-    "x": 5820,
+    "x": 5810,
     "y": 5480
    },
    "width": 200,
@@ -1736,7 +1744,7 @@
    "id": "imp_n125",
    "type": "busbar",
    "position": {
-    "x": 6300,
+    "x": 6290,
     "y": 5540
    },
    "width": 200,
@@ -1749,7 +1757,7 @@
    "id": "imp_n126",
    "type": "busbar",
    "position": {
-    "x": 5820,
+    "x": 5810,
     "y": 5710
    },
    "width": 200,
@@ -1762,7 +1770,7 @@
    "id": "imp_n127",
    "type": "busbar",
    "position": {
-    "x": 5860,
+    "x": 5850,
     "y": 5950
    },
    "width": 120,
@@ -1775,7 +1783,7 @@
    "id": "imp_n128",
    "type": "busbar",
    "position": {
-    "x": 6080,
+    "x": 6070,
     "y": 5710
    },
    "width": 200,
@@ -1788,7 +1796,7 @@
    "id": "imp_n129",
    "type": "busbar",
    "position": {
-    "x": 6430,
+    "x": 6420,
     "y": 5780
    },
    "width": 200,
@@ -1801,7 +1809,7 @@
    "id": "imp_n130",
    "type": "busbar",
    "position": {
-    "x": 6120,
+    "x": 6110,
     "y": 5950
    },
    "width": 120,
@@ -1814,7 +1822,7 @@
    "id": "imp_n131",
    "type": "busbar",
    "position": {
-    "x": 6320,
+    "x": 6310,
     "y": 5950
    },
    "width": 200,
@@ -1827,7 +1835,7 @@
    "id": "imp_n132",
    "type": "busbar",
    "position": {
-    "x": 6580,
+    "x": 6570,
     "y": 6010
    },
    "width": 120,
@@ -1840,7 +1848,7 @@
    "id": "imp_n133",
    "type": "busbar",
    "position": {
-    "x": 6320,
+    "x": 6310,
     "y": 6240
    },
    "width": 200,
@@ -1853,7 +1861,7 @@
    "id": "imp_n134",
    "type": "busbar",
    "position": {
-    "x": 5910,
+    "x": 5900,
     "y": 6410
    },
    "width": 120,
@@ -1866,7 +1874,7 @@
    "id": "imp_n135",
    "type": "busbar",
    "position": {
-    "x": 6430,
+    "x": 6420,
     "y": 6410
    },
    "width": 200,
@@ -1879,7 +1887,7 @@
    "id": "imp_n136",
    "type": "busbar",
    "position": {
-    "x": 6430,
+    "x": 6420,
     "y": 6650
    },
    "width": 200,
@@ -1892,7 +1900,7 @@
    "id": "imp_n137",
    "type": "busbar",
    "position": {
-    "x": 6470,
+    "x": 6460,
     "y": 6880
    },
    "width": 120,
@@ -1905,26 +1913,28 @@
    "id": "imp_n138",
    "type": "busbar",
    "position": {
-    "x": 2740,
+    "x": 2770,
     "y": 2270
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "135"
+    "name": "135",
+    "compact": true
    }
   },
   {
    "id": "imp_n139",
    "type": "busbar",
    "position": {
-    "x": 4250,
+    "x": 4280,
     "y": 2030
    },
-   "width": 120,
+   "width": 60,
    "height": null,
    "params": {
-    "name": "152"
+    "name": "152",
+    "compact": true
    }
   },
   {
@@ -2003,7 +2013,7 @@
    "id": "imp_n143",
    "type": "breaker",
    "position": {
-    "x": 5020,
+    "x": 5010,
     "y": 3410
    },
    "width": null,
@@ -2027,7 +2037,7 @@
    "id": "imp_n144",
    "type": "breaker",
    "position": {
-    "x": 6190,
+    "x": 6180,
     "y": 4820
    },
    "width": null,
@@ -2051,7 +2061,7 @@
    "id": "imp_n145",
    "type": "breaker",
    "position": {
-    "x": 4020,
+    "x": 4010,
     "y": 3650
    },
    "width": null,
@@ -2137,7 +2147,7 @@
    "id": "imp_n149",
    "type": "busbar",
    "position": {
-    "x": 5070,
+    "x": 5060,
     "y": 3200
    },
    "width": 120,
@@ -2591,7 +2601,7 @@
    "id": "imp_n171",
    "type": "load",
    "position": {
-    "x": 1740,
+    "x": 1770,
     "y": 3660
    },
    "width": null,
@@ -3009,7 +3019,7 @@
    "id": "imp_n191",
    "type": "load",
    "position": {
-    "x": 3650,
+    "x": 3670,
     "y": 2950
    },
    "width": null,
@@ -3030,7 +3040,7 @@
    "id": "imp_n192",
    "type": "load",
    "position": {
-    "x": 3610,
+    "x": 3630,
     "y": 3190
    },
    "width": null,
@@ -3051,7 +3061,7 @@
    "id": "imp_n193",
    "type": "load",
    "position": {
-    "x": 3890,
+    "x": 3910,
     "y": 3190
    },
    "width": null,
@@ -3072,7 +3082,7 @@
    "id": "imp_n194",
    "type": "load",
    "position": {
-    "x": 3850,
+    "x": 3870,
     "y": 3420
    },
    "width": null,
@@ -3093,7 +3103,7 @@
    "id": "imp_n195",
    "type": "load",
    "position": {
-    "x": 4860,
+    "x": 4850,
     "y": 3190
    },
    "width": null,
@@ -3114,7 +3124,7 @@
    "id": "imp_n196",
    "type": "load",
    "position": {
-    "x": 4330,
+    "x": 4320,
     "y": 3420
    },
    "width": null,
@@ -3135,7 +3145,7 @@
    "id": "imp_n197",
    "type": "load",
    "position": {
-    "x": 4330,
+    "x": 4320,
     "y": 3660
    },
    "width": null,
@@ -3156,7 +3166,7 @@
    "id": "imp_n198",
    "type": "load",
    "position": {
-    "x": 4330,
+    "x": 4320,
     "y": 3890
    },
    "width": null,
@@ -3177,7 +3187,7 @@
    "id": "imp_n199",
    "type": "load",
    "position": {
-    "x": 4250,
+    "x": 4240,
     "y": 4120
    },
    "width": null,
@@ -3198,7 +3208,7 @@
    "id": "imp_n200",
    "type": "load",
    "position": {
-    "x": 4330,
+    "x": 4320,
     "y": 4120
    },
    "width": null,
@@ -3219,7 +3229,7 @@
    "id": "imp_n201",
    "type": "load",
    "position": {
-    "x": 4410,
+    "x": 4400,
     "y": 4120
    },
    "width": null,
@@ -3240,7 +3250,7 @@
    "id": "imp_n202",
    "type": "load",
    "position": {
-    "x": 4290,
+    "x": 4280,
     "y": 4360
    },
    "width": null,
@@ -3408,7 +3418,7 @@
    "id": "imp_n210",
    "type": "load",
    "position": {
-    "x": 4790,
+    "x": 4780,
     "y": 4830
    },
    "width": null,
@@ -3429,7 +3439,7 @@
    "id": "imp_n211",
    "type": "load",
    "position": {
-    "x": 4870,
+    "x": 4860,
     "y": 4830
    },
    "width": null,
@@ -3450,7 +3460,7 @@
    "id": "imp_n212",
    "type": "load",
    "position": {
-    "x": 4950,
+    "x": 4940,
     "y": 4830
    },
    "width": null,
@@ -3471,7 +3481,7 @@
    "id": "imp_n213",
    "type": "load",
    "position": {
-    "x": 4650,
+    "x": 4640,
     "y": 5060
    },
    "width": null,
@@ -3492,7 +3502,7 @@
    "id": "imp_n214",
    "type": "load",
    "position": {
-    "x": 4500,
+    "x": 4490,
     "y": 5530
    },
    "width": null,
@@ -3513,7 +3523,7 @@
    "id": "imp_n215",
    "type": "load",
    "position": {
-    "x": 4760,
+    "x": 4750,
     "y": 5530
    },
    "width": null,
@@ -3534,7 +3544,7 @@
    "id": "imp_n216",
    "type": "load",
    "position": {
-    "x": 4630,
+    "x": 4620,
     "y": 6000
    },
    "width": null,
@@ -3555,7 +3565,7 @@
    "id": "imp_n217",
    "type": "load",
    "position": {
-    "x": 4550,
+    "x": 4540,
     "y": 6230
    },
    "width": null,
@@ -3576,7 +3586,7 @@
    "id": "imp_n218",
    "type": "load",
    "position": {
-    "x": 5020,
+    "x": 5010,
     "y": 6000
    },
    "width": null,
@@ -3597,7 +3607,7 @@
    "id": "imp_n219",
    "type": "load",
    "position": {
-    "x": 4980,
+    "x": 4970,
     "y": 6230
    },
    "width": null,
@@ -3618,7 +3628,7 @@
    "id": "imp_n220",
    "type": "load",
    "position": {
-    "x": 5150,
+    "x": 5140,
     "y": 5060
    },
    "width": null,
@@ -3639,7 +3649,7 @@
    "id": "imp_n221",
    "type": "load",
    "position": {
-    "x": 5110,
+    "x": 5100,
     "y": 5290
    },
    "width": null,
@@ -3660,7 +3670,7 @@
    "id": "imp_n222",
    "type": "load",
    "position": {
-    "x": 4940,
+    "x": 4930,
     "y": 5530
    },
    "width": null,
@@ -3681,7 +3691,7 @@
    "id": "imp_n223",
    "type": "load",
    "position": {
-    "x": 5070,
+    "x": 5060,
     "y": 5760
    },
    "width": null,
@@ -3702,7 +3712,7 @@
    "id": "imp_n224",
    "type": "load",
    "position": {
-    "x": 5200,
+    "x": 5190,
     "y": 6000
    },
    "width": null,
@@ -3723,7 +3733,7 @@
    "id": "imp_n225",
    "type": "load",
    "position": {
-    "x": 5330,
+    "x": 5320,
     "y": 6230
    },
    "width": null,
@@ -3744,7 +3754,7 @@
    "id": "imp_n226",
    "type": "load",
    "position": {
-    "x": 5780,
+    "x": 5770,
     "y": 6230
    },
    "width": null,
@@ -3765,7 +3775,7 @@
    "id": "imp_n227",
    "type": "load",
    "position": {
-    "x": 5740,
+    "x": 5730,
     "y": 6460
    },
    "width": null,
@@ -3786,7 +3796,7 @@
    "id": "imp_n228",
    "type": "load",
    "position": {
-    "x": 5710,
+    "x": 5700,
     "y": 4830
    },
    "width": null,
@@ -3807,7 +3817,7 @@
    "id": "imp_n229",
    "type": "load",
    "position": {
-    "x": 5710,
+    "x": 5700,
     "y": 5060
    },
    "width": null,
@@ -3828,7 +3838,7 @@
    "id": "imp_n230",
    "type": "load",
    "position": {
-    "x": 5710,
+    "x": 5700,
     "y": 5290
    },
    "width": null,
@@ -3849,7 +3859,7 @@
    "id": "imp_n231",
    "type": "load",
    "position": {
-    "x": 5950,
+    "x": 5940,
     "y": 5530
    },
    "width": null,
@@ -3870,7 +3880,7 @@
    "id": "imp_n232",
    "type": "load",
    "position": {
-    "x": 5950,
+    "x": 5940,
     "y": 5760
    },
    "width": null,
@@ -3891,7 +3901,7 @@
    "id": "imp_n233",
    "type": "load",
    "position": {
-    "x": 5910,
+    "x": 5900,
     "y": 6000
    },
    "width": null,
@@ -3912,7 +3922,7 @@
    "id": "imp_n234",
    "type": "load",
    "position": {
-    "x": 6210,
+    "x": 6200,
     "y": 5760
    },
    "width": null,
@@ -3933,7 +3943,7 @@
    "id": "imp_n235",
    "type": "load",
    "position": {
-    "x": 6170,
+    "x": 6160,
     "y": 6000
    },
    "width": null,
@@ -3954,7 +3964,7 @@
    "id": "imp_n236",
    "type": "load",
    "position": {
-    "x": 6450,
+    "x": 6440,
     "y": 6000
    },
    "width": null,
@@ -3975,7 +3985,7 @@
    "id": "imp_n237",
    "type": "load",
    "position": {
-    "x": 5960,
+    "x": 5950,
     "y": 6460
    },
    "width": null,
@@ -3996,7 +4006,7 @@
    "id": "imp_n238",
    "type": "load",
    "position": {
-    "x": 6560,
+    "x": 6550,
     "y": 6460
    },
    "width": null,
@@ -4017,7 +4027,7 @@
    "id": "imp_n239",
    "type": "load",
    "position": {
-    "x": 6560,
+    "x": 6550,
     "y": 6700
    },
    "width": null,
@@ -4038,7 +4048,7 @@
    "id": "imp_n240",
    "type": "load",
    "position": {
-    "x": 6520,
+    "x": 6510,
     "y": 6930
    },
    "width": null,
@@ -4059,7 +4069,7 @@
    "id": "imp_n241",
    "type": "capacitor",
    "position": {
-    "x": 4630,
+    "x": 4620,
     "y": 6230
    },
    "width": null,
@@ -4077,7 +4087,7 @@
    "id": "imp_n242",
    "type": "capacitor",
    "position": {
-    "x": 5020,
+    "x": 5010,
     "y": 5530
    },
    "width": null,
@@ -4096,7 +4106,7 @@
    "id": "imp_n243",
    "type": "capacitor",
    "position": {
-    "x": 5150,
+    "x": 5140,
     "y": 5760
    },
    "width": null,
@@ -4115,7 +4125,7 @@
    "id": "imp_n244",
    "type": "capacitor",
    "position": {
-    "x": 5280,
+    "x": 5270,
     "y": 6000
    },
    "width": null,
@@ -4158,7 +4168,7 @@
    "source": "imp_n3",
    "sourceHandle": "t2",
    "target": "imp_n4",
-   "targetHandle": "b3",
+   "targetHandle": "b1",
    "params": {},
    "waypoints": null
   },
@@ -4168,7 +4178,7 @@
    "source": "imp_n5",
    "sourceHandle": "t1",
    "target": "imp_n6",
-   "targetHandle": "c3",
+   "targetHandle": "c1",
    "params": {},
    "waypoints": null
   },
@@ -4207,7 +4217,7 @@
    "source": "imp_n8",
    "sourceHandle": "t2",
    "target": "imp_n10",
-   "targetHandle": "b3",
+   "targetHandle": "b1",
    "params": {},
    "waypoints": null
   },
@@ -4315,7 +4325,7 @@
    "id": "imp_e18",
    "type": "line",
    "source": "imp_n20",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n21",
    "targetHandle": "b9",
    "params": {
@@ -4557,7 +4567,7 @@
    "id": "imp_e29",
    "type": "line",
    "source": "imp_n10",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n31",
    "targetHandle": "b5",
    "params": {
@@ -4856,7 +4866,7 @@
    "source": "imp_n45",
    "sourceHandle": "c3",
    "target": "imp_n47",
-   "targetHandle": "b5",
+   "targetHandle": "b2",
    "params": {
     "name": "l27",
     "length": 0.275,
@@ -4890,7 +4900,7 @@
    "id": "imp_e47",
    "type": "line",
    "source": "imp_n47",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n49",
    "targetHandle": "b3",
    "params": {
@@ -5423,7 +5433,7 @@
    "source": "imp_n70",
    "sourceHandle": "c3",
    "target": "imp_n71",
-   "targetHandle": "b3",
+   "targetHandle": "b1",
    "params": {
     "name": "l51",
     "length": 0.5,
@@ -5439,7 +5449,7 @@
      "y": 4200
     },
     {
-     "x": 3570,
+     "x": 3560,
      "y": 4200
     }
    ]
@@ -5552,11 +5562,11 @@
    },
    "waypoints": [
     {
-     "x": 3590,
+     "x": 3610,
      "y": 3030
     },
     {
-     "x": 3630,
+     "x": 3650,
      "y": 3030
     }
    ]
@@ -5615,11 +5625,11 @@
    },
    "waypoints": [
     {
-     "x": 3830,
+     "x": 3850,
      "y": 3270
     },
     {
-     "x": 3870,
+     "x": 3890,
      "y": 3270
     }
    ]
@@ -5630,7 +5640,7 @@
    "source": "imp_n79",
    "sourceHandle": "c3",
    "target": "imp_n81",
-   "targetHandle": "b3",
+   "targetHandle": "b1",
    "params": {
     "name": "l60",
     "length": 0.55,
@@ -5642,11 +5652,11 @@
    },
    "waypoints": [
     {
-     "x": 4720,
+     "x": 4710,
      "y": 3270
     },
     {
-     "x": 4050,
+     "x": 4030,
      "y": 3270
     }
    ]
@@ -5669,11 +5679,11 @@
    },
    "waypoints": [
     {
-     "x": 4800,
+     "x": 4790,
      "y": 3270
     },
     {
-     "x": 4310,
+     "x": 4300,
      "y": 3270
     }
    ]
@@ -5696,11 +5706,11 @@
    },
    "waypoints": [
     {
-     "x": 4270,
+     "x": 4260,
      "y": 3500
     },
     {
-     "x": 4310,
+     "x": 4300,
      "y": 3500
     }
    ]
@@ -5723,11 +5733,11 @@
    },
    "waypoints": [
     {
-     "x": 4270,
+     "x": 4260,
      "y": 3740
     },
     {
-     "x": 4310,
+     "x": 4300,
      "y": 3740
     }
    ]
@@ -5750,11 +5760,11 @@
    },
    "waypoints": [
     {
-     "x": 4270,
+     "x": 4260,
      "y": 3970
     },
     {
-     "x": 4310,
+     "x": 4300,
      "y": 3970
     }
    ]
@@ -5777,11 +5787,11 @@
    },
    "waypoints": [
     {
-     "x": 4190,
+     "x": 4180,
      "y": 4200
     },
     {
-     "x": 4310,
+     "x": 4300,
      "y": 4200
     }
    ]
@@ -6029,11 +6039,11 @@
    },
    "waypoints": [
     {
-     "x": 4730,
+     "x": 4720,
      "y": 4910
     },
     {
-     "x": 4630,
+     "x": 4620,
      "y": 4910
     }
    ]
@@ -6056,11 +6066,11 @@
    },
    "waypoints": [
     {
-     "x": 5050,
+     "x": 5040,
      "y": 4910
     },
     {
-     "x": 5130,
+     "x": 5120,
      "y": 4910
     }
    ]
@@ -6083,11 +6093,11 @@
    },
    "waypoints": [
     {
-     "x": 4590,
+     "x": 4580,
      "y": 5140
     },
     {
-     "x": 4630,
+     "x": 4620,
      "y": 5140
     }
    ]
@@ -6146,11 +6156,11 @@
    },
    "waypoints": [
     {
-     "x": 4700,
+     "x": 4690,
      "y": 5610
     },
     {
-     "x": 4740,
+     "x": 4730,
      "y": 5610
     }
    ]
@@ -6209,11 +6219,11 @@
    },
    "waypoints": [
     {
-     "x": 4570,
+     "x": 4560,
      "y": 6080
     },
     {
-     "x": 4610,
+     "x": 4600,
      "y": 6080
     }
    ]
@@ -6236,11 +6246,11 @@
    },
    "waypoints": [
     {
-     "x": 4960,
+     "x": 4950,
      "y": 6080
     },
     {
-     "x": 5000,
+     "x": 4990,
      "y": 6080
     }
    ]
@@ -6263,11 +6273,11 @@
    },
    "waypoints": [
     {
-     "x": 5090,
+     "x": 5080,
      "y": 5140
     },
     {
-     "x": 5130,
+     "x": 5120,
      "y": 5140
     }
    ]
@@ -6290,11 +6300,11 @@
    },
    "waypoints": [
     {
-     "x": 5050,
+     "x": 5040,
      "y": 5370
     },
     {
-     "x": 5000,
+     "x": 4990,
      "y": 5370
     }
    ]
@@ -6317,11 +6327,11 @@
    },
    "waypoints": [
     {
-     "x": 5210,
+     "x": 5200,
      "y": 5370
     },
     {
-     "x": 5260,
+     "x": 5250,
      "y": 5370
     }
    ]
@@ -6452,11 +6462,11 @@
    },
    "waypoints": [
     {
-     "x": 5720,
+     "x": 5710,
      "y": 6310
     },
     {
-     "x": 5760,
+     "x": 5750,
      "y": 6310
     }
    ]
@@ -6497,11 +6507,11 @@
    },
    "waypoints": [
     {
-     "x": 5650,
+     "x": 5640,
      "y": 4910
     },
     {
-     "x": 5690,
+     "x": 5680,
      "y": 4910
     }
    ]
@@ -6524,11 +6534,11 @@
    },
    "waypoints": [
     {
-     "x": 5650,
+     "x": 5640,
      "y": 5140
     },
     {
-     "x": 5690,
+     "x": 5680,
      "y": 5140
     }
    ]
@@ -6551,11 +6561,11 @@
    },
    "waypoints": [
     {
-     "x": 5650,
+     "x": 5640,
      "y": 5370
     },
     {
-     "x": 5690,
+     "x": 5680,
      "y": 5370
     }
    ]
@@ -6564,7 +6574,7 @@
    "id": "imp_e118",
    "type": "line",
    "source": "imp_n122",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n123",
    "targetHandle": "b5",
    "params": {
@@ -6632,11 +6642,11 @@
    },
    "waypoints": [
     {
-     "x": 5890,
+     "x": 5880,
      "y": 5610
     },
     {
-     "x": 5930,
+     "x": 5920,
      "y": 5610
     }
    ]
@@ -6659,11 +6669,11 @@
    },
    "waypoints": [
     {
-     "x": 5890,
+     "x": 5880,
      "y": 5840
     },
     {
-     "x": 5930,
+     "x": 5920,
      "y": 5840
     }
    ]
@@ -6722,11 +6732,11 @@
    },
    "waypoints": [
     {
-     "x": 6150,
+     "x": 6140,
      "y": 5840
     },
     {
-     "x": 6190,
+     "x": 6180,
      "y": 5840
     }
    ]
@@ -6785,11 +6795,11 @@
    },
    "waypoints": [
     {
-     "x": 6390,
+     "x": 6380,
      "y": 6080
     },
     {
-     "x": 6430,
+     "x": 6420,
      "y": 6080
     }
    ]
@@ -6848,11 +6858,11 @@
    },
    "waypoints": [
     {
-     "x": 6500,
+     "x": 6490,
      "y": 6540
     },
     {
-     "x": 6540,
+     "x": 6530,
      "y": 6540
     }
    ]
@@ -6875,11 +6885,11 @@
    },
    "waypoints": [
     {
-     "x": 6500,
+     "x": 6490,
      "y": 6780
     },
     {
-     "x": 6540,
+     "x": 6530,
      "y": 6780
     }
    ]
@@ -6888,7 +6898,7 @@
    "id": "imp_e133",
    "type": "line",
    "source": "imp_n138",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n54",
    "targetHandle": "b7",
    "params": {
@@ -6906,7 +6916,7 @@
    "id": "imp_e134",
    "type": "line",
    "source": "imp_n139",
-   "sourceHandle": "c3",
+   "sourceHandle": "c1",
    "target": "imp_n72",
    "targetHandle": "b5",
    "params": {
@@ -6944,7 +6954,7 @@
    "source": "imp_n140",
    "sourceHandle": "t1",
    "target": "imp_n4",
-   "targetHandle": "c3",
+   "targetHandle": "c1",
    "params": {},
    "waypoints": null
   },
@@ -6954,7 +6964,7 @@
    "source": "imp_n140",
    "sourceHandle": "t2",
    "target": "imp_n20",
-   "targetHandle": "b3",
+   "targetHandle": "b1",
    "params": {},
    "waypoints": null
   },
@@ -7008,11 +7018,11 @@
    "params": {},
    "waypoints": [
     {
-     "x": 5040,
+     "x": 5030,
      "y": 3270
     },
     {
-     "x": 4960,
+     "x": 4950,
      "y": 3270
     }
    ]
@@ -7053,7 +7063,7 @@
    "source": "imp_n145",
    "sourceHandle": "t1",
    "target": "imp_n81",
-   "targetHandle": "c3",
+   "targetHandle": "c1",
    "params": {},
    "waypoints": null
   },
@@ -7063,7 +7073,7 @@
    "source": "imp_n145",
    "sourceHandle": "t2",
    "target": "imp_n6",
-   "targetHandle": "b3",
+   "targetHandle": "b1",
    "params": {},
    "waypoints": null
   },
@@ -7073,7 +7083,7 @@
    "source": "imp_n146",
    "sourceHandle": "t1",
    "target": "imp_n71",
-   "targetHandle": "c3",
+   "targetHandle": "c1",
    "params": {},
    "waypoints": null
   },
@@ -8668,5 +8678,28 @@
    "normamps": 400,
    "source": "imported"
   }
+ },
+ "passthrough": [],
+ "comments": {
+  "circuit": "! Annotated Master file for the IEEE 123-bus test case.\n!\n! This file is meant to be invoked from the Compile command in the \"Run_IEEE123Bus.DSS\"  file.\n!\n! Note: DSS commands, property names, etc., are NOT case sensitive. Capitalize as you please.\n! You should always do a \"Clear\" before making a new circuit:",
+  "linecode.7": "!!!~ rmatrix = (0.088205 | 0.0306264 0.0889665 | 0.0312137 0.0316143 0.0901946 )\n!!!~ xmatrix = (0.20744 | 0.0760312 0.204877 | 0.0935314 0.0855879 0.200783 )\n!!!~ cmatrix = (2.90301 | -0.22313 2.8965 | -0.679335 -0.481416 3.15896 )",
+  "linecode.8": "!!!~ rmatrix = (0.088205 | 0.0306264 0.0889665 )\n!!!~ xmatrix = (0.20744 | 0.0760312 0.204877 )\n!!!~ cmatrix = (2.75692 | -0.326659 2.82313 )",
+  "linecode.9": "!!!~ rmatrix = (0.088205 | 0.0306264 0.0889665 )\n!!!~ xmatrix = (0.20744 | 0.0760312 0.204877 )\n!!!~ cmatrix = (2.75692 | -0.326659 2.82313 )",
+  "linecode.10": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.11": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.12": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.300": "! ohms per 1000ft  Corrected 11/30/05\n!ABC ORDER",
+  "linecode.602": "!!!~ rmatrix = (0.0674673 | 0.0312137 0.0654777 | 0.0316143 0.0306264 0.0662392 )\n!!!~ xmatrix = (0.195204  | 0.0935314 0.201861 | 0.0855879 0.0760312 0.199298 )\n!!!~ cmatrix = (3.32591   | -0.743055 3.04217 | -0.525237 -0.238111 3.03116 )",
+  "linecode.603": "!!!~ rmatrix = (0.144361 | 0.0316143 0.143133 | 0.0312137 0.0306264 0.142372 )\n!!!~ xmatrix = (0.226028 | 0.0855879 0.230122 | 0.0935314 0.0760312 0.232686 )\n!!!~ cmatrix = (3.01091  | -0.443561 2.77543  | -0.624494 -0.209615 2.77847 )",
+  "linecode.604": "!!!~ rmatrix = (0.254472 | 0.0417943 0.253371 )\n!!!~ xmatrix = (0.259467 | 0.0912376 0.261431 )\n!!!~ cmatrix = (2.54676  | -0.28882 2.49502 )",
+  "linecode.605": "!!!~ rmatrix = (0.253371 | 0.0417943 0.254472 )\n!!!~ xmatrix = (0.261431 | 0.0912376 0.259467 )\n!!!~ cmatrix = (2.49502 | -0.28882 2.54676 )",
+  "linecode.606": "!!!~ rmatrix = (0.254428 )\n!!!~ xmatrix = (0.259546 )\n!!!~ cmatrix = (2.50575 )",
+  "linecode.607": "!!!~ rmatrix = (0.152193 | 0.0611362 0.15035 | 0.0546992 0.0611362 0.152193 )\n!!!~ xmatrix = (0.0825685 | 0.00548281 0.0745027 | -0.00339824 0.00548281 0.0825685 )\n!!!~ cmatrix = (72.7203 | 0 72.7203 | 0 0 72.7203 )",
+  "linecode.722": "!!!~ rmatrix = (0.0554906 | 0.0127467 0.0501597 | 0.00640446 0.0127467 0.0554906 )\n!!!~ xmatrix = (0.0372331 | -0.00704588 0.0358645 | -0.00796424 -0.00704588 0.0372331 )\n!!!~ cmatrix = (124.851 | 0 124.851 | 0 0 124.851 )",
+  "linecode.723": "!!!~ rmatrix = (0.0902251 | 0.0309584 0.0851482 | 0.0234946 0.0309584 0.0902251 )\n!!!~ xmatrix = (0.055991 | -0.00646552 0.0504025 | -0.0117669 -0.00646552 0.055991 )\n!!!~ cmatrix = (93.4896 | 0 93.4896 | 0 0 93.4896 )",
+  "linecode.724": "!!!~ rmatrix = (0.247572 | 0.0947678 0.249104 | 0.0893782 0.0947678 0.247572 )\n!!!~ xmatrix = (0.126339 | 0.0390337 0.118816 | 0.0279344 0.0390337 0.126339 )\n!!!~ cmatrix = (58.108 | 0 58.108 | 0 0 58.108 )",
+  "transformer.reg2a": "!DEFINE TRANSFORMERS FOR REGULATORS\n! Have to assume basically zero impedance regulators to match the test case",
+  "regcontrol.creg2a": "! POINT REGULATOR CONTROLS TO REGULATOR TRANSFORMER AND SET PARAMETERS",
+  "load.s49c": "! used to be 25 in on-line document"
  }
 }

@@ -100,8 +100,12 @@ export function EditorCanvas() {
       const attempt = () => {
         const ns = getNodes()
         const ready = ns.length > 0 && ns.every((n) => n.measured?.width && n.measured?.height)
-        if (ready || ++tries > 30) void fitView({ maxZoom: 1.5, padding: 0.1 })
-        else frame = requestAnimationFrame(attempt)
+        if (ready || ++tries > 30) {
+          void fitView({ maxZoom: 1.5, padding: 0.1 })
+          // Once more after the re-measure a re-layout sets off (bars change
+          // width): nodes already measured say "ready" before it lands.
+          window.setTimeout(() => void fitView({ maxZoom: 1.5, padding: 0.1 }), 200)
+        } else frame = requestAnimationFrame(attempt)
       }
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(attempt)
@@ -336,7 +340,7 @@ export function EditorCanvas() {
         fitView
         fitViewOptions={{ maxZoom: 1.5, padding: 0.2 }}
         zoomOnDoubleClick={false}
-        minZoom={0.2}
+        minZoom={0.05}
         maxZoom={4}
         proOptions={{ hideAttribution: false }}
       >

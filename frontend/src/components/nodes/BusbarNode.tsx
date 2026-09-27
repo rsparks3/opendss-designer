@@ -74,7 +74,7 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
           style={{ left: (i + 0.5) * SYMBOL_PITCH, bottom: -2 }}
         />
       ))}
-      <NodeLabel>{String(data.params.name ?? '')}</NodeLabel>
+      {data.params.compact !== true && <NodeLabel>{String(data.params.name ?? '')}</NodeLabel>}
       <VoltageBadge nodeId={id} />
       <FaultBadge nodeId={id} />
       <PhaseBadge nodeId={id} />
