@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { menu } from './menu'
 import { expect, test } from '@playwright/test'
 
 const fixture = JSON.parse(
@@ -34,7 +35,7 @@ test('Clean up hangs a stray load back under its bus, and Undo puts it back', as
   const before = await state(page)
   expect(before.load.x).toBe(-900)
 
-  await page.getByRole('button', { name: /Clean up/ }).click()
+  await menu(page, 'Arrange', 'Clean up layout')
   const after = await state(page)
   expect(after.rotation).toBeUndefined()
   expect(after.load.y).toBeGreaterThan(after.bus.y)

@@ -25,7 +25,7 @@ using the [hosted instance](https://opendssdesigner.ryanmsparks.com) instead, se
 what that changes.
 
 !!! tip "Start from a sample"
-    Pick one from the **Samples** dropdown in the toolbar — *Demo substation*
+    Pick one from **File → Samples** — *Demo substation*
     for the basics, or *Radial feeder with DER* if you want something with PV,
     a battery and a daily load shape to run a time series on.
     from the repository, then press **Solve** to see the result overlays
@@ -75,20 +75,33 @@ NREL/NLR building profiles and NSRDB irradiance), switch the toolbar to
 results directly on the diagram. See [Shapes & profiles](shapes.md) and
 [Time-series analysis](timeseries.md).
 
+## The menus
+
+Commands live in a menu bar laid out like a desktop drawing tool's:
+**File** (new, open, samples, import, save, export), **Edit** (undo, cut,
+copy, paste, duplicate, delete, select all), **View** (zoom, fit, grid, snap,
+which panels show), **Arrange** (clean up, rotate, straighten), **Analysis**
+(snapshot or time series, solve, auto-solve, overlay) and **Help**. Every
+item prints its shortcut beside it, and **Help → Keyboard shortcuts** (or
+`?`) lists them all. The row under the menus keeps what gets pressed
+all day: the circuit name, undo/redo, **Solve** (++f5++), **Auto**, the
+analysis mode and the overlay buttons. *Unsaved changes* appears beside the
+name while there is something to save; click it to save.
+
 ## Save, export, import
 
-- **Save** (Ctrl+S) keeps the whole project (diagram, parameters, shapes)
+- **File → Save** (Ctrl+S) keeps the whole project (diagram, parameters, shapes)
   in your browser's storage under a name; the first save asks for one, later
   saves are silent. **Save as…** makes a copy, **Open…** (Ctrl+O) lists what
   is saved with rename, delete and export. Saved circuits live in that
   browser on that device only and are never uploaded.
-- **Export .json / Import** move a project between machines or keep a
-  backup as a `.oneline.json` file (Import is inside the Open dialog).
-- **Export** writes a runnable `.dss` script — the exact commands the built-in
+- **File → Export → Project (.oneline.json)** and **File → Open project
+  file…** move a project between machines or keep a backup as a file.
+- **File → Export → OpenDSS (.dss)** writes a runnable `.dss` script — the exact commands the built-in
   solver uses — so anything you draw also runs in stock OpenDSS.
-- **Import** loads existing `.dss` files; see
+- **File → Import .dss…** loads existing `.dss` files; see
   [Importing DSS files](importing-dss.md).
-- **Image: SVG / PNG** download the drawing as it is on screen, with the
+- **File → Export → Image (SVG / PNG)** download the drawing as it is on screen, with the
   active overlay, a colour key and a caption (name, overlay, date). The SVG
   is a genuine vector file — real paths and text, no embedded screenshot —
   so it opens and edits in Inkscape, Visio and PowerPoint; the PNG is
@@ -101,11 +114,14 @@ results directly on the diagram. See [Shapes & profiles](shapes.md) and
 |  |  |
 |---|---|
 | Undo / redo | ++ctrl+z++ / ++ctrl+y++ |
-| Copy / paste | ++ctrl+c++ / ++ctrl+v++ |
+| Cut / copy / paste | ++ctrl+x++ / ++ctrl+c++ / ++ctrl+v++ |
 | Delete selection | ++delete++ |
+| Select all | ++ctrl+a++ |
+| Solve | ++f5++ |
 | Stop placing | ++esc++ |
+| Every shortcut | `?` |
 
-Plus: grid snapping, pan/zoom with a minimap, box-select and group-move,
+Plus: grid snapping (**View → Snap to grid**), pan/zoom with a minimap, box-select and group-move,
 right-click context menu, rotation, and double-click actions — double-click a
 breaker to open/close it, or a wire/line to add a draggable routing point.
 
@@ -117,7 +133,7 @@ wire from an occupied terminal instead.
 
 ### Clean up
 
-**✦ Clean up** in the toolbar redraws the whole circuit as a top-down tree:
+**Arrange → Clean up layout** (++ctrl+shift+l++) redraws the whole circuit as a top-down tree:
 the source at the top, power flowing downward, every load, capacitor and DER
 unit in one evenly spaced row directly beneath its busbar, each bar widened
 to fit everything leaving it, a bank of single-phase regulators fanned out

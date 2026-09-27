@@ -9,6 +9,7 @@ import {
 } from '../lib/fields'
 import { matchesFilter } from '../lib/selection'
 import { useCircuitStore } from '../store/circuitStore'
+import { useUiStore } from '../store/uiStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { Params } from '../types/circuit'
 import { GraphPanel } from './GraphPanel'
@@ -377,7 +378,9 @@ export function BottomPanel() {
   const graphTabSignal = useResultsStore((s) => s.graphTabSignal)
   const [tab, setTab] = useState<MainTab>('problems')
   const [typeTab, setTypeTab] = useState('load')
-  const [open, setOpen] = useState(true)
+  // Open/closed lives in the UI store so View → Bottom panel can drive it.
+  const open = useUiStore((st) => st.panelOpen.bottom)
+  const setOpen = (v: boolean) => useUiStore.getState().setPanelOpen('bottom', v)
   const [height, setHeight] = useState(initialHeight)
   const heightRef = useRef(height)
 

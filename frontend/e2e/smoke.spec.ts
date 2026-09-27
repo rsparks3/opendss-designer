@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { Buffer } from 'node:buffer'
+import { menu } from './menu'
 import { expect, test, type Page } from '@playwright/test'
 
 // The schema fixture doubles as the e2e circuit: every node type, both edge
@@ -117,7 +118,7 @@ test('export .dss, start new, and re-import the exported file', async ({ page })
   page.on('dialog', (d) => void d.accept())
 
   const downloadPromise = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Export .dss' }).click()
+  await menu(page, 'File', 'Export', 'OpenDSS (.dss)')
   const download = await downloadPromise
   expect(download.suggestedFilename()).toBe('schema-fixture.dss')
   // Read the exported text through the same endpoint the button used — the
@@ -125,10 +126,12 @@ test('export .dss, start new, and re-import the exported file', async ({ page })
   const dssText = await (await page.request.post('/api/export/dss', { data: fixture })).text()
   expect(dssText).toContain('new circuit.')
 
-  await page.getByRole('button', { name: 'New', exact: true }).click()
+  await menu(page, 'File', 'New')
   await expect(page.locator('.react-flow__node')).toHaveCount(0)
 
-  await page.locator('input[accept*=".dss"]').setInputFiles({
+  const chooser = page.waitForEvent('filechooser')
+  await menu(page, 'File', 'Import .dss…')
+  await (await chooser).setFiles({
     name: 'exported.dss',
     mimeType: 'text/plain',
     buffer: Buffer.from(dssText, 'utf-8'),

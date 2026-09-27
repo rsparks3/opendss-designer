@@ -20,7 +20,7 @@ well-formed.
 
 ## Analysis modes
 
-The toolbar has two analysis modes:
+The toolbar (and the **Analysis** menu) has two analysis modes:
 
 - **Snapshot** — solve the circuit at a single operating point, on demand
   (**Solve**) or automatically after every edit (**Auto**).

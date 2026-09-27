@@ -1,3 +1,4 @@
+import { menu } from './menu'
 import { expect, test, type Page } from '@playwright/test'
 
 // The browser-local project library: Save asks for a name once, Open lists
@@ -26,7 +27,7 @@ test('save asks for a name once, then saves silently', async ({ page }) => {
   await openEditor(page)
   await placeLoads(page, 2)
 
-  await page.getByRole('button', { name: /^Save( •)?$/ }).click()
+  await menu(page, 'File', 'Save')
   const dialog = page.getByRole('dialog', { name: 'Save circuit' })
   await expect(dialog).toBeVisible()
   await dialog.getByLabel('Name').fill('Feeder one')
@@ -34,17 +35,18 @@ test('save asks for a name once, then saves silently', async ({ page }) => {
   await expect(dialog).toBeHidden()
   await expect(page.locator('.flash-toast')).toContainText('Saved "Feeder one"')
 
-  // The toolbar name box follows the saved name and the dirty dot is gone.
+  // The toolbar name box follows the saved name and the unsaved mark is gone.
+  const unsaved = page.getByRole('button', { name: 'Unsaved changes' })
   await expect(page.getByTitle('Circuit name')).toHaveValue('Feeder one')
-  await expect(page.getByRole('button', { name: /^Save( •)?$/ })).toHaveText('Save')
+  await expect(unsaved).toHaveCount(0)
 
   // A further edit then Ctrl+S: no dialog this time.
   await placeLoads(page, 1, 3)
-  await expect(page.getByRole('button', { name: /^Save( •)?$/ })).toHaveText('Save •')
+  await expect(unsaved).toBeVisible()
   await page.keyboard.press('Control+s')
   await expect(page.getByRole('dialog', { name: 'Save circuit' })).toHaveCount(0)
   await expect(page.locator('.flash-toast')).toContainText('Saved "Feeder one"')
-  await expect(page.getByRole('button', { name: /^Save( •)?$/ })).toHaveText('Save')
+  await expect(unsaved).toHaveCount(0)
 })
 
 test('open lists saved circuits and restores one after New', async ({ page }) => {
@@ -56,10 +58,10 @@ test('open lists saved circuits and restores one after New', async ({ page }) =>
   await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(dialog).toBeHidden()
 
-  await page.getByRole('button', { name: 'New', exact: true }).click()
+  await menu(page, 'File', 'New')
   await expect(page.locator('.react-flow__node')).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Open…' }).click()
+  await menu(page, 'File', 'Open…')
   const library = page.getByRole('dialog', { name: 'Open circuit' })
   await expect(library).toBeVisible()
   const row = library.locator('tr', { hasText: 'Reopen me' })
@@ -70,7 +72,7 @@ test('open lists saved circuits and restores one after New', async ({ page }) =>
   await expect(page.getByTitle('Circuit name')).toHaveValue('Reopen me')
 
   // Rename from the dialog, then delete, and the list empties.
-  await page.getByRole('button', { name: 'Open…' }).click()
+  await page.keyboard.press('Control+o')
   await library.getByRole('button', { name: 'Rename' }).click()
   await library.locator('input').fill('Renamed')
   await library.locator('input').press('Enter')

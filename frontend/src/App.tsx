@@ -15,6 +15,8 @@ import { PropertiesPanel } from './components/PropertiesPanel'
 import { TimeBar } from './components/TimeBar'
 import { SidePanel } from './components/SidePanel'
 import { Toolbar } from './components/Toolbar'
+import { MenuBar } from './components/MenuBar'
+import { Dialogs } from './components/Dialogs'
 
 /** Re-validate the circuit (debounced) whenever it changes. */
 function useValidation() {
@@ -135,6 +137,7 @@ export default function App() {
     <ReactFlowProvider>
       <div className="app">
         <DemoBanner />
+        <MenuBar />
         <Toolbar />
         <TimeBar />
         <div className="main-row">
@@ -150,6 +153,7 @@ export default function App() {
           </SidePanel>
         </div>
         <BottomPanel />
+        <Dialogs />
       </div>
     </ReactFlowProvider>
   )

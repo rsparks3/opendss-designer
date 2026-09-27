@@ -25,6 +25,7 @@ import {
   type AppNode,
 } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
+import { useUiStore } from '../store/uiStore'
 import type { NodeType } from '../types/circuit'
 import { ContextMenu, type MenuTarget } from './ContextMenu'
 import { PhaseLegend } from './PhaseLegend'
@@ -82,6 +83,8 @@ export function EditorCanvas() {
   const flash = useResultsStore((s) => s.flash)
   const flashKind = useResultsStore((s) => s.flashKind)
   const { screenToFlowPosition, fitView } = useReactFlow()
+  const showGrid = useUiStore((s) => s.showGrid)
+  const snap = useUiStore((s) => s.snapToGrid)
 
   // Clean up and sample loads redraw the whole circuit; show all of it. The
   // event is dispatched after the store update, and the frame delay lets
@@ -104,9 +107,10 @@ export function EditorCanvas() {
   const flowPos = useCallback(
     (e: { clientX: number; clientY: number }) => {
       const p = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      if (!snap) return p
       return { x: Math.round(p.x / 10) * 10, y: Math.round(p.y / 10) * 10 }
     },
-    [screenToFlowPosition],
+    [screenToFlowPosition, snap],
   )
 
   const onOverlayDown = useCallback(
@@ -207,6 +211,8 @@ export function EditorCanvas() {
         setMenu(null)
       }
       if (inField) return
+      // Keys typed into an open menu or dialog are theirs, not the drawing's.
+      if (useUiStore.getState().dialog || (e.target as HTMLElement)?.closest?.('.menubar')) return
       const st = useCircuitStore.getState()
       const key = e.key.toLowerCase()
       if (e.ctrlKey || e.metaKey) {
@@ -302,7 +308,7 @@ export function EditorCanvas() {
         selectionOnDrag
         selectionMode={SelectionMode.Partial}
         panOnDrag={[1, 2]}
-        snapToGrid
+        snapToGrid={snap}
         snapGrid={[10, 10]}
         deleteKeyCode={['Delete', 'Backspace']}
         fitView
@@ -312,7 +318,7 @@ export function EditorCanvas() {
         maxZoom={4}
         proOptions={{ hideAttribution: false }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+        {showGrid && <Background variant={BackgroundVariant.Dots} gap={20} size={1} />}
         <Controls />
         <MiniMap pannable zoomable />
         {busbarDraft && (

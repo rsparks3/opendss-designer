@@ -5,10 +5,23 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-Real feeders in, and proof that the numbers are right.
+Real feeders in, proof that the numbers are right, and the platform polish
+of M7.
 
 ### Added
 
+- **A menu bar**: File, Edit, View, Arrange, Analysis and Help, laid out the
+  way desktop drawing tools lay them out — click a title to open it, hover
+  across to the next, arrow keys and Enter to walk it, shortcuts printed
+  beside every item. The toolbar under it keeps what gets pressed all day:
+  name, undo/redo, Solve, Auto, the analysis mode and the overlays. New
+  commands along the way: **Cut** (Ctrl+X), **Select all** / **Select none**
+  (Ctrl+A / Ctrl+Shift+A), **Zoom in/out/Fit** (Ctrl+= / Ctrl+- /
+  Ctrl+Shift+H), **Solve** on F5, **Clean up** on Ctrl+Shift+L, **View →
+  Grid / Snap to grid** and panel toggles (remembered per browser),
+  **Help → Keyboard shortcuts** (or `?`) and **About**.
+- *Unsaved changes* beside the circuit name while there is anything to save;
+  click it to save.
 - **Line codes.** A conductor library that travels with the circuit, the way
   load shapes and time-current curves do: each code is a phase count, units
   and the full R, X and (optional) C matrices — or sequence values — and a

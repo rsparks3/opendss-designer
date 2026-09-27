@@ -38,7 +38,7 @@ export function SaveAsDialog({
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onFocus={(e) => e.target.select()} />
         </label>
         <div className="library-note">
-          Saved in this browser only. Use Export .json to move it to another computer or keep a backup.
+          Saved in this browser only. Use File → Export → Project to move it to another computer or keep a backup.
         </div>
         <div className="modal-actions">
           <button type="button" onClick={onCancel}>Cancel</button>

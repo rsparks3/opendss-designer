@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react'
+import { useUiStore, type PanelKey } from '../store/uiStore'
 
 /**
  * A resizable, collapsible side column, mirroring the bottom panel: drag the
@@ -16,7 +17,7 @@ export function SidePanel({
   children,
 }: {
   side: 'left' | 'right'
-  storageKey: string
+  storageKey: PanelKey
   defaultWidth: number
   minWidth?: number
   maxWidth?: number
@@ -24,17 +25,12 @@ export function SidePanel({
   children: ReactNode
 }) {
   const widthKey = `opendss-designer.${storageKey}Width`
-  const openKey = `opendss-designer.${storageKey}Open`
   const [width, setWidth] = useState(() => readNumber(widthKey, defaultWidth, minWidth, maxWidth))
-  const [open, setOpen] = useState(() => readFlag(openKey, true))
+  // Open/closed lives in the UI store so the View menu can drive it.
+  const open = useUiStore((st) => st.panelOpen[storageKey])
   const widthRef = useRef(width)
 
-  const toggle = () => {
-    setOpen((o) => {
-      write(openKey, o ? '0' : '1')
-      return !o
-    })
-  }
+  const toggle = () => useUiStore.getState().togglePanel(storageKey)
 
   const startResize = (down: React.PointerEvent) => {
     down.preventDefault()
@@ -89,15 +85,6 @@ function readNumber(key: string, fallback: number, min: number, max: number): nu
     // storage unavailable
   }
   return fallback
-}
-
-function readFlag(key: string, fallback: boolean): boolean {
-  try {
-    const v = localStorage.getItem(key)
-    return v === null ? fallback : v === '1'
-  } catch {
-    return fallback
-  }
 }
 
 function write(key: string, value: string): void {

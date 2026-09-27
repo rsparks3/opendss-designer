@@ -1,3 +1,4 @@
+import { menu } from './menu'
 import { expect, test, type Page } from '@playwright/test'
 
 async function openEditor(page: Page) {
@@ -9,9 +10,7 @@ async function openEditor(page: Page) {
 test('open a curated sample and solve it', async ({ page }) => {
   await openEditor(page)
 
-  const picker = page.getByTitle('Open a ready-made example circuit')
-  await expect(picker).toBeVisible()
-  await picker.selectOption('radial-feeder-der')
+  await menu(page, 'File', 'Samples', 'Radial feeder with DER')
 
   // The sample loads onto the canvas...
   await expect(page.locator('.react-flow__node')).toHaveCount(8)

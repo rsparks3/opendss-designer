@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { menu } from './menu'
 import { expect, test, type Page } from '@playwright/test'
 
 const fixturePath = fileURLToPath(
@@ -18,10 +19,10 @@ async function openWithFixture(page: Page) {
   await expect(page.locator('.react-flow__node')).toHaveCount(fixture.nodes.length)
 }
 
-async function downloadFrom(page: Page, button: string) {
+async function downloadFrom(page: Page, kind: 'SVG' | 'PNG') {
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: button, exact: true }).click(),
+    menu(page, 'File', 'Export', `Image (${kind})`),
   ])
   const path = await download.path()
   if (!path) throw new Error('no download path')

@@ -9,13 +9,13 @@ reads `.dss` files and turns them into an editable one-line diagram.
 
 ## How to import
 
-1. Click **Import** in the toolbar.
+1. Choose **File → Import .dss…**.
 2. Select your **main** `.dss` file *plus* any files it `redirect`s to
    (linecode libraries, load definitions, bus coordinate files — select them
    all together in the file dialog).
 3. The circuit appears laid out as a top-down tree: source at the top, loads
    in a row beneath their buses, buses sized to fit. It is the same layout
-   **✦ Clean up** in the toolbar applies, so you can always get back to it.
+   **Arrange → Clean up layout** applies, so you can always get back to it.
    From there it's a normal project — edit, solve, save as `.oneline.json`,
    or re-export.
 
