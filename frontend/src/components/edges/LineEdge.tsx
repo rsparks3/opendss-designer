@@ -18,7 +18,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
     ? Object.values(result.elements).find((e) => e.id === props.id)
     : null
 
-  let stroke = props.selected || grabbed ? '#1976d2' : '#263238'
+  let stroke = props.selected || grabbed ? 'var(--accent)' : 'var(--ink)'
   // A line colours by what it carries, which it knows on its own; the wires
   // and busbars around it colour by what reaches them (see WireEdge).
   if (overlay === 'phases' && !props.selected && !grabbed) {

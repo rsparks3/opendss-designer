@@ -1,5 +1,14 @@
 import { create } from 'zustand'
 import type { FileHandle } from '../lib/fileSystem'
+import {
+  applyPhasePalette,
+  applyTheme,
+  resolveTheme,
+  watchSystemTheme,
+  type PhasePalette,
+  type Theme,
+  type ThemePref,
+} from '../lib/theme'
 
 /**
  * Editor chrome state that the menu bar, the toolbar and the panels all need
@@ -32,6 +41,14 @@ interface UiState {
   snapToGrid: boolean
   setShowGrid: (v: boolean) => void
   setSnapToGrid: (v: boolean) => void
+
+  /** What the user chose, and what that works out to right now. */
+  themePref: ThemePref
+  theme: Theme
+  setThemePref: (p: ThemePref) => void
+  /** Phase colours the user picked; anything missing uses the theme's. */
+  phasePalette: PhasePalette
+  setPhasePalette: (p: PhasePalette) => void
 }
 
 const PREFIX = 'opendss-designer.'
@@ -63,6 +80,23 @@ export function readPref(key: string): string | null {
 
 const openKey = (k: PanelKey) => `${k}Open`
 
+function readThemePref(): ThemePref {
+  const v = readPref('theme')
+  return v === 'light' || v === 'dark' || v === 'system' ? v : 'system'
+}
+
+function readPalette(): PhasePalette {
+  try {
+    const v = JSON.parse(readPref('phasePalette') ?? '{}')
+    return v && typeof v === 'object' ? v : {}
+  } catch {
+    return {}
+  }
+}
+
+const initialPref = readThemePref()
+const initialPalette = readPalette()
+
 export const useUiStore = create<UiState>()((set, get) => ({
   dialog: null,
   openDialog: (dialog) => set({ dialog }),
@@ -92,4 +126,31 @@ export const useUiStore = create<UiState>()((set, get) => ({
     writePref('snapToGrid', v ? '1' : '0')
     set({ snapToGrid: v })
   },
+
+  themePref: initialPref,
+  theme: resolveTheme(initialPref),
+  setThemePref: (themePref) => {
+    writePref('theme', themePref)
+    const theme = resolveTheme(themePref)
+    applyTheme(theme)
+    set({ themePref, theme })
+  },
+  phasePalette: initialPalette,
+  setPhasePalette: (phasePalette) => {
+    writePref('phasePalette', JSON.stringify(phasePalette))
+    applyPhasePalette(phasePalette)
+    set({ phasePalette })
+  },
 }))
+
+// Paint the saved choice before the first render, and keep 'system' in step
+// with the operating system.
+applyTheme(useUiStore.getState().theme)
+applyPhasePalette(initialPalette)
+watchSystemTheme((dark) => {
+  const { themePref } = useUiStore.getState()
+  if (themePref !== 'system') return
+  const theme: Theme = dark ? 'dark' : 'light'
+  applyTheme(theme)
+  useUiStore.setState({ theme })
+})

@@ -172,7 +172,10 @@ All frontend-only; the M1 vitest harness covers the store changes.
   instead of busbars, and a left-to-right option for long rural feeders
 - **Automatic wire routing** (elkjs edge routing) — declined for now; Clean up
   routes lines with two bends, which was enough for the IEEE feeders
-- **File System Access API** in-place saves (localStorage autosave already shipped)
+- ~~**File System Access API** in-place saves~~ — File → Save to file / Open file
+  (2026-09-26). The browser library stays primary (Ryan's choice); a file opened
+  or saved from disk stays linked and later saves write back over it in Chrome
+  and Edge, while other browsers download. `lib/fileSystem.ts`
 - ~~**Printable/exportable diagram (SVG/PNG export)**~~ — Image: SVG / PNG in the
   toolbar. `lib/exportDiagram.ts` reads the rendered canvas and writes it back as
   native SVG (edge paths with computed strokes, symbol SVGs with styles inlined
@@ -181,7 +184,15 @@ All frontend-only; the M1 vitest harness covers the store changes.
   in a foreignObject. Carries the active overlay with a legend (`legendFor`) and
   a caption; PNG is the same SVG rasterised at 2× on a canvas. No dependency.
   This is the M10 study report's diagram source
-- **Dark mode** — also where the phase palette becomes a user setting
+- ~~**Dark mode**~~ — 2026-09-26. Every colour is a token in `index.css` with a
+  `[data-theme='dark']` set; `lib/theme.ts` picks light, dark or the system's,
+  React Flow gets `colorMode`, and exports switch to light for the capture
+  (`inLightTheme`) so files stay on white. The phase palette is now CSS
+  variables with a per-theme default and a Preferences override
+- ~~**Menu bar**~~ — 2026-09-26, not on the original list: File / Edit / View /
+  Arrange / Analysis / Help the way draw.io lays them out, over a slimmed
+  toolbar. Menus are data (`lib/menus.ts`), shortcuts one table
+  (`lib/shortcuts.ts`) that Help lists
 - **Round-trip preservation** of comments and unsupported elements on export
 - **Split line**: drop a bus in the middle of an existing Line edge
 

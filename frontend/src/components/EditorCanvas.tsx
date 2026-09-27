@@ -85,6 +85,7 @@ export function EditorCanvas() {
   const { screenToFlowPosition, fitView } = useReactFlow()
   const showGrid = useUiStore((s) => s.showGrid)
   const snap = useUiStore((s) => s.snapToGrid)
+  const theme = useUiStore((s) => s.theme)
 
   // Clean up and sample loads redraw the whole circuit; show all of it. The
   // event is dispatched after the store update, and the frame delay lets
@@ -309,6 +310,7 @@ export function EditorCanvas() {
         selectionMode={SelectionMode.Partial}
         panOnDrag={[1, 2]}
         snapToGrid={snap}
+        colorMode={theme}
         snapGrid={[10, 10]}
         deleteKeyCode={['Delete', 'Backspace']}
         fitView

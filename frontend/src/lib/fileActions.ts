@@ -14,6 +14,7 @@ import {
 import { autoLayout } from './layout'
 import { loadProject, newProjectId, saveProject } from './library'
 import { migrateCircuit } from './schema'
+import { inLightTheme } from './theme'
 
 /**
  * Everything the File menu (and the matching shortcuts) does, as plain
@@ -310,7 +311,8 @@ export async function exportImage(kind: 'svg' | 'png') {
     .filter(Boolean)
     .join(' · ')
   try {
-    const svg = diagramToSvg(pane, { caption, legend: legendFor(rs.overlay) })
+    // Exports go on white paper, so they are read off a light-theme drawing.
+    const svg = await inLightTheme(() => diagramToSvg(pane, { caption, legend: legendFor(rs.overlay) }))
     if (kind === 'svg') {
       download(imageFileName(name, rs.overlay, 'svg'), svg, 'image/svg+xml')
     } else {

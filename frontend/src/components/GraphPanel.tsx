@@ -29,7 +29,7 @@ function initialSize(): { w: number; h: number } {
 }
 
 /** OpenDSS phase color convention: 1 = black, 2 = red, 3 = blue. */
-const PHASE_COLORS: Record<number, string> = { 1: '#1a1a1a', 2: '#d32f2f', 3: '#1565c0' }
+const PHASE_COLORS: Record<number, string> = { 1: 'currentColor', 2: '#d32f2f', 3: '#1565c0' }
 
 type Domain = { x: [number, number]; y: [number, number] }
 
@@ -303,7 +303,7 @@ function SnapshotGraph() {
     isVoltageY && xKey === 'dist' ? 'Voltage Profile' : `${yq.label} vs ${xq.label}`
 
   const seriesColor = (r: GraphRow) =>
-    r.phase != null ? PHASE_COLORS[r.phase] ?? '#1a1a1a' : yq.kind === 'bus' ? '#1a1a1a' : '#1565c0'
+    r.phase != null ? PHASE_COLORS[r.phase] ?? 'currentColor' : yq.kind === 'bus' ? 'currentColor' : '#1565c0'
 
   return (
     <div className="vp-wrap" style={{ opacity: stale ? 0.5 : 1 }}>

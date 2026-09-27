@@ -14,7 +14,7 @@ export function LoadingPie({ pct, size = 16 }: { pct: number; size?: number }) {
   const large = angle > Math.PI ? 1 : 0
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-      <circle cx={c} cy={c} r={r} fill="white" stroke={color} strokeWidth="1.5" />
+      <circle cx={c} cy={c} r={r} style={{ fill: 'var(--panel)' }} stroke={color} strokeWidth="1.5" />
       {frac >= 1 ? (
         <circle cx={c} cy={c} r={r} fill={color} stroke={color} strokeWidth="1.5" />
       ) : frac > 0.005 ? (

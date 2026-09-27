@@ -208,6 +208,21 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
       item('Components', () => ui.togglePanel('palette2'), { checked: ui.panelOpen.palette2 }),
       item('Properties', () => ui.togglePanel('properties'), { checked: ui.panelOpen.properties }),
       item('Bottom panel', () => ui.togglePanel('bottom'), { checked: ui.panelOpen.bottom }),
+      sep,
+      {
+        kind: 'sub',
+        label: 'Theme',
+        items: (
+          [
+            ['light', 'Light'],
+            ['dark', 'Dark'],
+            ['system', 'Same as the system'],
+          ] as const
+        ).map(([pref, label]) =>
+          item(label, () => ui.setThemePref(pref), { radio: true, checked: ui.themePref === pref }),
+        ),
+      },
+      item('Preferences…', () => ui.openDialog('prefs'), { title: 'Theme and the Phases overlay colours' }),
     ],
   }
 

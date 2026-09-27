@@ -25,7 +25,7 @@ const MAX_H = 1000
 const MAX_SERIES = 8
 
 /** Trace colors: the classic OpenDSS phase trio first, then distinct extras. */
-const TRACE_COLORS = ['#1a1a1a', '#d32f2f', '#1565c0', '#2e7d32', '#ef6c00',
+const TRACE_COLORS = ['currentColor', '#d32f2f', '#1565c0', '#2e7d32', '#ef6c00',
   '#6a1b9a', '#5d4037', '#00838f']
 
 type Domain = { x: [number, number]; y: [number, number] }

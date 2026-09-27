@@ -17,6 +17,7 @@
  */
 import { LOW_V, NEUTRAL, OK, VIOLATION, WARN } from './colorScale'
 import { PHASE_LEGEND } from './phasing'
+import { resolveColor } from './theme'
 import type { OverlayMode } from '../store/resultsStore'
 
 export interface LegendEntry {
@@ -298,7 +299,7 @@ export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): strin
     const y = minY + pad / 2 + rowH / 2
     for (const e of opts.legend) {
       chrome.push(
-        `<rect x="${fmt(x)}" y="${fmt(y - 2)}" width="16" height="4" rx="2" fill="${e.color}"/>`,
+        `<rect x="${fmt(x)}" y="${fmt(y - 2)}" width="16" height="4" rx="2" fill="${resolveColor(e.color)}"/>`,
         `<text x="${fmt(x + 22)}" y="${fmt(y)}" dominant-baseline="central" ${font} ` +
           `font-size="12" fill="#333">${esc(e.label)}</text>`,
       )

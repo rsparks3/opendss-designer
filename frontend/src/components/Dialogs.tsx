@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { exportSaved, openFromLibrary, openProjectFile, saveAsChosen } from '../lib/fileActions'
 import { useInstanceHealth } from '../lib/instance'
 import { DOCS_URL, ISSUES_URL } from '../lib/menus'
 import { keyLabel, SHORTCUTS } from '../lib/shortcuts'
+import { DEFAULT_PHASES, PHASE_KEY_LABELS, PHASE_KEYS, type ThemePref } from '../lib/theme'
 import { useCircuitStore } from '../store/circuitStore'
 import { useUiStore } from '../store/uiStore'
 import { LibraryDialog, SaveAsDialog } from './ProjectLibrary'
@@ -40,6 +41,8 @@ export function Dialogs() {
       return <ShortcutsDialog onClose={close} />
     case 'about':
       return <AboutDialog onClose={close} />
+    case 'prefs':
+      return <PrefsDialog onClose={close} />
     default:
       return null
   }
@@ -51,6 +54,9 @@ function Modal({ label, wide, onClose, children }: {
   onClose: () => void
   children: ReactNode
 }) {
+  // Focus once, on opening, so Escape works; not on every re-render.
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => box.current?.focus(), [])
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
@@ -58,7 +64,7 @@ function Modal({ label, wide, onClose, children }: {
         role="dialog"
         aria-label={label}
         tabIndex={-1}
-        ref={(el) => el?.focus()}
+        ref={box}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === 'Escape' && onClose()}
       >
@@ -111,6 +117,64 @@ function AboutDialog({ onClose }: { onClose: () => void }) {
         {' · '}
         <a href={ISSUES_URL} target="_blank" rel="noopener">Report an issue</a>
       </p>
+    </Modal>
+  )
+}
+
+function PrefsDialog({ onClose }: { onClose: () => void }) {
+  const themePref = useUiStore((s) => s.themePref)
+  const theme = useUiStore((s) => s.theme)
+  const setThemePref = useUiStore((s) => s.setThemePref)
+  const palette = useUiStore((s) => s.phasePalette)
+  const setPalette = useUiStore((s) => s.setPhasePalette)
+  const choices: [ThemePref, string][] = [
+    ['light', 'Light'],
+    ['dark', 'Dark'],
+    ['system', 'Same as the system'],
+  ]
+  const custom = PHASE_KEYS.some((k) => palette[k])
+  return (
+    <Modal label="Preferences" onClose={onClose}>
+      <fieldset className="prefs-group">
+        <legend>Theme</legend>
+        {choices.map(([pref, label]) => (
+          <label key={pref} className="prefs-radio">
+            <input
+              type="radio"
+              name="theme"
+              checked={themePref === pref}
+              onChange={() => setThemePref(pref)}
+            />
+            {label}
+          </label>
+        ))}
+        <div className="library-note">Image exports always use the light theme.</div>
+      </fieldset>
+      <fieldset className="prefs-group">
+        <legend>Phases overlay colours</legend>
+        <div className="prefs-swatches">
+          {PHASE_KEYS.map((k) => (
+            <label key={k} className="prefs-swatch">
+              <input
+                type="color"
+                aria-label={PHASE_KEY_LABELS[k]}
+                value={palette[k] ?? DEFAULT_PHASES[theme][k]}
+                onChange={(e) => setPalette({ ...palette, [k]: e.target.value })}
+              />
+              {PHASE_KEY_LABELS[k]}
+            </label>
+          ))}
+        </div>
+        <div className="library-note">
+          Three-phase lines keep the ordinary ink; unfed buses stay grey. Your colours apply in both
+          themes and in exported images.
+        </div>
+        <div>
+          <button type="button" disabled={!custom} onClick={() => setPalette({})}>
+            Use the default colours
+          </button>
+        </div>
+      </fieldset>
     </Modal>
   )
 }

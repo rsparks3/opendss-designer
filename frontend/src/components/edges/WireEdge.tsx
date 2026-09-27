@@ -15,9 +15,9 @@ export function WireEdge(props: EdgeProps<AppEdge>) {
   )
   const stroke =
     props.selected || grabbed
-      ? '#1976d2'
+      ? 'var(--accent)'
       : busPhases === undefined
-        ? '#263238'
+        ? 'var(--ink)'
         : phaseColor(busPhases)
   return (
     <>

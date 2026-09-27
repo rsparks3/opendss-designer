@@ -126,6 +126,12 @@ name while there is something to save; click it to save.
 | Stop placing | ++esc++ |
 | Every shortcut | `?` |
 
+**View → Theme** switches between light, dark and whatever the operating
+system is set to; image exports always come out on white. **View →
+Preferences…** also sets the colours the Phases overlay uses for A, B, C and
+two-phase lines, if your utility's convention differs from the default red,
+blue and green.
+
 Plus: grid snapping (**View → Snap to grid**), pan/zoom with a minimap, box-select and group-move,
 right-click context menu, rotation, and double-click actions — double-click a
 breaker to open/close it, or a wire/line to add a draggable routing point.

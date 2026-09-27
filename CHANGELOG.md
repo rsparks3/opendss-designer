@@ -20,6 +20,12 @@ of M7.
   Ctrl+Shift+H), **Solve** on F5, **Clean up** on Ctrl+Shift+L, **View →
   Grid / Snap to grid** and panel toggles (remembered per browser),
   **Help → Keyboard shortcuts** (or `?`) and **About**.
+- **Dark mode.** View → Theme → Light, Dark or *Same as the system*; the
+  panels, the canvas, the symbols and the plots all follow it. Image exports
+  stay on white paper in dark ink whatever the screen shows.
+- **Your own phase colours.** View → Preferences… picks the colours the
+  Phases overlay uses for A, B, C and two-phase lines — the convention
+  varies by utility — and they carry into exported images.
 - **Save to file** (Ctrl+Alt+S) and **Open file…** (Ctrl+Shift+O): in
   Chrome and Edge a project file opened or saved from disk stays linked, and
   the next save writes back over the same file instead of downloading a new

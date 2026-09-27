@@ -7,7 +7,6 @@
  *  means exactly what it meant then.
  */
 import type { BusResult, Params } from '../types/circuit'
-import { NEUTRAL } from './colorScale'
 
 export const PHASE_LETTERS = 'ABC'
 
@@ -53,14 +52,20 @@ export function nodeLetter(node: number | undefined): string {
 }
 
 /** Colours for the 'phases' overlay. There is no universal convention --
- *  every utility maps its own GIS colours -- so this is one constant to hand
- *  to a theme later, not a preference now. A three-phase element keeps the
- *  plain ink so a healthy trunk stays quiet, and a bus nothing reaches gets
- *  the de-energised grey the voltage overlay already uses. */
-export const PHASE_COLORS: Record<string, string> = { A: '#c62828', B: '#1565c0', C: '#2e7d32' }
-export const TWO_PHASE_COLOR = '#6a1b9a'
-export const THREE_PHASE_COLOR = '#263238'
-export const NO_PHASE_COLOR = NEUTRAL
+ *  every utility maps its own GIS colours -- so these are CSS variables:
+ *  each theme has its own defaults (index.css) and View → Preferences lays
+ *  the user's own choice over them (lib/theme.ts). A three-phase element
+ *  keeps the plain ink so a healthy trunk stays quiet, and a bus nothing
+ *  reaches gets the de-energised grey the voltage overlay already uses.
+ *  Anything leaving the page resolves them first (theme.resolveColor). */
+export const PHASE_COLORS: Record<string, string> = {
+  A: 'var(--phase-a)',
+  B: 'var(--phase-b)',
+  C: 'var(--phase-c)',
+}
+export const TWO_PHASE_COLOR = 'var(--phase-2)'
+export const THREE_PHASE_COLOR = 'var(--phase-3)'
+export const NO_PHASE_COLOR = 'var(--phase-none)'
 
 export const PHASE_LEGEND: { label: string; color: string }[] = [
   { label: 'A', color: PHASE_COLORS.A },
