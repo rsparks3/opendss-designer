@@ -7,6 +7,8 @@ COPY frontend/ ./
 # The schema-drift fixture is shared with pytest and imported by a
 # vitest file, so `tsc -b` needs it on the same relative path.
 COPY tests/fixtures/ /app/tests/fixtures/
+# The layout tests import the IEEE sample circuits the same way.
+COPY src/opendss_designer/samples/ /app/src/opendss_designer/samples/
 RUN npm run build
 
 FROM python:3.12-slim AS build
