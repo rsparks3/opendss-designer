@@ -102,6 +102,10 @@ name while there is something to save; click it to save.
   suits a shared folder or a git repository; **Save to file as…** picks a
   different file. In Firefox and Safari, Save to file downloads a copy
   instead.
+- **File → Export → Study report…** writes the study as a PDF and/or an
+  Excel workbook: summary, abnormal conditions against your limits, bus
+  voltages, branch flows, losses, the one-line, and optionally short
+  circuit, protection and time series. See [Study reports](report.md).
 - **File → Export → OpenDSS (.dss)** writes a runnable `.dss` script — the exact commands the built-in
   solver uses — so anything you draw also runs in stock OpenDSS.
 - **File → Import .dss…** loads existing `.dss` files; see

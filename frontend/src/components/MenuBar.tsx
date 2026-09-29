@@ -10,6 +10,7 @@ import {
   type CanvasOps,
   type MenuEntry,
 } from '../lib/menus'
+import { hasElements } from '../lib/defaults'
 import { keyLabel } from '../lib/shortcuts'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
@@ -93,6 +94,9 @@ function useMenuShortcuts(ops: CanvasOps) {
       } else if (mod && e.shiftKey && k === 'l') {
         e.preventDefault()
         cleanUp()
+      } else if (mod && e.shiftKey && k === 'e') {
+        e.preventDefault()
+        if (hasElements(useCircuitStore.getState().nodes)) ui.openDialog('report')
       } else if (!mod && e.key === '?') {
         ui.openDialog('shortcuts')
       }

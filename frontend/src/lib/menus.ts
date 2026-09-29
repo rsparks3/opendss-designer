@@ -202,6 +202,12 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
         kind: 'sub',
         label: 'Export',
         items: [
+          item('Study report…', () => ui.openDialog('report'), {
+            keys: 'Mod+Shift+E',
+            title: 'A PDF or Excel report of the load flow, short circuit and protection studies, with the one-line',
+            disabled: empty,
+          }),
+          sep,
           item('OpenDSS (.dss)', () => void exportDss(), { title: 'A runnable OpenDSS script', disabled: empty }),
           sep,
           item('Image (SVG)', () => void exportImage('svg'), {

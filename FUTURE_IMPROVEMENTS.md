@@ -319,10 +319,16 @@ hand a study to a colleague.
   that is where the work is — see M11's first bullet. The round-trip
   assertions started as strict `xfail`s and became ordinary tests once line
   codes closed the gap
-- **Study report export** — a PDF/Excel report of violations, losses, element
-  tables and the one-line itself. Depends on M7's SVG/PNG diagram export. This is
-  the artifact an engineer actually delivers, and no amount of on-screen analysis
-  substitutes for it
+- ~~**Study report export**~~ — done 2026-09-28 (branch `m10`). PDF and Excel,
+  built in the browser: title block and criteria, load-flow summary, abnormal
+  conditions, bus voltages with a profile, branch flows, loads and generation,
+  losses, the one-line, and optionally short circuit, protection (settings,
+  operating times, interrupting duty, TCC plot) and time series. It came with
+  two things it needed: abnormal-condition limits as a project setting (they
+  were hard-coded in six places) and notes on the drawing. `docs/report.md`
+  describes it. Still open: a Unicode font for the PDF (the standard fonts
+  are Latin-1 only), and per-element rating checks beyond series elements
+  (capacitor or generator overloads)
 - **Reliability indices** — SAIFI/SAIDI/CAIDI from OpenDSS's own `EnergyMeter`
   reliability calculations: needs meter placement, per-line `faultrate`/`pctperm`/
   repair-time properties in the properties panel, and an indices table plus a

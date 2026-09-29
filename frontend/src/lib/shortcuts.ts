@@ -30,6 +30,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: 'Mod+S', action: 'Save to this browser' },
       { keys: 'Mod+Shift+S', action: 'Save as' },
       { keys: 'Mod+Alt+S', action: 'Save to file' },
+      { keys: 'Mod+Shift+E', action: 'Export a study report' },
     ],
   },
   {

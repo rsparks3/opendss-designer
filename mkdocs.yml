@@ -41,6 +41,7 @@ nav:
   - Solving & analysis: analysis.md
   - Shapes & profiles: shapes.md
   - Time-series analysis: timeseries.md
+  - Study reports: report.md
   - Importing DSS files: importing-dss.md
   - Validation: validation.md
   - Deploying: deployment.md

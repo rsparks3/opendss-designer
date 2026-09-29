@@ -123,6 +123,22 @@ export const TYPE_NAMES: Record<string, string> = {
 }
 
 const SERIES = new Set(['line', 'transformer', 'regulator', 'breaker', 'fuse', 'recloser', 'relay'])
+
+const PLURALS: Record<string, string> = {
+  busbar: 'Buses',
+  storage: 'Storage units',
+  pvsystem: 'PV systems',
+  vsource: 'Sources',
+}
+const plural = (type: string, n: number) =>
+  n === 1 ? (TYPE_NAMES[type] ?? type) : (PLURALS[type] ?? `${TYPE_NAMES[type] ?? type}s`)
+
+/** The engine's version as one short line: DSS-Extensions reports several
+ *  libraries and a revision hash. */
+export function engineLabel(raw: string | null | undefined): string | null {
+  const first = raw?.split(/\r?\n/)[0].replace(/\s+revision\s+\S+.*$/i, '').trim()
+  return first || null
+}
 const SQRT3 = Math.sqrt(3)
 const LETTERS = ['', 'A', 'B', 'C']
 
@@ -136,7 +152,7 @@ const num = (v: number | null | undefined, digits: number): number | null =>
   v == null || !Number.isFinite(v) ? null : round(v, digits)
 
 /** Names and types by diagram id, and display names for the engine's buses. */
-class Names {
+export class Names {
   private byId = new Map<string, { name: string; type: string }>()
   private buses = new Map<string, string>()
 
@@ -207,7 +223,7 @@ export function buildReport(input: ReportInput): Report {
     date: input.date,
     limits,
     softwareVersion: input.softwareVersion ?? null,
-    engineVersion: input.engineVersion ?? null,
+    engineVersion: engineLabel(input.engineVersion),
   }
   const out: ReportSection[] = []
   const solved = solve?.converged ? solve : null
@@ -286,7 +302,7 @@ function studySection(meta: ReportMeta, circuit: CircuitJSON, solve: SolveResult
     kv('Company', s.company || '—'),
     kv('Date', meta.date.toLocaleString()),
     kv('Software', meta.softwareVersion ? `OpenDSS Designer ${meta.softwareVersion}` : 'OpenDSS Designer'),
-    kv('Solver', meta.engineVersion ? `OpenDSS ${meta.engineVersion}` : 'OpenDSS'),
+    kv('Solver', meta.engineVersion ?? 'OpenDSS'),
     kv('Solution', solve ? (solve.converged ? `Converged in ${solve.iterations} iterations` : 'Did not converge') : 'Not solved'),
   ]
   const criteria: Table = {
@@ -306,7 +322,7 @@ function studySection(meta: ReportMeta, circuit: CircuitJSON, solve: SolveResult
     title: 'Model',
     keyValue: true,
     columns: KV_COLUMNS,
-    rows: [...counts].map(([t, n]) => kv(`${TYPE_NAMES[t] ?? t}${n === 1 ? '' : 's'}`, n)),
+    rows: [...counts].map(([t, n]) => kv(plural(t, n), n)),
   }
   return {
     id: 'study',
@@ -428,6 +444,9 @@ function abnormalRows(solve: SolveResult, names: Names, limits: LimitsJSON): Abn
     const flag = loadingFlag(e.loadingPct, limits)
     if (!flag || e.loadingPct == null) continue
     const { name, type } = names.element(e.id, full)
+    // Loading criteria are for what carries the feeder's current; a
+    // capacitor near its rated current is doing its job.
+    if (!SERIES.has(type)) continue
     const limit = flag === 'violation' ? limits.overloadPct : limits.warnPct
     const worst = byPhase(e.currents, e.phaseNodes)
     const peak = Math.max(...Object.values(worst))
@@ -515,7 +534,7 @@ function busSection(solve: SolveResult, names: Names, limits: LimitsJSON, profil
         title: 'Bus voltages',
         columns: [
           { key: 'bus', label: 'Bus', width: 2 },
-          { key: 'kvll', label: 'Base kV (LL)', unit: 'kV', digits: 2 },
+          { key: 'kvll', label: 'Base', unit: 'kV LL', digits: 2 },
           { key: 'phases', label: 'Phases', width: 0.8 },
           { key: 'va', label: 'V A', unit: 'pu', digits: 4 },
           { key: 'vb', label: 'V B', unit: 'pu', digits: 4 },
@@ -765,10 +784,10 @@ function faultSection(fault: FaultResult, names: Names): ReportSection {
         title: 'Short-circuit currents',
         columns: [
           { key: 'bus', label: 'Bus', width: 2 },
-          { key: 'kvll', label: 'Base kV (LL)', unit: 'kV', digits: 2 },
+          { key: 'kvll', label: 'Base', unit: 'kV LL', digits: 2 },
           { key: 'i3', label: '3-phase', unit: 'A', digits: 0 },
           { key: 'i1', label: 'Line-ground', unit: 'A', digits: 0 },
-          { key: 'mva', label: 'MVAsc (3φ)', unit: 'MVA', digits: 2 },
+          { key: 'mva', label: '3φ short-circuit', unit: 'MVA', digits: 2 },
           { key: 'r1', label: 'R1', unit: 'Ω', digits: 4 },
           { key: 'x1', label: 'X1', unit: 'Ω', digits: 4 },
           { key: 'r0', label: 'R0', unit: 'Ω', digits: 4 },

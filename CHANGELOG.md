@@ -115,9 +115,27 @@ of M7.
   element they point at). They are drawing only: editing one never makes
   the results stale, and they do not count against the hosted plans' size
   limits.
+- **Study reports.** *File → Export → Study report…* (Ctrl+Shift+E) writes
+  a PDF, an Excel workbook, or both, laid out like the study reports of the
+  distribution planning tools. The title page carries the study block and
+  planning criteria. The load-flow sections give the summary, the abnormal
+  conditions (worst first), per-phase bus voltages with a voltage profile,
+  branch flows, loads and generation, and losses by type and by element.
+  Then come the one-line (vector, on a page turned to suit it, 11×17 for a
+  large feeder) with its notes, and, when chosen, short-circuit currents,
+  protective device settings with operating times, interrupting duty,
+  coordination findings and a TCC plot, and a time-series summary. Rows
+  outside the criteria are tinted. The workbook has a sheet per section,
+  numbers stored as numbers with units in the headers, and every step of a
+  time-series run. Studies the report needs are run first. Everything is
+  built in the browser; the PDF and Excel libraries load on first use.
 
 ### Fixed
 
+- The voltage profile (Graph tab, and now the report) followed the feeder
+  only through transformers and breakers, so every bus behind a regulator,
+  fuse, recloser or relay was left off it. On the IEEE 13-bus feeder that
+  was all but two buses.
 - The view could not zoom out past 20 %, too close to show a large feeder
   whole; it now goes to 5 %.
 - Opening a sample, a saved circuit or an import fitted the view before the

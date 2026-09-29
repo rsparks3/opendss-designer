@@ -4,7 +4,7 @@ import results from './__fixtures__/full-circuit.results.json'
 import type { CircuitJSON, FaultResult, SolveResult, TimeSeriesResult } from '../../types/circuit'
 import type { TccResult } from '../tcc'
 import { profileSvg, tccSvg, timeSeriesSvg } from './charts'
-import { buildReport, formatCell, header, reportFileName, type Report, type SectionKey, type Table } from './model'
+import { buildReport, engineLabel, formatCell, header, reportFileName, type Report, type SectionKey, type Table } from './model'
 
 // Recorded by scripts/make_report_fixture.py from the engine itself.
 const circuit = fixture as unknown as CircuitJSON
@@ -163,6 +163,21 @@ describe('study report model', () => {
     expect(plot).toContain('REC1 fast')
     // One fault marker per bus, however many devices sit on it.
     expect(plot.match(/3φ fault at/g)!.length).toBe(new Set(tcc.devices.map((d) => d.bus)).size)
+  })
+
+  it('names the solver in one short line, and counts the model in English', () => {
+    const raw = ['DSS C-API Library version 0.14.5 revision 87d85c2622c828 based on OpenDSS SVN 3723', 'DSS-Python version: 0.15.7'].join('\n')
+    expect(engineLabel(raw)).toBe('DSS C-API Library version 0.14.5')
+    const counts = table(build(), 'element-counts').rows.map((r) => r.item)
+    expect(counts).toContain('Buses')
+    expect(counts).toContain('Storage')
+    expect(counts).not.toContain('Buss')
+  })
+
+  it('does not hold a capacitor to the loading criteria', () => {
+    const r = build({ circuit: { ...circuit, limits: { vminPu: 0.5, vmaxPu: 1.5, overloadPct: 50, warnPct: 1 } } })
+    const types = table(r, 'abnormal').rows.map((x) => x.type)
+    expect(types).not.toContain('Capacitor')
   })
 
   it('prints cells and headers', () => {

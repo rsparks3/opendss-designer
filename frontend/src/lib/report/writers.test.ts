@@ -31,7 +31,7 @@ describe('study report workbook', () => {
     ])
     const buses = wb.getWorksheet('Bus voltages')!
     expect(buses.getCell(2, 1).value).toBe('Bus')
-    expect(buses.getCell(2, 2).value).toBe('Base kV (LL) (kV)')
+    expect(buses.getCell(2, 2).value).toBe('Base (kV LL)')
     const kv = buses.getCell(3, 2)
     expect(typeof kv.value).toBe('number')
     expect(kv.numFmt).toBe('0.00')

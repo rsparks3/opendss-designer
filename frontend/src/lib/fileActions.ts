@@ -295,14 +295,14 @@ export async function exportDss() {
   }
 }
 
-/** The drawing as an image, with whatever overlay is on: a phasing map or a
+/** The drawing as SVG, with whatever overlay is on: a phasing map or a
  *  voltage plot is exactly what goes into a report. Selection is dropped
- *  first so no element carries the editor's blue outline, and the export
- *  waits a frame for that to render. */
-export async function exportImage(kind: 'svg' | 'png') {
+ *  first so no element carries the editor's blue outline, and the capture
+ *  waits a frame for that to render. Null when there is no canvas. */
+export async function captureDiagram(): Promise<string | null> {
   const pane = document.querySelector('.react-flow') as HTMLElement | null
-  if (!pane) return
-  const { name } = useCircuitStore.getState()
+  if (!pane) return null
+  const { name, limits } = useCircuitStore.getState()
   useCircuitStore.getState().clearSelection()
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
   const rs = useResultsStore.getState()
@@ -315,13 +315,20 @@ export async function exportImage(kind: 'svg' | 'png') {
   ]
     .filter(Boolean)
     .join(' · ')
+  // Exports go on white paper, so they are read off a light-theme drawing.
+  return inLightTheme(() => diagramToSvg(pane, { caption, legend: legendFor(rs.overlay, limitsOf(limits)) }))
+}
+
+export async function exportImage(kind: 'svg' | 'png') {
+  const { name } = useCircuitStore.getState()
   try {
-    // Exports go on white paper, so they are read off a light-theme drawing.
-    const svg = await inLightTheme(() => diagramToSvg(pane, { caption, legend: legendFor(rs.overlay, limitsOf(useCircuitStore.getState().limits)) }))
+    const svg = await captureDiagram()
+    if (!svg) return
+    const overlay = useResultsStore.getState().overlay
     if (kind === 'svg') {
-      download(imageFileName(name, rs.overlay, 'svg'), svg, 'image/svg+xml')
+      download(imageFileName(name, overlay, 'svg'), svg, 'image/svg+xml')
     } else {
-      downloadBlob(imageFileName(name, rs.overlay, 'png'), await svgToPng(svg))
+      downloadBlob(imageFileName(name, overlay, 'png'), await svgToPng(svg))
     }
   } catch (err) {
     flash(`Export failed: ${errText(err)}`)

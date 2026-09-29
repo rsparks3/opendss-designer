@@ -21,6 +21,8 @@ const TINT: Record<Exclude<RowFlag, null>, [number, number, number]> = {
   violation: [251, 227, 227],
   warning: [255, 241, 219],
 }
+/** A one-line longer than this (flow units) is printed on 11x17. */
+const BIG_DRAWING = 1500
 /** Tables wider than this go on a landscape page. */
 const WIDE = 9
 
@@ -47,7 +49,9 @@ export type SvgRenderer = (doc: JsPdf, svg: string, box: { x: number; y: number;
 
 /** Draw an SVG string with svg2pdf, fitted to the box, keeping its shape. */
 const svg2pdfRenderer: SvgRenderer = async (doc, svg, box) => {
-  await import('svg2pdf.js')
+  // Called directly: loaded on demand, the plug-in does not reliably find
+  // the jsPDF it would register itself on.
+  const { svg2pdf } = await import('svg2pdf.js')
   const el = new DOMParser().parseFromString(pdfSafe(svg), 'image/svg+xml').documentElement
   // svg2pdf reads computed geometry, so the drawing is attached while it works.
   const holder = document.createElement('div')
@@ -57,7 +61,7 @@ const svg2pdfRenderer: SvgRenderer = async (doc, svg, box) => {
   try {
     const { w, h } = svgSize(svg)
     const k = Math.min(box.w / w, box.h / h)
-    await doc.svg(el, { x: box.x + (box.w - w * k) / 2, y: box.y, width: w * k, height: h * k })
+    await svg2pdf(el, doc, { x: box.x + (box.w - w * k) / 2, y: box.y, width: w * k, height: h * k })
   } finally {
     holder.remove()
   }
@@ -93,8 +97,13 @@ export async function reportPdf(report: Report, render: SvgRenderer = svg2pdfRen
     if (section.id === 'study') continue
     const printable = section.tables.filter((t) => !t.workbookOnly)
     const wide = printable.some((t) => t.columns.length > WIDE)
-    const landscape = wide || section.figures.some((f) => f.landscape)
-    doc.addPage('letter', landscape ? 'landscape' : 'portrait')
+    // A page to itself (the one-line) turns to suit the drawing's shape.
+    const own = section.figures.find((f) => f.landscape)
+    const ownSize = own ? svgSize(own.svg) : null
+    const landscape = ownSize ? ownSize.w >= ownSize.h : wide
+    // A big feeder's one-line gets an 11x17 sheet, as drawings are plotted.
+    const sheet = ownSize && Math.max(ownSize.w, ownSize.h) > BIG_DRAWING ? 'tabloid' : 'letter'
+    doc.addPage(sheet, landscape ? 'landscape' : 'portrait')
     y = MARGIN + HEAD_H
     doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(...INK)
     doc.text(pdfSafe(section.title), MARGIN, y + 6)
@@ -113,7 +122,7 @@ export async function reportPdf(report: Report, render: SvgRenderer = svg2pdfRen
       const { w, h } = svgSize(fig.svg)
       const need = ((pageW() - 2 * MARGIN) / w) * h + 24
       if (y + need > pageH() - MARGIN - FOOT_H) {
-        doc.addPage('letter', landscape ? 'landscape' : 'portrait')
+        doc.addPage(sheet, landscape ? 'landscape' : 'portrait')
         y = MARGIN + HEAD_H
       }
       y = await drawFigure(doc, render, fig, y, need)
@@ -145,12 +154,15 @@ function titlePage(doc: JsPdf, report: Report): number {
   const rows: [string, string][] = [
     ['Prepared by', [s.engineer, s.company].filter(Boolean).join(', ') || '-'],
     ['Date', meta.date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })],
-    ['Software', `OpenDSS Designer${meta.softwareVersion ? ` ${meta.softwareVersion}` : ''}, OpenDSS${meta.engineVersion ? ` ${meta.engineVersion}` : ''} solver`],
+    ['Software', `OpenDSS Designer${meta.softwareVersion ? ` ${meta.softwareVersion}` : ''}`],
+    ['Solver', meta.engineVersion ?? 'OpenDSS'],
   ]
   for (const [k, v] of rows) {
     doc.setFont('helvetica', 'bold').text(k, MARGIN, y)
-    doc.setFont('helvetica', 'normal').text(pdfSafe(v), MARGIN + 100, y)
-    y += 18
+    doc.setFont('helvetica', 'normal')
+    const lines: string[] = doc.splitTextToSize(pdfSafe(v), w - 2 * MARGIN - 100)
+    doc.text(lines, MARGIN + 100, y)
+    y += 18 + (lines.length - 1) * 13
   }
   if (s.description.trim()) {
     y += 10

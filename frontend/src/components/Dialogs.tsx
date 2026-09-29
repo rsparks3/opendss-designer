@@ -8,6 +8,7 @@ import { useCircuitStore } from '../store/circuitStore'
 import { useUiStore } from '../store/uiStore'
 import { FindDialog } from './FindDialog'
 import { ProjectDialog } from './ProjectDialog'
+import { ReportDialog } from './ReportDialog'
 import { LibraryDialog, SaveAsDialog } from './ProjectLibrary'
 
 /** Whichever dialog the UI store says is open. */
@@ -49,6 +50,8 @@ export function Dialogs() {
       return <FindDialog onClose={close} />
     case 'project':
       return <ProjectDialog onClose={close} />
+    case 'report':
+      return <ReportDialog onClose={close} />
     default:
       return null
   }
