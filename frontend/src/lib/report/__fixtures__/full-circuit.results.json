@@ -1,0 +1,1050 @@
+{
+ "solve": {
+  "converged": true,
+  "iterations": 6,
+  "buses": {
+   "bus_hv": {
+    "vmagPu": [
+     1.00005,
+     1.00005,
+     1.00005
+    ],
+    "vangDeg": [
+     -0.01,
+     -120.01,
+     119.99
+    ],
+    "vminPu": 1.00005,
+    "vmaxPu": 1.00005,
+    "kvBase": 66.39528,
+    "nodes": [
+     1,
+     2,
+     3
+    ]
+   },
+   "bus_mv": {
+    "vmagPu": [
+     1.00129,
+     1.00129,
+     1.00129
+    ],
+    "vangDeg": [
+     -30.16,
+     -150.16,
+     89.84
+    ],
+    "vminPu": 1.00129,
+    "vmaxPu": 1.00129,
+    "kvBase": 7.19956,
+    "nodes": [
+     1,
+     2,
+     3
+    ]
+   },
+   "bus_fdr": {
+    "vmagPu": [
+     1.00147,
+     1.00163,
+     1.00153
+    ],
+    "vangDeg": [
+     -30.23,
+     -150.23,
+     89.76
+    ],
+    "vminPu": 1.00147,
+    "vmaxPu": 1.00163,
+    "kvBase": 7.19956,
+    "nodes": [
+     1,
+     2,
+     3
+    ]
+   },
+   "bus_reg": {
+    "vmagPu": [
+     1.01395,
+     1.01412,
+     1.01401
+    ],
+    "vangDeg": [
+     -30.23,
+     -150.23,
+     89.76
+    ],
+    "vminPu": 1.01395,
+    "vmaxPu": 1.01412,
+    "kvBase": 7.19956,
+    "nodes": [
+     1,
+     2,
+     3
+    ]
+   },
+   "tap1": {
+    "vmagPu": [
+     1.01394,
+     1.01411,
+     1.01401
+    ],
+    "vangDeg": [
+     -30.23,
+     -150.23,
+     89.76
+    ],
+    "vminPu": 1.01394,
+    "vmaxPu": 1.01411,
+    "kvBase": 7.19956,
+    "nodes": [
+     1,
+     2,
+     3
+    ]
+   },
+   "bus_lat": {
+    "vmagPu": [
+     1.01395,
+     1.01411,
+     1.01401
+    ],
+    "vangDeg": [
+     -30.23,
+     -150.23,
+     89.76
+    ],
+    "vminPu": 1.01395,
+    "vmaxPu": 1.01411,
+    "kvBase": 7.19956,
+    "nodes": [
+     1,
+     2,
+     3
+    ]
+   },
+   "bus_tap": {
+    "vmagPu": [
+     1.01395,
+     1.01411,
+     1.01401
+    ],
+    "vangDeg": [
+     -30.23,
+     -150.23,
+     89.76
+    ],
+    "vminPu": 1.01395,
+    "vmaxPu": 1.01411,
+    "kvBase": 7.19956,
+    "nodes": [
+     1,
+     2,
+     3
+    ]
+   },
+   "bus_prot": {
+    "vmagPu": [
+     1.01395,
+     1.01412,
+     1.01401
+    ],
+    "vangDeg": [
+     -30.23,
+     -150.23,
+     89.76
+    ],
+    "vminPu": 1.01395,
+    "vmaxPu": 1.01412,
+    "kvBase": 7.19956,
+    "nodes": [
+     1,
+     2,
+     3
+    ]
+   }
+  },
+  "elements": {
+   "vsource.source": {
+    "id": "n_src",
+    "currents": [
+     1.82,
+     1.82,
+     1.82
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": -317.82,
+    "kvar": 174.97,
+    "normAmps": null,
+    "loadingPct": null,
+    "violations": [],
+    "lossKw": null,
+    "lossKvar": null
+   },
+   "transformer.t1": {
+    "id": "n_xfmr",
+    "currents": [
+     1.82,
+     1.82,
+     1.82
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 317.82,
+    "kvar": -174.97,
+    "normAmps": 55.22480835726854,
+    "loadingPct": 3.3,
+    "violations": [],
+    "lossKw": 0.0658,
+    "lossKvar": 1.0612
+   },
+   "transformer.reg1": {
+    "id": "n_reg",
+    "currents": [
+     63.28,
+     63.27,
+     63.27
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 1300.29,
+    "kvar": 427.41,
+    "normAmps": 254.64526708443796,
+    "loadingPct": 24.8,
+    "violations": [],
+    "lossKw": 0.0374,
+    "lossKvar": 0.0424
+   },
+   "line.ln1": {
+    "id": "e4",
+    "currents": [
+     9.09,
+     9.17,
+     9.74
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 176.35,
+    "kvar": -97.88,
+    "normAmps": 400.0,
+    "loadingPct": 2.4,
+    "violations": [],
+    "lossKw": 0.0782,
+    "lossKvar": -1.3918
+   },
+   "line.ln2": {
+    "id": "e4b",
+    "currents": [
+     7.72,
+     7.66,
+     7.06
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 141.4,
+    "kvar": -78.15,
+    "normAmps": 530.0,
+    "loadingPct": 1.5,
+    "violations": [],
+    "lossKw": 0.0625,
+    "lossKvar": -0.2025
+   },
+   "line.brk1": {
+    "id": "n_brk",
+    "currents": [
+     48.07,
+     48.07,
+     48.07
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 1000.19,
+    "kvar": 328.75,
+    "normAmps": 600.0,
+    "loadingPct": 8.0,
+    "violations": [],
+    "lossKw": 0.0069,
+    "lossKvar": 0.0069
+   },
+   "line.fu1": {
+    "id": "n_fuse",
+    "currents": [
+     14.42,
+     14.42,
+     14.42
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 300.06,
+    "kvar": 98.62,
+    "normAmps": 100.0,
+    "loadingPct": 14.4,
+    "violations": [],
+    "lossKw": 0.0006,
+    "lossKvar": 0.0006
+   },
+   "line.rec1": {
+    "id": "n_rec",
+    "currents": [
+     14.42,
+     14.42,
+     14.42
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 300.06,
+    "kvar": 98.62,
+    "normAmps": 560.0,
+    "loadingPct": 2.6,
+    "violations": [],
+    "lossKw": 0.0006,
+    "lossKvar": 0.0006
+   },
+   "line.rly1": {
+    "id": "n_rly",
+    "currents": [
+     14.42,
+     14.42,
+     14.42
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 300.06,
+    "kvar": 98.62,
+    "normAmps": 600.0,
+    "loadingPct": 2.4,
+    "violations": [],
+    "lossKw": 0.0006,
+    "lossKvar": 0.0006
+   },
+   "load.load2": {
+    "id": "n_load2",
+    "currents": [
+     14.42,
+     14.42,
+     14.42
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 300.01,
+    "kvar": 98.67,
+    "normAmps": null,
+    "loadingPct": null,
+    "violations": [],
+    "lossKw": null,
+    "lossKvar": null
+   },
+   "load.load1": {
+    "id": "n_load",
+    "currents": [
+     48.07,
+     48.06,
+     48.07
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 1000.03,
+    "kvar": 328.9,
+    "normAmps": null,
+    "loadingPct": null,
+    "violations": [],
+    "lossKw": null,
+    "lossKvar": null
+   },
+   "capacitor.cap1": {
+    "id": "n_cap",
+    "currents": [
+     27.82,
+     27.82,
+     27.82
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": -0.0,
+    "kvar": -601.85,
+    "normAmps": 37.50230297061723,
+    "loadingPct": 74.2,
+    "violations": [],
+    "lossKw": null,
+    "lossKvar": null
+   },
+   "generator.gen1": {
+    "id": "n_gen",
+    "currents": [
+     23.12,
+     23.11,
+     23.12
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": -500.05,
+    "kvar": -0.09,
+    "normAmps": null,
+    "loadingPct": null,
+    "violations": [],
+    "lossKw": null,
+    "lossKvar": null
+   },
+   "pvsystem.pv1": {
+    "id": "n_pv",
+    "currents": [
+     22.42,
+     22.42,
+     22.42
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": -485.04,
+    "kvar": -0.09,
+    "normAmps": null,
+    "loadingPct": null,
+    "violations": [],
+    "lossKw": null,
+    "lossKvar": null
+   },
+   "storage.bat1": {
+    "id": "n_stg",
+    "currents": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "phaseNodes": [
+     1,
+     2,
+     3
+    ],
+    "kw": 2.5,
+    "kvar": 0.0,
+    "normAmps": null,
+    "loadingPct": null,
+    "violations": [],
+    "lossKw": null,
+    "lossKvar": null
+   }
+  },
+  "losses": {
+   "kw": 0.253,
+   "kvar": -0.482
+  },
+  "issues": [],
+  "nodeBuses": {
+   "n_src": [
+    "bus_hv"
+   ],
+   "n_bus1": [
+    "bus_hv"
+   ],
+   "n_xfmr": [
+    "bus_hv",
+    "bus_mv"
+   ],
+   "n_bus2": [
+    "bus_mv"
+   ],
+   "n_bus3": [
+    "bus_fdr"
+   ],
+   "n_reg": [
+    "bus_fdr",
+    "bus_reg"
+   ],
+   "n_bus4": [
+    "bus_reg"
+   ],
+   "n_fuse": [
+    "bus_lat",
+    "bus_tap"
+   ],
+   "n_rec": [
+    "bus_prot",
+    "bus_lat"
+   ],
+   "n_rly": [
+    "bus_reg",
+    "bus_prot"
+   ],
+   "n_bus5": [
+    "bus_prot"
+   ],
+   "n_bus6": [
+    "bus_lat"
+   ],
+   "n_bus7": [
+    "bus_tap"
+   ],
+   "n_load2": [
+    "bus_tap"
+   ],
+   "n_brk": [
+    "bus_reg",
+    "tap1"
+   ],
+   "n_load": [
+    "tap1"
+   ],
+   "n_cap": [
+    "bus_fdr"
+   ],
+   "n_gen": [
+    "bus_fdr"
+   ],
+   "n_pv": [
+    "bus_fdr"
+   ],
+   "n_stg": [
+    "bus_fdr"
+   ],
+   "n_note": []
+  },
+  "lineBuses": {
+   "e4": [
+    "bus_mv",
+    "bus_fdr"
+   ],
+   "e4b": [
+    "bus_mv",
+    "bus_fdr"
+   ]
+  },
+  "busNames": {
+   "n_brk:t2": "tap1"
+  },
+  "busDistances": {
+   "bus_hv": 0.0,
+   "bus_mv": 0.0,
+   "bus_fdr": 2.5
+  }
+ },
+ "fault": {
+  "converged": true,
+  "buses": {
+   "bus_hv": {
+    "kvBase": 66.39528,
+    "if3phA": 10049.0,
+    "if1phA": 10548.8,
+    "scMva3": 2001.61,
+    "zsc1": {
+     "r": 1.60408,
+     "x": 6.40949
+    },
+    "zsc0": {
+     "r": 1.79604,
+     "x": 5.38811
+    }
+   },
+   "bus_mv": {
+    "kvBase": 7.19956,
+    "if3phA": 5512.3,
+    "if1phA": 5619.1,
+    "scMva3": 119.06,
+    "zsc1": {
+     "r": 0.10402,
+     "x": 1.30193
+    },
+    "zsc0": {
+     "r": 0.08454,
+     "x": 1.22877
+    }
+   },
+   "bus_fdr": {
+    "kvBase": 7.19956,
+    "if3phA": 3933.1,
+    "if1phA": 3293.5,
+    "scMva3": 84.95,
+    "zsc1": {
+     "r": 0.27309,
+     "x": 1.81004
+    },
+    "zsc0": {
+     "r": 0.65507,
+     "x": 2.82696
+    }
+   },
+   "bus_reg": {
+    "kvBase": 7.19956,
+    "if3phA": 3925.7,
+    "if1phA": 3288.3,
+    "scMva3": 84.79,
+    "zsc1": {
+     "r": 0.27625,
+     "x": 1.81301
+    },
+    "zsc0": {
+     "r": 0.65823,
+     "x": 2.82985
+    }
+   },
+   "tap1": {
+    "kvBase": 7.19956,
+    "if3phA": 3923.4,
+    "if1phA": 3286.6,
+    "scMva3": 84.74,
+    "zsc1": {
+     "r": 0.27726,
+     "x": 1.81398
+    },
+    "zsc0": {
+     "r": 0.65924,
+     "x": 2.8308
+    }
+   },
+   "bus_lat": {
+    "kvBase": 7.19956,
+    "if3phA": 3920.9,
+    "if1phA": 3284.8,
+    "scMva3": 84.69,
+    "zsc1": {
+     "r": 0.27825,
+     "x": 1.81499
+    },
+    "zsc0": {
+     "r": 0.66024,
+     "x": 2.83182
+    }
+   },
+   "bus_tap": {
+    "kvBase": 7.19956,
+    "if3phA": 3918.5,
+    "if1phA": 3283.1,
+    "scMva3": 84.63,
+    "zsc1": {
+     "r": 0.27926,
+     "x": 1.81598
+    },
+    "zsc0": {
+     "r": 0.66124,
+     "x": 2.83281
+    }
+   },
+   "bus_prot": {
+    "kvBase": 7.19956,
+    "if3phA": 3923.3,
+    "if1phA": 3286.5,
+    "scMva3": 84.74,
+    "zsc1": {
+     "r": 0.27725,
+     "x": 1.814
+    },
+    "zsc0": {
+     "r": 0.65924,
+     "x": 2.83084
+    }
+   }
+  },
+  "nodeBuses": {
+   "n_src": [
+    "bus_hv"
+   ],
+   "n_bus1": [
+    "bus_hv"
+   ],
+   "n_xfmr": [
+    "bus_hv",
+    "bus_mv"
+   ],
+   "n_bus2": [
+    "bus_mv"
+   ],
+   "n_bus3": [
+    "bus_fdr"
+   ],
+   "n_reg": [
+    "bus_fdr",
+    "bus_reg"
+   ],
+   "n_bus4": [
+    "bus_reg"
+   ],
+   "n_fuse": [
+    "bus_lat",
+    "bus_tap"
+   ],
+   "n_rec": [
+    "bus_prot",
+    "bus_lat"
+   ],
+   "n_rly": [
+    "bus_reg",
+    "bus_prot"
+   ],
+   "n_bus5": [
+    "bus_prot"
+   ],
+   "n_bus6": [
+    "bus_lat"
+   ],
+   "n_bus7": [
+    "bus_tap"
+   ],
+   "n_load2": [
+    "bus_tap"
+   ],
+   "n_brk": [
+    "bus_reg",
+    "tap1"
+   ],
+   "n_load": [
+    "tap1"
+   ],
+   "n_cap": [
+    "bus_fdr"
+   ],
+   "n_gen": [
+    "bus_fdr"
+   ],
+   "n_pv": [
+    "bus_fdr"
+   ],
+   "n_stg": [
+    "bus_fdr"
+   ],
+   "n_note": []
+  },
+  "issues": []
+ },
+ "tcc": {
+  "converged": true,
+  "devices": [
+   {
+    "nodeId": "n_fuse",
+    "name": "fu1",
+    "kind": "fuse",
+    "switch": "fu1",
+    "bus": "bus_tap",
+    "traces": [
+     {
+      "label": "fu1 (lateral_k)",
+      "curve": "lateral_k",
+      "fault": "phase",
+      "pickupA": 65.0,
+      "points": [
+       [
+        130.0,
+        300.0
+       ],
+       [
+        162.5,
+        30.0
+       ],
+       [
+        260.0,
+        3.0
+       ],
+       [
+        520.0,
+        0.4
+       ],
+       [
+        1300.0,
+        0.05
+       ],
+       [
+        2600.0,
+        0.02
+       ]
+      ]
+     }
+    ],
+    "faultA3ph": 3918.5,
+    "faultA1ph": 3283.1
+   },
+   {
+    "nodeId": "n_rec",
+    "name": "rec1",
+    "kind": "recloser",
+    "switch": "rec1",
+    "bus": "bus_lat",
+    "traces": [
+     {
+      "label": "rec1 fast",
+      "curve": "a",
+      "fault": "phase",
+      "pickupA": 100.0,
+      "points": [
+       [
+        100.0,
+        0.15
+       ],
+       [
+        250.0,
+        0.07
+       ],
+       [
+        450.0,
+        0.05
+       ],
+       [
+        800.0,
+        0.045
+       ],
+       [
+        1400.0,
+        0.045
+       ]
+      ]
+     },
+     {
+      "label": "rec1 delayed",
+      "curve": "d",
+      "fault": "phase",
+      "pickupA": 100.0,
+      "points": [
+       [
+        100.0,
+        6.0
+       ],
+       [
+        250.0,
+        0.7
+       ],
+       [
+        450.0,
+        0.2
+       ],
+       [
+        800.0,
+        0.06
+       ],
+       [
+        1400.0,
+        0.02
+       ]
+      ]
+     }
+    ],
+    "faultA3ph": 3920.9,
+    "faultA1ph": 3284.8
+   },
+   {
+    "nodeId": "n_rly",
+    "name": "rly1",
+    "kind": "relay",
+    "switch": "rly1",
+    "bus": "bus_prot",
+    "traces": [
+     {
+      "label": "rly1 phase",
+      "curve": "very_inv",
+      "fault": "phase",
+      "pickupA": 200.0,
+      "points": [
+       [
+        220.0,
+        93.872
+       ],
+       [
+        260.0,
+        28.9113
+       ],
+       [
+        300.0,
+        16.179
+       ],
+       [
+        400.0,
+        7.0277
+       ],
+       [
+        600.0,
+        2.9423
+       ],
+       [
+        800.0,
+        1.7983
+       ],
+       [
+        1000.0,
+        1.3081
+       ],
+       [
+        1200.0,
+        1.0513
+       ],
+       [
+        1400.0,
+        0.8995
+       ],
+       [
+        1600.0,
+        0.8023
+       ],
+       [
+        1800.0,
+        0.7361
+       ],
+       [
+        2000.0,
+        0.6891
+       ],
+       [
+        4000.0,
+        0.5401
+       ],
+       [
+        10000.0,
+        0.4988
+       ],
+       [
+        20000.0,
+        0.493
+       ]
+      ]
+     },
+     {
+      "label": "rly1 ground",
+      "curve": "very_inv",
+      "fault": "ground",
+      "pickupA": 50.0,
+      "points": [
+       [
+        55.0,
+        93.872
+       ],
+       [
+        65.0,
+        28.9113
+       ],
+       [
+        75.0,
+        16.179
+       ],
+       [
+        100.0,
+        7.0277
+       ],
+       [
+        150.0,
+        2.9423
+       ],
+       [
+        200.0,
+        1.7983
+       ],
+       [
+        250.0,
+        1.3081
+       ],
+       [
+        300.0,
+        1.0513
+       ],
+       [
+        350.0,
+        0.8995
+       ],
+       [
+        400.0,
+        0.8023
+       ],
+       [
+        450.0,
+        0.7361
+       ],
+       [
+        500.0,
+        0.6891
+       ],
+       [
+        1000.0,
+        0.5401
+       ],
+       [
+        2500.0,
+        0.4988
+       ],
+       [
+        5000.0,
+        0.493
+       ]
+      ]
+     }
+    ],
+    "faultA3ph": 3923.3,
+    "faultA1ph": 3286.5
+   }
+  ],
+  "switches": [
+   {
+    "nodeId": "n_fuse",
+    "name": "FU1",
+    "kind": "fuse",
+    "bus": "bus_tap",
+    "faultA3ph": 3918.5,
+    "faultA1ph": 3283.1,
+    "interruptingKa": 10.0
+   },
+   {
+    "nodeId": "n_rec",
+    "name": "REC1",
+    "kind": "recloser",
+    "bus": "bus_lat",
+    "faultA3ph": 3920.9,
+    "faultA1ph": 3284.8,
+    "interruptingKa": 8.0
+   },
+   {
+    "nodeId": "n_rly",
+    "name": "RLY1",
+    "kind": "relay",
+    "bus": "bus_prot",
+    "faultA3ph": 3923.3,
+    "faultA1ph": 3286.5,
+    "interruptingKa": 12.5
+   },
+   {
+    "nodeId": "n_brk",
+    "name": "BRK1",
+    "kind": "breaker",
+    "bus": "tap1",
+    "faultA3ph": 3923.4,
+    "faultA1ph": 3286.6,
+    "interruptingKa": 12.5
+   }
+  ],
+  "issues": []
+ }
+}
