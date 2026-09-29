@@ -127,6 +127,27 @@ class PassthroughSpec(BaseModel):
     text: Annotated[str, Field(max_length=MAX_PASSTHROUGH_TEXT)]
 
 
+class Limits(BaseModel):
+    """What counts as an abnormal condition: the planning criteria the
+    overlays, the solve's violation flags and the study report all apply.
+    The defaults are ANSI C84.1 Range A and a line at its rating."""
+    vminPu: Annotated[float, Field(gt=0, lt=2)] = 0.95
+    vmaxPu: Annotated[float, Field(gt=0, lt=2)] = 1.05
+    # Loading at or above this is an overload...
+    overloadPct: Annotated[float, Field(gt=0, le=1000)] = 100.0
+    # ...and at or above this, a warning.
+    warnPct: Annotated[float, Field(gt=0, le=1000)] = 80.0
+
+
+class StudyInfo(BaseModel):
+    """The title block of a study report. Nothing reads it but the report."""
+    title: Annotated[str, Field(max_length=200)] = ""
+    caseName: Annotated[str, Field(max_length=200)] = ""
+    engineer: Annotated[str, Field(max_length=200)] = ""
+    company: Annotated[str, Field(max_length=200)] = ""
+    description: Annotated[str, Field(max_length=MAX_COMMENT_TEXT)] = ""
+
+
 class Circuit(BaseModel):
     version: int = 1
     name: str = "circuit"
@@ -157,6 +178,13 @@ class Circuit(BaseModel):
     # file's header), written above that element on export.
     comments: Annotated[dict[str, Annotated[str, Field(max_length=MAX_COMMENT_TEXT)]],
                         Field(max_length=MAX_NODES)] = Field(default_factory=dict)
+    # Absent means the defaults; see Limits.
+    limits: Limits | None = None
+    study: StudyInfo | None = None
+
+    @property
+    def criteria(self) -> Limits:
+        return self.limits or Limits()
 
 
 class Issue(BaseModel):

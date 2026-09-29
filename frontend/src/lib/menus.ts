@@ -193,6 +193,9 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
         ? [item('Save to file as…', () => void saveToFile(true), { title: 'Save as a different .oneline.json file' })]
         : []),
       sep,
+      item('Project properties…', () => ui.openDialog('project'), {
+        title: 'Study title block and the abnormal-condition limits',
+      }),
       {
         kind: 'sub',
         label: 'Export',

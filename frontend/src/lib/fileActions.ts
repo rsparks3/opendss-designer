@@ -11,6 +11,7 @@ import {
   writeTo,
   type FileHandle,
 } from './fileSystem'
+import { limitsOf } from './limits'
 import { autoLayout } from './layout'
 import { loadProject, newProjectId, saveProject } from './library'
 import { migrateCircuit } from './schema'
@@ -316,7 +317,7 @@ export async function exportImage(kind: 'svg' | 'png') {
     .join(' · ')
   try {
     // Exports go on white paper, so they are read off a light-theme drawing.
-    const svg = await inLightTheme(() => diagramToSvg(pane, { caption, legend: legendFor(rs.overlay) }))
+    const svg = await inLightTheme(() => diagramToSvg(pane, { caption, legend: legendFor(rs.overlay, limitsOf(useCircuitStore.getState().limits)) }))
     if (kind === 'svg') {
       download(imageFileName(name, rs.overlay, 'svg'), svg, 'image/svg+xml')
     } else {

@@ -16,9 +16,11 @@
  *  how far the user has zoomed or panned.
  */
 import { LOW_V, NEUTRAL, OK, VIOLATION, WARN } from './colorScale'
+import { DEFAULT_LIMITS, fmtPu } from './limits'
 import { PHASE_LEGEND } from './phasing'
 import { resolveColor } from './theme'
 import type { OverlayMode } from '../store/resultsStore'
+import type { LimitsJSON } from '../types/circuit'
 
 export interface LegendEntry {
   label: string
@@ -36,20 +38,22 @@ export interface ExportOptions {
 
 /** What the colours mean for the overlay that is on, so a report reader
  *  does not have to guess. Fault has kA badges that speak for themselves. */
-export function legendFor(overlay: OverlayMode): LegendEntry[] {
+export function legendFor(overlay: OverlayMode, limits: LimitsJSON = DEFAULT_LIMITS): LegendEntry[] {
+  const lo = fmtPu(limits.vminPu)
+  const hi = fmtPu(limits.vmaxPu)
   switch (overlay) {
     case 'voltage':
       return [
-        { label: '< 0.95 pu', color: LOW_V },
-        { label: '0.95–1.05 pu', color: OK },
-        { label: '> 1.05 pu', color: VIOLATION },
+        { label: `< ${lo} pu`, color: LOW_V },
+        { label: `${lo}–${hi} pu`, color: OK },
+        { label: `> ${hi} pu`, color: VIOLATION },
         { label: 'de-energised', color: NEUTRAL },
       ]
     case 'loading':
       return [
-        { label: '< 80 %', color: OK },
-        { label: '80–100 %', color: WARN },
-        { label: '≥ 100 %', color: VIOLATION },
+        { label: `< ${limits.warnPct} %`, color: OK },
+        { label: `${limits.warnPct}–${limits.overloadPct} %`, color: WARN },
+        { label: `≥ ${limits.overloadPct} %`, color: VIOLATION },
       ]
     case 'phases':
       return PHASE_LEGEND

@@ -1,10 +1,10 @@
 import { Handle, Position, useReactFlow, useUpdateNodeInternals, type HandleProps } from '@xyflow/react'
 import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useAltHeld } from '../../lib/altKey'
-import { loadingColor } from '../../lib/colorScale'
+import { loadingColor, voltageColor } from '../../lib/colorScale'
 import { effectivePhasing, PHASE_LETTERS, phaseColor, weakestPhase } from '../../lib/phasing'
 import { rotatePoint } from '../../lib/rotatePoint'
-import { edgesAtTerminal, useCircuitStore, type EdgeEnd } from '../../store/circuitStore'
+import { edgesAtTerminal, useCircuitStore, useLimits, type EdgeEnd } from '../../store/circuitStore'
 import { beginGrab, useGrabStore } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import type { Params } from '../../types/circuit'
@@ -219,8 +219,7 @@ export function VoltageBadge({ nodeId }: { nodeId: string }) {
 /** The badge reads the lowest phase; when that is worth knowing -- a lateral,
  *  or an unbalanced three-phase bus -- it says which phase that is. */
 function VBadgeInner({ v, phase }: { v: number; phase: string | null }) {
-  // lazy import to avoid circular: color logic inline
-  const color = v < 0.5 ? '#546e7a' : v < 0.95 ? '#0277bd' : v > 1.05 ? '#d32f2f' : '#2e7d32'
+  const color = voltageColor(v, useLimits())
   return (
     <Badge color={color}>
       {v.toFixed(3)} pu{phase && <span className="badge-phase">{phase}</span>}
@@ -272,10 +271,11 @@ export function FaultBadge({ nodeId }: { nodeId: string }) {
 /** Loading pie in a light pill, dark text — shared by node badges. */
 export function PieBadge({ pct }: { pct: number }) {
   const stale = useResultsStore(activeStale)
+  const limits = useLimits()
   return (
     <div className="result-badge pie-badge" style={{ opacity: stale ? 0.35 : 1 }}>
-      <LoadingPie pct={pct} />
-      <span style={{ color: loadingColor(pct) }}>{pct.toFixed(0)}%</span>
+      <LoadingPie pct={pct} limits={limits} />
+      <span style={{ color: loadingColor(pct, limits) }}>{pct.toFixed(0)}%</span>
     </div>
   )
 }

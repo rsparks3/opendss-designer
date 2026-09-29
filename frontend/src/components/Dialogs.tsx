@@ -7,6 +7,7 @@ import { DEFAULT_PHASES, PHASE_KEY_LABELS, PHASE_KEYS, type ThemePref } from '..
 import { useCircuitStore } from '../store/circuitStore'
 import { useUiStore } from '../store/uiStore'
 import { FindDialog } from './FindDialog'
+import { ProjectDialog } from './ProjectDialog'
 import { LibraryDialog, SaveAsDialog } from './ProjectLibrary'
 
 /** Whichever dialog the UI store says is open. */
@@ -46,6 +47,8 @@ export function Dialogs() {
       return <PrefsDialog onClose={close} />
     case 'find':
       return <FindDialog onClose={close} />
+    case 'project':
+      return <ProjectDialog onClose={close} />
     default:
       return null
   }

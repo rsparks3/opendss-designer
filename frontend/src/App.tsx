@@ -22,6 +22,8 @@ import { Dialogs } from './components/Dialogs'
 function useValidation() {
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
+  // Limits change what a solve flags, so they re-run it like an edit does.
+  const limits = useCircuitStore((s) => s.limits)
   const setIssues = useResultsStore((s) => s.setIssues)
   const setPhases = useResultsStore((s) => s.setPhases)
   const timer = useRef<number>(undefined)
@@ -54,7 +56,7 @@ function useValidation() {
       }
     }, 400)
     return () => window.clearTimeout(timer.current)
-  }, [nodes, edges, setIssues, setPhases])
+  }, [nodes, edges, limits, setIssues, setPhases])
 }
 
 const AUTOSAVE_KEY = 'autosave'
@@ -96,7 +98,7 @@ function useUnsavedWorkProtection() {
     const unsub = useCircuitStore.subscribe((s) => {
       window.clearTimeout(timer)
       timer = window.setTimeout(() => {
-        const slices = [s.nodes, s.edges, s.busNames, s.loadShapes, s.name]
+        const slices = [s.nodes, s.edges, s.busNames, s.loadShapes, s.name, s.limits, s.study]
         if (slices.every((v, i) => v === last[i])) return
         // Never overwrite the recovery copy with an empty document. `New`,
         // `Open` and `Import` all clear the store, and the debounce used to

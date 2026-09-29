@@ -420,5 +420,18 @@
   "comments": {
     "circuit": "! Schema fixture",
     "line.ln1": "! the first line"
+  },
+  "limits": {
+    "vminPu": 0.95,
+    "vmaxPu": 1.05,
+    "overloadPct": 100.0,
+    "warnPct": 75.0
+  },
+  "study": {
+    "title": "Schema fixture study",
+    "caseName": "Peak load",
+    "engineer": "A. Engineer",
+    "company": "Example Utility",
+    "description": "Every element type, for the schema-drift tests."
   }
 }

@@ -41,3 +41,30 @@ def test_validate_flags_unconnected():
                        CircuitNode(id="l", type="load", params={"kv": 12.47})])
     issues = validate(c)
     assert any(i.code == "unconnected-terminal" for i in issues)
+
+
+def test_project_limits_drive_violation_flags(substation_circuit):
+    from opendss_designer.core.model import Limits
+    base = engine.solve(substation_circuit)
+    load_bus = base["nodeBuses"]["ld"][0]
+    v = base["buses"][load_bus]["vminPu"]
+    ln = base["elements"]["line.ln1"]
+    assert "violation" not in base["buses"][load_bus]
+    assert "overload" not in ln["violations"]
+
+    # Criteria either side of what the circuit does flip the flags.
+    substation_circuit.limits = Limits(vminPu=min(v + 0.01, 1.5), vmaxPu=1.6,
+                                       overloadPct=ln["loadingPct"] / 2, warnPct=1)
+    tight = engine.solve(substation_circuit)
+    assert tight["buses"][load_bus]["violation"] == "undervoltage"
+    assert "overload" in tight["elements"]["line.ln1"]["violations"]
+
+
+def test_limits_are_validated():
+    import pytest
+    from pydantic import ValidationError
+
+    from opendss_designer.core.model import Circuit
+    assert Circuit().criteria.vminPu == 0.95
+    with pytest.raises(ValidationError):
+        Circuit.model_validate({"limits": {"vminPu": -1}})

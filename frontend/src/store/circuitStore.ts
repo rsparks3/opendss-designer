@@ -15,13 +15,16 @@ import { create } from 'zustand'
 import { defaultLineParams, defaultParams, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
+  LimitsJSON,
   LineCodeJSON,
   PassthroughJSON,
+  StudyInfoJSON,
   TccCurveJSON,
   Winding,
 } from '../types/circuit'
 import { SCHEMA_VERSION } from '../lib/schema'
-import { useResultsStore } from './resultsStore'
+import { limitsOf } from '../lib/limits'
+import { setLimitsSource, useResultsStore } from './resultsStore'
 
 export interface XY {
   x: number
@@ -47,6 +50,13 @@ export interface CircuitState {
   passthrough: PassthroughJSON[]
   comments: Record<string, string>
   setPassthrough: (entries: PassthroughJSON[]) => void
+  /** Abnormal-condition criteria; null = DEFAULT_LIMITS (lib/limits). */
+  limits: LimitsJSON | null
+  /** Replacing the limits changes what the results flag, so they go stale. */
+  setLimits: (limits: LimitsJSON | null) => void
+  /** The study report's title block; cosmetic, results stay valid. */
+  study: StudyInfoJSON | null
+  setStudy: (study: StudyInfoJSON | null) => void
   placementType: NodeType | null
   connectMode: EdgeKind
   /** True when there are changes not yet saved to a project file. */
@@ -394,7 +404,7 @@ export function toCircuitJSON(
   s: Pick<
     CircuitState,
     'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves' | 'lineCodes'
-  > & Partial<Pick<CircuitState, 'passthrough' | 'comments'>>,
+  > & Partial<Pick<CircuitState, 'passthrough' | 'comments' | 'limits' | 'study'>>,
 ): CircuitJSON {
   return {
     version: SCHEMA_VERSION,
@@ -424,6 +434,8 @@ export function toCircuitJSON(
     // saves exactly as it always has.
     ...(s.passthrough?.length ? { passthrough: s.passthrough } : {}),
     ...(s.comments && Object.keys(s.comments).length ? { comments: s.comments } : {}),
+    ...(s.limits ? { limits: s.limits } : {}),
+    ...(s.study ? { study: s.study } : {}),
   }
 }
 
@@ -474,6 +486,13 @@ export const useCircuitStore = create<CircuitState>()(
         set({ passthrough, dirty: true })
         markStale()
       },
+      limits: null,
+      setLimits: (limits) => {
+        set({ limits, dirty: true })
+        markStale()
+      },
+      study: null,
+      setStudy: (study) => set({ study, dirty: true }),
       placementType: null,
       connectMode: 'wire',
       dirty: false,
@@ -837,6 +856,8 @@ export const useCircuitStore = create<CircuitState>()(
           lineCodes: c.lineCodes ?? {},
           passthrough: c.passthrough ?? [],
           comments: c.comments ?? {},
+          limits: c.limits ?? null,
+          study: c.study ?? null,
           dirty: false,
         })
         // Cleared here rather than at each call site: Open used to leave the
@@ -854,6 +875,8 @@ export const useCircuitStore = create<CircuitState>()(
           lineCodes: {},
           passthrough: [],
           comments: {},
+          limits: null,
+          study: null,
           dirty: true,
           projectId: null,
         })
@@ -1033,6 +1056,8 @@ export const useCircuitStore = create<CircuitState>()(
         lineCodes: s.lineCodes,
         passthrough: s.passthrough,
         comments: s.comments,
+        limits: s.limits,
+        study: s.study,
       }),
       limit: 100,
       // Structural compare; fine at editor scale (revisit if circuits reach
@@ -1056,6 +1081,11 @@ export const useCircuitStore = create<CircuitState>()(
     },
   ),
 )
+
+setLimitsSource(() => limitsOf(useCircuitStore.getState().limits))
+
+/** The limits the open circuit applies, for components. */
+export const useLimits = () => limitsOf(useCircuitStore((s) => s.limits))
 
 export const undo = () => useCircuitStore.temporal.getState().undo()
 export const redo = () => useCircuitStore.temporal.getState().redo()

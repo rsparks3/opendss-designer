@@ -95,6 +95,14 @@ of M7.
   Samples… menu, exactly as the Import button reads EPRI's files
   (`scripts/make_ieee_samples.py` regenerates them, laying them out with the
   app's own layout).
+- **Abnormal-condition limits are a project setting.** File → *Project
+  properties…* sets the undervoltage and overvoltage limits (pu) and the
+  loading warning and overload levels (%), saved with the project. The
+  voltage and loading overlays, their legends, the profile plots' limit
+  lines and the solve's undervoltage/overvoltage/overload flags all follow
+  them; the defaults are still 0.95–1.05 pu and 100 % of rating. The same
+  dialog holds a study title block (title, case, engineer, company,
+  description) for study reports.
 
 ### Fixed
 

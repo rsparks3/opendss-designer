@@ -40,6 +40,8 @@ def test_fixture_covers_every_type(fixture_json):
     assert fixture_json["lineCodes"]
     assert fixture_json["passthrough"]
     assert fixture_json["comments"]
+    assert fixture_json["limits"]
+    assert fixture_json["study"]
     assert any(e["params"].get("linecode") in fixture_json["lineCodes"]
                for e in fixture_json["edges"])
 
@@ -56,6 +58,8 @@ def test_fixture_validates_and_round_trips(fixture_json):
     assert dumped["tccCurves"] == fixture_json["tccCurves"]
     assert dumped["passthrough"] == fixture_json["passthrough"]
     assert dumped["comments"] == fixture_json["comments"]
+    assert dumped["limits"] == fixture_json["limits"]
+    assert dumped["study"] == fixture_json["study"]
     assert dumped["nodes"] == [
         {**n, "height": None} for n in fixture_json["nodes"]
     ], "node round trip drifted (height is backend-optional and absent in exports)"

@@ -101,6 +101,27 @@ export interface CircuitJSON {
   /** Comment lines from an imported file, keyed by lowercase "class.name"
    *  ("circuit" for the header), written back above each element on export. */
   comments?: Record<string, string>
+  /** Abnormal-condition criteria; absent means DEFAULT_LIMITS (lib/limits). */
+  limits?: LimitsJSON | null
+  /** The study report's title block. */
+  study?: StudyInfoJSON | null
+}
+
+export interface LimitsJSON {
+  vminPu: number
+  vmaxPu: number
+  /** Loading at or above this is an overload... */
+  overloadPct: number
+  /** ...and at or above this, a warning. */
+  warnPct: number
+}
+
+export interface StudyInfoJSON {
+  title: string
+  caseName: string
+  engineer: string
+  company: string
+  description: string
 }
 
 export interface PassthroughJSON {

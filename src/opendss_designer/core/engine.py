@@ -301,7 +301,8 @@ def _extract_buses() -> dict[str, Any]:
     return buses
 
 
-def _extract_elements(element_map: dict[str, str]) -> dict[str, Any]:
+def _extract_elements(element_map: dict[str, str],
+                      overload_pct: float = 100.0) -> dict[str, Any]:
     elements: dict[str, Any] = {}
     for full_name, diagram_id in element_map.items():
         idx = dss.Circuit.SetActiveElement(full_name)
@@ -324,7 +325,7 @@ def _extract_elements(element_map: dict[str, str]) -> dict[str, Any]:
         violations: list[str] = []
         if norm_amps and norm_amps > 0 and t1_amps:
             loading = round(100.0 * max(t1_amps) / norm_amps, 1)
-            if loading >= 100.0:
+            if loading >= overload_pct:
                 violations.append("overload")
         # Losses are meaningful only for series elements — for shunt elements
         # (loads, generators, capacitors, sources) CktElement.Losses() reports
@@ -421,13 +422,15 @@ def solve(circuit: Circuit) -> dict[str, Any]:
                                     message=f"Solve failed: {exc}"))
             if converged:
                 buses = _extract_buses()
-                elements = _extract_elements(compiled.element_map)
+                elements = _extract_elements(compiled.element_map,
+                                             circuit.criteria.overloadPct)
                 lw = dss.Circuit.Losses()
                 losses = {"kw": round(lw[0] / 1000.0, 3), "kvar": round(lw[1] / 1000.0, 3)}
+                lim = circuit.criteria
                 for b in buses.values():
-                    if b["vminPu"] is not None and b["vminPu"] < 0.95:
+                    if b["vminPu"] is not None and b["vminPu"] < lim.vminPu:
                         b["violation"] = "undervoltage"
-                    elif b["vmaxPu"] is not None and b["vmaxPu"] > 1.05:
+                    elif b["vmaxPu"] is not None and b["vmaxPu"] > lim.vmaxPu:
                         b["violation"] = "overvoltage"
             else:
                 issues.append(Issue(

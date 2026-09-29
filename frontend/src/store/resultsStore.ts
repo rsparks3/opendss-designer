@@ -1,6 +1,14 @@
 import { create } from 'zustand'
 import { tsIndexNearHour, tsSlice } from '../lib/tsSlice'
-import type { FaultResult, Issue, PhaseMap, SolveResult, TimeSeriesResult } from '../types/circuit'
+import { DEFAULT_LIMITS } from '../lib/limits'
+import type { FaultResult, Issue, LimitsJSON, PhaseMap, SolveResult, TimeSeriesResult } from '../types/circuit'
+
+// The circuit's limits, for flagging time-series slices. circuitStore
+// imports this store, so it registers the source rather than being imported.
+let limitsSource: () => LimitsJSON = () => DEFAULT_LIMITS
+export function setLimitsSource(fn: () => LimitsJSON): void {
+  limitsSource = fn
+}
 
 export type AnalysisMode = 'snapshot' | 'timeseries'
 
@@ -95,7 +103,7 @@ export const useResultsStore = create<ResultsState>((set) => ({
     set((s) => ({
       tsIndex,
       scrubResult:
-        tsIndex != null && s.timeseries ? tsSlice(s.timeseries, tsIndex) : null,
+        tsIndex != null && s.timeseries ? tsSlice(s.timeseries, tsIndex, limitsSource()) : null,
     })),
   scrubResult: null,
 
@@ -111,7 +119,7 @@ export const useResultsStore = create<ResultsState>((set) => ({
     set({
       timeseries,
       tsIndex,
-      scrubResult: timeseries && tsIndex != null ? tsSlice(timeseries, tsIndex) : null,
+      scrubResult: timeseries && tsIndex != null ? tsSlice(timeseries, tsIndex, limitsSource()) : null,
     })
   },
   tsRunning: false,

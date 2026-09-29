@@ -8,6 +8,7 @@ import {
   type TimeSeriesLine,
 } from '../lib/graph'
 import { decimate } from '../lib/shapeCsv'
+import { useLimits } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { TimeSeriesResult } from '../types/circuit'
 
@@ -110,6 +111,7 @@ export function TimeGraphPanel({ ts }: { ts: TimeSeriesResult }) {
 
   const q = TS_QUANTITIES.find((x) => x.key === quantity)!
   const isVoltage = quantity === 'vmin' || quantity === 'vmax'
+  const limits = useLimits()
   const entities = useMemo(() => tsEntities(ts, q.kind), [ts, q.kind])
   const selected = useMemo(
     () => picked[q.kind] ?? defaultTsEntities(ts, q.kind),
@@ -137,15 +139,15 @@ export function TimeGraphPanel({ ts }: { ts: TimeSeriesResult }) {
     }
     if (!Number.isFinite(xLo) || xHi <= xLo) return null
     if (isVoltage) {
-      yLo = Math.min(0.945, yLo - 0.005)
-      yHi = Math.max(1.055, yHi + 0.005)
+      yLo = Math.min(limits.vminPu - 0.005, yLo - 0.005)
+      yHi = Math.max(limits.vmaxPu + 0.005, yHi + 0.005)
     } else {
       const pad = (yHi - yLo) * 0.06 || Math.abs(yHi) * 0.06 || 0.5
       yLo -= pad
       yHi += pad
     }
     return { x: [xLo, xHi], y: [yLo, yHi] }
-  }, [lines, isVoltage])
+  }, [lines, isVoltage, limits])
 
   const startSizeDrag = (down: React.PointerEvent) => {
     down.preventDefault()
@@ -385,7 +387,7 @@ export function TimeGraphPanel({ ts }: { ts: TimeSeriesResult }) {
           </text>
           <g clipPath="url(#ts-plot-clip)">
             {isVoltage &&
-              [0.95, 1.05].map((t) => (
+              [limits.vminPu, limits.vmaxPu].map((t) => (
                 <line key={t} x1={ML} x2={W - MR} y1={y(t)} y2={y(t)} className="vp-limit" />
               ))}
             {drawn.map((d) => (

@@ -1,7 +1,7 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
 import { effectivePhasing, phaseColor, phaseLabel } from '../../lib/phasing'
-import type { AppEdge } from '../../store/circuitStore'
+import { useLimits, type AppEdge } from '../../store/circuitStore'
 import { useIsGrabbed } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import { LoadingPie } from '../LoadingPie'
@@ -13,6 +13,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore(activeResult)
   const stale = useResultsStore(activeStale)
+  const limits = useLimits()
 
   const el = result?.converged
     ? Object.values(result.elements).find((e) => e.id === props.id)
@@ -28,7 +29,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
   let loadingPct: number | null = null
   if (el && !stale) {
     if (overlay === 'loading' && el.loadingPct != null) {
-      stroke = loadingColor(el.loadingPct)
+      stroke = loadingColor(el.loadingPct, limits)
       loadingPct = el.loadingPct
       resultText = `${el.loadingPct.toFixed(0)}%`
     } else if (overlay === 'power') {
@@ -74,7 +75,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
           {phase && <span className="edge-phase" title={`Phase ${phase}`}>{phase}</span>}
           {resultText && (
             <span className="edge-result" style={{ color: stroke }}>
-              {loadingPct != null && <LoadingPie pct={loadingPct} size={15} />}
+              {loadingPct != null && <LoadingPie limits={limits} pct={loadingPct} size={15} />}
               {resultText}
             </span>
           )}

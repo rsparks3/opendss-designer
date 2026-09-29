@@ -1,4 +1,5 @@
-import type { SolveResult, TimeSeriesResult } from '../types/circuit'
+import type { LimitsJSON, SolveResult, TimeSeriesResult } from '../types/circuit'
+import { DEFAULT_LIMITS } from './limits'
 
 /** One step of a recorded time-series run, reshaped as a SolveResult so the
  *  canvas overlays (badges, edge colors, tooltips) can render it unchanged.
@@ -9,7 +10,11 @@ import type { SolveResult, TimeSeriesResult } from '../types/circuit'
  *  directly, loading covers it). For downsampled (yearly) runs each index is
  *  a min/max envelope bucket, not an exact instant.
  */
-export function tsSlice(ts: TimeSeriesResult, index: number): SolveResult | null {
+export function tsSlice(
+  ts: TimeSeriesResult,
+  index: number,
+  limits: LimitsJSON = DEFAULT_LIMITS,
+): SolveResult | null {
   if (index < 0 || index >= ts.time.length) return null
   const buses: SolveResult['buses'] = {}
   for (const [name, env] of Object.entries(ts.buses)) {
@@ -23,9 +28,9 @@ export function tsSlice(ts: TimeSeriesResult, index: number): SolveResult | null
       vmaxPu: vmax,
       kvBase: env.kvBase,
       nodes: [],
-      ...(vmin > 0.05 && vmin < 0.95
+      ...(vmin > 0.05 && vmin < limits.vminPu
         ? { violation: 'undervoltage' }
-        : vmax > 1.05
+        : vmax > limits.vmaxPu
           ? { violation: 'overvoltage' }
           : {}),
     }
@@ -39,7 +44,7 @@ export function tsSlice(ts: TimeSeriesResult, index: number): SolveResult | null
       kvar: s.kvar[index] ?? 0,
       normAmps: null,
       loadingPct: s.loadingPct[index] ?? null,
-      violations: (s.loadingPct[index] ?? 0) >= 100 ? ['overload'] : [],
+      violations: (s.loadingPct[index] ?? 0) >= limits.overloadPct ? ['overload'] : [],
       lossKw: null,
       lossKvar: null,
     }

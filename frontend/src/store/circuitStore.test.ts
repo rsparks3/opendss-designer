@@ -118,6 +118,8 @@ describe('circuit JSON round trip', () => {
       lineCodes: FIXTURE.lineCodes ?? {},
       passthrough: FIXTURE.passthrough ?? [],
       comments: FIXTURE.comments ?? {},
+      limits: FIXTURE.limits ?? null,
+      study: FIXTURE.study ?? null,
     })
     // Serialize both so undefined-vs-absent differences disappear.
     expect(JSON.parse(JSON.stringify(out))).toEqual(JSON.parse(JSON.stringify(FIXTURE)))

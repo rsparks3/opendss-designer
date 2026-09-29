@@ -172,6 +172,16 @@ html, body, #root { margin: 0; height: 100%; }
   font: inherit;
 }
 .prefs-group button:disabled { opacity: 0.5; }
+.project-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.project-buttons { display: flex; gap: 8px; }
+.modal-box textarea {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
 /* React Flow's own chrome follows the theme: the paper, the controls, the minimap. */
 .react-flow {
   --xy-background-color: var(--paper);

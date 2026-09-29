@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fmt, ticks } from '../lib/axis'
 import { computeGraph, X_QUANTITIES, Y_QUANTITIES, type GraphRow } from '../lib/graph'
-import { useCircuitStore } from '../store/circuitStore'
+import { useCircuitStore, useLimits } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import { TccGraphPanel } from './TccGraphPanel'
 import { TimeGraphPanel } from './TimeGraphPanel'
@@ -139,6 +139,7 @@ function SnapshotGraph() {
   const yq = Y_QUANTITIES.find((q) => q.key === yKey)!
   const isPhaseY = yKey === 'vphase'
   const isVoltageY = isPhaseY || yKey === 'vmin' || yKey === 'vmax'
+  const limits = useLimits()
 
   const data = useMemo(
     () =>
@@ -162,8 +163,8 @@ function SnapshotGraph() {
     let yLo = Math.min(...ys)
     let yHi = Math.max(...ys)
     if (isVoltageY) {
-      yLo = Math.min(0.945, yLo - 0.005)
-      yHi = Math.max(1.055, yHi + 0.005)
+      yLo = Math.min(limits.vminPu - 0.005, yLo - 0.005)
+      yHi = Math.max(limits.vmaxPu + 0.005, yHi + 0.005)
     }
     const xPad = (xHi - xLo) * 0.04 || Math.abs(xHi) * 0.04 || 0.5
     const yPad = (yHi - yLo) * 0.06 || Math.abs(yHi) * 0.06 || 0.5
@@ -171,7 +172,7 @@ function SnapshotGraph() {
       x: [xKey === 'dist' ? 0 : xLo - xPad, xHi + xPad],
       y: isVoltageY ? [yLo, yHi] : [yLo - yPad, yHi + yPad],
     }
-  }, [rows, isVoltageY, xKey])
+  }, [rows, isVoltageY, xKey, limits])
 
   const controls = (
     <div className="graph-controls">
@@ -348,7 +349,7 @@ function SnapshotGraph() {
         <g clipPath="url(#plot-clip)">
           {/* bold red limit lines, the classic ANSI band */}
           {isVoltageY &&
-            [0.95, 1.05].map((t) => (
+            [limits.vminPu, limits.vmaxPu].map((t) => (
               <line key={t} x1={ML} x2={W - MR} y1={y(t)} y2={y(t)} className="vp-limit" />
             ))}
           {data!.segments.map((s, i) => {

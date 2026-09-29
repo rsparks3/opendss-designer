@@ -1,10 +1,11 @@
 import { loadingColor } from '../lib/colorScale'
+import type { LimitsJSON } from '../types/circuit'
 
 /** Small pie chart showing loading as a filled fraction of the circle,
  *  in the tradition of power-flow packages. ≥100% renders a full pie
  *  (color already signals the overload). */
-export function LoadingPie({ pct, size = 16 }: { pct: number; size?: number }) {
-  const color = loadingColor(pct)
+export function LoadingPie({ pct, size = 16, limits }: { pct: number; size?: number; limits?: LimitsJSON }) {
+  const color = loadingColor(pct, limits)
   const c = size / 2
   const r = c - 1.5
   const frac = Math.max(0, Math.min(pct, 100) / 100)
