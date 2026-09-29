@@ -41,6 +41,7 @@ import { PVSystemNode } from './nodes/PVSystemNode'
 import { StorageNode } from './nodes/StorageNode'
 import { TransformerNode } from './nodes/TransformerNode'
 import { VsourceNode } from './nodes/VsourceNode'
+import { NoteNode } from './nodes/NoteNode'
 import { LineEdge } from './edges/LineEdge'
 import { WireEdge } from './edges/WireEdge'
 import { useGrabStore } from '../store/grabStore'
@@ -59,6 +60,7 @@ const nodeTypes = {
   generator: GeneratorNode,
   pvsystem: PVSystemNode,
   storage: StorageNode,
+  note: NoteNode,
 }
 
 const edgeTypes = {
@@ -171,7 +173,9 @@ export function EditorCanvas() {
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
       if (!placementType || placementType === 'busbar') return
-      addNodeAt(placementType, flowPos(event))
+      const id = addNodeAt(placementType, flowPos(event))
+      // A note is placed to be written in.
+      if (placementType === 'note') useUiStore.getState().setEditingNote(id)
     },
     [placementType, flowPos, addNodeAt],
   )
@@ -220,6 +224,7 @@ export function EditorCanvas() {
       g: 'generator',
       p: 'pvsystem',
       a: 'storage',
+      n: 'note',
     }
     const onKey = (e: KeyboardEvent) => {
       const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(
@@ -318,7 +323,11 @@ export function EditorCanvas() {
         onEdgeDoubleClick={onEdgeDoubleClick}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
-        onPaneContextMenu={(e) => e.preventDefault()}
+        onPaneContextMenu={(e) => {
+          e.preventDefault()
+          setHover(null)
+          setMenu({ kind: 'pane', id: '', x: e.clientX, y: e.clientY })
+        }}
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={clearHover}
         onEdgeMouseEnter={onEdgeMouseEnter}
@@ -371,7 +380,9 @@ export function EditorCanvas() {
         <div className="canvas-hint">
           {placementType === 'busbar'
             ? 'Click and drag to size the busbar (or just click for a default one) — Esc to stop'
-            : `Click to place a ${placementType} — drag from a connection dot to wire it up, Esc to stop`}
+            : placementType === 'note'
+              ? 'Click where the note goes, then type — Esc to stop'
+              : `Click to place a ${placementType} — drag from a connection dot to wire it up, Esc to stop`}
         </div>
       )}
       <PhaseLegend />

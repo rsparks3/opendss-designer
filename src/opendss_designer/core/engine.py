@@ -482,7 +482,7 @@ def estimate_timeseries_cost(circuit: Circuit, mode: str, step_min: int) -> int:
     steps = (24 if mode == "daily" else 8760) * (60 // max(step_min, 1))
     conn = synthesize(circuit)
     buses = len({b for buses in conn.node_buses.values() for b in buses})
-    elements = len(circuit.nodes) + sum(1 for e in circuit.edges if e.type == "line")
+    elements = len(circuit.elements) + sum(1 for e in circuit.edges if e.type == "line")
     return steps * max(buses + elements, 1)
 
 

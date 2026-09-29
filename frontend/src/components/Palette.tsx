@@ -199,6 +199,25 @@ export function Palette() {
         ))}
       </div>
       <div className="palette-group">
+        <div className="palette-title">Annotate</div>
+        <button
+          className={`palette-item${placementType === 'note' ? ' active' : ''}`}
+          onClick={() => setPlacement(placementType === 'note' ? null : 'note')}
+          title="Click (or press N), then click the canvas to write a note. Right-click an element to add a note with an arrow to it."
+        >
+          <span className="palette-icon">
+            <svg viewBox="0 0 32 32">
+              <rect x="4" y="6" width="24" height="20" rx="2" className="sym" fill="none" />
+              <line x1="9" y1="12" x2="23" y2="12" className="sym" />
+              <line x1="9" y1="17" x2="23" y2="17" className="sym" />
+              <line x1="9" y1="22" x2="17" y2="22" className="sym" />
+            </svg>
+          </span>
+          <span className="palette-label">Note</span>
+          <kbd className="palette-kbd">N</kbd>
+        </button>
+      </div>
+      <div className="palette-group">
         <div className="palette-title">Drag to connect</div>
         <button
           className={`palette-item${connectMode === 'wire' ? ' active' : ''}`}

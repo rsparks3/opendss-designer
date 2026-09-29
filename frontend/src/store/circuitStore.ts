@@ -12,7 +12,7 @@ import {
 } from '@xyflow/react'
 import { temporal } from 'zundo'
 import { create } from 'zustand'
-import { defaultLineParams, defaultParams, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
+import { defaultLineParams, defaultParams, isNote, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
   LimitsJSON,
@@ -69,7 +69,14 @@ export interface CircuitState {
   onNodesChange: (changes: NodeChange<AppNode>[]) => void
   onEdgesChange: (changes: EdgeChange<AppEdge>[]) => void
   onConnect: (conn: Connection) => void
-  addNodeAt: (type: NodeType, pos: XY) => void
+  /** Returns the new node's id. A note ends placement mode: it is typed
+   *  into straight away, not dropped by the dozen. */
+  addNodeAt: (type: NodeType, pos: XY) => string
+  /** A note centred on `pos`, its arrow on `target` when given, selected. */
+  addNote: (pos: XY, target?: string) => string
+  /** Notes are drawing, not circuit: text, size and arrow never make the
+   *  results stale. */
+  setNoteWidth: (id: string, width: number) => void
   addBusbarAt: (pos: XY, width: number) => void
   updateNodeParams: (id: string, patch: Params) => void
   /** Replace a transformer's winding list. Going from three windings to two
@@ -457,6 +464,8 @@ export function fromCircuitJSON(c: CircuitJSON): { nodes: AppNode[]; edges: AppE
           height: NODE_SIZE.busbar.h,
         }
       : {}),
+    // A note keeps the width it was given; its height follows its text.
+    ...(n.type === 'note' ? { width: n.width ?? NODE_SIZE.note.w } : {}),
   }))
   const edges: AppEdge[] = c.edges.map((e) => ({
     id: e.id,
@@ -501,10 +510,17 @@ export const useCircuitStore = create<CircuitState>()(
       setProjectId: (projectId) => set({ projectId }),
 
       onNodesChange: (changes) => {
-        set({ nodes: applyNodeChanges(changes, get().nodes) })
-        if (changes.some((ch) => ch.type !== 'select' && ch.type !== 'dimensions')) {
+        const before = get().nodes
+        set({ nodes: applyNodeChanges(changes, before) })
+        const edits = changes.filter((ch) => ch.type !== 'select' && ch.type !== 'dimensions')
+        if (edits.length) {
           set({ dirty: true })
-          markStale()
+          // Moving or deleting a note changes nothing electrical.
+          const noteIds = new Set(before.filter(isNote).map((n) => n.id))
+          const electrical = edits.some((ch) =>
+            ch.type === 'add' ? !isNote(ch.item) : !noteIds.has(ch.id),
+          )
+          if (electrical) markStale()
         }
       },
       onEdgesChange: (changes) => {
@@ -548,9 +564,37 @@ export const useCircuitStore = create<CircuitState>()(
           position: { x: snapGrid(pos.x - size.w / 2), y: snapGrid(pos.y - size.h / 2) },
           data: { params: defaultParams(type) },
           ...(type === 'busbar' ? { width: size.w, height: size.h } : {}),
+          ...(type === 'note' ? { width: size.w } : {}),
+        }
+        if (type === 'note') {
+          set({
+            nodes: [...get().nodes.map((n) => (n.selected ? { ...n, selected: false } : n)), { ...node, selected: true }],
+            placementType: null,
+            dirty: true,
+          })
+          return node.id
         }
         set({ nodes: [...get().nodes, node], dirty: true })
         markStale()
+        return node.id
+      },
+      addNote: (pos, target) => {
+        const id = get().addNodeAt('note', pos)
+        if (target) {
+          set({
+            nodes: get().nodes.map((n) =>
+              n.id === id ? { ...n, data: { params: { ...n.data.params, target } } } : n,
+            ),
+          })
+        }
+        return id
+      },
+      setNoteWidth: (id, width) => {
+        const w = Math.max(60, snapGrid(width))
+        set({
+          nodes: get().nodes.map((n) => (n.id === id ? { ...n, width: w, style: undefined } : n)),
+          dirty: true,
+        })
       },
       // Drag-sized busbar: pos is the LEFT edge of the bar (vertically centered).
       addBusbarAt: (pos, width) => {
@@ -574,7 +618,7 @@ export const useCircuitStore = create<CircuitState>()(
           ...renamed(get(), node?.type ?? '', node?.data.params.name, patch.name),
           dirty: true,
         })
-        markStale()
+        if (!node || !isNote(node)) markStale()
       },
       setTransformerWindings: (id, windings) => {
         const onT3 = (e: AppEdge) =>
@@ -920,7 +964,7 @@ export const useCircuitStore = create<CircuitState>()(
         if (!idSet.size) return
         set({
           nodes: get().nodes.map((n) =>
-            idSet.has(n.id) && n.type !== 'busbar'
+            idSet.has(n.id) && n.type !== 'busbar' && !isNote(n)
               ? {
                   ...n,
                   data: {
@@ -943,7 +987,7 @@ export const useCircuitStore = create<CircuitState>()(
         if (!idSet.size) return
         set({
           nodes: get().nodes.map((n) => {
-            if (!idSet.has(n.id) || n.type === 'busbar') return n
+            if (!idSet.has(n.id) || n.type === 'busbar' || isNote(n)) return n
             const { rotation, flip } = flipOnScreen(n.data.params, axis)
             const { rotation: _r, flip: _f, ...rest } = n.data.params
             return {

@@ -7,6 +7,7 @@ import {
   layoutBasics,
   MIN_BUS_W,
   prepareNodes,
+  setNotesAside,
   sizeOf,
   SLOT,
   snapBusbarWidth,
@@ -84,6 +85,15 @@ function reattach(was: XY, now: XY, bend: XY | undefined): void {
 }
 
 export async function elkLayout(circuit: CircuitJSON, opts: LayoutOptions = {}): Promise<void> {
+  const restore = setNotesAside(circuit)
+  try {
+    await layoutElements(circuit, opts)
+  } finally {
+    restore()
+  }
+}
+
+async function layoutElements(circuit: CircuitJSON, opts: LayoutOptions): Promise<void> {
   const direction = opts.direction ?? 'TB'
   const { byId, oriented, hung, hungIds } = layoutBasics(circuit)
   prepareNodes(circuit, hung, direction)

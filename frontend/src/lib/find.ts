@@ -17,7 +17,8 @@ export function everything(): Hit[] {
   const hits: Hit[] = nodes.map((n) => ({
     kind: 'node',
     id: n.id,
-    name: String(n.data.params.name ?? ''),
+    // A note is found by what it says: its text, on one line.
+    name: n.type === 'note' ? noteSummary(n.data.params.text) : String(n.data.params.name ?? ''),
     type: n.type ?? '',
     frame: [n.id],
   }))
@@ -26,6 +27,12 @@ export function everything(): Hit[] {
     hits.push({ kind: 'edge', id: e.id, name: String(e.data?.params?.name ?? ''), type: 'line', frame: [e.source, e.target] })
   }
   return hits.filter((h) => h.name)
+}
+
+/** A note's text as one short line, for lists. */
+export function noteSummary(text: unknown, max = 60): string {
+  const flat = String(text ?? '').replace(/\s+/g, ' ').trim()
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat
 }
 
 /** Names that start with the query come first, then names containing it. */

@@ -16,7 +16,7 @@ import {
 import { canSaveInPlace } from './fileSystem'
 import { renderedEdgePoints } from './edgeGeometry'
 import { align, distribute, type Alignment, type Axis, type Box } from './arrange'
-import { NODE_SIZE } from './defaults'
+import { hasElements, NODE_SIZE } from './defaults'
 import type { AppNode } from '../store/circuitStore'
 import { runSolve } from './solve'
 import { redo, undo, useCircuitStore } from '../store/circuitStore'
@@ -143,7 +143,9 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
   const cs = useCircuitStore.getState()
   const rs = useResultsStore.getState()
   const ui = useUiStore.getState()
-  const empty = cs.nodes.length === 0
+  // Nothing to solve or export; notes alone are only drawing.
+  const empty = !hasElements(cs.nodes)
+  const blank = cs.nodes.length === 0
   const selNodes = cs.nodes.filter((n) => n.selected)
   const selEdges = cs.edges.filter((e) => e.selected)
   const nothingSelected = selNodes.length + selEdges.length === 0
@@ -204,11 +206,11 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
           sep,
           item('Image (SVG)', () => void exportImage('svg'), {
             title: 'An editable vector drawing, with the active overlay and a legend',
-            disabled: empty,
+            disabled: blank,
           }),
           item('Image (PNG)', () => void exportImage('png'), {
             title: 'A 2× bitmap, with the active overlay and a legend',
-            disabled: empty,
+            disabled: blank,
           }),
         ],
       },
@@ -227,10 +229,15 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
       item('Duplicate', () => cs.duplicateSelection(), { keys: 'Mod+D', disabled: selNodes.length === 0 }),
       item('Delete', ops.deleteSelection, { keys: 'Delete', disabled: nothingSelected }),
       sep,
-      item('Select all', selectAll, { keys: 'Mod+A', disabled: empty }),
+      item('Select all', selectAll, { keys: 'Mod+A', disabled: blank }),
       item('Select none', () => cs.clearSelection(), { keys: 'Mod+Shift+A', disabled: nothingSelected }),
       sep,
-      item('Find…', () => ui.openDialog('find'), { keys: 'Mod+F', disabled: empty }),
+      item('Find…', () => ui.openDialog('find'), { keys: 'Mod+F', disabled: blank }),
+      sep,
+      item('Add note', () => cs.setPlacement('note'), {
+        keys: 'N',
+        title: 'Click the drawing where a text note should go; right-click an element to point a note at it',
+      }),
     ],
   }
 

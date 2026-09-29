@@ -2,11 +2,15 @@ import { useReactFlow } from '@xyflow/react'
 import { renderedEdgePoints } from '../lib/edgeGeometry'
 import { effectivePhasing } from '../lib/phasing'
 import { allOfType, downstreamOf, onPhase } from '../lib/selection'
+import { NODE_SIZE } from '../lib/defaults'
 import { useCircuitStore } from '../store/circuitStore'
+import { useUiStore } from '../store/uiStore'
+import type { NodeType } from '../types/circuit'
 import { typeLabel } from './BulkEditor'
 
 export interface MenuTarget {
-  kind: 'node' | 'edge'
+  /** 'pane' is empty canvas; its id is unused. */
+  kind: 'node' | 'edge' | 'pane'
   id: string
   x: number
   y: number
@@ -19,7 +23,7 @@ interface MenuItem {
   action: () => void
 }
 
-/** Right-click menu for nodes and edges. */
+/** Right-click menu for nodes, edges and empty canvas. */
 export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: () => void }) {
   const { deleteElements, screenToFlowPosition } = useReactFlow()
   const store = useCircuitStore.getState()
@@ -27,6 +31,27 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
   const edge = target.kind === 'edge' ? store.edges.find((e) => e.id === target.id) : undefined
 
   const items: MenuItem[] = []
+  const at = () => screenToFlowPosition({ x: target.x, y: target.y }, { snapToGrid: false })
+  const writeNote = (pos: { x: number; y: number }, pointAt?: string) => {
+    const id = store.addNote(pos, pointAt)
+    useUiStore.getState().setEditingNote(id)
+  }
+
+  if (target.kind === 'pane') {
+    items.push({ label: 'Add note here', hint: 'N', action: () => writeNote(at()) })
+  }
+
+  if (node?.type === 'note') {
+    items.push({ label: 'Edit text', action: () => useUiStore.getState().setEditingNote(node.id) })
+  } else if (node) {
+    // Up and to the right of the element, clear of its label.
+    const size = NODE_SIZE[(node.type as NodeType) ?? 'load']
+    const w = (node.measured?.width ?? node.width ?? size.w) as number
+    items.push({
+      label: 'Add note pointing here',
+      action: () => writeNote({ x: node.position.x + w + 120, y: node.position.y - 40 }, node.id),
+    })
+  }
 
   if (node) {
     // Everything that compiles to a switch can be opened and closed here.
@@ -44,7 +69,7 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
         action: () => store.updateNodeParams(node.id, { closed: !closed }),
       })
     }
-    if (node.type !== 'busbar') {
+    if (node.type !== 'busbar' && node.type !== 'note') {
       items.push({ label: 'Rotate 90°', hint: 'R', action: () => store.rotateNodes([node.id]) })
       items.push({ label: 'Flip horizontally', hint: 'Shift+H', action: () => store.flipNodes([node.id], 'horizontal') })
     }
@@ -71,8 +96,16 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
       items.push({
         label: 'Split line here',
         action: () => {
-          const at = screenToFlowPosition({ x: target.x, y: target.y }, { snapToGrid: false })
-          store.splitLine(edge.id, at, renderedEdgePoints(edge.id))
+          store.splitLine(edge.id, at(), renderedEdgePoints(edge.id))
+        },
+      })
+    }
+    if (edge.type === 'line') {
+      items.push({
+        label: 'Add note pointing here',
+        action: () => {
+          const p = at()
+          writeNote({ x: p.x + 120, y: p.y - 60 }, edge.id)
         },
       })
     }
@@ -95,7 +128,7 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
   // the type and phase picks come from the element clicked.
   const type = node ? node.type ?? '' : edge?.type === 'line' ? 'line' : ''
   const picked = node ? { kind: 'node' as const, id: node.id } : edge ? { kind: 'edge' as const, id: edge.id } : null
-  if (picked && (node || edge?.type === 'line')) {
+  if (picked && node?.type !== 'note' && (node || edge?.type === 'line')) {
     items.push({
       label: 'Select everything downstream',
       action: () => store.selectMany(downstreamOf(store.nodes, store.edges, picked)),

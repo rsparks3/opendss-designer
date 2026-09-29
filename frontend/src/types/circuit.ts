@@ -14,6 +14,8 @@ export type NodeType =
   | 'fuse'
   | 'recloser'
   | 'relay'
+  /** A text annotation: no terminals, never compiled or solved. */
+  | 'note'
 export type EdgeKind = 'wire' | 'line'
 
 export type Params = Record<string, unknown>

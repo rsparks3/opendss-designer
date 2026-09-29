@@ -75,6 +75,10 @@ export function onPhase(params: Params | undefined, letter: string): boolean {
   return effectivePhasing(params).includes(letter)
 }
 
+/** A field that belongs to one element alone: a name is unique, and a
+ *  note's words and arrow are what make it that note. */
+const OWN_FIELDS = new Set(['name', 'text', 'target'])
+
 /** The fields every one of these types offers, by key and kind, in the order
  *  the first type lists them. Names are unique per element, so never bulk. */
 export function commonFields(types: string[]): Field[] {
@@ -82,7 +86,7 @@ export function commonFields(types: string[]): Field[] {
   const first = FIELDS[types[0]] ?? []
   return first.filter(
     (f) =>
-      f.key !== 'name' &&
+      !OWN_FIELDS.has(f.key) &&
       types.every((t) => (FIELDS[t] ?? []).some((g) => g.key === f.key && g.kind === f.kind)),
   )
 }

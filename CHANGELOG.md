@@ -103,6 +103,18 @@ of M7.
   them; the defaults are still 0.95–1.05 pu and 100 % of rating. The same
   dialog holds a study title block (title, case, engineer, company,
   description) for study reports.
+- **Notes on the drawing.** Press **N** (or the palette's *Note*, or
+  *Edit → Add note*) and click to place a text note, then type; Ctrl+Enter
+  or clicking away finishes, and double-click edits it again. Right-click
+  empty canvas for *Add note here*, or an element or line for *Add note
+  pointing here*, which draws an arrow to it that follows it around. Drag
+  either side to set a note's width; the properties panel sets its text
+  size, box and what it points at. Notes go into image exports, keep their
+  place beside what they point at through Clean up, are found by Find, and
+  are written into exported .dss files as `! Note:` comments (above the
+  element they point at). They are drawing only: editing one never makes
+  the results stale, and they do not count against the hosted plans' size
+  limits.
 
 ### Fixed
 

@@ -1,5 +1,5 @@
 import dagre from '@dagrejs/dagre'
-import { NODE_SIZE, SYMBOL_PITCH } from './defaults'
+import { isNote, NODE_SIZE, SYMBOL_PITCH } from './defaults'
 import type { CircuitEdgeJSON, CircuitJSON, CircuitNodeJSON } from '../types/circuit'
 
 const snap = (v: number) => Math.round(v / 10) * 10
@@ -138,6 +138,49 @@ function orientedEdges(circuit: CircuitJSON, dist: Map<string, number>): [string
  * rank starts beneath the loads.
  */
 export function autoLayout(circuit: CircuitJSON, opts: LayoutOptions = {}): void {
+  const restore = setNotesAside(circuit)
+  try {
+    layoutElements(circuit, opts)
+  } finally {
+    restore()
+  }
+}
+
+/** Take the notes out of a circuit for a layout pass, which places elements
+ *  only. The returned function puts them back, each note that points at
+ *  something moved by as much as that thing moved (a line's first end, for
+ *  a line), so it stays beside what it describes; the rest stay put. */
+export function setNotesAside(circuit: CircuitJSON): () => void {
+  const notes = circuit.nodes.filter(isNote)
+  if (!notes.length) return () => {}
+  const anchorOf = (target: unknown): string | undefined => {
+    if (typeof target !== 'string') return undefined
+    if (circuit.nodes.some((n) => n.id === target)) return target
+    return circuit.edges.find((e) => e.id === target)?.source
+  }
+  const anchors = new Map(notes.map((n) => [n.id, anchorOf(n.params.target)]))
+  const posOf = (id: string | undefined) => {
+    const p = circuit.nodes.find((n) => n.id === id)?.position
+    return p ? { x: p.x, y: p.y } : null
+  }
+  const before = new Map(notes.map((n) => [n.id, posOf(anchors.get(n.id))]))
+  circuit.nodes = circuit.nodes.filter((n) => !isNote(n))
+  return () => {
+    for (const note of notes) {
+      const was = before.get(note.id)
+      const now = posOf(anchors.get(note.id))
+      if (was && now && note.position) {
+        note.position = {
+          x: note.position.x + now.x - was.x,
+          y: note.position.y + now.y - was.y,
+        }
+      }
+    }
+    circuit.nodes = [...circuit.nodes, ...notes]
+  }
+}
+
+function layoutElements(circuit: CircuitJSON, opts: LayoutOptions): void {
   const direction = opts.direction ?? 'TB'
   const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
   const dist = distancesFromSources(circuit)

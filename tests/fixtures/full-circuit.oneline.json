@@ -150,6 +150,13 @@
       "position": { "x": 780, "y": 400 },
       "width": null,
       "params": { "name": "BAT1", "kv": 12.47, "kwrated": 250, "kwhrated": 1000, "effcharge": 95, "effdischarge": 95, "reserve": 20, "soc": 50, "phases": 3, "conn": "wye", "dispatch": "follow", "loadshape": "day24" }
+    },
+    {
+      "id": "n_note",
+      "type": "note",
+      "position": { "x": 300, "y": 20 },
+      "width": 180,
+      "params": { "text": "Utility source\nFault duty per 2026 study", "target": "n_src", "frame": true, "size": "normal" }
     }
   ],
   "edges": [

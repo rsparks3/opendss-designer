@@ -53,6 +53,9 @@ interface UiState {
   /** Phase colours the user picked; anything missing uses the theme's. */
   phasePalette: PhasePalette
   setPhasePalette: (p: PhasePalette) => void
+  /** The note whose text is being typed on the canvas, if any. */
+  editingNote: string | null
+  setEditingNote: (id: string | null) => void
 }
 
 const PREFIX = 'opendss-designer.'
@@ -104,6 +107,8 @@ const initialPalette = readPalette()
 export const useUiStore = create<UiState>()((set, get) => ({
   dialog: null,
   openDialog: (dialog) => set({ dialog }),
+  editingNote: null,
+  setEditingNote: (editingNote) => set({ editingNote }),
   closeDialog: () => set({ dialog: null }),
 
   panelOpen: {

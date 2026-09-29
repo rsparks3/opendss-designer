@@ -736,6 +736,22 @@ def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:
     imported file had go back above the elements they described."""
     res = compile_circuit(circuit, export=True)
     notes = {k.lower(): v for k, v in circuit.comments.items()}
+    # Notes on the drawing become comments too: one pointing at an element
+    # goes above that element, the rest in a block after the header.
+    dss_name = {diagram_id: full for full, diagram_id in res.element_map.items()}
+    pinned: dict[str, list[str]] = {}
+    loose: list[str] = []
+    for n in circuit.nodes:
+        if n.type != "note":
+            continue
+        text = _note_comment(n.params.get("text"))
+        target = dss_name.get(str(n.params.get("target") or ""))
+        if not text:
+            continue
+        if target:
+            pinned.setdefault(target.lower(), []).extend(text)
+        else:
+            loose.extend(text)
     body: list[str] = []
     for cmd in res.commands:
         m = _NEW_TARGET_RE.match(cmd)
@@ -744,8 +760,12 @@ def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:
             key = "circuit" if cls == "circuit" else f"{cls}.{m.group(2).lower()}"
             if key != "circuit" and key in notes:
                 body.extend(_as_comment(notes[key]))
+            # The first source is the circuit's own Vsource.
+            body.extend(pinned.get("vsource.source" if key == "circuit" else key, []))
         body.append(cmd)
     header = _as_comment(notes["circuit"]) + [""] if "circuit" in notes else []
+    if loose:
+        header += loose + [""]
     lines = [
         f"// {circuit.name} — exported by opendss-designer",
         "// Compile this file with OpenDSS / OpenDSSDirect, then: solve",
@@ -761,6 +781,14 @@ def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:
 
 
 _NEW_TARGET_RE = re.compile(r'^new\s+(?:object\s*=\s*)?"?([A-Za-z_]\w*)\.([^\s"=]+)', re.IGNORECASE)
+
+
+def _note_comment(text: object) -> list[str]:
+    """A note's text as comment lines headed "! Note:"."""
+    lines = [ln.strip() for ln in str(text or "").splitlines() if ln.strip()]
+    if not lines:
+        return []
+    return [f"! Note: {lines[0]}", *(f"!       {ln}" for ln in lines[1:])]
 
 
 def _as_comment(text: str) -> list[str]:

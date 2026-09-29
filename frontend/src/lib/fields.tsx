@@ -7,8 +7,11 @@ export interface Field {
   label: string
   /** 'loadshape' renders a dropdown of the circuit's loadshape library;
    *  'curve' one of the engine's time-current curves plus the circuit's own;
-   *  'phasing' which of A/B/C the element connects to. */
-  kind: 'number' | 'text' | 'select' | 'checkbox' | 'loadshape' | 'curve' | 'phasing'
+   *  'phasing' which of A/B/C the element connects to; 'textarea' several
+   *  lines of text; 'target' the element a note's arrow points at. */
+  kind:
+    | 'number' | 'text' | 'select' | 'checkbox' | 'loadshape' | 'curve' | 'phasing'
+    | 'textarea' | 'target'
   /** For kind 'loadshape': which shape category the dropdown offers.
    *  Default 'load'; 'any' lists both (storage dispatch). */
   shapeKind?: 'load' | 'irradiance' | 'any'
@@ -37,6 +40,12 @@ export function windingCount(params: Params | undefined): number {
 }
 
 export const FIELDS: Record<string, Field[]> = {
+  note: [
+    { key: 'text', label: 'Text', kind: 'textarea' },
+    { key: 'target', label: 'Points at', kind: 'target' },
+    { key: 'size', label: 'Text size', kind: 'select', options: ['small', 'normal', 'large'] },
+    { key: 'frame', label: 'Box', kind: 'checkbox' },
+  ],
   vsource: [
     { key: 'name', label: 'Name', kind: 'text' },
     { key: 'basekv', label: 'Base kV (LL)', kind: 'number', unit: 'kV' },
@@ -340,6 +349,42 @@ function LoadShapeSelect({
   )
 }
 
+/** Every named element a note can point at: symbols, busbars and lines,
+ *  sorted by name. */
+export function targetChoices(
+  nodes: readonly { id: string; type?: string; data: { params: Params } }[],
+  edges: readonly { id: string; type?: string; data?: { params: Params } }[],
+): { id: string; label: string }[] {
+  const out: { id: string; label: string }[] = []
+  for (const n of nodes) {
+    const name = n.data.params.name
+    if (n.type !== 'note' && typeof name === 'string' && name) out.push({ id: n.id, label: name })
+  }
+  for (const e of edges) {
+    const name = e.data?.params.name
+    if (e.type === 'line' && typeof name === 'string' && name) out.push({ id: e.id, label: `${name} (line)` })
+  }
+  return out.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }))
+}
+
+function TargetSelect({ value, onCommit }: { value: unknown; onCommit: (v: unknown) => void }) {
+  const nodes = useCircuitStore((s) => s.nodes)
+  const edges = useCircuitStore((s) => s.edges)
+  const choices = targetChoices(nodes, edges)
+  const current = typeof value === 'string' ? value : ''
+  return (
+    <select value={current} onChange={(e) => onCommit(e.target.value || undefined)}>
+      <option value="">(nothing)</option>
+      {choices.map((c) => (
+        <option key={c.id} value={c.id}>{c.label}</option>
+      ))}
+      {current && !choices.some((c) => c.id === current) && (
+        <option value={current}>(deleted element)</option>
+      )}
+    </select>
+  )
+}
+
 export function FieldInput({
   field,
   value,
@@ -363,6 +408,25 @@ export function FieldInput({
   }
   if (field.kind === 'phasing') {
     return <PhasingSelect value={value} onCommit={onCommit} />
+  }
+  if (field.kind === 'target') {
+    return <TargetSelect value={value} onCommit={onCommit} />
+  }
+  if (field.kind === 'textarea') {
+    return (
+      <textarea
+        rows={4}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => onCommit(draft)}
+        onKeyDown={(e) => {
+          // Enter is a new line; Ctrl+Enter (or Esc) finishes.
+          if ((e.key === 'Enter' && (e.ctrlKey || e.metaKey)) || e.key === 'Escape') {
+            ;(e.target as HTMLTextAreaElement).blur()
+          }
+        }}
+      />
+    )
   }
   if (field.kind === 'checkbox') {
     return (

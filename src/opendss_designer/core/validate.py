@@ -203,10 +203,11 @@ def limit_issues(circuit: Circuit, cfg: Settings | None = None) -> list[Issue]:
     def over(limit: int | None, actual: int) -> bool:
         return limit is not None and actual > limit
 
-    if over(cfg.max_nodes, len(circuit.nodes)):
+    n_elements = len(circuit.elements)
+    if over(cfg.max_nodes, n_elements):
         issues.append(Issue(
             severity="error", code="limit-nodes",
-            message=f"This circuit has {len(circuit.nodes)} elements; {who} "
+            message=f"This circuit has {n_elements} elements; {who} "
                     f"is limited to {cfg.max_nodes}. Run OpenDSS Designer "
                     "locally (pip install opendss-designer) for full-size models."))
     if over(cfg.max_edges, len(circuit.edges)):

@@ -271,6 +271,26 @@ Storage only acts during [time-series runs](timeseries.md); in a snapshot it
 idles. Storage elements are excluded from fault studies (a crash in the
 underlying DSS engine — their fault contribution is negligible anyway).
 
+## Note — ++n++
+
+A note is text on the drawing, not an element: the engine never sees it.
+Click to place one and type; ++ctrl+enter++, ++esc++ or clicking away
+finishes, and double-clicking a note edits it again. Line breaks you type
+are kept, and long lines wrap at the note's width, which you set by
+dragging either side of a selected note.
+
+Right-click an element or a line and choose **Add note pointing here** to
+write a note with an arrow to it; the arrow follows the element when either
+moves, and **Clean up** moves the note along with it. **Points at** in the
+properties panel changes or removes the arrow, and **Text size** and **Box**
+set how it looks. Right-click empty canvas for **Add note here**.
+
+Notes appear in image exports and study reports, **Find** (++ctrl+f++)
+searches their text, and an exported `.dss` file keeps each one as a
+`! Note:` comment — above the element it points at, or after the file's
+header. Importing that file back reads them as ordinary comments, not
+notes. Editing a note never makes the results stale.
+
 ## Wires vs. Lines
 
 Dragging between two terminals creates a connection whose kind follows the

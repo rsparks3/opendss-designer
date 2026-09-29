@@ -27,7 +27,7 @@ MAX_COMMENT_TEXT = 4_000
 
 NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker",
                    "capacitor", "generator", "pvsystem", "storage", "regulator",
-                   "fuse", "recloser", "relay"]
+                   "fuse", "recloser", "relay", "note"]
 EdgeType = Literal["wire", "line"]
 
 
@@ -186,6 +186,11 @@ class Circuit(BaseModel):
     def criteria(self) -> Limits:
         return self.limits or Limits()
 
+    @property
+    def elements(self) -> list[CircuitNode]:
+        """The nodes that are part of the circuit: everything but notes."""
+        return [n for n in self.nodes if n.type != "note"]
+
 
 class Issue(BaseModel):
     severity: Literal["error", "warning"]
@@ -211,6 +216,9 @@ NODE_TERMINALS: dict[str, list[str]] = {
     "generator": ["t1"],
     "pvsystem": ["t1"],
     "storage": ["t1"],
+    # A text annotation on the drawing: no terminals, so it joins no bus and
+    # the compiler, connectivity and validation never see it.
+    "note": [],
 }
 
 

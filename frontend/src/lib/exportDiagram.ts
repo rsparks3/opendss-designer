@@ -175,7 +175,7 @@ function inlineSvg(src: SVGSVGElement): SVGSVGElement {
 }
 
 /** Elements of the canvas that are chrome, not drawing. */
-const SKIP = ['react-flow__handle', 'react-flow__resize-control']
+const SKIP = ['react-flow__handle', 'react-flow__resize-control', 'note-placeholder']
 
 export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): string {
   const viewport = pane.querySelector('.react-flow__viewport') as HTMLElement | null

@@ -1,6 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import { useEffect, useRef } from 'react'
 import { api } from './lib/api'
+import { hasElements } from './lib/defaults'
 import { loadLineCodes } from './lib/lineCodes'
 import { runSolve } from './lib/solve'
 import { toCircuitJSON, useCircuitStore } from './store/circuitStore'
@@ -30,7 +31,7 @@ function useValidation() {
 
   useEffect(() => {
     window.clearTimeout(timer.current)
-    if (nodes.length === 0) {
+    if (!hasElements(nodes)) {
       setIssues([])
       setPhases(null)
       return

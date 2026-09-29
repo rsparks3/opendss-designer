@@ -66,7 +66,20 @@ export function defaultParams(type: NodeType): Params {
         phases: 3, conn: 'wye', dispatch: 'follow', loadshape: '',
         pctdischarge: 100, pctcharge: 100, dischargetrigger: 0, chargetrigger: 0,
       }
+    case 'note':
+      // No name: a note is not an element, so paste renaming, rename
+      // propagation and Find's element list all pass it by.
+      return { text: '', frame: true, size: 'normal' }
   }
+}
+
+/** A note is drawing, not circuit. */
+export const isNote = (n: { type?: string }): boolean => n.type === 'note'
+
+/** Whether a drawing holds anything to solve, export or validate: a page of
+ *  notes alone does not. */
+export function hasElements(nodes: readonly { type?: string }[]): boolean {
+  return nodes.some((n) => !isNote(n))
 }
 
 export function defaultLineParams(): Params {
@@ -97,4 +110,6 @@ export const NODE_SIZE: Record<NodeType, { w: number; h: number }> = {
   generator: { w: 40, h: 60 },
   pvsystem: { w: 40, h: 60 },
   storage: { w: 40, h: 60 },
+  // The width is the user's (drag the sides); the height follows the text.
+  note: { w: 160, h: 40 },
 }
