@@ -556,7 +556,12 @@
   "busDistances": {
    "bus_hv": 0.0,
    "bus_mv": 0.0,
-   "bus_fdr": 2.5
+   "bus_fdr": 2.5,
+   "bus_reg": 2.5,
+   "bus_prot": 2.5,
+   "bus_lat": 2.5,
+   "bus_tap": 2.5,
+   "tap1": 2.5
   }
  },
  "fault": {

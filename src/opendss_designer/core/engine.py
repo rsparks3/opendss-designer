@@ -351,6 +351,10 @@ _KM_PER_UNIT = {"km": 1.0, "m": 0.001, "mi": 1.609344, "kft": 0.3048,
                 "ft": 0.0003048, "in": 0.0000254, "cm": 0.00001, "none": 0.0}
 
 
+_SERIES_DEVICES = ("transformer", "regulator", "breaker", "fuse", "recloser", "relay")
+_SWITCHES = ("breaker", "fuse", "recloser", "relay")
+
+
 def _bus_distances(circuit: Circuit, conn: ConnectivityResult) -> dict[str, float]:
     """Shortest electrical distance (km) from any source to each bus, over
     line edges (their length) and closed 2-terminal devices (zero length).
@@ -371,8 +375,10 @@ def _bus_distances(circuit: Circuit, conn: ConnectivityResult) -> dict[str, floa
         km = max(length, 0.0) * _KM_PER_UNIT.get(str(p.get("units", "km")), 1.0)
         link(b1, b2, km)
     for n in circuit.nodes:
-        if n.type in ("transformer", "breaker"):
-            if n.type == "breaker" and not n.params.get("closed", True):
+        # Every two-terminal device carries the profile across it: a feeder
+        # behind a regulator or a recloser is still on the plot.
+        if n.type in _SERIES_DEVICES:
+            if n.type in _SWITCHES and not n.params.get("closed", True):
                 continue
             buses = conn.node_buses.get(n.id, [])
             for b in buses[1:]:

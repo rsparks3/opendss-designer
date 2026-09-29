@@ -68,3 +68,19 @@ def test_limits_are_validated():
     assert Circuit().criteria.vminPu == 0.95
     with pytest.raises(ValidationError):
         Circuit.model_validate({"limits": {"vminPu": -1}})
+
+
+def test_profile_distances_cross_every_series_device():
+    """The voltage profile follows the feeder through regulators and
+    protective devices, not only transformers and breakers."""
+    import json
+    from pathlib import Path
+
+    from opendss_designer.core.model import Circuit
+    fixture = Path(__file__).parent / "fixtures" / "full-circuit.oneline.json"
+    circuit = Circuit.model_validate(json.loads(fixture.read_text(encoding="utf-8")))
+    result = engine.solve(circuit)
+    dist = result["busDistances"]
+    # Behind the regulator, and behind the fuse/recloser/relay chain.
+    for node in ("n_bus4", "n_bus5", "n_bus7"):
+        assert result["nodeBuses"][node][0] in dist, node
