@@ -3,10 +3,13 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 0.7.0 — 2026-10-11
 
-Real feeders in, proof that the numbers are right, and the platform polish
-of M7.
+Real feeders in, proof that the numbers are right, the platform polish of
+M7, and the first study you can hand to a colleague: a PDF and Excel report
+built in the browser, with the abnormal-condition limits it judges against
+set per project, and notes on the drawing to say what the reader is looking
+at.
 
 ### Added
 
