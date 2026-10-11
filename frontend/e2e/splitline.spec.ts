@@ -29,6 +29,17 @@ test('right-click a line, Split line here: a new bus, two halves, still solves',
       return null
     }, before.id)
   await expect.poll(pointOnLine).not.toBeNull()
+  // Toggling the panel resizes the canvas and the view follows a frame or
+  // two later; on a slow runner the click would land where the line was.
+  const transform = () =>
+    page.locator('.react-flow__viewport').evaluate((el) => (el as HTMLElement).style.transform)
+  await expect
+    .poll(async () => {
+      const a = await transform()
+      await page.waitForTimeout(150)
+      return a === (await transform())
+    })
+    .toBe(true)
   const at = (await pointOnLine())!
   await page.mouse.click(at.x, at.y, { button: 'right' })
   await page.getByRole('button', { name: 'Split line here' }).click()
@@ -48,7 +59,6 @@ test('right-click a line, Split line here: a new bus, two halves, still solves',
   expect(after.sum).toBeCloseTo(before.length, 6)
   expect(after.first).toBeGreaterThan(0)
   expect(after.first).toBeLessThan(before.length)
-  await page.screenshot({ path: 'C:/Users/ryan/AppData/Local/Temp/claude/C--Users-ryan-Documents-opendss-interface/6b550ce7-9f6d-45bf-9b0d-6e419c05f272/scratchpad/split.png' })
 
   await page.getByRole('button', { name: /Solve/ }).click()
   await expect(page.locator('.result-badge').filter({ hasText: 'pu' }).first()).toBeVisible({ timeout: 20_000 })
