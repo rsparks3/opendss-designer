@@ -25,7 +25,7 @@
    },
    "bus_mv": {
     "vmagPu": [
-     1.00129,
+     1.00128,
      1.00129,
      1.00129
     ],
@@ -34,7 +34,7 @@
      -150.16,
      89.84
     ],
-    "vminPu": 1.00129,
+    "vminPu": 1.00128,
     "vmaxPu": 1.00129,
     "kvBase": 7.19956,
     "nodes": [
@@ -45,17 +45,17 @@
    },
    "bus_fdr": {
     "vmagPu": [
-     1.00147,
-     1.00163,
-     1.00153
+     1.00145,
+     1.00162,
+     1.00152
     ],
     "vangDeg": [
-     -30.23,
-     -150.23,
+     -30.24,
+     -150.24,
      89.76
     ],
-    "vminPu": 1.00147,
-    "vmaxPu": 1.00163,
+    "vminPu": 1.00145,
+    "vmaxPu": 1.00162,
     "kvBase": 7.19956,
     "nodes": [
      1,
@@ -65,33 +65,13 @@
    },
    "bus_reg": {
     "vmagPu": [
-     1.01395,
-     1.01412,
-     1.01401
-    ],
-    "vangDeg": [
-     -30.23,
-     -150.23,
-     89.76
-    ],
-    "vminPu": 1.01395,
-    "vmaxPu": 1.01412,
-    "kvBase": 7.19956,
-    "nodes": [
-     1,
-     2,
-     3
-    ]
-   },
-   "tap1": {
-    "vmagPu": [
      1.01394,
      1.01411,
-     1.01401
+     1.014
     ],
     "vangDeg": [
-     -30.23,
-     -150.23,
+     -30.24,
+     -150.24,
      89.76
     ],
     "vminPu": 1.01394,
@@ -103,19 +83,39 @@
      3
     ]
    },
-   "bus_lat": {
+   "tap1": {
     "vmagPu": [
-     1.01395,
-     1.01411,
-     1.01401
+     1.01393,
+     1.0141,
+     1.01399
     ],
     "vangDeg": [
-     -30.23,
-     -150.23,
+     -30.24,
+     -150.24,
      89.76
     ],
-    "vminPu": 1.01395,
-    "vmaxPu": 1.01411,
+    "vminPu": 1.01393,
+    "vmaxPu": 1.0141,
+    "kvBase": 7.19956,
+    "nodes": [
+     1,
+     2,
+     3
+    ]
+   },
+   "bus_lat": {
+    "vmagPu": [
+     1.01393,
+     1.0141,
+     1.01399
+    ],
+    "vangDeg": [
+     -30.24,
+     -150.24,
+     89.76
+    ],
+    "vminPu": 1.01393,
+    "vmaxPu": 1.0141,
     "kvBase": 7.19956,
     "nodes": [
      1,
@@ -125,17 +125,17 @@
    },
    "bus_tap": {
     "vmagPu": [
-     1.01395,
-     1.01411,
-     1.01401
+     1.01393,
+     1.0141,
+     1.01399
     ],
     "vangDeg": [
-     -30.23,
-     -150.23,
+     -30.24,
+     -150.24,
      89.76
     ],
-    "vminPu": 1.01395,
-    "vmaxPu": 1.01411,
+    "vminPu": 1.01393,
+    "vmaxPu": 1.0141,
     "kvBase": 7.19956,
     "nodes": [
      1,
@@ -145,17 +145,17 @@
    },
    "bus_prot": {
     "vmagPu": [
-     1.01395,
-     1.01412,
-     1.01401
+     1.01394,
+     1.0141,
+     1.014
     ],
     "vangDeg": [
-     -30.23,
-     -150.23,
+     -30.24,
+     -150.24,
      89.76
     ],
-    "vminPu": 1.01395,
-    "vmaxPu": 1.01412,
+    "vminPu": 1.01394,
+    "vmaxPu": 1.0141,
     "kvBase": 7.19956,
     "nodes": [
      1,
@@ -168,18 +168,19 @@
    "vsource.source": {
     "id": "n_src",
     "currents": [
-     1.82,
-     1.82,
-     1.82
+     1.85,
+     1.86,
+     1.86
     ],
     "phaseNodes": [
      1,
      2,
      3
     ],
-    "kw": -317.82,
-    "kvar": 174.97,
+    "kw": -325.52,
+    "kvar": 174.9,
     "normAmps": null,
+    "ratingKva": null,
     "loadingPct": null,
     "violations": [],
     "lossKw": null,
@@ -188,29 +189,30 @@
    "transformer.t1": {
     "id": "n_xfmr",
     "currents": [
-     1.82,
-     1.82,
-     1.82
+     1.85,
+     1.86,
+     1.86
     ],
     "phaseNodes": [
      1,
      2,
      3
     ],
-    "kw": 317.82,
-    "kvar": -174.97,
+    "kw": 325.52,
+    "kvar": -174.9,
     "normAmps": 55.22480835726854,
-    "loadingPct": 3.3,
+    "ratingKva": null,
+    "loadingPct": 3.4,
     "violations": [],
-    "lossKw": 0.0658,
-    "lossKvar": 1.0612
+    "lossKw": 0.0683,
+    "lossKvar": 1.1007
    },
    "transformer.reg1": {
     "id": "n_reg",
     "currents": [
      63.28,
      63.27,
-     63.27
+     63.28
     ],
     "phaseNodes": [
      1,
@@ -220,7 +222,8 @@
     "kw": 1300.29,
     "kvar": 427.41,
     "normAmps": 254.64526708443796,
-    "loadingPct": 24.8,
+    "ratingKva": null,
+    "loadingPct": 24.9,
     "violations": [],
     "lossKw": 0.0374,
     "lossKvar": 0.0424
@@ -228,47 +231,49 @@
    "line.ln1": {
     "id": "e4",
     "currents": [
-     9.09,
-     9.17,
-     9.74
+     9.26,
+     9.34,
+     9.92
     ],
     "phaseNodes": [
      1,
      2,
      3
     ],
-    "kw": 176.35,
-    "kvar": -97.88,
+    "kw": 180.63,
+    "kvar": -97.86,
     "normAmps": 400.0,
-    "loadingPct": 2.4,
+    "ratingKva": null,
+    "loadingPct": 2.5,
     "violations": [],
-    "lossKw": 0.0782,
-    "lossKvar": -1.3918
+    "lossKw": 0.0811,
+    "lossKvar": -1.3825
    },
    "line.ln2": {
     "id": "e4b",
     "currents": [
-     7.72,
-     7.66,
-     7.06
+     7.87,
+     7.8,
+     7.19
     ],
     "phaseNodes": [
      1,
      2,
      3
     ],
-    "kw": 141.4,
-    "kvar": -78.15,
+    "kw": 144.82,
+    "kvar": -78.14,
     "normAmps": 530.0,
+    "ratingKva": null,
     "loadingPct": 1.5,
     "violations": [],
-    "lossKw": 0.0625,
-    "lossKvar": -0.2025
+    "lossKw": 0.0648,
+    "lossKvar": -0.195
    },
    "line.brk1": {
     "id": "n_brk",
     "currents": [
-     48.07,
+     48.08,
      48.07,
      48.07
     ],
@@ -280,6 +285,7 @@
     "kw": 1000.19,
     "kvar": 328.75,
     "normAmps": 600.0,
+    "ratingKva": null,
     "loadingPct": 8.0,
     "violations": [],
     "lossKw": 0.0069,
@@ -300,6 +306,7 @@
     "kw": 300.06,
     "kvar": 98.62,
     "normAmps": 100.0,
+    "ratingKva": null,
     "loadingPct": 14.4,
     "violations": [],
     "lossKw": 0.0006,
@@ -320,6 +327,7 @@
     "kw": 300.06,
     "kvar": 98.62,
     "normAmps": 560.0,
+    "ratingKva": null,
     "loadingPct": 2.6,
     "violations": [],
     "lossKw": 0.0006,
@@ -340,6 +348,7 @@
     "kw": 300.06,
     "kvar": 98.62,
     "normAmps": 600.0,
+    "ratingKva": null,
     "loadingPct": 2.4,
     "violations": [],
     "lossKw": 0.0006,
@@ -360,6 +369,7 @@
     "kw": 300.01,
     "kvar": 98.67,
     "normAmps": null,
+    "ratingKva": null,
     "loadingPct": null,
     "violations": [],
     "lossKw": null,
@@ -380,6 +390,7 @@
     "kw": 1000.03,
     "kvar": 328.9,
     "normAmps": null,
+    "ratingKva": null,
     "loadingPct": null,
     "violations": [],
     "lossKw": null,
@@ -397,9 +408,10 @@
      2,
      3
     ],
-    "kw": -0.0,
-    "kvar": -601.85,
+    "kw": 0.0,
+    "kvar": -601.84,
     "normAmps": 37.50230297061723,
+    "ratingKva": null,
     "loadingPct": 74.2,
     "violations": [],
     "lossKw": null,
@@ -420,7 +432,8 @@
     "kw": -500.05,
     "kvar": -0.09,
     "normAmps": null,
-    "loadingPct": null,
+    "ratingKva": 750.0,
+    "loadingPct": 66.7,
     "violations": [],
     "lossKw": null,
     "lossKvar": null
@@ -428,19 +441,20 @@
    "pvsystem.pv1": {
     "id": "n_pv",
     "currents": [
-     22.42,
-     22.42,
-     22.42
+     22.07,
+     22.07,
+     22.07
     ],
     "phaseNodes": [
      1,
      2,
      3
     ],
-    "kw": -485.04,
+    "kw": -477.35,
     "kvar": -0.09,
     "normAmps": null,
-    "loadingPct": null,
+    "ratingKva": 650.0,
+    "loadingPct": 73.4,
     "violations": [],
     "lossKw": null,
     "lossKvar": null
@@ -460,15 +474,16 @@
     "kw": 2.5,
     "kvar": 0.0,
     "normAmps": null,
-    "loadingPct": null,
+    "ratingKva": 250.0,
+    "loadingPct": 1.0,
     "violations": [],
     "lossKw": null,
     "lossKvar": null
    }
   },
   "losses": {
-   "kw": 0.253,
-   "kvar": -0.482
+   "kw": 0.26,
+   "kvar": -0.426
   },
   "issues": [],
   "nodeBuses": {
@@ -569,12 +584,12 @@
   "buses": {
    "bus_hv": {
     "kvBase": 66.39528,
-    "if3phA": 10049.0,
-    "if1phA": 10548.8,
-    "scMva3": 2001.61,
+    "if3phA": 10050.6,
+    "if1phA": 10550.0,
+    "scMva3": 2001.94,
     "zsc1": {
-     "r": 1.60408,
-     "x": 6.40949
+     "r": 1.60315,
+     "x": 6.40861
     },
     "zsc0": {
      "r": 1.79604,
@@ -583,100 +598,100 @@
    },
    "bus_mv": {
     "kvBase": 7.19956,
-    "if3phA": 5512.3,
-    "if1phA": 5619.1,
-    "scMva3": 119.06,
+    "if3phA": 5529.4,
+    "if1phA": 5636.1,
+    "scMva3": 119.43,
     "zsc1": {
-     "r": 0.10402,
-     "x": 1.30193
+     "r": 0.10205,
+     "x": 1.29805
     },
     "zsc0": {
-     "r": 0.08454,
-     "x": 1.22877
+     "r": 0.08289,
+     "x": 1.22538
     }
    },
    "bus_fdr": {
     "kvBase": 7.19956,
-    "if3phA": 3933.1,
-    "if1phA": 3293.5,
-    "scMva3": 84.95,
+    "if3phA": 3949.8,
+    "if1phA": 3310.6,
+    "scMva3": 85.31,
     "zsc1": {
-     "r": 0.27309,
-     "x": 1.81004
+     "r": 0.26815,
+     "x": 1.80293
     },
     "zsc0": {
-     "r": 0.65507,
-     "x": 2.82696
+     "r": 0.64007,
+     "x": 2.81125
     }
    },
    "bus_reg": {
     "kvBase": 7.19956,
-    "if3phA": 3925.7,
-    "if1phA": 3288.3,
-    "scMva3": 84.79,
+    "if3phA": 3942.4,
+    "if1phA": 3305.4,
+    "scMva3": 85.15,
     "zsc1": {
-     "r": 0.27625,
-     "x": 1.81301
+     "r": 0.2713,
+     "x": 1.8059
     },
     "zsc0": {
-     "r": 0.65823,
-     "x": 2.82985
+     "r": 0.64324,
+     "x": 2.81414
     }
    },
    "tap1": {
     "kvBase": 7.19956,
-    "if3phA": 3923.4,
-    "if1phA": 3286.6,
-    "scMva3": 84.74,
+    "if3phA": 3940.1,
+    "if1phA": 3303.6,
+    "scMva3": 85.1,
     "zsc1": {
-     "r": 0.27726,
-     "x": 1.81398
+     "r": 0.27231,
+     "x": 1.80687
     },
     "zsc0": {
-     "r": 0.65924,
-     "x": 2.8308
+     "r": 0.64425,
+     "x": 2.81509
     }
    },
    "bus_lat": {
     "kvBase": 7.19956,
-    "if3phA": 3920.9,
-    "if1phA": 3284.8,
-    "scMva3": 84.69,
+    "if3phA": 3937.6,
+    "if1phA": 3301.9,
+    "scMva3": 85.05,
     "zsc1": {
-     "r": 0.27825,
-     "x": 1.81499
+     "r": 0.27331,
+     "x": 1.80788
     },
     "zsc0": {
-     "r": 0.66024,
-     "x": 2.83182
+     "r": 0.64525,
+     "x": 2.81611
     }
    },
    "bus_tap": {
     "kvBase": 7.19956,
-    "if3phA": 3918.5,
-    "if1phA": 3283.1,
-    "scMva3": 84.63,
+    "if3phA": 3935.1,
+    "if1phA": 3300.1,
+    "scMva3": 84.99,
     "zsc1": {
-     "r": 0.27926,
-     "x": 1.81598
+     "r": 0.27431,
+     "x": 1.80887
     },
     "zsc0": {
-     "r": 0.66124,
-     "x": 2.83281
+     "r": 0.64625,
+     "x": 2.81709
     }
    },
    "bus_prot": {
     "kvBase": 7.19956,
-    "if3phA": 3923.3,
-    "if1phA": 3286.5,
-    "scMva3": 84.74,
+    "if3phA": 3940.0,
+    "if1phA": 3303.6,
+    "scMva3": 85.1,
     "zsc1": {
-     "r": 0.27725,
-     "x": 1.814
+     "r": 0.2723,
+     "x": 1.80689
     },
     "zsc0": {
-     "r": 0.65924,
-     "x": 2.83084
+     "r": 0.64424,
+     "x": 2.81513
     }
    }
   },
@@ -794,8 +809,8 @@
       ]
      }
     ],
-    "faultA3ph": 3918.5,
-    "faultA1ph": 3283.1
+    "faultA3ph": 3935.1,
+    "faultA1ph": 3300.1
    },
    {
     "nodeId": "n_rec",
@@ -861,8 +876,8 @@
       ]
      }
     ],
-    "faultA3ph": 3920.9,
-    "faultA1ph": 3284.8
+    "faultA3ph": 3937.6,
+    "faultA1ph": 3301.9
    },
    {
     "nodeId": "n_rly",
@@ -1008,8 +1023,8 @@
       ]
      }
     ],
-    "faultA3ph": 3923.3,
-    "faultA1ph": 3286.5
+    "faultA3ph": 3940.0,
+    "faultA1ph": 3303.6
    }
   ],
   "switches": [
@@ -1018,8 +1033,8 @@
     "name": "FU1",
     "kind": "fuse",
     "bus": "bus_tap",
-    "faultA3ph": 3918.5,
-    "faultA1ph": 3283.1,
+    "faultA3ph": 3935.1,
+    "faultA1ph": 3300.1,
     "interruptingKa": 10.0
    },
    {
@@ -1027,8 +1042,8 @@
     "name": "REC1",
     "kind": "recloser",
     "bus": "bus_lat",
-    "faultA3ph": 3920.9,
-    "faultA1ph": 3284.8,
+    "faultA3ph": 3937.6,
+    "faultA1ph": 3301.9,
     "interruptingKa": 8.0
    },
    {
@@ -1036,8 +1051,8 @@
     "name": "RLY1",
     "kind": "relay",
     "bus": "bus_prot",
-    "faultA3ph": 3923.3,
-    "faultA1ph": 3286.5,
+    "faultA3ph": 3940.0,
+    "faultA1ph": 3303.6,
     "interruptingKa": 12.5
    },
    {
@@ -1045,8 +1060,8 @@
     "name": "BRK1",
     "kind": "breaker",
     "bus": "tap1",
-    "faultA3ph": 3923.4,
-    "faultA1ph": 3286.6,
+    "faultA3ph": 3940.1,
+    "faultA1ph": 3303.6,
     "interruptingKa": 12.5
    }
   ],

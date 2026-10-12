@@ -45,7 +45,11 @@ choose what's shown:
   phase, so `0.962 pu B` is the B-phase voltage and a balanced bus stays
   unlabelled
 - **Loading** — pie charts and percentages on lines, transformers, and
-  breakers, colored by severity; overloads (≥ 100 %) in red
+  breakers, colored by severity; overloads (≥ 100 %) in red. Shunt
+  elements are judged too: a generator, PV system or storage unit by its
+  apparent power against its kVA rating, a capacitor by its current
+  against the 135 % of rated that IEEE 18 lets it carry continuously (so a
+  capacitor at rated voltage reads 74 %)
 - **Power** — kW/kvar labels on series elements
 - **Fault** — see below
 - **Phases** — the one view that needs no solve: lines and symbols (loads,

@@ -222,6 +222,7 @@ switched steps.
 | Parameter | Meaning |
 |---|---|
 | Rated kV, Output (kW), Power factor | Machine ratings |
+| Rating (kVA) | What the loading overlay and the report judge the machine against; left blank it is 1.2 × kW, OpenDSS's own default |
 | Mode | 1 = constant kW/pf; 3 = PV mode (holds a voltage setpoint) |
 | V setpoint (pu) | Held voltage in mode 3 |
 

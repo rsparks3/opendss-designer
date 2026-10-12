@@ -753,6 +753,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         nid = node_id()
         params = {"name": name, "kv": dss.Generators.kV(),
                   "kw": dss.Generators.kW(), "pf": dss.Generators.PF(),
+                  "kva": dss.Generators.kVARated(),
                   "phases": dss.CktElement.NumPhases(),
                   "model": dss.Generators.Model()}
         if buses:

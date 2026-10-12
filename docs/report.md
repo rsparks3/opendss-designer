@@ -33,10 +33,10 @@ The one-line in the report is drawn with whichever overlay is on
 |---|---|
 | **Title page** (always) | Study, case, circuit, who prepared it, date, software and solver versions, the planning criteria, and the number of each kind of element |
 | **Load flow** | *Load flow summary*: source kW/kvar/kVA/PF, total load, generation, capacitors, losses (and their share of the power in), lowest and highest voltage and where they occur, and the number of violations and warnings |
-| | *Abnormal conditions*: every bus under or over its voltage limits (or de-energized), and every line, transformer, regulator or switch at or above the warning or overload level, with phase, value and limit. Violations come first, worst first, then warnings |
+| | *Abnormal conditions*: every bus under or over its voltage limits (or de-energized), and every element at or above the warning or overload level, with phase, value and limit: lines, transformers, regulators and switches by current against their ampere rating, generators, PV and storage by apparent power against their kVA rating, capacitors against the 135 % of rated current IEEE 18 allows continuously. Violations come first, worst first, then warnings |
 | | *Bus voltages*: base kV (line-to-line), per-phase magnitude (pu) and angle, minimum, maximum and status, followed by a **voltage profile** against distance from the source with the limits drawn in |
 | | *Branch flows*: from and to bus, phases, per-phase current, rating, loading %, P, Q and losses for every series element |
-| | *Loads and generation*: each load's P, Q, S, PF and the voltage at its bus; generators, PV, storage and capacitors with their output |
+| | *Loads and generation*: each load's P, Q, S, PF and the voltage at its bus; generators, PV, storage and capacitors with their output, rating and loading |
 | | *Losses*: by element type, with the circuit total, and by element, largest first |
 | **One-line diagram** | The drawing as vectors, on a page turned to suit its shape (an 11×17 sheet for a large feeder), followed by a table of its [notes](components.md#note-n) |
 | **Short circuit** | For every bus: three-phase and line-to-ground fault current, three-phase MVA, the Thevenin R1, X1, R0 and X0, and X/R |

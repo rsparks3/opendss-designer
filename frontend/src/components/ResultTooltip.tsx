@@ -146,7 +146,11 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
                   <td>loading</td>
                   <td colSpan={3}>
                     {element[1].loadingPct.toFixed(0)}%
-                    {element[1].normAmps ? ` of ${element[1].normAmps} A` : ''}
+                    {element[1].normAmps
+                      ? ` of ${element[1].normAmps} A`
+                      : element[1].ratingKva
+                        ? ` of ${element[1].ratingKva} kVA`
+                        : ''}
                   </td>
                 </tr>
               )}

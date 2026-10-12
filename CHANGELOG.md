@@ -3,6 +3,19 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **Shunt elements have ratings too.** A generator, PV system or storage
+  unit is now loaded by its apparent power against its kVA rating (a
+  generator gained a *Rating (kVA)* field; blank keeps OpenDSS's 1.2 × kW),
+  and a capacitor by its current against the 135 % of rated that IEEE 18
+  lets it carry continuously. The loading overlay, the hover tooltip, the
+  time-series loading series and the study report's *Abnormal conditions*
+  and *Generation* tables all judge them; previously only lines,
+  transformers and switches were checked.
+
 ## 0.7.0 — 2026-10-11
 
 Real feeders in, proof that the numbers are right, the platform polish of

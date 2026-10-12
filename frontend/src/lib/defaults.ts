@@ -53,7 +53,7 @@ export function defaultParams(type: NodeType): Params {
     case 'capacitor':
       return { name: nextName('CAP'), kv: 12.47, kvar: 600, phases: 3, conn: 'wye', numsteps: 1 }
     case 'generator':
-      return { name: nextName('GEN'), kv: 12.47, kw: 1000, pf: 1.0, phases: 3, conn: 'wye', model: 1, vpu: 1.02 }
+      return { name: nextName('GEN'), kv: 12.47, kw: 1000, pf: 1.0, kva: 1200, phases: 3, conn: 'wye', model: 1, vpu: 1.02 }
     case 'pvsystem':
       return {
         name: nextName('PV'), kv: 12.47, kva: 500, pmpp: 500, pf: 1.0,

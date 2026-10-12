@@ -174,10 +174,20 @@ describe('study report model', () => {
     expect(counts).not.toContain('Buss')
   })
 
-  it('does not hold a capacitor to the loading criteria', () => {
+  it('holds shunt generation to its kVA rating and a capacitor to its continuous current', () => {
     const r = build({ circuit: { ...circuit, limits: { vminPu: 0.5, vmaxPu: 1.5, overloadPct: 50, warnPct: 1 } } })
     const types = table(r, 'abnormal').rows.map((x) => x.type)
-    expect(types).not.toContain('Capacitor')
+    expect(types).toContain('Generator')
+    expect(types).toContain('PV system')
+    expect(types).toContain('Capacitor')
+    expect(table(r, 'abnormal').note).toMatch(/kVA rating/)
+    const gens = table(r, 'generation')
+    const gen = gens.rows.find((x) => x.type === 'Generator')!
+    expect(gen.ratingUnit).toBe('kVA')
+    expect(gen.rating).toBe(750)
+    expect(gen.loading).toBeGreaterThan(60)
+    const cap = gens.rows.find((x) => x.type === 'Capacitor')!
+    expect(cap.ratingUnit).toBe('A')
   })
 
   it('prints cells and headers', () => {

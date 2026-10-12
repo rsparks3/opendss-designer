@@ -169,6 +169,9 @@ export interface ElementResult {
   kw: number
   kvar: number
   normAmps: number | null
+  /** Generators, PV and storage are rated in kVA, not amps; their loading
+   *  is apparent power against this. Absent in time-series slices. */
+  ratingKva?: number | null
   loadingPct: number | null
   violations: string[]
   /** Series elements (lines, transformers) only; null for shunt elements. */

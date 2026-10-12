@@ -63,3 +63,35 @@ def test_solve_reports_element_losses_and_distances():
     assert dist, "busDistances missing"
     assert min(dist.values()) == 0.0  # the source bus
     assert max(dist.values()) >= 2.5  # the 2.5 km line is on the path
+
+
+def test_shunt_generation_is_loaded_against_its_kva_rating():
+    """A generator, PV system or storage unit has no ampere rating, so its
+    loading is apparent power over the kVA rating (the generator's is the
+    engine's default of 1.2 x kW); a capacitor keeps the engine's own
+    NormalAmps, 135 % of rated current, as IEEE 18 allows."""
+    result = engine.solve(fixture_circuit())
+    assert result["converged"], result["issues"]
+    els = result["elements"]
+    gen = els["generator.gen1"]
+    assert gen["ratingKva"] == 750 and gen["normAmps"] is None
+    assert abs(gen["loadingPct"] - 100 * (gen["kw"] ** 2 + gen["kvar"] ** 2) ** 0.5 / 750) < 0.11
+    pv = els["pvsystem.pv1"]
+    assert pv["ratingKva"] == 650 and 70 < pv["loadingPct"] < 80
+    assert els["storage.bat1"]["ratingKva"] == 250
+    cap = els["capacitor.cap1"]
+    assert cap["ratingKva"] is None and cap["normAmps"] > 0
+    assert 70 < cap["loadingPct"] < 80  # rated voltage is 1/1.35 of the allowance
+    assert els["load.load1"]["loadingPct"] is None
+    assert els["line.ln1"]["ratingKva"] is None
+
+
+def test_generator_kva_rating_is_compiled_and_judged():
+    circuit = fixture_circuit()
+    gen = next(n for n in circuit.nodes if n.type == "generator")
+    gen.params["kva"] = 400  # below its 500 kW output
+    result = engine.solve(circuit)
+    assert result["converged"], result["issues"]
+    el = result["elements"]["generator.gen1"]
+    assert el["ratingKva"] == 400
+    assert el["loadingPct"] > 100 and "overload" in el["violations"]

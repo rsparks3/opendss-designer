@@ -252,7 +252,7 @@ export function buildReport(input: ReportInput): Report {
       out.push(abnormalSection(solved, names, limits))
       out.push(busSection(solved, names, limits, input.figures?.profile))
       out.push(branchSection(solved, names, limits))
-      out.push(loadSection(solved, names))
+      out.push(loadSection(solved, names, limits))
       out.push(lossSection(solved, names))
     }
   }
@@ -444,9 +444,6 @@ function abnormalRows(solve: SolveResult, names: Names, limits: LimitsJSON): Abn
     const flag = loadingFlag(e.loadingPct, limits)
     if (!flag || e.loadingPct == null) continue
     const { name, type } = names.element(e.id, full)
-    // Loading criteria are for what carries the feeder's current; a
-    // capacitor near its rated current is doing its job.
-    if (!SERIES.has(type)) continue
     const limit = flag === 'violation' ? limits.overloadPct : limits.warnPct
     const worst = byPhase(e.currents, e.phaseNodes)
     const peak = Math.max(...Object.values(worst))
@@ -497,7 +494,9 @@ function abnormalSection(solve: SolveResult, names: Names, limits: LimitsJSON): 
         })),
         flags: rows.map((r) => r.flag),
         note: rows.length
-          ? undefined
+          ? 'Lines, transformers and switches are judged by current against their ampere rating; ' +
+            'generators, PV and storage by apparent power against their kVA rating; a capacitor ' +
+            'against the 135 % of rated current it may carry continuously (IEEE 18).'
           : 'No bus voltage or element loading is outside the planning criteria.',
       },
     ],
@@ -611,9 +610,10 @@ function branchSection(solve: SolveResult, names: Names, limits: LimitsJSON): Re
   }
 }
 
-function loadSection(solve: SolveResult, names: Names): ReportSection {
+function loadSection(solve: SolveResult, names: Names, limits: LimitsJSON): ReportSection {
   const loads: Record<string, Cell>[] = []
   const gens: Record<string, Cell>[] = []
+  const genFlags: RowFlag[] = []
   for (const [full, e] of Object.entries(solve.elements)) {
     const { name, type } = names.element(e.id, full)
     const bus = solve.nodeBuses[e.id]?.[0]
@@ -638,8 +638,12 @@ function loadSection(solve: SolveResult, names: Names): ReportSection {
         phases: phaseLetters(e.phaseNodes),
         kw: num(-e.kw, 1),
         kvar: num(-e.kvar, 1),
+        rating: e.ratingKva != null ? num(e.ratingKva, 0) : e.normAmps != null ? num(e.normAmps, 0) : null,
+        ratingUnit: e.ratingKva != null ? 'kVA' : e.normAmps != null ? 'A' : '',
+        loading: num(e.loadingPct, 1),
         v: num(vbus, 4),
       })
+      genFlags.push(loadingFlag(e.loadingPct, limits))
     }
   }
   const tables: Table[] = [
@@ -671,10 +675,16 @@ function loadSection(solve: SolveResult, names: Names): ReportSection {
         { key: 'phases', label: 'Ph', width: 0.6 },
         { key: 'kw', label: 'P out', unit: 'kW', digits: 1 },
         { key: 'kvar', label: 'Q out', unit: 'kvar', digits: 1 },
+        { key: 'rating', label: 'Rating', digits: 0 },
+        { key: 'ratingUnit', label: 'Unit', width: 0.7 },
+        { key: 'loading', label: 'Loading', unit: '%', digits: 1 },
         { key: 'v', label: 'V min at bus', unit: 'pu', digits: 4 },
       ],
       rows: gens,
-      note: 'Output is positive delivered into the network; storage reads negative while charging.',
+      flags: genFlags,
+      note:
+        "Output is positive delivered into the network; storage reads negative while charging. " +
+        "Loading is apparent power against the kVA rating; a capacitor's is current against the 135 % of rated it may carry continuously.",
     })
   }
   return { id: 'loads', title: 'Loads and generation', tables, figures: [] }

@@ -135,14 +135,14 @@
       "type": "generator",
       "position": { "x": 620, "y": 400 },
       "width": null,
-      "params": { "name": "GEN1", "kv": 12.47, "kw": 500, "pf": 1.0, "phases": 3, "conn": "wye", "model": 1, "vpu": 1.02 }
+      "params": { "name": "GEN1", "kv": 12.47, "kw": 500, "pf": 1.0, "kva": 750, "phases": 3, "conn": "wye", "model": 1, "vpu": 1.02 }
     },
     {
       "id": "n_pv",
       "type": "pvsystem",
       "position": { "x": 700, "y": 400 },
       "width": null,
-      "params": { "name": "PV1", "kv": 12.47, "kva": 500, "pmpp": 500, "pf": 1.0, "irradiance": 1.0, "phases": 3, "conn": "wye", "loadshape": "sun24" }
+      "params": { "name": "PV1", "kv": 12.47, "kva": 650, "pmpp": 500, "pf": 1.0, "irradiance": 1.0, "phases": 3, "conn": "wye", "loadshape": "sun24" }
     },
     {
       "id": "n_stg",

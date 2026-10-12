@@ -640,6 +640,11 @@ def compile_circuit(circuit: Circuit,
         kv_bases.add(kv)
         cmd = (f"new generator.{name} bus1={bus} phases={phases} conn={gen_conn} "
                f"kv={kv:g} kw={kw:g} pf={pf:g} model={model}")
+        # The machine's rating, which its loading is judged against. Left
+        # blank the engine takes 1.2 x kW, as OpenDSS always has.
+        kva = _num(p, "kva")
+        if kva is not None and kva > 0:
+            cmd += f" kva={kva:g}"
         if model == 3:  # constant-V (PV) mode holds this voltage setpoint
             vpu = _num(p, "vpu", 1.0)
             cmd += f" vpu={vpu:g}"

@@ -176,6 +176,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'kv', label: 'Rated kV', kind: 'number', unit: 'kV' },
     { key: 'kw', label: 'Output', kind: 'number', unit: 'kW' },
     { key: 'pf', label: 'Power factor', kind: 'number' },
+    // What its loading is judged against; blank is the engine's 1.2 x kW.
+    { key: 'kva', label: 'Rating', kind: 'number', unit: 'kVA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },

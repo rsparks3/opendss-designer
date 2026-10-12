@@ -301,6 +301,22 @@ def _extract_buses() -> dict[str, Any]:
     return buses
 
 
+# Shunt generation is rated in kVA, not amps: the engine reports no
+# NormalAmps for these classes, so their loading is apparent power against
+# the unit's kVA rating (the inverter's, for PV and storage).
+_KVA_RATED = ("generator.", "pvsystem.", "storage.")
+
+
+def _kva_rating() -> float | None:
+    """The kVA rating of the active generator, PV system or storage unit
+    (a generator left without one is 1.2 x its kW, the engine's default)."""
+    try:
+        value = float(dss.Properties.Value("kVA"))
+    except Exception:
+        return None
+    return value if value > 0 else None
+
+
 def _extract_elements(element_map: dict[str, str],
                       overload_pct: float = 100.0) -> dict[str, Any]:
     elements: dict[str, Any] = {}
@@ -321,12 +337,17 @@ def _extract_elements(element_map: dict[str, str],
         kw = sum(powers[0 : 2 * ncond : 2])
         kvar = sum(powers[1 : 2 * ncond : 2])
         norm_amps = dss.CktElement.NormalAmps()
+        rating_kva = None
         loading = None
         violations: list[str] = []
         if norm_amps and norm_amps > 0 and t1_amps:
             loading = round(100.0 * max(t1_amps) / norm_amps, 1)
-            if loading >= overload_pct:
-                violations.append("overload")
+        elif full_name.startswith(_KVA_RATED):
+            rating_kva = _kva_rating()
+            if rating_kva:
+                loading = round(100.0 * math.hypot(kw, kvar) / rating_kva, 1)
+        if loading is not None and loading >= overload_pct:
+            violations.append("overload")
         # Losses are meaningful only for series elements — for shunt elements
         # (loads, generators, capacitors, sources) CktElement.Losses() reports
         # their power injection, not network loss.
@@ -339,6 +360,7 @@ def _extract_elements(element_map: dict[str, str],
             "kw": round(kw, 2),
             "kvar": round(kvar, 2),
             "normAmps": norm_amps or None,
+            "ratingKva": rating_kva,
             "loadingPct": loading,
             "violations": violations,
             "lossKw": round(loss_w[0] / 1000.0, 4) if loss_w is not None else None,
@@ -578,14 +600,16 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
             bus_kv_base[b] = round(dss.Bus.kVBase(), 5)  # line-to-neutral
 
         # Static per-element facts, captured once.
-        elem_static: list[tuple[str, str, int, int, float | None]] = []
+        elem_static: list[tuple[str, str, int, int, float | None, float | None]] = []
         for full_name, diagram_id in compiled.element_map.items():
             idx = dss.Circuit.SetActiveElement(full_name)
             if idx < 0 or dss.CktElement.Name().lower() != full_name:
                 continue
+            norm_amps = dss.CktElement.NormalAmps() or None
+            rating_kva = (_kva_rating() if not norm_amps and full_name.startswith(_KVA_RATED)
+                          else None)
             elem_static.append((full_name, diagram_id, dss.CktElement.NumPhases(),
-                                dss.CktElement.NumConductors(),
-                                dss.CktElement.NormalAmps() or None))
+                                dss.CktElement.NumConductors(), norm_amps, rating_kva))
 
         times: list[float] = []
         total_kw: list[float] = []
@@ -659,18 +683,25 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
                     if hi > vmax_rec["value"]:
                         vmax_rec = {"bus": b, "hour": hour, "value": round(hi, 5)}
 
-                for fn, _id, nphases, ncond, norm_amps in elem_static:
+                for fn, _id, nphases, ncond, norm_amps, rating_kva in elem_static:
                     dss.Circuit.SetActiveElement(fn)
                     powers = dss.CktElement.Powers()
                     currents = dss.CktElement.CurrentsMagAng()
                     t1_amps = currents[0:2 * nphases:2]
                     amps = max(t1_amps) if t1_amps else 0.0
+                    kw_el = sum(powers[0:2 * ncond:2])
+                    kvar_el = sum(powers[1:2 * ncond:2])
                     s = elem_series[fn]
-                    s["kw"].add(round(sum(powers[0:2 * ncond:2]), 2))
-                    s["kvar"].add(round(sum(powers[1:2 * ncond:2]), 2))
+                    s["kw"].add(round(kw_el, 2))
+                    s["kvar"].add(round(kvar_el, 2))
                     s["ampsMax"].add(round(amps, 2))
-                    s["loadingPct"].add(
-                        round(100.0 * amps / norm_amps, 1) if norm_amps else None)
+                    if norm_amps:
+                        s["loadingPct"].add(round(100.0 * amps / norm_amps, 1))
+                    elif rating_kva:
+                        s["loadingPct"].add(
+                            round(100.0 * math.hypot(kw_el, kvar_el) / rating_kva, 1))
+                    else:
+                        s["loadingPct"].add(None)
 
                 steps_done += 1
                 if progress_cb and (step + 1) % report_every == 0:
