@@ -19,7 +19,8 @@
     "angle": 30,
     "mvasc3": 200000,
     "mvasc1": 2100
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n2",
@@ -32,6 +33,10 @@
    "height": null,
    "params": {
     "name": "sourcebus"
+   },
+   "geo": {
+    "x": -300,
+    "y": 0
    }
   },
   {
@@ -60,7 +65,8 @@
     ],
     "xhl": 0.01,
     "pctloadloss": 0.001
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n4",
@@ -74,6 +80,10 @@
    "params": {
     "name": "800",
     "compact": true
+   },
+   "geo": {
+    "x": 0,
+    "y": 0
    }
   },
   {
@@ -102,7 +112,8 @@
     ],
     "xhl": 4.08,
     "pctloadloss": 1.9
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n6",
@@ -115,6 +126,10 @@
    "height": null,
    "params": {
     "name": "832"
+   },
+   "geo": {
+    "x": 4000,
+    "y": -400
    }
   },
   {
@@ -129,6 +144,10 @@
    "params": {
     "name": "888",
     "compact": true
+   },
+   "geo": {
+    "x": 4700,
+    "y": -400
    }
   },
   {
@@ -156,7 +175,8 @@
     "r": 2.7,
     "x": 1.6,
     "maxtapchange": 16
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n9",
@@ -169,6 +189,10 @@
    "height": null,
    "params": {
     "name": "814"
+   },
+   "geo": {
+    "x": 1600,
+    "y": 0
    }
   },
   {
@@ -182,6 +206,10 @@
    "height": null,
    "params": {
     "name": "814r"
+   },
+   "geo": {
+    "x": 2100,
+    "y": 0
    }
   },
   {
@@ -209,7 +237,8 @@
     "r": 2.7,
     "x": 1.6,
     "maxtapchange": 16
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n12",
@@ -236,7 +265,8 @@
     "r": 2.7,
     "x": 1.6,
     "maxtapchange": 16
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n13",
@@ -263,7 +293,8 @@
     "r": 2.5,
     "x": 1.5,
     "maxtapchange": 16
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n14",
@@ -276,6 +307,10 @@
    "height": null,
    "params": {
     "name": "852"
+   },
+   "geo": {
+    "x": 4000,
+    "y": -900
    }
   },
   {
@@ -289,6 +324,10 @@
    "height": null,
    "params": {
     "name": "852r"
+   },
+   "geo": {
+    "x": 4000,
+    "y": -600
    }
   },
   {
@@ -316,7 +355,8 @@
     "r": 2.5,
     "x": 1.5,
     "maxtapchange": 16
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n17",
@@ -343,7 +383,8 @@
     "r": 2.5,
     "x": 1.5,
     "maxtapchange": 16
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n18",
@@ -356,6 +397,10 @@
    "height": null,
    "params": {
     "name": "802"
+   },
+   "geo": {
+    "x": 400,
+    "y": 0
    }
   },
   {
@@ -369,6 +414,10 @@
    "height": null,
    "params": {
     "name": "806"
+   },
+   "geo": {
+    "x": 700,
+    "y": 0
    }
   },
   {
@@ -382,6 +431,10 @@
    "height": null,
    "params": {
     "name": "808"
+   },
+   "geo": {
+    "x": 1000,
+    "y": 0
    }
   },
   {
@@ -395,6 +448,10 @@
    "height": null,
    "params": {
     "name": "810"
+   },
+   "geo": {
+    "x": 1000,
+    "y": -800
    }
   },
   {
@@ -409,6 +466,10 @@
    "params": {
     "name": "812",
     "compact": true
+   },
+   "geo": {
+    "x": 1300,
+    "y": 0
    }
   },
   {
@@ -423,6 +484,10 @@
    "params": {
     "name": "850",
     "compact": true
+   },
+   "geo": {
+    "x": 2500,
+    "y": 0
    }
   },
   {
@@ -436,6 +501,10 @@
    "height": null,
    "params": {
     "name": "816"
+   },
+   "geo": {
+    "x": 2900,
+    "y": 0
    }
   },
   {
@@ -449,6 +518,10 @@
    "height": null,
    "params": {
     "name": "818"
+   },
+   "geo": {
+    "x": 2900,
+    "y": 400
    }
   },
   {
@@ -462,6 +535,10 @@
    "height": null,
    "params": {
     "name": "824"
+   },
+   "geo": {
+    "x": 3200,
+    "y": 0
    }
   },
   {
@@ -475,6 +552,10 @@
    "height": null,
    "params": {
     "name": "820"
+   },
+   "geo": {
+    "x": 2900,
+    "y": 800
    }
   },
   {
@@ -488,6 +569,10 @@
    "height": null,
    "params": {
     "name": "822"
+   },
+   "geo": {
+    "x": 2900,
+    "y": 1100
    }
   },
   {
@@ -501,6 +586,10 @@
    "height": null,
    "params": {
     "name": "826"
+   },
+   "geo": {
+    "x": 3500,
+    "y": 0
    }
   },
   {
@@ -514,6 +603,10 @@
    "height": null,
    "params": {
     "name": "828"
+   },
+   "geo": {
+    "x": 3200,
+    "y": -1200
    }
   },
   {
@@ -527,6 +620,10 @@
    "height": null,
    "params": {
     "name": "830"
+   },
+   "geo": {
+    "x": 3700,
+    "y": -1200
    }
   },
   {
@@ -540,6 +637,10 @@
    "height": null,
    "params": {
     "name": "854"
+   },
+   "geo": {
+    "x": 4000,
+    "y": -1200
    }
   },
   {
@@ -553,6 +654,10 @@
    "height": null,
    "params": {
     "name": "858"
+   },
+   "geo": {
+    "x": 4000,
+    "y": 0
    }
   },
   {
@@ -566,6 +671,10 @@
    "height": null,
    "params": {
     "name": "834"
+   },
+   "geo": {
+    "x": 4400,
+    "y": 0
    }
   },
   {
@@ -579,6 +688,10 @@
    "height": null,
    "params": {
     "name": "860"
+   },
+   "geo": {
+    "x": 5000,
+    "y": 0
    }
   },
   {
@@ -592,6 +705,10 @@
    "height": null,
    "params": {
     "name": "842"
+   },
+   "geo": {
+    "x": 4400,
+    "y": 400
    }
   },
   {
@@ -605,6 +722,10 @@
    "height": null,
    "params": {
     "name": "836"
+   },
+   "geo": {
+    "x": 5600,
+    "y": 0
    }
   },
   {
@@ -618,6 +739,10 @@
    "height": null,
    "params": {
     "name": "840"
+   },
+   "geo": {
+    "x": 6000,
+    "y": 0
    }
   },
   {
@@ -631,6 +756,10 @@
    "height": null,
    "params": {
     "name": "862"
+   },
+   "geo": {
+    "x": 5600,
+    "y": -400
    }
   },
   {
@@ -644,6 +773,10 @@
    "height": null,
    "params": {
     "name": "844"
+   },
+   "geo": {
+    "x": 4400,
+    "y": 700
    }
   },
   {
@@ -657,6 +790,10 @@
    "height": null,
    "params": {
     "name": "846"
+   },
+   "geo": {
+    "x": 4400,
+    "y": 1100
    }
   },
   {
@@ -670,6 +807,10 @@
    "height": null,
    "params": {
     "name": "848"
+   },
+   "geo": {
+    "x": 4400,
+    "y": 1400
    }
   },
   {
@@ -683,6 +824,10 @@
    "height": null,
    "params": {
     "name": "856"
+   },
+   "geo": {
+    "x": 4400,
+    "y": -1200
    }
   },
   {
@@ -696,6 +841,10 @@
    "height": null,
    "params": {
     "name": "864"
+   },
+   "geo": {
+    "x": 4000,
+    "y": 400
    }
   },
   {
@@ -709,6 +858,10 @@
    "height": null,
    "params": {
     "name": "838"
+   },
+   "geo": {
+    "x": 5600,
+    "y": -800
    }
   },
   {
@@ -722,6 +875,10 @@
    "height": null,
    "params": {
     "name": "890"
+   },
+   "geo": {
+    "x": 5000,
+    "y": -400
    }
   },
   {
@@ -742,7 +899,8 @@
     "phases": 3,
     "model": 1,
     "vminpu": 0.85
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n48",
@@ -762,7 +920,8 @@
     "phases": 3,
     "model": 5,
     "vminpu": 0.85
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n49",
@@ -782,7 +941,8 @@
     "phases": 3,
     "model": 2,
     "vminpu": 0.85
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n50",
@@ -802,7 +962,8 @@
     "phases": 3,
     "model": 1,
     "vminpu": 0.85
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n51",
@@ -823,7 +984,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "AB"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n52",
@@ -844,7 +1006,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n53",
@@ -865,7 +1028,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "AC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n54",
@@ -885,7 +1049,8 @@
     "phases": 3,
     "model": 5,
     "vminpu": 0.85
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n55",
@@ -906,7 +1071,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n56",
@@ -927,7 +1093,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n57",
@@ -948,7 +1115,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n58",
@@ -969,7 +1137,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n59",
@@ -989,8 +1158,11 @@
     "phases": 1,
     "model": 4,
     "vminpu": 0.85,
+    "cvrwatts": 1,
+    "cvrvars": 2,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n60",
@@ -1010,8 +1182,11 @@
     "phases": 1,
     "model": 4,
     "vminpu": 0.85,
+    "cvrwatts": 1,
+    "cvrvars": 2,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n61",
@@ -1032,7 +1207,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n62",
@@ -1053,7 +1229,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n63",
@@ -1074,7 +1251,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n64",
@@ -1095,7 +1273,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n65",
@@ -1116,7 +1295,8 @@
     "model": 5,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n66",
@@ -1137,7 +1317,8 @@
     "model": 5,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n67",
@@ -1158,7 +1339,8 @@
     "model": 5,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n68",
@@ -1179,7 +1361,8 @@
     "model": 5,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n69",
@@ -1200,7 +1383,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n70",
@@ -1221,7 +1405,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n71",
@@ -1242,7 +1427,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n72",
@@ -1263,7 +1449,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n73",
@@ -1284,7 +1471,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n74",
@@ -1305,7 +1493,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n75",
@@ -1326,7 +1515,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n76",
@@ -1347,7 +1537,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n77",
@@ -1368,7 +1559,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n78",
@@ -1389,7 +1581,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n79",
@@ -1410,7 +1603,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n80",
@@ -1431,7 +1625,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n81",
@@ -1452,7 +1647,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n82",
@@ -1473,7 +1669,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n83",
@@ -1494,7 +1691,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "AB"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n84",
@@ -1515,7 +1713,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "AB"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n85",
@@ -1536,7 +1735,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n86",
@@ -1557,7 +1757,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n87",
@@ -1578,7 +1779,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "AC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n88",
@@ -1599,7 +1801,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "AC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n89",
@@ -1620,7 +1823,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "AB"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n90",
@@ -1641,7 +1845,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "AB"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n91",
@@ -1662,7 +1867,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n92",
@@ -1683,7 +1889,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n93",
@@ -1704,7 +1911,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "AC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n94",
@@ -1725,7 +1933,8 @@
     "model": 2,
     "vminpu": 0.85,
     "phasing": "AC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n95",
@@ -1746,7 +1955,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "AB"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n96",
@@ -1767,7 +1977,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "AB"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n97",
@@ -1788,7 +1999,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n98",
@@ -1809,7 +2021,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n99",
@@ -1830,7 +2043,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "AC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n100",
@@ -1851,7 +2065,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "AC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n101",
@@ -1872,7 +2087,8 @@
     "model": 5,
     "vminpu": 0.85,
     "phasing": "AB"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n102",
@@ -1893,7 +2109,8 @@
     "model": 5,
     "vminpu": 0.85,
     "phasing": "AB"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n103",
@@ -1914,7 +2131,8 @@
     "model": 5,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n104",
@@ -1935,7 +2153,8 @@
     "model": 5,
     "vminpu": 0.85,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n105",
@@ -1956,7 +2175,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n106",
@@ -1977,7 +2197,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n107",
@@ -1998,7 +2219,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n108",
@@ -2019,7 +2241,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n109",
@@ -2040,7 +2263,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n110",
@@ -2061,7 +2285,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n111",
@@ -2082,7 +2307,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n112",
@@ -2103,7 +2329,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n113",
@@ -2124,7 +2351,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n114",
@@ -2145,7 +2373,8 @@
     "model": 1,
     "vminpu": 0.85,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n115",
@@ -2163,7 +2392,8 @@
     "conn": "wye",
     "phases": 3,
     "numsteps": 1
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n116",
@@ -2181,7 +2411,8 @@
     "conn": "wye",
     "phases": 3,
     "numsteps": 1
-   }
+   },
+   "geo": null
   }
  ],
  "edges": [
@@ -2193,7 +2424,8 @@
    "target": "imp_n2",
    "targetHandle": "b3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e2",
@@ -2203,7 +2435,8 @@
    "target": "imp_n2",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e3",
@@ -2213,7 +2446,8 @@
    "target": "imp_n4",
    "targetHandle": "b1",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e4",
@@ -2232,7 +2466,8 @@
      "x": 990,
      "y": 3770
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e5",
@@ -2242,7 +2477,8 @@
    "target": "imp_n7",
    "targetHandle": "b2",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e6",
@@ -2252,7 +2488,8 @@
    "target": "imp_n9",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e7",
@@ -2262,7 +2499,8 @@
    "target": "imp_n10",
    "targetHandle": "b0",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e8",
@@ -2272,7 +2510,8 @@
    "target": "imp_n9",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e9",
@@ -2282,7 +2521,8 @@
    "target": "imp_n10",
    "targetHandle": "b4",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e10",
@@ -2292,7 +2532,8 @@
    "target": "imp_n9",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e11",
@@ -2302,7 +2543,8 @@
    "target": "imp_n10",
    "targetHandle": "b8",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e12",
@@ -2312,7 +2554,8 @@
    "target": "imp_n14",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e13",
@@ -2322,7 +2565,8 @@
    "target": "imp_n15",
    "targetHandle": "b3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e14",
@@ -2332,7 +2576,8 @@
    "target": "imp_n14",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e15",
@@ -2342,7 +2587,8 @@
    "target": "imp_n15",
    "targetHandle": "b7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e16",
@@ -2352,7 +2598,8 @@
    "target": "imp_n14",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e17",
@@ -2362,7 +2609,8 @@
    "target": "imp_n15",
    "targetHandle": "b11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e18",
@@ -2380,7 +2628,8 @@
     "linecode": "300",
     "phasing": "ABC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e19",
@@ -2407,7 +2656,8 @@
      "x": 520,
      "y": 670
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e20",
@@ -2434,7 +2684,8 @@
      "x": 520,
      "y": 910
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e21",
@@ -2461,7 +2712,8 @@
      "x": 450,
      "y": 1140
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e22",
@@ -2488,7 +2740,8 @@
      "x": 590,
      "y": 1140
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e23",
@@ -2506,7 +2759,8 @@
     "linecode": "300",
     "phasing": "ABC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e24",
@@ -2524,7 +2778,8 @@
     "linecode": "301",
     "phasing": "ABC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e25",
@@ -2551,7 +2806,8 @@
      "x": 440,
      "y": 2090
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e26",
@@ -2578,7 +2834,8 @@
      "x": 890,
      "y": 2090
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e27",
@@ -2605,7 +2862,8 @@
      "x": 440,
      "y": 2330
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e28",
@@ -2632,7 +2890,8 @@
      "x": 440,
      "y": 2560
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e29",
@@ -2659,7 +2918,8 @@
      "x": 760,
      "y": 2330
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e30",
@@ -2686,7 +2946,8 @@
      "x": 1020,
      "y": 2330
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e31",
@@ -2713,7 +2974,8 @@
      "x": 1020,
      "y": 2560
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e32",
@@ -2740,7 +3002,8 @@
      "x": 1020,
      "y": 2790
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e33",
@@ -2767,7 +3030,8 @@
      "x": 1160,
      "y": 3770
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e34",
@@ -2794,7 +3058,8 @@
      "x": 770,
      "y": 4240
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e35",
@@ -2821,7 +3086,8 @@
      "x": 1400,
      "y": 4240
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e36",
@@ -2848,7 +3114,8 @@
      "x": 620,
      "y": 4710
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e37",
@@ -2875,7 +3142,8 @@
      "x": 920,
      "y": 4710
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e38",
@@ -2902,7 +3170,8 @@
      "x": 1400,
      "y": 4470
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e39",
@@ -2929,7 +3198,8 @@
      "x": 1400,
      "y": 4710
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e40",
@@ -2956,7 +3226,8 @@
      "x": 1400,
      "y": 4940
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e41",
@@ -2974,7 +3245,8 @@
     "linecode": "301",
     "phasing": "ABC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e42",
@@ -2992,7 +3264,8 @@
     "linecode": "301",
     "phasing": "ABC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e43",
@@ -3019,7 +3292,8 @@
      "x": 890,
      "y": 3030
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e44",
@@ -3046,7 +3320,8 @@
      "x": 1150,
      "y": 3030
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e45",
@@ -3073,7 +3348,8 @@
      "x": 390,
      "y": 4000
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e46",
@@ -3100,7 +3376,8 @@
      "x": 1160,
      "y": 4000
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e47",
@@ -3127,7 +3404,8 @@
      "x": 770,
      "y": 4470
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e48",
@@ -3154,7 +3432,8 @@
      "x": 920,
      "y": 4940
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e49",
@@ -3172,7 +3451,8 @@
     "linecode": "300",
     "phasing": "ABC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e50",
@@ -3182,7 +3462,8 @@
    "target": "imp_n35",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e51",
@@ -3192,7 +3473,8 @@
    "target": "imp_n38",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e52",
@@ -3202,7 +3484,8 @@
    "target": "imp_n40",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e53",
@@ -3212,7 +3495,8 @@
    "target": "imp_n42",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e54",
@@ -3222,7 +3506,8 @@
    "target": "imp_n31",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e55",
@@ -3232,7 +3517,8 @@
    "target": "imp_n31",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e56",
@@ -3242,7 +3528,8 @@
    "target": "imp_n31",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e57",
@@ -3252,7 +3539,8 @@
    "target": "imp_n46",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e58",
@@ -3262,7 +3550,8 @@
    "target": "imp_n18",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e59",
@@ -3272,7 +3561,8 @@
    "target": "imp_n19",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e60",
@@ -3282,7 +3572,8 @@
    "target": "imp_n18",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e61",
@@ -3292,7 +3583,8 @@
    "target": "imp_n19",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e62",
@@ -3302,7 +3594,8 @@
    "target": "imp_n20",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e63",
@@ -3312,7 +3605,8 @@
    "target": "imp_n21",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e64",
@@ -3322,7 +3616,8 @@
    "target": "imp_n25",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e65",
@@ -3332,7 +3627,8 @@
    "target": "imp_n27",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e66",
@@ -3342,7 +3638,8 @@
    "target": "imp_n27",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e67",
@@ -3352,7 +3649,8 @@
    "target": "imp_n28",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e68",
@@ -3362,7 +3660,8 @@
    "target": "imp_n24",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e69",
@@ -3372,7 +3671,8 @@
    "target": "imp_n26",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e70",
@@ -3382,7 +3682,8 @@
    "target": "imp_n26",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e71",
@@ -3392,7 +3693,8 @@
    "target": "imp_n29",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e72",
@@ -3402,7 +3704,8 @@
    "target": "imp_n26",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e73",
@@ -3412,7 +3715,8 @@
    "target": "imp_n30",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e74",
@@ -3422,7 +3726,8 @@
    "target": "imp_n30",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e75",
@@ -3432,7 +3737,8 @@
    "target": "imp_n31",
    "targetHandle": "c19",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e76",
@@ -3442,7 +3748,8 @@
    "target": "imp_n32",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e77",
@@ -3452,7 +3759,8 @@
    "target": "imp_n43",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e78",
@@ -3462,7 +3770,8 @@
    "target": "imp_n6",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e79",
@@ -3472,7 +3781,8 @@
    "target": "imp_n33",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e80",
@@ -3482,7 +3792,8 @@
    "target": "imp_n6",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e81",
@@ -3492,7 +3803,8 @@
    "target": "imp_n33",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e82",
@@ -3502,7 +3814,8 @@
    "target": "imp_n6",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e83",
@@ -3512,7 +3825,8 @@
    "target": "imp_n33",
    "targetHandle": "c19",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e84",
@@ -3522,7 +3836,8 @@
    "target": "imp_n33",
    "targetHandle": "c23",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e85",
@@ -3532,7 +3847,8 @@
    "target": "imp_n44",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e86",
@@ -3542,7 +3858,8 @@
    "target": "imp_n33",
    "targetHandle": "c27",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e87",
@@ -3552,7 +3869,8 @@
    "target": "imp_n34",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e88",
@@ -3562,7 +3880,8 @@
    "target": "imp_n33",
    "targetHandle": "c31",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e89",
@@ -3572,7 +3891,8 @@
    "target": "imp_n34",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e90",
@@ -3582,7 +3902,8 @@
    "target": "imp_n33",
    "targetHandle": "c35",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e91",
@@ -3592,7 +3913,8 @@
    "target": "imp_n34",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e92",
@@ -3602,7 +3924,8 @@
    "target": "imp_n34",
    "targetHandle": "c19",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e93",
@@ -3612,7 +3935,8 @@
    "target": "imp_n35",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e94",
@@ -3622,7 +3946,8 @@
    "target": "imp_n34",
    "targetHandle": "c23",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e95",
@@ -3632,7 +3957,8 @@
    "target": "imp_n35",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e96",
@@ -3642,7 +3968,8 @@
    "target": "imp_n34",
    "targetHandle": "c27",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e97",
@@ -3652,7 +3979,8 @@
    "target": "imp_n35",
    "targetHandle": "c19",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e98",
@@ -3662,7 +3990,8 @@
    "target": "imp_n35",
    "targetHandle": "c23",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e99",
@@ -3672,7 +4001,8 @@
    "target": "imp_n37",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e100",
@@ -3682,7 +4012,8 @@
    "target": "imp_n35",
    "targetHandle": "c27",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e101",
@@ -3692,7 +4023,8 @@
    "target": "imp_n37",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e102",
@@ -3702,7 +4034,8 @@
    "target": "imp_n35",
    "targetHandle": "c31",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e103",
@@ -3712,7 +4045,8 @@
    "target": "imp_n37",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e104",
@@ -3722,7 +4056,8 @@
    "target": "imp_n37",
    "targetHandle": "c19",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e105",
@@ -3732,7 +4067,8 @@
    "target": "imp_n38",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e106",
@@ -3742,7 +4078,8 @@
    "target": "imp_n37",
    "targetHandle": "c23",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e107",
@@ -3752,7 +4089,8 @@
    "target": "imp_n38",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e108",
@@ -3762,7 +4100,8 @@
    "target": "imp_n39",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e109",
@@ -3772,7 +4111,8 @@
    "target": "imp_n45",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e110",
@@ -3782,7 +4122,8 @@
    "target": "imp_n36",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e111",
@@ -3792,7 +4133,8 @@
    "target": "imp_n40",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e112",
@@ -3802,7 +4144,8 @@
    "target": "imp_n40",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e113",
@@ -3812,7 +4155,8 @@
    "target": "imp_n41",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e114",
@@ -3822,7 +4166,8 @@
    "target": "imp_n40",
    "targetHandle": "c19",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e115",
@@ -3832,7 +4177,8 @@
    "target": "imp_n41",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e116",
@@ -3842,7 +4188,8 @@
    "target": "imp_n41",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e117",
@@ -3852,7 +4199,8 @@
    "target": "imp_n42",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e118",
@@ -3862,7 +4210,8 @@
    "target": "imp_n40",
    "targetHandle": "c23",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e119",
@@ -3872,7 +4221,8 @@
    "target": "imp_n42",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   }
  ],
  "busNames": {},
@@ -4116,5 +4466,14 @@
   "load.s860": "! spot loads",
   "load.d802_806sb": "! distributed loads",
   "load.d858_864sb": "! 9-17-10 858-864 changed to phase A per error report"
- }
+ },
+ "voltageBases": [
+  69,
+  24.9,
+  4.16,
+  0.48
+ ],
+ "crs": null,
+ "limits": null,
+ "study": null
 }

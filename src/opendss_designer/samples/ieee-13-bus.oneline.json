@@ -19,7 +19,8 @@
     "angle": 30,
     "mvasc3": 20000,
     "mvasc1": 21000
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n2",
@@ -32,6 +33,10 @@
    "height": null,
    "params": {
     "name": "sourcebus"
+   },
+   "geo": {
+    "x": 200,
+    "y": 400
    }
   },
   {
@@ -60,7 +65,8 @@
     ],
     "xhl": 0.008,
     "pctloadloss": 0.001
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n4",
@@ -73,6 +79,10 @@
    "height": null,
    "params": {
     "name": "650"
+   },
+   "geo": {
+    "x": 200,
+    "y": 350
    }
   },
   {
@@ -100,7 +110,8 @@
     "r": 3,
     "x": 9,
     "maxtapchange": 16
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n6",
@@ -113,6 +124,10 @@
    "height": null,
    "params": {
     "name": "rg60"
+   },
+   "geo": {
+    "x": 200,
+    "y": 300
    }
   },
   {
@@ -140,7 +155,8 @@
     "r": 3,
     "x": 9,
     "maxtapchange": 16
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n8",
@@ -167,7 +183,8 @@
     "r": 3,
     "x": 9,
     "maxtapchange": 16
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n9",
@@ -195,7 +212,8 @@
     ],
     "xhl": 2,
     "pctloadloss": 1.1
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n10",
@@ -209,6 +227,10 @@
    "params": {
     "name": "633",
     "compact": true
+   },
+   "geo": {
+    "x": 350,
+    "y": 250
    }
   },
   {
@@ -222,6 +244,10 @@
    "height": null,
    "params": {
     "name": "634"
+   },
+   "geo": {
+    "x": 400,
+    "y": 250
    }
   },
   {
@@ -235,6 +261,10 @@
    "height": null,
    "params": {
     "name": "632"
+   },
+   "geo": {
+    "x": 200,
+    "y": 250
    }
   },
   {
@@ -248,6 +278,10 @@
    "height": null,
    "params": {
     "name": "670"
+   },
+   "geo": {
+    "x": 200,
+    "y": 200
    }
   },
   {
@@ -261,6 +295,10 @@
    "height": null,
    "params": {
     "name": "671"
+   },
+   "geo": {
+    "x": 200,
+    "y": 100
    }
   },
   {
@@ -274,6 +312,10 @@
    "height": null,
    "params": {
     "name": "680"
+   },
+   "geo": {
+    "x": 200,
+    "y": 0
    }
   },
   {
@@ -287,6 +329,10 @@
    "height": null,
    "params": {
     "name": "645"
+   },
+   "geo": {
+    "x": 100,
+    "y": 250
    }
   },
   {
@@ -300,6 +346,10 @@
    "height": null,
    "params": {
     "name": "646"
+   },
+   "geo": {
+    "x": 0,
+    "y": 250
    }
   },
   {
@@ -313,6 +363,10 @@
    "height": null,
    "params": {
     "name": "692"
+   },
+   "geo": {
+    "x": 250,
+    "y": 100
    }
   },
   {
@@ -326,6 +380,10 @@
    "height": null,
    "params": {
     "name": "675"
+   },
+   "geo": {
+    "x": 400,
+    "y": 100
    }
   },
   {
@@ -339,6 +397,10 @@
    "height": null,
    "params": {
     "name": "684"
+   },
+   "geo": {
+    "x": 100,
+    "y": 100
    }
   },
   {
@@ -352,6 +414,10 @@
    "height": null,
    "params": {
     "name": "611"
+   },
+   "geo": {
+    "x": 0,
+    "y": 100
    }
   },
   {
@@ -365,6 +431,10 @@
    "height": null,
    "params": {
     "name": "652"
+   },
+   "geo": {
+    "x": 100,
+    "y": 0
    }
   },
   {
@@ -389,7 +459,8 @@
     "c0": 0,
     "length": 0.001,
     "units": "none"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n24",
@@ -410,7 +481,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "ABC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n25",
@@ -431,7 +503,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n26",
@@ -452,7 +525,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n27",
@@ -473,7 +547,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n28",
@@ -494,7 +569,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n29",
@@ -515,7 +591,8 @@
     "model": 2,
     "vminpu": 0.95,
     "phasing": "BC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n30",
@@ -536,7 +613,8 @@
     "model": 5,
     "vminpu": 0.95,
     "phasing": "AC"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n31",
@@ -557,7 +635,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n32",
@@ -578,7 +657,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n33",
@@ -599,7 +679,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n34",
@@ -620,7 +701,8 @@
     "model": 5,
     "vminpu": 0.95,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n35",
@@ -641,7 +723,8 @@
     "model": 2,
     "vminpu": 0.95,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n36",
@@ -662,7 +745,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "A"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n37",
@@ -683,7 +767,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "B"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n38",
@@ -704,7 +789,8 @@
     "model": 1,
     "vminpu": 0.95,
     "phasing": "C"
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n39",
@@ -722,7 +808,8 @@
     "conn": "wye",
     "phases": 3,
     "numsteps": 1
-   }
+   },
+   "geo": null
   },
   {
    "id": "imp_n40",
@@ -741,7 +828,8 @@
     "phases": 1,
     "numsteps": 1,
     "phasing": "C"
-   }
+   },
+   "geo": null
   }
  ],
  "edges": [
@@ -753,7 +841,8 @@
    "target": "imp_n2",
    "targetHandle": "b3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e2",
@@ -763,7 +852,8 @@
    "target": "imp_n2",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e3",
@@ -773,7 +863,8 @@
    "target": "imp_n4",
    "targetHandle": "b7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e4",
@@ -783,7 +874,8 @@
    "target": "imp_n4",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e5",
@@ -793,7 +885,8 @@
    "target": "imp_n6",
    "targetHandle": "b3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e6",
@@ -803,7 +896,8 @@
    "target": "imp_n4",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e7",
@@ -813,7 +907,8 @@
    "target": "imp_n6",
    "targetHandle": "b7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e8",
@@ -823,7 +918,8 @@
    "target": "imp_n4",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e9",
@@ -833,7 +929,8 @@
    "target": "imp_n6",
    "targetHandle": "b11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e10",
@@ -843,7 +940,8 @@
    "target": "imp_n10",
    "targetHandle": "c1",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e11",
@@ -853,7 +951,8 @@
    "target": "imp_n11",
    "targetHandle": "b7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e12",
@@ -871,7 +970,8 @@
     "linecode": "mtx601",
     "phasing": "ABC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e13",
@@ -889,7 +989,8 @@
     "linecode": "mtx601",
     "phasing": "ABC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e14",
@@ -916,7 +1017,8 @@
      "x": 560,
      "y": 1050
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e15",
@@ -943,7 +1045,8 @@
      "x": 420,
      "y": 1290
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e16",
@@ -961,7 +1064,8 @@
     "linecode": "mtx602",
     "phasing": "ABC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e17",
@@ -979,7 +1083,8 @@
     "linecode": "mtx603",
     "phasing": "BC"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e18",
@@ -1006,7 +1111,8 @@
      "x": 900,
      "y": 1050
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e19",
@@ -1033,7 +1139,8 @@
      "x": 560,
      "y": 1750
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e20",
@@ -1060,7 +1167,8 @@
      "x": 880,
      "y": 1290
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e21",
@@ -1078,7 +1186,8 @@
     "linecode": "mtx605",
     "phasing": "C"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e22",
@@ -1096,7 +1205,8 @@
     "linecode": "mtx607",
     "phasing": "A"
    },
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e23",
@@ -1115,7 +1225,8 @@
      "x": 520,
      "y": 1290
     }
-   ]
+   ],
+   "geometry": null
   },
   {
    "id": "imp_e24",
@@ -1125,7 +1236,8 @@
    "target": "imp_n18",
    "targetHandle": "b5",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e25",
@@ -1135,7 +1247,8 @@
    "target": "imp_n14",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e26",
@@ -1145,7 +1258,8 @@
    "target": "imp_n11",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e27",
@@ -1155,7 +1269,8 @@
    "target": "imp_n11",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e28",
@@ -1165,7 +1280,8 @@
    "target": "imp_n11",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e29",
@@ -1175,7 +1291,8 @@
    "target": "imp_n16",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e30",
@@ -1185,7 +1302,8 @@
    "target": "imp_n17",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e31",
@@ -1195,7 +1313,8 @@
    "target": "imp_n18",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e32",
@@ -1205,7 +1324,8 @@
    "target": "imp_n19",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e33",
@@ -1215,7 +1335,8 @@
    "target": "imp_n19",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e34",
@@ -1225,7 +1346,8 @@
    "target": "imp_n19",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e35",
@@ -1235,7 +1357,8 @@
    "target": "imp_n21",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e36",
@@ -1245,7 +1368,8 @@
    "target": "imp_n22",
    "targetHandle": "c3",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e37",
@@ -1255,7 +1379,8 @@
    "target": "imp_n13",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e38",
@@ -1265,7 +1390,8 @@
    "target": "imp_n13",
    "targetHandle": "c11",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e39",
@@ -1275,7 +1401,8 @@
    "target": "imp_n13",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e40",
@@ -1285,7 +1412,8 @@
    "target": "imp_n19",
    "targetHandle": "c15",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   },
   {
    "id": "imp_e41",
@@ -1295,7 +1423,8 @@
    "target": "imp_n21",
    "targetHandle": "c7",
    "params": {},
-   "waypoints": null
+   "waypoints": null,
+   "geometry": null
   }
  ],
  "busNames": {},
@@ -1655,5 +1784,13 @@
   "capacitor.cap1": "!CAPACITOR DEFINITIONS",
   "line.650632": "!LINE DEFINITIONS",
   "line.671692": "!SWITCH DEFINITIONS"
- }
+ },
+ "voltageBases": [
+  115,
+  4.16,
+  0.48
+ ],
+ "crs": null,
+ "limits": null,
+ "study": null
 }

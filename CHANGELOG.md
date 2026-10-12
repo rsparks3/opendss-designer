@@ -19,6 +19,7 @@ This project follows [Semantic Versioning](https://semver.org/).
   the ground. Select and edit there, drag a bus to move it. Coordinate
   systems: pick any NAD83 State Plane or UTM zone (1,601 bundled), type an
   EPSG code, or paste a proj4/WKT definition, in **Project properties**.
+  The IEEE samples carry EPRI's bus coordinates, so they open on the map too.
 - **GIS layers and CSV tables.** **File → Import from → GIS layers or CSV
   tables** reads shapefiles (loose or zipped), GeoJSON and CSV: say what
   each layer is, match its columns to properties (done for you where the

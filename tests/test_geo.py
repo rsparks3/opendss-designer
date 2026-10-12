@@ -47,3 +47,16 @@ def test_export_writes_setbusxy_and_it_reimports():
     assert "setbusxy bus=a x=712000.5 y=875000.25" in text
     again = import_dss_files([{"name": "export.dss", "text": text}])["circuit"]
     assert _bus(again, "b")["geo"] == {"x": 712900.0, "y": 875100.0}
+
+
+def test_the_ieee_samples_open_on_the_map():
+    """The shipped IEEE samples carry EPRI's bus coordinates, so Map has
+    something to show the moment one is opened (the 34 and 123-bus masters
+    leave loading them to a run script; tests/ieee_feeders.py adds the line)."""
+    from opendss_designer.core import samples
+
+    for key in ("13", "34", "37", "123"):
+        nodes = samples.get_sample(f"ieee-{key}-bus")["nodes"]
+        buses = [n for n in nodes if n["type"] == "busbar"]
+        placed = [n for n in buses if n.get("geo")]
+        assert len(placed) >= 0.95 * len(buses), (key, len(placed), len(buses))

@@ -54,6 +54,9 @@ class Feeder:
     companions: tuple[str, ...] = ()
     # Voltage tolerance (pu) for the locked-tap comparison.
     tolerance: float = 0.002
+    # A bus-coordinate file the main file does not load itself; EPRI's
+    # Run_*.dss script loads it instead, so the import adds that one line.
+    coords: str = ""
 
 
 FEEDERS: tuple[Feeder, ...] = (
@@ -72,6 +75,7 @@ FEEDERS: tuple[Feeder, ...] = (
         key="34", folder="34Bus", main="ieee34Mod1.dss",
         title="IEEE 34-bus", voltage="ln",
         companions=("IEEELineCodes.DSS", "IEEE34_BusXY.csv"),
+        coords="IEEE34_BusXY.csv",
         published_taps=(
             "Transformer.reg1a.wdg=2 Tap=(0.00625 12 * 1 +)",
             "Transformer.reg1b.wdg=2 Tap=(0.00625 5 * 1 +)",
@@ -110,6 +114,7 @@ FEEDERS: tuple[Feeder, ...] = (
         title="IEEE 123-bus", voltage="ln",
         companions=("IEEELineCodes.DSS", "IEEE123Loads.DSS",
                     "IEEE123Regulators.DSS", "BusCoords.dat"),
+        coords="BusCoords.dat",
         published_taps=(
             "Transformer.reg1a.wdg=2 Tap=(0.00625 7 * 1 +)",
             "Transformer.reg2a.wdg=2 Tap=(0.00625 -1 * 1 +)",
@@ -193,6 +198,8 @@ def fixture_files(feeder: Feeder) -> list[dict[str, str]]:
     for name in (feeder.main, *feeder.companions):
         text = (FIXTURES / feeder.folder / name).read_text(encoding="utf-8",
                                                            errors="replace")
+        if name == feeder.main and feeder.coords:
+            text += f"\nBusCoords {feeder.coords}\n"
         out.append({"name": name, "text": text})
     return out
 
