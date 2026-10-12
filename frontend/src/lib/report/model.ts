@@ -123,6 +123,7 @@ export const TYPE_NAMES: Record<string, string> = {
   storage: 'Storage',
   line: 'Line',
   note: 'Note',
+  zone: 'Zone',
 }
 
 const SERIES = new Set(['line', 'transformer', 'regulator', 'breaker', 'fuse', 'recloser', 'relay'])
@@ -295,7 +296,7 @@ function studySection(meta: ReportMeta, circuit: CircuitJSON, solve: SolveResult
   const s = meta.study
   const counts = new Map<string, number>()
   for (const n of circuit.nodes) {
-    if (n.type === 'note') continue
+    if (n.type === 'note' || n.type === 'zone') continue
     counts.set(n.type, (counts.get(n.type) ?? 0) + 1)
   }
   const lines = circuit.edges.filter((e) => e.type === 'line').length

@@ -70,16 +70,22 @@ export function defaultParams(type: NodeType): Params {
       // No name: a note is not an element, so paste renaming, rename
       // propagation and Find's element list all pass it by.
       return { text: '', frame: true, size: 'normal' }
+    case 'zone':
+      return { label: '', color: 'grey' }
   }
 }
 
 /** A note is drawing, not circuit. */
 export const isNote = (n: { type?: string }): boolean => n.type === 'note'
+export const isZone = (n: { type?: string }): boolean => n.type === 'zone'
+/** Notes and zones: drawing, not circuit. Moving, editing or deleting one
+ *  never changes the results. */
+export const isAnnotation = (n: { type?: string }): boolean => isNote(n) || isZone(n)
 
 /** Whether a drawing holds anything to solve, export or validate: a page of
- *  notes alone does not. */
+ *  notes and zones alone does not. */
 export function hasElements(nodes: readonly { type?: string }[]): boolean {
-  return nodes.some((n) => !isNote(n))
+  return nodes.some((n) => !isAnnotation(n))
 }
 
 export function defaultLineParams(): Params {
@@ -112,4 +118,6 @@ export const NODE_SIZE: Record<NodeType, { w: number; h: number }> = {
   storage: { w: 40, h: 60 },
   // The width is the user's (drag the sides); the height follows the text.
   note: { w: 160, h: 40 },
+  // Both are the user's: drag to draw, or the handles once placed.
+  zone: { w: 240, h: 160 },
 }

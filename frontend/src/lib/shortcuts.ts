@@ -86,6 +86,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: 'P', action: 'Place a PV system' },
       { keys: 'A', action: 'Place storage' },
       { keys: 'N', action: 'Add a note' },
+      { keys: 'Z', action: 'Add a zone (drag to size)' },
       { keys: 'W', action: 'Connect with wires' },
       { keys: 'E', action: 'Connect with lines' },
       { keys: 'Esc', action: 'Stop placing / close a menu' },

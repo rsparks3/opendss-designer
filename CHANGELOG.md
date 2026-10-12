@@ -36,6 +36,15 @@ This project follows [Semantic Versioning](https://semver.org/).
   reason a feeder wants a relay at its head. The study report has a
   *Reliability* section: indices, zones, sections and every element's
   rates. Every incumbent sells this as a module.
+- **Zones on the drawing.** Press **Z** (or the palette's *Zone*, or *Edit
+  → Add zone*) and drag out a labelled, tinted rectangle behind a group
+  of elements, the way a one-line marks a substation, a feeder or a
+  service area; six colours, resizable by its handles, picked up by its
+  border or its label so that what is inside stays clickable and
+  box-selectable. Drawing only, like a note: never compiled, never
+  counted, never makes results stale, and Clean up redraws it around what
+  it held. Exported images and reports carry it; a `.dss` export records
+  it as a `! Zone:` comment naming the elements inside.
 
 ## 0.7.0 — 2026-10-11
 

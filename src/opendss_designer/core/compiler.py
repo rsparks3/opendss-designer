@@ -12,7 +12,7 @@ from pathlib import Path
 
 from . import passthrough
 from .connectivity import ConnectivityResult, sanitize_name, synthesize
-from .model import Circuit, Issue, LineCodeSpec
+from .model import ANNOTATION_TYPES, Circuit, Issue, LineCodeSpec
 from .phasing import nodes_for, phase_count
 
 # Fallback ratings so loading % is at least defined; a warning is attached
@@ -787,6 +787,9 @@ def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:
     header = _as_comment(notes["circuit"]) + [""] if "circuit" in notes else []
     if loose:
         header += loose + [""]
+    zones = _zone_comments(circuit, dss_name)
+    if zones:
+        header += zones + [""]
     lines = [
         f"// {circuit.name} — exported by opendss-designer",
         "// Compile this file with OpenDSS / OpenDSSDirect, then: solve",
@@ -802,6 +805,33 @@ def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:
 
 
 _NEW_TARGET_RE = re.compile(r'^new\s+(?:object\s*=\s*)?"?([A-Za-z_]\w*)\.([^\s"=]+)', re.IGNORECASE)
+
+
+def _zone_comments(circuit: Circuit, dss_name: dict[str, str]) -> list[str]:
+    """One comment per labelled zone, naming the elements drawn inside it
+    (a node by its corner, a line by both ends), so the grouping survives
+    into the file: "! Zone: Substation A - transformer.t1, line.brk1"."""
+    out: list[str] = []
+    pos = {n.id: n.position for n in circuit.nodes if n.position is not None}
+    for z in circuit.nodes:
+        if z.type != "zone" or z.position is None:
+            continue
+        label = " ".join(str(z.params.get("label") or "").split())
+        if not label:
+            continue
+        box = (z.position.x, z.position.y,
+               z.position.x + (z.width or 0), z.position.y + (z.height or 0))
+
+        def inside(node_id: str, box=box) -> bool:
+            p = pos.get(node_id)
+            return p is not None and box[0] <= p.x <= box[2] and box[1] <= p.y <= box[3]
+
+        members = [dss_name[n.id] for n in circuit.nodes
+                   if n.id in dss_name and n.type not in ANNOTATION_TYPES and inside(n.id)]
+        members += [dss_name[e.id] for e in circuit.edges
+                    if e.id in dss_name and inside(e.source) and inside(e.target)]
+        out.append(f"! Zone: {label}" + (" - " + ", ".join(members) if members else ""))
+    return out
 
 
 def _note_comment(text: object) -> list[str]:

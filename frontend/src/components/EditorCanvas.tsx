@@ -42,6 +42,7 @@ import { StorageNode } from './nodes/StorageNode'
 import { TransformerNode } from './nodes/TransformerNode'
 import { VsourceNode } from './nodes/VsourceNode'
 import { NoteNode } from './nodes/NoteNode'
+import { ZoneNode } from './nodes/ZoneNode'
 import { LineEdge } from './edges/LineEdge'
 import { WireEdge } from './edges/WireEdge'
 import { useGrabStore } from '../store/grabStore'
@@ -61,6 +62,7 @@ const nodeTypes = {
   pvsystem: PVSystemNode,
   storage: StorageNode,
   note: NoteNode,
+  zone: ZoneNode,
 }
 
 const edgeTypes = {
@@ -80,6 +82,7 @@ export function EditorCanvas() {
   const placementType = useCircuitStore((s) => s.placementType)
   const addNodeAt = useCircuitStore((s) => s.addNodeAt)
   const addBusbarAt = useCircuitStore((s) => s.addBusbarAt)
+  const addZoneAt = useCircuitStore((s) => s.addZoneAt)
   const setPlacement = useCircuitStore((s) => s.setPlacement)
   const addEdgeWaypoint = useCircuitStore((s) => s.addEdgeWaypoint)
   const flash = useResultsStore((s) => s.flash)
@@ -135,15 +138,16 @@ export function EditorCanvas() {
     [screenToFlowPosition, snap],
   )
 
+  const dragPlaced = placementType === 'busbar' || placementType === 'zone'
   const onOverlayDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (placementType === 'busbar') {
+      if (dragPlaced) {
         const p = flowPos(e)
         setBusbarDraft({ start: p, cur: p })
         e.currentTarget.setPointerCapture(e.pointerId)
       }
     },
-    [placementType, flowPos],
+    [dragPlaced, flowPos],
   )
 
   const onOverlayMove = useCallback(
@@ -155,11 +159,17 @@ export function EditorCanvas() {
 
   const onOverlayUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (placementType !== 'busbar') return
+      if (!dragPlaced) return
       const p = flowPos(e)
       const start = busbarDraft?.start ?? p
       const width = Math.abs(p.x - start.x)
-      if (width < 40) {
+      const height = Math.abs(p.y - start.y)
+      if (placementType === 'zone') {
+        // A plain click drops a default-size zone centred on the click;
+        // a drag draws the rectangle.
+        if (width < 40 || height < 30) addNodeAt('zone', start)
+        else addZoneAt({ x: Math.min(start.x, p.x), y: Math.min(start.y, p.y), w: width, h: height })
+      } else if (width < 40) {
         // A plain click drops a default-size bar centered on the click.
         addNodeAt('busbar', start)
       } else {
@@ -167,7 +177,7 @@ export function EditorCanvas() {
       }
       setBusbarDraft(null)
     },
-    [placementType, busbarDraft, flowPos, addNodeAt, addBusbarAt],
+    [dragPlaced, placementType, busbarDraft, flowPos, addNodeAt, addBusbarAt, addZoneAt],
   )
 
   const onPaneClick = useCallback(
@@ -225,6 +235,7 @@ export function EditorCanvas() {
       p: 'pvsystem',
       a: 'storage',
       n: 'note',
+      z: 'zone',
     }
     const onKey = (e: KeyboardEvent) => {
       const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(
@@ -356,7 +367,7 @@ export function EditorCanvas() {
         {showGrid && <Background variant={BackgroundVariant.Dots} gap={20} size={1} />}
         <Controls />
         <MiniMap pannable zoomable />
-        {busbarDraft && (
+        {busbarDraft && placementType === 'busbar' && (
           <ViewportPortal>
             <div
               className="busbar-preview"
@@ -367,8 +378,20 @@ export function EditorCanvas() {
             />
           </ViewportPortal>
         )}
+        {busbarDraft && placementType === 'zone' && (
+          <ViewportPortal>
+            <div
+              className="zone-preview"
+              style={{
+                transform: `translate(${Math.min(busbarDraft.start.x, busbarDraft.cur.x)}px, ${Math.min(busbarDraft.start.y, busbarDraft.cur.y)}px)`,
+                width: Math.max(10, Math.abs(busbarDraft.cur.x - busbarDraft.start.x)),
+                height: Math.max(10, Math.abs(busbarDraft.cur.y - busbarDraft.start.y)),
+              }}
+            />
+          </ViewportPortal>
+        )}
       </ReactFlow>
-      {placementType === 'busbar' && (
+      {dragPlaced && (
         <div
           className="placement-overlay"
           onPointerDown={onOverlayDown}
@@ -382,7 +405,9 @@ export function EditorCanvas() {
             ? 'Click and drag to size the busbar (or just click for a default one) — Esc to stop'
             : placementType === 'note'
               ? 'Click where the note goes, then type — Esc to stop'
-              : `Click to place a ${placementType} — drag from a connection dot to wire it up, Esc to stop`}
+              : placementType === 'zone'
+                ? 'Drag out the zone\'s rectangle (or just click for a default one) — Esc to stop'
+                : `Click to place a ${placementType} — drag from a connection dot to wire it up, Esc to stop`}
         </div>
       )}
       <PhaseLegend />

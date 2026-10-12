@@ -76,8 +76,8 @@ export function onPhase(params: Params | undefined, letter: string): boolean {
 }
 
 /** A field that belongs to one element alone: a name is unique, and a
- *  note's words and arrow are what make it that note. */
-const OWN_FIELDS = new Set(['name', 'text', 'target'])
+ *  note's words and arrow (or a zone's label) are what make it that one. */
+const OWN_FIELDS = new Set(['name', 'text', 'target', 'label'])
 
 /** The fields every one of these types offers, by key and kind, in the order
  *  the first type lists them. Names are unique per element, so never bulk. */

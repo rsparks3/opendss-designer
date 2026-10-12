@@ -1,5 +1,5 @@
 import dagre from '@dagrejs/dagre'
-import { isNote, NODE_SIZE, SYMBOL_PITCH } from './defaults'
+import { isAnnotation, isNote, isZone, NODE_SIZE, SYMBOL_PITCH } from './defaults'
 import type { CircuitEdgeJSON, CircuitJSON, CircuitNodeJSON } from '../types/circuit'
 
 const snap = (v: number) => Math.round(v / 10) * 10
@@ -146,13 +146,16 @@ export function autoLayout(circuit: CircuitJSON, opts: LayoutOptions = {}): void
   }
 }
 
-/** Take the notes out of a circuit for a layout pass, which places elements
- *  only. The returned function puts them back, each note that points at
- *  something moved by as much as that thing moved (a line's first end, for
- *  a line), so it stays beside what it describes; the rest stay put. */
+/** Take the notes and zones out of a circuit for a layout pass, which
+ *  places elements only. The returned function puts them back: each note
+ *  that points at something moved by as much as that thing moved (a line's
+ *  first end, for a line), so it stays beside what it describes, the rest
+ *  staying put; each zone redrawn around the elements it enclosed, wherever
+ *  the layout has put them, or left alone when it enclosed nothing. */
 export function setNotesAside(circuit: CircuitJSON): () => void {
   const notes = circuit.nodes.filter(isNote)
-  if (!notes.length) return () => {}
+  const zones = circuit.nodes.filter(isZone)
+  if (!notes.length && !zones.length) return () => {}
   const anchorOf = (target: unknown): string | undefined => {
     if (typeof target !== 'string') return undefined
     if (circuit.nodes.some((n) => n.id === target)) return target
@@ -164,7 +167,8 @@ export function setNotesAside(circuit: CircuitJSON): () => void {
     return p ? { x: p.x, y: p.y } : null
   }
   const before = new Map(notes.map((n) => [n.id, posOf(anchors.get(n.id))]))
-  circuit.nodes = circuit.nodes.filter((n) => !isNote(n))
+  const held = new Map(zones.map((z) => [z.id, elementsInZone(z, circuit)]))
+  circuit.nodes = circuit.nodes.filter((n) => !isAnnotation(n))
   return () => {
     for (const note of notes) {
       const was = before.get(note.id)
@@ -176,8 +180,42 @@ export function setNotesAside(circuit: CircuitJSON): () => void {
         }
       }
     }
-    circuit.nodes = [...circuit.nodes, ...notes]
+    for (const zone of zones) {
+      const boxes = (held.get(zone.id) ?? [])
+        .map((id) => circuit.nodes.find((n) => n.id === id))
+        .filter((n): n is CircuitNodeJSON => !!n?.position)
+        .map((n) => ({ ...n.position!, ...sizeOf(n) }))
+      if (!boxes.length) continue
+      const minX = Math.min(...boxes.map((b) => b.x)) - ZONE_PAD
+      const minY = Math.min(...boxes.map((b) => b.y)) - ZONE_PAD - ZONE_LABEL_H
+      const maxX = Math.max(...boxes.map((b) => b.x + b.w)) + ZONE_PAD
+      const maxY = Math.max(...boxes.map((b) => b.y + b.h)) + ZONE_PAD
+      zone.position = { x: snap(minX), y: snap(minY) }
+      zone.width = snap(maxX - minX)
+      zone.height = snap(maxY - minY)
+    }
+    circuit.nodes = [...zones, ...circuit.nodes, ...notes]
   }
+}
+
+/** Room a zone keeps around what it holds, and for its label. */
+const ZONE_PAD = 30
+const ZONE_LABEL_H = 20
+
+/** The elements whose centre is inside the zone's rectangle. */
+export function elementsInZone(zone: CircuitNodeJSON, circuit: CircuitJSON): string[] {
+  if (!zone.position) return []
+  const x0 = zone.position.x
+  const y0 = zone.position.y
+  const x1 = x0 + (zone.width ?? NODE_SIZE.zone.w)
+  const y1 = y0 + (zone.height ?? NODE_SIZE.zone.h)
+  return circuit.nodes
+    .filter((n) => !isAnnotation(n) && n.position)
+    .filter((n) => {
+      const c = center(n)
+      return c.x >= x0 && c.x <= x1 && c.y >= y0 && c.y <= y1
+    })
+    .map((n) => n.id)
 }
 
 function layoutElements(circuit: CircuitJSON, opts: LayoutOptions): void {

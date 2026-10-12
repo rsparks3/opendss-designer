@@ -17,8 +17,14 @@ export function everything(): Hit[] {
   const hits: Hit[] = nodes.map((n) => ({
     kind: 'node',
     id: n.id,
-    // A note is found by what it says: its text, on one line.
-    name: n.type === 'note' ? noteSummary(n.data.params.text) : String(n.data.params.name ?? ''),
+    // A note is found by what it says: its text, on one line. A zone by
+    // its label.
+    name:
+      n.type === 'note'
+        ? noteSummary(n.data.params.text)
+        : n.type === 'zone'
+          ? noteSummary(n.data.params.label)
+          : String(n.data.params.name ?? ''),
     type: n.type ?? '',
     frame: [n.id],
   }))

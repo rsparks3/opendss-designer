@@ -16,6 +16,8 @@ export type NodeType =
   | 'relay'
   /** A text annotation: no terminals, never compiled or solved. */
   | 'note'
+  /** A labelled rectangle behind a group of elements; drawing only. */
+  | 'zone'
 export type EdgeKind = 'wire' | 'line'
 
 export type Params = Record<string, unknown>

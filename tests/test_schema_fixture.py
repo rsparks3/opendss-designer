@@ -61,8 +61,8 @@ def test_fixture_validates_and_round_trips(fixture_json):
     assert dumped["limits"] == fixture_json["limits"]
     assert dumped["study"] == fixture_json["study"]
     assert dumped["nodes"] == [
-        {**n, "height": None} for n in fixture_json["nodes"]
-    ], "node round trip drifted (height is backend-optional and absent in exports)"
+        {"height": None, **n} for n in fixture_json["nodes"]
+    ], "node round trip drifted (height is backend-optional; only zones export one)"
     assert dumped["edges"] == fixture_json["edges"]
 
 

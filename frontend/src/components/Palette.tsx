@@ -216,6 +216,20 @@ export function Palette() {
           <span className="palette-label">Note</span>
           <kbd className="palette-kbd">N</kbd>
         </button>
+        <button
+          className={`palette-item${placementType === 'zone' ? ' active' : ''}`}
+          onClick={() => setPlacement(placementType === 'zone' ? null : 'zone')}
+          title="Click (or press Z), then drag out a rectangle on the canvas to mark a substation, a feeder or an area. It sits behind the drawing."
+        >
+          <span className="palette-icon">
+            <svg viewBox="0 0 32 32">
+              <rect x="3" y="5" width="26" height="22" rx="2" className="sym" fill="none" strokeDasharray="4 2.5" />
+              <line x1="7" y1="10" x2="15" y2="10" className="sym" />
+            </svg>
+          </span>
+          <span className="palette-label">Zone</span>
+          <kbd className="palette-kbd">Z</kbd>
+        </button>
       </div>
       <div className="palette-group">
         <div className="palette-title">Drag to connect</div>

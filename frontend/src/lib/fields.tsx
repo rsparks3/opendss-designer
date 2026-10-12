@@ -60,6 +60,10 @@ export function windingCount(params: Params | undefined): number {
 }
 
 export const FIELDS: Record<string, Field[]> = {
+  zone: [
+    { key: 'label', label: 'Label', kind: 'text' },
+    { key: 'color', label: 'Colour', kind: 'select', options: ['grey', 'blue', 'green', 'amber', 'red', 'purple'] },
+  ],
   note: [
     { key: 'text', label: 'Text', kind: 'textarea' },
     { key: 'target', label: 'Points at', kind: 'target' },
@@ -389,7 +393,7 @@ export function targetChoices(
   const out: { id: string; label: string }[] = []
   for (const n of nodes) {
     const name = n.data.params.name
-    if (n.type !== 'note' && typeof name === 'string' && name) out.push({ id: n.id, label: name })
+    if (n.type !== 'note' && n.type !== 'zone' && typeof name === 'string' && name) out.push({ id: n.id, label: name })
   }
   for (const e of edges) {
     const name = e.data?.params.name

@@ -194,18 +194,6 @@ export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): strin
   const bounds = new Bounds()
   const serializer = new XMLSerializer()
 
-  // --- edges: paths already in flow coordinates ---------------------------
-  for (const path of viewport.querySelectorAll<SVGPathElement>('.react-flow__edge-path')) {
-    const cs = getComputedStyle(path)
-    const dash = cs.strokeDasharray !== 'none' ? ` stroke-dasharray="${cs.strokeDasharray}"` : ''
-    parts.push(
-      `<path d="${path.getAttribute('d') ?? ''}" fill="none" stroke="${cs.stroke}" ` +
-        `stroke-width="${unitless(cs.strokeWidth)}"${dash}/>`,
-    )
-    const bb = path.getBBox()
-    bounds.add({ x: bb.x, y: bb.y, w: bb.width, h: bb.height })
-  }
-
   // --- HTML: labels, badges, chips, busbars; symbols as nested <svg> -------
   const walk = (el: Element, rotation: number, opacity: number, mirror = false) => {
     if (SKIP.some((c) => el.classList.contains(c))) return
@@ -253,9 +241,9 @@ export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): strin
         ? (Math.min(r.w, r.h) * parseFloat(radius)) / 100
         : parseFloat(radius) || 0
       const fill = bg && bg !== 'transparent' ? bg : 'none'
-      const stroke = border
-        ? ` stroke="${cs.borderTopColor}" stroke-width="${parseFloat(cs.borderTopWidth)}"`
-        : ''
+      const bw = parseFloat(cs.borderTopWidth)
+      const dash = cs.borderTopStyle === 'dashed' ? ` stroke-dasharray="${fmt(bw * 4)} ${fmt(bw * 3)}"` : ''
+      const stroke = border ? ` stroke="${cs.borderTopColor}" stroke-width="${bw}"${dash}` : ''
       parts.push(
         `<rect x="${fmt(r.x)}" y="${fmt(r.y)}" width="${fmt(r.w)}" height="${fmt(r.h)}" ` +
           `rx="${fmt(rx)}" fill="${fill}"${stroke}${opacityAttr}/>`,
@@ -296,9 +284,26 @@ export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): strin
     for (const child of el.children) walk(child, rotHere, alpha, mirrorHere)
   }
 
+  // Zones go down first, under the wires; then the wires; then the rest.
+  const nodes = [...viewport.querySelectorAll('.react-flow__node')]
+  const isZone = (n: Element) => n.classList.contains('react-flow__node-zone')
+  for (const node of nodes.filter(isZone)) walk(node, 0, 1)
+
+  // --- edges: paths already in flow coordinates ---------------------------
+  for (const path of viewport.querySelectorAll<SVGPathElement>('.react-flow__edge-path')) {
+    const cs = getComputedStyle(path)
+    const dash = cs.strokeDasharray !== 'none' ? ` stroke-dasharray="${cs.strokeDasharray}"` : ''
+    parts.push(
+      `<path d="${path.getAttribute('d') ?? ''}" fill="none" stroke="${cs.stroke}" ` +
+        `stroke-width="${unitless(cs.strokeWidth)}"${dash}/>`,
+    )
+    const bb = path.getBBox()
+    bounds.add({ x: bb.x, y: bb.y, w: bb.width, h: bb.height })
+  }
+
   const labels = viewport.querySelector('.react-flow__edgelabel-renderer')
   if (labels) for (const child of labels.children) walk(child, 0, 1)
-  for (const node of viewport.querySelectorAll('.react-flow__node')) walk(node, 0, 1)
+  for (const node of nodes.filter((n) => !isZone(n))) walk(node, 0, 1)
 
   if (bounds.empty) throw new Error('No diagram to export')
 

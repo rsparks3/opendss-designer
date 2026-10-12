@@ -12,7 +12,7 @@ import {
 } from '@xyflow/react'
 import { temporal } from 'zundo'
 import { create } from 'zustand'
-import { defaultLineParams, defaultParams, isNote, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
+import { defaultLineParams, defaultParams, isAnnotation, isNote, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
   LimitsJSON,
@@ -77,6 +77,9 @@ export interface CircuitState {
   /** Notes are drawing, not circuit: text, size and arrow never make the
    *  results stale. */
   setNoteWidth: (id: string, width: number) => void
+  /** A zone drawn by dragging out its rectangle (flow units), selected. */
+  addZoneAt: (rect: { x: number; y: number; w: number; h: number }) => string
+  setZoneSize: (id: string, width: number, height: number) => void
   addBusbarAt: (pos: XY, width: number) => void
   updateNodeParams: (id: string, patch: Params) => void
   /** Replace a transformer's winding list. Going from three windings to two
@@ -421,6 +424,8 @@ export function toCircuitJSON(
       type: n.type as NodeType,
       position: n.position,
       width: (n.width ?? (n.style?.width as number)) || null,
+      // Only a zone has a height of its own; every other box is its type's.
+      ...(n.type === 'zone' ? { height: (n.height ?? (n.style?.height as number)) || null } : {}),
       params: n.data.params,
     })),
     edges: s.edges.map((e) => ({
@@ -466,6 +471,10 @@ export function fromCircuitJSON(c: CircuitJSON): { nodes: AppNode[]; edges: AppE
       : {}),
     // A note keeps the width it was given; its height follows its text.
     ...(n.type === 'note' ? { width: n.width ?? NODE_SIZE.note.w } : {}),
+    // A zone is the rectangle it was drawn as.
+    ...(n.type === 'zone'
+      ? { width: n.width ?? NODE_SIZE.zone.w, height: n.height ?? NODE_SIZE.zone.h }
+      : {}),
   }))
   const edges: AppEdge[] = c.edges.map((e) => ({
     id: e.id,
@@ -515,10 +524,11 @@ export const useCircuitStore = create<CircuitState>()(
         const edits = changes.filter((ch) => ch.type !== 'select' && ch.type !== 'dimensions')
         if (edits.length) {
           set({ dirty: true })
-          // Moving or deleting a note changes nothing electrical.
-          const noteIds = new Set(before.filter(isNote).map((n) => n.id))
+          // Moving, resizing or deleting a note or a zone changes nothing
+          // electrical.
+          const noteIds = new Set(before.filter(isAnnotation).map((n) => n.id))
           const electrical = edits.some((ch) =>
-            ch.type === 'add' ? !isNote(ch.item) : !noteIds.has(ch.id),
+            ch.type === 'add' ? !isAnnotation(ch.item) : !noteIds.has(ch.id),
           )
           if (electrical) markStale()
         }
@@ -565,8 +575,9 @@ export const useCircuitStore = create<CircuitState>()(
           data: { params: defaultParams(type) },
           ...(type === 'busbar' ? { width: size.w, height: size.h } : {}),
           ...(type === 'note' ? { width: size.w } : {}),
+          ...(type === 'zone' ? { width: size.w, height: size.h } : {}),
         }
-        if (type === 'note') {
+        if (type === 'note' || type === 'zone') {
           set({
             nodes: [...get().nodes.map((n) => (n.selected ? { ...n, selected: false } : n)), { ...node, selected: true }],
             placementType: null,
@@ -596,6 +607,30 @@ export const useCircuitStore = create<CircuitState>()(
           dirty: true,
         })
       },
+      addZoneAt: (rect) => {
+        const node: AppNode = {
+          id: newId('n'),
+          type: 'zone',
+          position: { x: snapGrid(rect.x), y: snapGrid(rect.y) },
+          width: Math.max(60, snapGrid(rect.w)),
+          height: Math.max(40, snapGrid(rect.h)),
+          data: { params: defaultParams('zone') },
+        }
+        set({
+          nodes: [...get().nodes.map((n) => (n.selected ? { ...n, selected: false } : n)), { ...node, selected: true }],
+          placementType: null,
+          dirty: true,
+        })
+        return node.id
+      },
+      setZoneSize: (id, width, height) => {
+        const w = Math.max(60, snapGrid(width))
+        const h = Math.max(40, snapGrid(height))
+        set({
+          nodes: get().nodes.map((n) => (n.id === id ? { ...n, width: w, height: h, style: undefined } : n)),
+          dirty: true,
+        })
+      },
       // Drag-sized busbar: pos is the LEFT edge of the bar (vertically centered).
       addBusbarAt: (pos, width) => {
         const node: AppNode = {
@@ -618,7 +653,7 @@ export const useCircuitStore = create<CircuitState>()(
           ...renamed(get(), node?.type ?? '', node?.data.params.name, patch.name),
           dirty: true,
         })
-        if (!node || !isNote(node)) markStale()
+        if (!node || !isAnnotation(node)) markStale()
       },
       setTransformerWindings: (id, windings) => {
         const onT3 = (e: AppEdge) =>
@@ -798,10 +833,13 @@ export const useCircuitStore = create<CircuitState>()(
               ...(busbar && l.params?.compact ? { compact: true } : {}),
             }
             const width = busbar ? snapBusbarWidth(l.width ?? (n.width as number) ?? NODE_SIZE.busbar.w) : n.width
+            // A zone is re-drawn around what it held (lib/layout setNotesAside).
+            const zone = n.type === 'zone' && l.width != null && l.height != null
             return {
               ...n,
               position: { x: l.position.x, y: l.position.y },
               ...(busbar ? { width } : {}),
+              ...(zone ? { width: l.width as number, height: l.height as number, style: undefined } : {}),
               data: { ...n.data, params },
             }
           }),
@@ -964,7 +1002,7 @@ export const useCircuitStore = create<CircuitState>()(
         if (!idSet.size) return
         set({
           nodes: get().nodes.map((n) =>
-            idSet.has(n.id) && n.type !== 'busbar' && !isNote(n)
+            idSet.has(n.id) && n.type !== 'busbar' && !isAnnotation(n)
               ? {
                   ...n,
                   data: {
@@ -987,7 +1025,7 @@ export const useCircuitStore = create<CircuitState>()(
         if (!idSet.size) return
         set({
           nodes: get().nodes.map((n) => {
-            if (!idSet.has(n.id) || n.type === 'busbar' || isNote(n)) return n
+            if (!idSet.has(n.id) || n.type === 'busbar' || isAnnotation(n)) return n
             const { rotation, flip } = flipOnScreen(n.data.params, axis)
             const { rotation: _r, flip: _f, ...rest } = n.data.params
             return {

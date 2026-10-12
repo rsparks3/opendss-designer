@@ -249,6 +249,10 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
         keys: 'N',
         title: 'Click the drawing where a text note should go; right-click an element to point a note at it',
       }),
+      item('Add zone', () => cs.setPlacement('zone'), {
+        keys: 'Z',
+        title: 'Drag out a labelled rectangle behind a group of elements: a substation, a feeder, an area',
+      }),
     ],
   }
 

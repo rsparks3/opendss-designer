@@ -304,6 +304,25 @@ searches their text, and an exported `.dss` file keeps each one as a
 header. Importing that file back reads them as ordinary comments, not
 notes. Editing a note never makes the results stale.
 
+## Zone — ++z++
+
+A zone is a labelled, tinted rectangle drawn **behind** a group of
+elements — a substation, a feeder, a service area, the part of the
+drawing a note is about — the way the planning tools' one-lines mark
+them. Press ++z++ (or the palette's *Zone*, or *Edit → Add zone*) and
+drag out the rectangle; a plain click drops a default-size one. The
+properties panel sets its **Label** and **Colour**; drag the handles of a
+selected zone to resize it.
+
+A zone lets the pointer through: clicking or box-selecting over it works
+on the elements inside, and the zone itself is picked up by its border or
+its label. It is drawing only, like a note: it is never compiled, never
+counts against a size limit, never makes results stale, and **Clean up**
+redraws it around the elements it held wherever they end up. Zones go
+into image exports and study reports with the drawing, **Find** matches
+their labels, and an exported `.dss` file records each one as a
+`! Zone: <label> - <elements inside>` comment.
+
 ## Wires vs. Lines
 
 Dragging between two terminals creates a connection whose kind follows the

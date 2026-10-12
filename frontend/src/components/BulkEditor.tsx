@@ -20,6 +20,8 @@ const TYPE_LABELS: Record<string, [string, string]> = {
   pvsystem: ['PV system', 'PV systems'],
   storage: ['storage unit', 'storage units'],
   line: ['line', 'lines'],
+  note: ['note', 'notes'],
+  zone: ['zone', 'zones'],
 }
 
 export const typeLabel = (type: string, n: number) =>

@@ -27,7 +27,9 @@ MAX_COMMENT_TEXT = 4_000
 
 NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker",
                    "capacitor", "generator", "pvsystem", "storage", "regulator",
-                   "fuse", "recloser", "relay", "note"]
+                   "fuse", "recloser", "relay", "note", "zone"]
+# Drawing, not circuit: no terminals, never compiled, never counted.
+ANNOTATION_TYPES = frozenset({"note", "zone"})
 EdgeType = Literal["wire", "line"]
 
 
@@ -188,8 +190,9 @@ class Circuit(BaseModel):
 
     @property
     def elements(self) -> list[CircuitNode]:
-        """The nodes that are part of the circuit: everything but notes."""
-        return [n for n in self.nodes if n.type != "note"]
+        """The nodes that are part of the circuit: everything but the
+        annotations (notes and zones)."""
+        return [n for n in self.nodes if n.type not in ANNOTATION_TYPES]
 
 
 class Issue(BaseModel):
@@ -216,9 +219,12 @@ NODE_TERMINALS: dict[str, list[str]] = {
     "generator": ["t1"],
     "pvsystem": ["t1"],
     "storage": ["t1"],
-    # A text annotation on the drawing: no terminals, so it joins no bus and
-    # the compiler, connectivity and validation never see it.
+    # Annotations on the drawing: no terminals, so they join no bus and
+    # the compiler, connectivity and validation never see them.
     "note": [],
+    # A labelled rectangle behind a group of elements (a substation, a
+    # feeder, a service area).
+    "zone": [],
 }
 
 

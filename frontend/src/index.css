@@ -1458,6 +1458,64 @@ kbd {
 .note-leader polygon { fill: var(--ink); stroke: none; }
 .react-flow__resize-control.line.note-resize { border-color: var(--accent); border-width: 3px; }
 
+/* Zones: a labelled rectangle behind a group of elements. The node lets the
+   pointer through so what is inside stays clickable and box-selectable; the
+   border strips, the label and the resize handles take it. Under everything. */
+.react-flow__node-zone { pointer-events: none !important; z-index: -1 !important; }
+.zone-node {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1.5px dashed var(--zone-ink);
+  border-radius: 6px;
+  background: var(--zone-fill);
+  --zone-ink: #6b7480;
+  --zone-fill: rgba(107, 116, 128, 0.07);
+}
+.zone-blue { --zone-ink: #1565c0; --zone-fill: rgba(21, 101, 192, 0.07); }
+.zone-green { --zone-ink: #2e7d32; --zone-fill: rgba(46, 125, 50, 0.08); }
+.zone-amber { --zone-ink: #b26a00; --zone-fill: rgba(237, 108, 2, 0.08); }
+.zone-red { --zone-ink: #c62828; --zone-fill: rgba(198, 40, 40, 0.07); }
+.zone-purple { --zone-ink: #6a1b9a; --zone-fill: rgba(106, 27, 154, 0.07); }
+:root[data-theme='dark'] .zone-node { --zone-ink: #9aa4b1; --zone-fill: rgba(154, 164, 177, 0.1); }
+:root[data-theme='dark'] .zone-blue { --zone-ink: #64b5f6; --zone-fill: rgba(100, 181, 246, 0.1); }
+:root[data-theme='dark'] .zone-green { --zone-ink: #66bb6a; --zone-fill: rgba(102, 187, 106, 0.1); }
+:root[data-theme='dark'] .zone-amber { --zone-ink: #ffb74d; --zone-fill: rgba(255, 183, 77, 0.1); }
+:root[data-theme='dark'] .zone-red { --zone-ink: #ef5350; --zone-fill: rgba(239, 83, 80, 0.1); }
+:root[data-theme='dark'] .zone-purple { --zone-ink: #ce93d8; --zone-fill: rgba(206, 147, 216, 0.1); }
+.zone-node.selected { border-style: solid; outline: 1.5px dashed var(--accent); outline-offset: 3px; }
+.zone-edge { position: absolute; pointer-events: auto; cursor: move; }
+.zone-edge.top { left: 0; right: 0; top: -4px; height: 10px; }
+.zone-edge.bottom { left: 0; right: 0; bottom: -4px; height: 10px; }
+.zone-edge.left { top: 0; bottom: 0; left: -4px; width: 10px; }
+.zone-edge.right { top: 0; bottom: 0; right: -4px; width: 10px; }
+.zone-label {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  pointer-events: auto;
+  cursor: move;
+  color: var(--zone-ink);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zone-placeholder { opacity: 0.55; font-style: italic; font-weight: 400; }
+.react-flow__resize-control.zone-resize-line { border-color: var(--accent); pointer-events: auto; }
+.react-flow__resize-control.zone-resize-handle { pointer-events: auto; background: var(--accent); border-color: var(--paper); }
+.zone-preview {
+  position: absolute;
+  border: 1.5px dashed var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
 /* Study report dialog */
 .report-formats { display: flex; gap: 18px; }
 .modal-box label.report-section { flex-direction: row; align-items: flex-start; gap: 8px; }

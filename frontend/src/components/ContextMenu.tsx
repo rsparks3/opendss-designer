@@ -2,7 +2,7 @@ import { useReactFlow } from '@xyflow/react'
 import { renderedEdgePoints } from '../lib/edgeGeometry'
 import { effectivePhasing } from '../lib/phasing'
 import { allOfType, downstreamOf, onPhase } from '../lib/selection'
-import { NODE_SIZE } from '../lib/defaults'
+import { isAnnotation, NODE_SIZE } from '../lib/defaults'
 import { useCircuitStore } from '../store/circuitStore'
 import { useUiStore } from '../store/uiStore'
 import type { NodeType } from '../types/circuit'
@@ -39,11 +39,12 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
 
   if (target.kind === 'pane') {
     items.push({ label: 'Add note here', hint: 'N', action: () => writeNote(at()) })
+    items.push({ label: 'Add zone here', hint: 'Z', action: () => void store.addNodeAt('zone', at()) })
   }
 
   if (node?.type === 'note') {
     items.push({ label: 'Edit text', action: () => useUiStore.getState().setEditingNote(node.id) })
-  } else if (node) {
+  } else if (node && node.type !== 'zone') {
     // Up and to the right of the element, clear of its label.
     const size = NODE_SIZE[(node.type as NodeType) ?? 'load']
     const w = (node.measured?.width ?? node.width ?? size.w) as number
@@ -69,7 +70,7 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
         action: () => store.updateNodeParams(node.id, { closed: !closed }),
       })
     }
-    if (node.type !== 'busbar' && node.type !== 'note') {
+    if (node.type !== 'busbar' && !isAnnotation(node)) {
       items.push({ label: 'Rotate 90°', hint: 'R', action: () => store.rotateNodes([node.id]) })
       items.push({ label: 'Flip horizontally', hint: 'Shift+H', action: () => store.flipNodes([node.id], 'horizontal') })
     }
@@ -128,7 +129,7 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
   // the type and phase picks come from the element clicked.
   const type = node ? node.type ?? '' : edge?.type === 'line' ? 'line' : ''
   const picked = node ? { kind: 'node' as const, id: node.id } : edge ? { kind: 'edge' as const, id: edge.id } : null
-  if (picked && node?.type !== 'note' && (node || edge?.type === 'line')) {
+  if (picked && !(node && isAnnotation(node)) && (node || edge?.type === 'line')) {
     items.push({
       label: 'Select everything downstream',
       action: () => store.selectMany(downstreamOf(store.nodes, store.edges, picked)),
