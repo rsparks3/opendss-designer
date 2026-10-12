@@ -1,6 +1,6 @@
 import { useReactFlow } from '@xyflow/react'
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { api, type SampleMeta } from '../lib/api'
+import { api, type ConvertFormats, type SampleMeta } from '../lib/api'
 import { cleanUp, fitView, openProjectFile, save, saveToFile } from '../lib/fileActions'
 import {
   buildMenus,
@@ -117,6 +117,7 @@ export function MenuBar() {
   useMenuShortcuts(ops)
   const [open, setOpen] = useState<number | null>(null)
   const [samples, setSamples] = useState<SampleMeta[]>([])
+  const [convert, setConvert] = useState<ConvertFormats | null>(null)
   const barRef = useRef<HTMLDivElement>(null)
   // Menus read the stores when drawn; while one is open, redraw on changes.
   const [, redraw] = useReducer((n: number) => n + 1, 0)
@@ -124,6 +125,7 @@ export function MenuBar() {
   useEffect(() => {
     // Best effort: a missing sample list just greys out the submenu.
     api.samples().then((r) => setSamples(r.samples)).catch(() => {})
+    api.convertFormats().then(setConvert).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -144,7 +146,7 @@ export function MenuBar() {
     }
   }, [open])
 
-  const menus = open === null ? null : buildMenus(ops, samples)
+  const menus = open === null ? null : buildMenus(ops, samples, convert)
   const titles = ['File', 'Edit', 'View', 'Arrange', 'Analysis', 'Help']
 
   const onBarKey = (e: React.KeyboardEvent) => {

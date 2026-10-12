@@ -24,6 +24,14 @@ RUN useradd --create-home --uid 10001 app
 COPY --from=build /dist/*.whl /tmp/
 RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 
+# CYME/Synergi import (core/convert.py) is an optional plugin with a GIS-sized
+# dependency tree, so the hosted image leaves it out unless asked:
+#   docker build --build-arg CONVERTER="opendss-designer-convert" .
+# (any pip requirement works, e.g. a git URL). Empty, the File menu says how
+# to install it instead.
+ARG CONVERTER=""
+RUN if [ -n "$CONVERTER" ]; then pip install --no-cache-dir "$CONVERTER"; fi
+
 ENV OPENDSS_DESIGNER_MODE=demo \
     OPENDSS_DESIGNER_HOST=0.0.0.0 \
     OPENDSS_DESIGNER_CACHE_DIR=/cache \

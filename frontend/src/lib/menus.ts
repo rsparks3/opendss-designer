@@ -1,4 +1,4 @@
-import type { SampleMeta } from './api'
+import type { ConvertFormats, SampleMeta } from './api'
 import {
   chooseOverlay,
   cleanUp,
@@ -6,6 +6,7 @@ import {
   exportDss,
   exportImage,
   fitView,
+  importConverted,
   importDss,
   newCircuit,
   openProjectFile,
@@ -144,7 +145,22 @@ export function flipSelection(axis: Axis) {
   s.flipNodes(s.nodes.filter((n) => n.selected).map((n) => n.id), axis)
 }
 
-export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
+/** File → Import from: other tools' formats through the converter plugin,
+ *  or, without it, one entry that says how to get it. */
+function importFrom(convert: ConvertFormats | null): MenuEntry[] {
+  if (convert?.available) {
+    return convert.formats.map((f) =>
+      item(`${f.label}…`, () => void importConverted(f), { title: f.help }))
+  }
+  return [
+    item('CYME, Synergi…', () => {
+      useResultsStore.getState().setFlash(
+        convert?.install ?? 'The converter plugin could not be reached.', 'info', 10000)
+    }, { title: 'Needs the opendss-designer-convert plugin' }),
+  ]
+}
+
+export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: ConvertFormats | null = null): Menu[] {
   const cs = useCircuitStore.getState()
   const rs = useResultsStore.getState()
   const ui = useUiStore.getState()
@@ -185,6 +201,7 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[]): Menu[] {
       item('Import .dss…', () => void importDss(), {
         title: 'Import OpenDSS .dss file(s) — select the main file plus anything it references (line codes, BusCoords csv)',
       }),
+      { kind: 'sub', label: 'Import from', items: importFrom(convert) },
       sep,
       item('Save', save, { keys: 'Mod+S', title: 'Save to this browser' }),
       item('Save as…', () => ui.openDialog('saveAs'), { keys: 'Mod+Shift+S' }),

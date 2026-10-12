@@ -1,6 +1,8 @@
 """REST API for the designer frontend."""
 from __future__ import annotations
 
+import base64
+import binascii
 import contextvars
 import json
 import logging
@@ -13,7 +15,17 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 
 from .. import __version__, context
-from ..core import engine, importer, irradiance, linecodes, nrel, protection, reliability, samples
+from ..core import (
+    convert,
+    engine,
+    importer,
+    irradiance,
+    linecodes,
+    nrel,
+    protection,
+    reliability,
+    samples,
+)
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
@@ -383,4 +395,50 @@ def import_file(payload: ImportRequest = Body(...)) -> dict:
     except importer.ImportFailure as exc:
         # Bad input (the importer wraps OpenDSS compile errors in ImportFailure);
         # anything else propagates as a 500 so genuine bugs aren't masked as 400s.
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/convert/formats")
+def convert_formats() -> dict:
+    """Formats the optional converter plugin reads (core/convert.py)."""
+    return convert.formats()
+
+
+class BinaryFile(BaseModel):
+    name: str = "file"
+    # Base64: CYME exports are text, but a Synergi model is an Access database.
+    data: str = ""
+
+
+class ConvertRequest(BaseModel):
+    format: str
+    files: list[BinaryFile]
+
+
+@router.post("/import/convert")
+def import_converted(req: ConvertRequest) -> dict:
+    """A CYME or Synergi model, converted to OpenDSS by the plugin and
+    imported like a .dss file."""
+    cfg = context.current_settings()
+    if cfg.max_import_files and len(req.files) > cfg.max_import_files:
+        raise HTTPException(status_code=413,
+                            detail=f"Select at most {cfg.max_import_files} files.")
+    decoded: list[tuple[str, bytes]] = []
+    for f in req.files:
+        try:
+            data = base64.b64decode(f.data, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise HTTPException(status_code=400,
+                                detail=f"'{f.name}' did not arrive intact.") from exc
+        if cfg.max_import_bytes and len(data) > cfg.max_import_bytes:
+            mb = cfg.max_import_bytes // (1024 * 1024)
+            raise HTTPException(status_code=413,
+                                detail=f"'{f.name}' is larger than the {mb} MB per-file "
+                                       f"limit for {cfg.plan_label}.")
+        decoded.append((f.name, data))
+    try:
+        return convert.convert_and_import(req.format, decoded)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+    except convert.ConvertFailure as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

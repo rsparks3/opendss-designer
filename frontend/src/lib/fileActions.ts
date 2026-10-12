@@ -4,7 +4,7 @@ import { firstError, mergeRunIssues } from './issues'
 import { reliabilityLegend } from './reliability'
 import type { ReliabilityResult } from '../types/circuit'
 import { useUiStore } from '../store/uiStore'
-import { api } from './api'
+import { api, type ConvertFormat, type ImportResult } from './api'
 import { diagramToSvg, imageFileName, legendFor, OVERLAY_LABELS, svgToPng, type SheetInfo } from './exportDiagram'
 import { instanceHealth } from './instance'
 import {
@@ -241,24 +241,7 @@ export async function importDss(fileList?: File[]) {
   }
   try {
     const texts = await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })))
-    const { circuit: imported, unsupported, passthrough, warnings } = await api.importDss(texts)
-    autoLayout(imported, { direction: direction() })
-    useCircuitStore.getState().loadCircuit(imported)
-    useCircuitStore.setState({ projectId: null })
-    linkFile(null)
-    fitView()
-    const notes = [...(warnings ?? [])]
-    if (passthrough?.length) {
-      notes.push(`Kept ${passthrough.length} element${passthrough.length === 1 ? '' : 's'} the drawing does not ` +
-        'show (see the Passthrough tab); they are exported again and solved when safe.')
-    }
-    if (unsupported.length) {
-      const shown = unsupported.slice(0, 5)
-      const more = unsupported.length - shown.length
-      notes.push(`${unsupported.length} unsupported element(s) skipped: ` +
-        shown.join(', ') + (more > 0 ? ` … and ${more} more` : ''))
-    }
-    if (notes.length) flash(notes.join('\n'), 'info', 8000)
+    loadImported(await api.importDss(texts))
   } catch (err) {
     const msg = errText(err)
     let tip = ''
@@ -268,6 +251,56 @@ export async function importDss(fileList?: File[]) {
     }
     flash(`Import failed: ${msg}${tip}`, 'error', 8000)
   }
+}
+
+/** An imported circuit onto the canvas: laid out, loaded as a new
+ *  document, and what the import had to say said once. */
+export function loadImported({ circuit: imported, unsupported, passthrough, warnings }: ImportResult) {
+  autoLayout(imported, { direction: direction() })
+  useCircuitStore.getState().loadCircuit(imported)
+  useCircuitStore.setState({ projectId: null })
+  linkFile(null)
+  fitView()
+  const notes = [...(warnings ?? [])]
+  if (passthrough?.length) {
+    notes.push(`Kept ${passthrough.length} element${passthrough.length === 1 ? '' : 's'} the drawing does not ` +
+      'show (see the Passthrough tab); they are exported again and solved when safe.')
+  }
+  if (unsupported.length) {
+    const shown = unsupported.slice(0, 5)
+    const more = unsupported.length - shown.length
+    notes.push(`${unsupported.length} unsupported element(s) skipped: ` +
+      shown.join(', ') + (more > 0 ? ` … and ${more} more` : ''))
+  }
+  if (notes.length) flash(notes.join('\n'), 'info', 8000)
+}
+
+/** File → Import from → CYME / Synergi: the files go to the converter
+ *  plugin as they are (a Synergi model is an Access database). */
+export async function importConverted(format: ConvertFormat) {
+  const files = await pickFiles(format.extensions.join(','), format.maxFiles > 1)
+  if (!files.length) return
+  const oversize = tooBig(files, MAX_DSS_BYTES)
+  if (oversize) {
+    flash(`Could not import: ${oversize}`)
+    return
+  }
+  try {
+    const encoded = await Promise.all(files.map(async (f) => ({ name: f.name, data: toBase64(await f.arrayBuffer()) })))
+    loadImported(await api.importConverted(format.key, encoded))
+  } catch (err) {
+    flash(`${format.label} import failed: ${errText(err)}`, 'error', 8000)
+  }
+}
+
+function toBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf)
+  let bin = ''
+  // In slices: one String.fromCharCode over megabytes overflows the stack.
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  }
+  return btoa(bin)
 }
 
 export function exportJson() {

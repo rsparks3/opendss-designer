@@ -86,6 +86,29 @@ async function get<T>(url: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export interface ImportResult {
+  circuit: CircuitJSON
+  unsupported: string[]
+  passthrough?: string[]
+  warnings: string[]
+}
+
+export interface ConvertFormat {
+  key: string
+  label: string
+  help: string
+  extensions: string[]
+  maxFiles: number
+}
+
+export interface ConvertFormats {
+  available: boolean
+  /** How to install the plugin, when it is not. */
+  install?: string
+  version?: string
+  formats: ConvertFormat[]
+}
+
 export interface SampleMeta {
   id: string
   name: string
@@ -146,8 +169,17 @@ export const api = {
   },
 
   importDss: (files: { name: string; text: string }[]) =>
-    post<{ circuit: CircuitJSON; unsupported: string[]; passthrough?: string[]; warnings: string[] }>(
-      '/api/import/dss', { files }),
+    post<ImportResult>('/api/import/dss', { files }),
+
+  /** Formats the optional converter plugin reads (CYME, Synergi). */
+  convertFormats: async (): Promise<ConvertFormats> => {
+    const res = await fetch('/api/convert/formats')
+    if (!res.ok) throw new Error(`convert/formats failed: ${res.status}`)
+    return res.json()
+  },
+  /** A model in another tool's format, converted by the plugin and imported. */
+  importConverted: (format: string, files: { name: string; data: string }[]) =>
+    post<ImportResult>('/api/import/convert', { format, files }),
 
   nrelMeta: async (): Promise<NrelMeta> => {
     const res = await fetch('/api/nrel/meta')
