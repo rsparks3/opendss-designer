@@ -157,6 +157,26 @@ def _switch_impedance(p: dict) -> str:
     return " " + " ".join(parts)
 
 
+def _series_reactor(e, conn: ConnectivityResult, element_name, cmds: list[str]) -> None:
+    """A line edge marked `reactor`: a series Reactor between two buses, in
+    ohms. EPRI's ckt5 and the IEEE 8500-node feeder join the source to the
+    substation through one; drawn as a line, the feeder stays connected on
+    the drawing, and it is written back as the Reactor it was."""
+    p = e.params
+    name = element_name("reactor", p.get("name"), e.id, e.id)
+    phases = _phases(p)
+    b1, b2 = conn.line_buses[e.id]
+    pinned = p.get("phasing")
+    sfx1 = _bus_suffix(p.get("nodes1"), phases, pinned)
+    sfx2 = _bus_suffix(p.get("nodes2"), phases, pinned)
+    r = _num(p, "r", 0.0) or 0.0
+    x = _num(p, "x", 0.001) or 0.0
+    normamps = _num(p, "normamps")
+    rating = f" normamps={normamps:g}" if normamps else ""
+    cmds.append(f"new reactor.{name} bus1={b1}{sfx1} bus2={b2}{sfx2} phases={phases} "
+                f"r={r:.10g} x={x:.10g}{rating}")
+
+
 def _winding_resistance(windings: list, loadloss: float) -> str:
     """`%loadloss`, which the engine splits equally between the windings --
     unless every winding names its own `%r` and they differ. A centre-tapped
@@ -557,6 +577,9 @@ def compile_circuit(circuit: Circuit,
 
     for e in line_edges:
         p = e.params
+        if p.get("reactor") is True:
+            _series_reactor(e, conn, element_name, cmds)
+            continue
         name = element_name("line", p.get("name"), e.id, e.id)
         phases = _phases(p)
         b1, b2 = conn.line_buses[e.id]

@@ -1,6 +1,7 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
 import { inService } from '../../lib/fields'
+import { resultById } from '../../lib/indexes'
 import { effectivePhasing, phaseColor, phaseLabel } from '../../lib/phasing'
 import { reliabilityOf, sectionColor, sectionHeadedBy } from '../../lib/reliability'
 import { useLimits, type AppEdge } from '../../store/circuitStore'
@@ -18,9 +19,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
   const reliability = useResultsStore((s) => s.reliability)
   const limits = useLimits()
 
-  const el = result?.converged
-    ? Object.values(result.elements).find((e) => e.id === props.id)
-    : null
+  const el = result?.converged ? resultById(result).get(props.id) : null
 
   let stroke = props.selected || grabbed ? 'var(--accent)' : 'var(--ink)'
   // A line colours by what it carries, which it knows on its own; the wires

@@ -1,8 +1,14 @@
 import { EdgeLabelRenderer, getSmoothStepPath, useReactFlow, type EdgeProps } from '@xyflow/react'
-import { beginGesture, endGesture, useCircuitStore, type AppEdge, type XY } from '../../store/circuitStore'
+import { byId } from '../../lib/indexes'
+import { beginGesture, endGesture, useCircuitStore, type AppEdge, type AppNode, type XY } from '../../store/circuitStore'
 import { useGrabStore } from '../../store/grabStore'
 
 const snap = (v: number) => Math.round(v / 10) * 10
+
+/** Where a wire meets a busbar: the bar's centreline; null for any other node. */
+function barCentreY(n: AppNode | undefined): number | null {
+  return n?.type === 'busbar' ? n.position.y + BAR_CENTER_Y : null
+}
 
 // Vertical center of the bar graphic inside a busbar node (bar spans y 4–10
 // of the 14px-tall node — see BusbarNode/index.css).
@@ -18,22 +24,21 @@ const BAR_CENTER_Y = 7
  *  is drawn at the cursor instead of at its terminal: the edge itself is the
  *  drag preview, so there is no second line to keep in step. */
 export function useEdgePath(props: EdgeProps<AppEdge>): [string, number, number] {
-  const nodes = useCircuitStore((s) => s.nodes)
+  // Each end subscribes to one number -- its busbar's centreline, or null --
+  // so moving some other node re-renders no edge but the ones on it.
+  const sourceBar = useCircuitStore((s) => barCentreY(byId(s.nodes).get(props.source)))
+  const targetBar = useCircuitStore((s) => barCentreY(byId(s.nodes).get(props.target)))
   const grab = useGrabStore((s) => (s.edgeId === props.id ? s : null))
 
-  const anchorY = (nodeId: string, y: number): number => {
-    const n = nodes.find((nd) => nd.id === nodeId)
-    return n?.type === 'busbar' ? n.position.y + BAR_CENTER_Y : y
-  }
   const held = grab?.cursor ?? null
   const source =
     held && grab?.end === 'source'
       ? held
-      : { x: props.sourceX, y: anchorY(props.source, props.sourceY) }
+      : { x: props.sourceX, y: sourceBar ?? props.sourceY }
   const target =
     held && grab?.end === 'target'
       ? held
-      : { x: props.targetX, y: anchorY(props.target, props.targetY) }
+      : { x: props.targetX, y: targetBar ?? props.targetY }
 
   const wps = props.data?.waypoints
   if (!wps?.length && !held) {

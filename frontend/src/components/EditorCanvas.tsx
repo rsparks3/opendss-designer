@@ -2,11 +2,13 @@ import {
   Background,
   BackgroundVariant,
   ConnectionMode,
+  ControlButton,
   Controls,
   MiniMap,
   ReactFlow,
   SelectionMode,
   useReactFlow,
+  useStore,
   ViewportPortal,
   type FinalConnectionState,
   type IsValidConnection,
@@ -17,6 +19,7 @@ import { renderedEdgePoints } from '../lib/edgeGeometry'
 import {
   beginGesture,
   endGesture,
+  LARGE_CIRCUIT,
   redo,
   undo,
   useCircuitStore,
@@ -28,6 +31,8 @@ import { useResultsStore } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
 import type { NodeType } from '../types/circuit'
 import { ContextMenu, type MenuTarget } from './ContextMenu'
+import { OVERVIEW_ZOOM, OverviewLayer } from './OverviewLayer'
+import { NODE_SIZE } from '../lib/defaults'
 import { PhaseLegend } from './PhaseLegend'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
 import { BreakerNode } from './nodes/BreakerNode'
@@ -85,10 +90,39 @@ function markOutOfService(nodes: AppNode[]): AppNode[] {
   return changed ? out : nodes
 }
 
+/** The whole drawing's bounds from the store: positions and the symbols'
+ *  known sizes. A large circuit's view cannot be fitted by React Flow,
+ *  which only counts nodes it has drawn and measured. */
+function storeBounds(nodes: AppNode[]) {
+  let x0 = Infinity
+  let y0 = Infinity
+  let x1 = -Infinity
+  let y1 = -Infinity
+  for (const n of nodes) {
+    const size = NODE_SIZE[n.type as NodeType] ?? NODE_SIZE.load
+    const w = n.width ?? n.measured?.width ?? size.w
+    const h = n.height ?? n.measured?.height ?? size.h
+    x0 = Math.min(x0, n.position.x)
+    y0 = Math.min(y0, n.position.y)
+    x1 = Math.max(x1, n.position.x + w)
+    y1 = Math.max(y1, n.position.y + h)
+  }
+  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
+}
+
+const NO_NODES: AppNode[] = []
+const NO_EDGES: AppEdge[] = []
+
 export function EditorCanvas() {
   const storeNodes = useCircuitStore((s) => s.nodes)
-  const nodes = useMemo(() => markOutOfService(storeNodes), [storeNodes])
-  const edges = useCircuitStore((s) => s.edges)
+  const storeEdges = useCircuitStore((s) => s.edges)
+  const large = storeNodes.length > LARGE_CIRCUIT
+  // A large circuit seen from far away is an overview on a canvas, and
+  // React Flow is given nothing to draw; zoomed in, it draws what is in view.
+  const overview = useStore((s) => large && s.transform[2] < OVERVIEW_ZOOM)
+  const marked = useMemo(() => markOutOfService(storeNodes), [storeNodes])
+  const nodes = overview ? NO_NODES : marked
+  const edges = overview ? NO_EDGES : storeEdges
   const onNodesChange = useCircuitStore((s) => s.onNodesChange)
   const onEdgesChange = useCircuitStore((s) => s.onEdgesChange)
   const onConnect = useCircuitStore((s) => s.onConnect)
@@ -100,7 +134,11 @@ export function EditorCanvas() {
   const addEdgeWaypoint = useCircuitStore((s) => s.addEdgeWaypoint)
   const flash = useResultsStore((s) => s.flash)
   const flashKind = useResultsStore((s) => s.flashKind)
-  const { screenToFlowPosition, fitView, getNodes } = useReactFlow()
+  const flow = useReactFlow<AppNode, AppEdge>()
+  const { screenToFlowPosition, fitView, fitBounds, getNodes } = flow
+  useEffect(() => {
+    window.opendssDesigner.flow = flow
+  }, [flow])
   const showGrid = useUiStore((s) => s.showGrid)
   const snap = useUiStore((s) => s.snapToGrid)
   const theme = useUiStore((s) => s.theme)
@@ -114,10 +152,18 @@ export function EditorCanvas() {
   useEffect(() => {
     let frame = 0
     const onFit = () => {
+      const all = useCircuitStore.getState().nodes
+      if (all.length > LARGE_CIRCUIT) {
+        void fitBounds(storeBounds(all), { padding: 0.05 })
+        return
+      }
       let tries = 0
       const attempt = () => {
         const ns = getNodes()
-        const ready = ns.length > 0 && ns.every((n) => n.measured?.width && n.measured?.height)
+        // A large circuit draws only what is in view, so most nodes are
+        // never measured; their initial sizes stand in (fromCircuitJSON).
+        const ready =
+          ns.length > LARGE_CIRCUIT || (ns.length > 0 && ns.every((n) => n.measured?.width && n.measured?.height))
         if (ready || ++tries > 30) {
           void fitView({ maxZoom: 1.5, padding: 0.1 })
           // Once more after the re-measure a re-layout sets off (bars change
@@ -133,7 +179,7 @@ export function EditorCanvas() {
       cancelAnimationFrame(frame)
       window.removeEventListener('opendss:fit-view', onFit)
     }
-  }, [fitView, getNodes])
+  }, [fitView, fitBounds, getNodes])
 
   // Busbars are placed by click-dragging to the desired width; a transparent
   // overlay captures that gesture. Other components place on pane clicks so
@@ -331,6 +377,7 @@ export function EditorCanvas() {
   const connecting = useConnection((c) => c.inProgress)
   const grabbing = useGrabStore((s) => s.edgeId !== null)
   const routing = connecting || grabbing
+  useEffect(() => useUiStore.getState().setRouting(routing), [routing])
 
   return (
     <div className={`canvas-wrap${placementType ? ' placing' : ''}${routing ? ' routing' : ''}`}>
@@ -370,16 +417,33 @@ export function EditorCanvas() {
         colorMode={theme}
         snapGrid={[10, 10]}
         deleteKeyCode={['Delete', 'Backspace']}
-        fitView
+        // A large circuit is fitted by the app (opendss:fit-view): React Flow
+        // would refit every time zooming in hands it the symbols again.
+        fitView={!large}
         fitViewOptions={{ maxZoom: 1.5, padding: 0.2 }}
+        onlyRenderVisibleElements={large}
         zoomOnDoubleClick={false}
-        minZoom={0.05}
+        minZoom={large ? 0.002 : 0.05}
         maxZoom={4}
         proOptions={{ hideAttribution: false }}
       >
         {showGrid && <Background variant={BackgroundVariant.Dots} gap={20} size={1} />}
-        <Controls />
-        <MiniMap pannable zoomable />
+        <Controls showFitView={!large}>
+          {large && (
+            <ControlButton
+              className="react-flow__controls-fitview"
+              title="Fit view"
+              aria-label="fit view"
+              onClick={() => window.dispatchEvent(new CustomEvent('opendss:fit-view'))}
+            >
+              <svg viewBox="0 0 32 30" width="12" height="12" aria-hidden="true">
+                <path d="M3.7 11.5v-6.9h6.9V1.2H.3v10.3h3.4zm22.3-6.9v6.9h3.4V1.2H19.1v3.4H26zM10.7 25.4H3.7v-6.9H.3v10.3h10.3l.1-3.4zm15.3 0h-6.9v3.4h10.3V18.5H26v6.9z" fill="currentColor" />
+              </svg>
+            </ControlButton>
+          )}
+        </Controls>
+        {large && overview && <div className="canvas-hint overview-hint">Overview — zoom in to see and edit elements</div>}
+        {!large && <MiniMap pannable zoomable />}
         {busbarDraft && placementType === 'busbar' && (
           <ViewportPortal>
             <div
@@ -423,6 +487,7 @@ export function EditorCanvas() {
                 : `Click to place a ${placementType} — drag from a connection dot to wire it up, Esc to stop`}
         </div>
       )}
+      {overview && <OverviewLayer />}
       <PhaseLegend />
       {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
       {menu && <ContextMenu target={menu} onClose={() => setMenu(null)} />}

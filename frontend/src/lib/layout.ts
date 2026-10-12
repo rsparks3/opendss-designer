@@ -1,3 +1,4 @@
+import { treeLayout } from './treeLayout'
 import dagre from '@dagrejs/dagre'
 import { isAnnotation, isNote, isZone, NODE_SIZE, SYMBOL_PITCH } from './defaults'
 import type { CircuitEdgeJSON, CircuitJSON, CircuitNodeJSON } from '../types/circuit'
@@ -22,6 +23,12 @@ const MIN_BUS_W = 120
 /** Vertical gap between the bar and the row of shunts beneath it. */
 const HANG_GAP = 40
 /** Room a hanging row needs below the bar: the gap, the symbol, its label. */
+/** Above this many ranked nodes Clean up places them with the linear tidy
+ *  tree (lib/treeLayout.ts) instead of dagre, whose crossing minimisation
+ *  takes seconds on a real feeder. A radial feeder is a tree, where a tidy
+ *  layout has no crossings to minimise; smaller drawings keep dagre. */
+const LARGE_LAYOUT = 1500
+
 const HANG_ROW_H = HANG_GAP + NODE_SIZE.load.h + 30
 
 function busbarHandleCount(width: number): number {
@@ -58,9 +65,40 @@ function center(n: CircuitNodeJSON): { x: number; y: number } {
 /** The one busbar a shunt device is wired to, if that is how it connects.
  *  A load wired straight onto a transformer terminal stays in the ranked
  *  graph instead of hanging. */
+/** The edges at each node, built once per pass. Every step below used to
+ *  scan all edges for every node, which is quadratic: seconds on a
+ *  10,000-element feeder. Endpoints never change during a layout (only
+ *  handles and routing points do), so one index serves a whole pass. */
+const adjacencyCache = new WeakMap<CircuitEdgeJSON[], Map<string, CircuitEdgeJSON[]>>()
+function edgesAt(circuit: CircuitJSON, nodeId: string): CircuitEdgeJSON[] {
+  let map = adjacencyCache.get(circuit.edges)
+  if (!map) {
+    map = new Map()
+    for (const e of circuit.edges) {
+      for (const end of e.source === e.target ? [e.source] : [e.source, e.target]) {
+        const list = map.get(end)
+        if (list) list.push(e)
+        else map.set(end, [e])
+      }
+    }
+    adjacencyCache.set(circuit.edges, map)
+  }
+  return map.get(nodeId) ?? []
+}
+
+const nodeIndexCache = new WeakMap<CircuitNodeJSON[], Map<string, CircuitNodeJSON>>()
+function nodesById(circuit: CircuitJSON): Map<string, CircuitNodeJSON> {
+  let map = nodeIndexCache.get(circuit.nodes)
+  if (!map) {
+    map = new Map(circuit.nodes.map((n) => [n.id, n]))
+    nodeIndexCache.set(circuit.nodes, map)
+  }
+  return map
+}
+
 function hangingBus(n: CircuitNodeJSON, circuit: CircuitJSON, byId: Map<string, CircuitNodeJSON>) {
   if (!SHUNT_TYPES.has(n.type)) return null
-  const attached = circuit.edges.filter((e) => e.source === n.id || e.target === n.id)
+  const attached = edgesAt(circuit, n.id)
   if (attached.length !== 1) return null
   const e = attached[0]
   const other = byId.get(e.source === n.id ? e.target : e.source)
@@ -71,9 +109,14 @@ function hangingBus(n: CircuitNodeJSON, circuit: CircuitJSON, byId: Map<string, 
  *  can be pointed the way power flows regardless of how they were drawn. */
 function distancesFromSources(circuit: CircuitJSON): Map<string, number> {
   const adj = new Map<string, string[]>()
+  const link = (a: string, b: string) => {
+    const list = adj.get(a)
+    if (list) list.push(b)
+    else adj.set(a, [b])
+  }
   for (const e of circuit.edges) {
-    adj.set(e.source, [...(adj.get(e.source) ?? []), e.target])
-    adj.set(e.target, [...(adj.get(e.target) ?? []), e.source])
+    link(e.source, e.target)
+    link(e.target, e.source)
   }
   const dist = new Map<string, number>()
   const queue: string[] = []
@@ -83,8 +126,10 @@ function distancesFromSources(circuit: CircuitJSON): Map<string, number> {
       queue.push(n.id)
     }
   }
-  while (queue.length) {
-    const id = queue.shift()!
+  // An index rather than shift(): shifting is linear, so the walk was
+  // quadratic in the number of elements.
+  for (let qi = 0; qi < queue.length; qi++) {
+    const id = queue[qi]
     for (const next of adj.get(id) ?? []) {
       if (!dist.has(next)) {
         dist.set(next, dist.get(id)! + 1)
@@ -241,19 +286,31 @@ function layoutElements(circuit: CircuitJSON, opts: LayoutOptions): void {
   const ranked = circuit.nodes.filter((n) => !hungIds.has(n.id))
   const rankedEdges = oriented.filter(([a, b]) => !hungIds.has(a) && !hungIds.has(b))
 
-  const run = () => {
-    const g = new dagre.graphlib.Graph()
-    g.setGraph({ rankdir: direction, nodesep: 40, ranksep: direction === 'LR' ? 80 : 60 })
-    g.setDefaultEdgeLabel(() => ({}))
-    for (const n of ranked) {
-      const { w, h } = sizeOf(n)
-      const row = hung.has(n.id) ? HANG_ROW_H : 0
-      g.setNode(n.id, { width: w + 20, height: h + 30 + row })
+  const nodesep = 40
+  const ranksep = direction === 'LR' ? 80 : 60
+  const boxOf = (n: CircuitNodeJSON) => {
+    const { w, h } = sizeOf(n)
+    const row = hung.has(n.id) ? HANG_ROW_H : 0
+    return { width: w + 20, height: h + 30 + row }
+  }
+  const place = (): ((id: string) => { x: number; y: number } | undefined) => {
+    if (ranked.length > LARGE_LAYOUT) {
+      const pos = treeLayout(ranked.map((n) => ({ id: n.id, ...boxOf(n) })), rankedEdges, { direction, nodesep, ranksep })
+      return (id) => pos.get(id)
     }
+    const g = new dagre.graphlib.Graph()
+    g.setGraph({ rankdir: direction, nodesep, ranksep })
+    g.setDefaultEdgeLabel(() => ({}))
+    for (const n of ranked) g.setNode(n.id, boxOf(n))
     for (const [a, b] of rankedEdges) g.setEdge(a, b)
     dagre.layout(g)
+    return (id) => g.node(id)
+  }
+
+  const run = () => {
+    const at = place()
     for (const n of ranked) {
-      const pos = g.node(n.id)
+      const pos = at(n.id)
       if (!pos) continue
       const { w, h } = sizeOf(n)
       const row = hung.has(n.id) ? HANG_ROW_H : 0
@@ -283,8 +340,8 @@ export function isPassThrough(
   hung: Map<string, CircuitNodeJSON[]>,
 ): boolean {
   if (bus.type !== 'busbar' || hung.get(bus.id)?.length) return false
-  const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
-  const attached = circuit.edges.filter((e) => e.source === bus.id || e.target === bus.id)
+  const byId = nodesById(circuit)
+  const attached = edgesAt(circuit, bus.id)
   if (attached.length !== 2) return false
   return attached.every((e) => {
     const other = byId.get(e.source === bus.id ? e.target : e.source)
@@ -325,10 +382,10 @@ function sizeBusbars(circuit: CircuitJSON, hung: Map<string, CircuitNodeJSON[]>)
     const busY = bus.position?.y ?? 0
     let above = 0
     let below = hung.get(bus.id)?.length ?? 0
-    for (const e of circuit.edges) {
-      if (e.source !== bus.id && e.target !== bus.id) continue
+    const row = new Set(hung.get(bus.id) ?? [])
+    for (const e of edgesAt(circuit, bus.id)) {
       const other = byId.get(e.source === bus.id ? e.target : e.source)
-      if (!other || (hung.get(bus.id) ?? []).includes(other)) continue
+      if (!other || row.has(other)) continue
       if ((other.position?.y ?? 0) < busY) above += 1
       else below += 1
     }
@@ -351,9 +408,8 @@ function spreadDevicesBetweenBuses(
   for (const n of circuit.nodes) {
     if (!SERIES_TYPES.has(n.type) || hungIds.has(n.id)) continue
     const buses: CircuitNodeJSON[] = []
-    for (const e of circuit.edges) {
-      const other =
-        e.source === n.id ? byId.get(e.target) : e.target === n.id ? byId.get(e.source) : null
+    for (const e of edgesAt(circuit, n.id)) {
+      const other = byId.get(e.source === n.id ? e.target : e.source)
       if (other && other.type === 'busbar') buses.push(other)
     }
     if (!buses.length) continue
@@ -402,11 +458,11 @@ function arrangeBelowBusbars(circuit: CircuitJSON, hung: Map<string, CircuitNode
     const row = hung.get(bus.id) ?? []
     type Below = { e: CircuitEdgeJSON; node: CircuitNodeJSON | undefined; x: number; shunt: boolean }
     const below: Below[] = []
-    for (const e of circuit.edges) {
-      if (e.source !== bus.id && e.target !== bus.id) continue
+    const inRow = new Set(row)
+    for (const e of edgesAt(circuit, bus.id)) {
       const other = byId.get(e.source === bus.id ? e.target : e.source)
       if (!other) continue
-      if (row.includes(other)) {
+      if (inRow.has(other)) {
         below.push({ e, node: other, x: mid, shunt: true })
       } else if ((other.position?.y ?? 0) > by) {
         below.push({ e, node: other, x: center(other).x, shunt: false })
@@ -464,8 +520,20 @@ function separateOverlaps(circuit: CircuitJSON, hungIds: Set<string>): void {
     })
     .sort((a, b) => a.y - b.y || a.x - b.x)
   const GAP = 20
+  // Sorted by y, a box more than the tallest box (plus the gap) above this
+  // one cannot reach it, so the scan starts at the first that can -- found
+  // by binary search -- rather than at the top of the drawing.
+  const tallest = boxes.reduce((m, b) => Math.max(m, b.h), 0)
   for (let i = 0; i < boxes.length; i++) {
-    for (let j = 0; j < i; j++) {
+    const reach = boxes[i].y - tallest - GAP
+    let lo = 0
+    let hi = i
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (boxes[mid].y < reach) lo = mid + 1
+      else hi = mid
+    }
+    for (let j = lo; j < i; j++) {
       const a = boxes[j]
       const b = boxes[i]
       const overlapY = a.y < b.y + b.h + GAP && b.y < a.y + a.h + GAP
@@ -482,9 +550,9 @@ function separateOverlaps(circuit: CircuitJSON, hungIds: Set<string>): void {
 
 function shiftHangingRow(circuit: CircuitJSON, bus: CircuitNodeJSON, dx: number): void {
   if (bus.type !== 'busbar') return
-  const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
-  for (const e of circuit.edges) {
-    const other = e.source === bus.id ? byId.get(e.target) : e.target === bus.id ? byId.get(e.source) : null
+  const byId = nodesById(circuit)
+  for (const e of edgesAt(circuit, bus.id)) {
+    const other = byId.get(e.source === bus.id ? e.target : e.source)
     if (other && SHUNT_TYPES.has(other.type) && other.position) {
       other.position = { x: other.position.x + dx, y: other.position.y }
     }
@@ -496,9 +564,8 @@ function centerSourcesAboveBuses(circuit: CircuitJSON): void {
   const byId = new Map(circuit.nodes.map((n) => [n.id, n]))
   for (const n of circuit.nodes) {
     if (n.type !== 'vsource') continue
-    for (const e of circuit.edges) {
-      const other =
-        e.source === n.id ? byId.get(e.target) : e.target === n.id ? byId.get(e.source) : null
+    for (const e of edgesAt(circuit, n.id)) {
+      const other = byId.get(e.source === n.id ? e.target : e.source)
       if (other?.type === 'busbar') {
         n.position = {
           x: snap(center(other).x - NODE_SIZE.vsource.w / 2),
@@ -520,8 +587,7 @@ function assignUpwardHandles(circuit: CircuitJSON): void {
     const busX = bus.position?.x ?? 0
     const busY = bus.position?.y ?? 0
     const want: { e: CircuitEdgeJSON; idx: number }[] = []
-    for (const e of circuit.edges) {
-      if (e.source !== bus.id && e.target !== bus.id) continue
+    for (const e of edgesAt(circuit, bus.id)) {
       const other = byId.get(e.source === bus.id ? e.target : e.source)
       const c = other ? center(other) : { x: busX, y: busY + 1 }
       if (c.y > busY) continue

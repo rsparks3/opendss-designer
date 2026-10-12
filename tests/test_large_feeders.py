@@ -60,3 +60,28 @@ def test_substation_ltc_stays_a_transformer():
 def test_voltage_bases_come_from_the_file():
     rt = big.round_trip(big.BY_KEY["ckt5"])
     assert rt.circuit.voltageBases == [345, 115, 13.8, 12.47, 4.16, 0.48, 0.415, 0.208]
+
+
+@pytest.mark.parametrize("feeder", PARAMS)
+def test_validation_is_quiet_on_a_real_feeder(feeder, trips):
+    """No false phase warnings: single-phase units written with a node on both
+    windings, and centre-tapped 120/240 V services, used to raise 396 on
+    ckt24 and 1,354 on the 8500-node feeder. ckt5's twelve islands are real:
+    equipment behind its disabled connectors."""
+    from opendss_designer.core.validate import validate
+
+    issues = validate(_trip(feeder, trips).circuit)
+    codes = [i.code for i in issues]
+    assert "phase-mismatch" not in codes
+    assert codes.count("island") == (12 if feeder.key == "ckt5" else 0)
+
+
+def test_a_series_reactor_joins_the_source_to_the_substation(trips):
+    """ckt5 and the 8500-node feeder reach their substation through a series
+    Reactor. It is drawn as a line edge and written back as a Reactor."""
+    rt = _trip(big.BY_KEY["8500"], trips)
+    reactors = [e for e in rt.circuit.edges if e.params.get("reactor")]
+    assert [e.params["name"].lower() for e in reactors] == ["hvmv_sub_hsb"]
+    assert not any(p.name.lower().startswith("reactor.") for p in rt.circuit.passthrough)
+    text, _ = export_dss(rt.circuit)
+    assert "new reactor.hvmv_sub_hsb bus1=sourcebus" in text.lower()

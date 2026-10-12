@@ -624,6 +624,15 @@ kbd {
 
 /* ---------- canvas overlays ---------- */
 .canvas-wrap { position: relative; }
+/* A large circuit from far away (OverviewLayer): one canvas over the pane,
+   transparent to the pointer so panning and zooming carry on underneath. */
+.overview-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.canvas-hint.overview-hint { top: auto; bottom: 14px; }
 .canvas-hint {
   position: absolute;
   top: 10px;

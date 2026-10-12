@@ -14,7 +14,7 @@ import { temporal } from 'zundo'
 import { create } from 'zustand'
 import { defaultLineParams, defaultParams, isAnnotation, isNote, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
-import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
+import type { CircuitJSON, CircuitNodeJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
   GeoPoint,
   LimitsJSON,
   LineCodeJSON,
@@ -318,6 +318,34 @@ export function terminalKey(nodeId: string, handleId: string): string {
 // Terminal -> edge ids, memoized on the edges array identity: every Terminal
 // component asks this on every store update, so it must not rescan the edge
 // list once per handle.
+/** A circuit this big is drawn sparingly: only the elements in view, and
+ *  only the busbar terminals that hold a wire (see BusbarNode). Below it
+ *  the drawing behaves exactly as it always has. */
+export const LARGE_CIRCUIT = 1500
+
+let handlesCache: { edges: AppEdge[]; map: Map<string, string> } | null = null
+
+/** The handles on each node that hold a wire, as a sorted comma-joined
+ *  string (a cheap value to subscribe to). */
+export function handlesInUse(edges: AppEdge[], nodeId: string): string {
+  if (handlesCache?.edges !== edges) {
+    const sets = new Map<string, Set<string>>()
+    const add = (n: string, h: string | null | undefined) => {
+      let s = sets.get(n)
+      if (!s) sets.set(n, (s = new Set()))
+      s.add(h ?? 't1')
+    }
+    for (const e of edges) {
+      add(e.source, e.sourceHandle)
+      add(e.target, e.targetHandle)
+    }
+    const map = new Map<string, string>()
+    for (const [n, s] of sets) map.set(n, [...s].sort().join(','))
+    handlesCache = { edges, map }
+  }
+  return handlesCache.map.get(nodeId) ?? ''
+}
+
 let termMapCache: { edges: AppEdge[]; map: Map<string, string[]> } | null = null
 
 /** Map of "<nodeId>:<handleId>" to the ids of the edges landing there.
@@ -464,6 +492,12 @@ export function toCircuitJSON(
   }
 }
 
+function initialSize(n: CircuitNodeJSON): { initialWidth: number; initialHeight: number } {
+  const { w, h } = NODE_SIZE[n.type] ?? NODE_SIZE.load
+  const turned = (Number(n.params?.rotation) || 0) % 180 !== 0
+  return turned ? { initialWidth: h, initialHeight: w } : { initialWidth: w, initialHeight: h }
+}
+
 export function fromCircuitJSON(c: CircuitJSON): { nodes: AppNode[]; edges: AppEdge[] } {
   const nodes: AppNode[] = c.nodes.map((n) => ({
     id: n.id,
@@ -488,6 +522,10 @@ export function fromCircuitJSON(c: CircuitJSON): { nodes: AppNode[]; edges: AppE
     ...(n.type === 'zone'
       ? { width: n.width ?? NODE_SIZE.zone.w, height: n.height ?? NODE_SIZE.zone.h }
       : {}),
+    // A symbol's box before React Flow has measured it. A large circuit only
+    // renders what is in view, so most symbols are never measured, and
+    // without a size they count for nothing when the view is fitted.
+    ...(n.type !== 'busbar' && n.type !== 'note' && n.type !== 'zone' ? initialSize(n) : {}),
   }))
   const edges: AppEdge[] = c.edges.map((e) => ({
     id: e.id,
@@ -1178,15 +1216,18 @@ export const useCircuitStore = create<CircuitState>()(
         crs: s.crs,
       }),
       limit: 100,
-      // Structural compare; fine at editor scale (revisit if circuits reach
-      // thousands of elements). loadShapes is compared by reference — shape
-      // actions always replace the whole object, and stringifying 8760-point
-      // arrays on every unrelated set would be wasteful.
+      // By reference, element by element. Every action replaces what it
+      // changes (a node's data, its position, a library object) and keeps
+      // the rest, so "nothing was replaced" is "nothing changed". This used
+      // to stringify the whole document twice on every set -- fine for a
+      // drawing, minutes on a 10,000-element feeder, where React Flow's
+      // size reports alone are hundreds of sets.
       equality: (past, cur) => {
-        if (past.loadShapes !== cur.loadShapes) return false
-        const { loadShapes: _p, ...pastRest } = past
-        const { loadShapes: _c, ...curRest } = cur
-        return JSON.stringify(pastRest) === JSON.stringify(curRest)
+        for (const key of Object.keys(cur) as (keyof typeof cur)[]) {
+          if (key === 'nodes' || key === 'edges') continue
+          if (past[key] !== cur[key]) return false
+        }
+        return sameItems(past.nodes, cur.nodes) && sameItems(past.edges, cur.edges)
       },
       // One undo entry per gesture (drag/resize), one per discrete action.
       handleSet: (handleSet) => (state) => {
@@ -1199,6 +1240,22 @@ export const useCircuitStore = create<CircuitState>()(
     },
   ),
 )
+
+/** Two lists of (selection-stripped) nodes or edges hold the same things:
+ *  same length, and every item has the same fields holding the same
+ *  references. */
+function sameItems(a: object[], b: object[]): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i] as Record<string, unknown>
+    const y = b[i] as Record<string, unknown>
+    const keys = Object.keys(x)
+    if (keys.length !== Object.keys(y).length) return false
+    for (const k of keys) if (x[k] !== y[k]) return false
+  }
+  return true
+}
 
 setLimitsSource(() => limitsOf(useCircuitStore.getState().limits))
 

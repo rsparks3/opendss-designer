@@ -1026,9 +1026,36 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
         i = dss.Storages.Next()
 
+    # Series reactors: a line edge marked `reactor`, so a source that reaches
+    # its substation through one is still connected on the drawing. Only one
+    # joining two buses the drawn elements use counts; a shunt reactor, or a
+    # grounding reactor to a bus of its own, stays a passthrough element.
+    # Read last, so every other element has claimed its buses.
+    series_reactors: set[str] = set()
+    i = dss.Reactors.First()
+    while i:
+        name = dss.Reactors.Name()
+        raw1, raw2 = dss.Reactors.Bus1(), dss.Reactors.Bus2()
+        b1, b2 = _base_bus(raw1), _base_bus(raw2)
+        if (b2 and b1 != b2 and b1 in bus_node_ids and b2 in bus_node_ids
+                and not dss.Reactors.Parallel()):
+            series_reactors.add(f"reactor.{name.lower()}")
+            params = {"name": name, "reactor": True, "r": dss.Reactors.R(),
+                      "x": dss.Reactors.X(), "phases": int(dss.Reactors.Phases())}
+            amps = _to_float(dss.Properties.Value("normamps"))
+            if amps > 0:
+                params["normamps"] = amps
+            _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
+                            ["nodes1", "nodes2"])
+            edges.append(CircuitEdge(
+                id=edge_id(), type="line",
+                source=busbar_for(b1), sourceHandle="b0",
+                target=busbar_for(b2), targetHandle="b0", params=params))
+        i = dss.Reactors.Next()
+
     # Anything else in the model is out of v1 scope.
     for full in dss.Circuit.AllElementNames():
-        if not full.lower().startswith(SUPPORTED_PREFIXES):
+        if not full.lower().startswith(SUPPORTED_PREFIXES) and full.lower() not in series_reactors:
             unsupported.append(full)
 
     _apply_bus_coords(nodes, bus_node_ids)

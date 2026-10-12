@@ -1,3 +1,4 @@
+import { byId } from '../../lib/indexes'
 import { NodeResizeControl, ResizeControlVariant, useInternalNode, type InternalNode, type NodeProps } from '@xyflow/react'
 import { useEffect, useRef, useState } from 'react'
 import { arrowHead, leaderLine, lineAnchor, type Box, type XY } from '../../lib/noteLeader'
@@ -160,7 +161,7 @@ function Leader({ from, to, origin }: { from: XY; to: XY; origin: XY }) {
  *  (no target, or the element was deleted). */
 function useLeaderTarget(target: string): Box | XY | null {
   const node = useInternalNode(target)
-  const edge = useCircuitStore((s) => (target ? s.edges.find((e) => e.id === target) : undefined))
+  const edge = useCircuitStore((s) => (target ? byId(s.edges).get(target) : undefined))
   const src = useInternalNode(edge?.source ?? '')
   const tgt = useInternalNode(edge?.target ?? '')
   if (!target) return null

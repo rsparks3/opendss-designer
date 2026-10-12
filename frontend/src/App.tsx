@@ -1,5 +1,5 @@
 import { ReactFlowProvider } from '@xyflow/react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from './lib/api'
 import { hasElements } from './lib/defaults'
 import { loadLineCodes } from './lib/lineCodes'
@@ -19,10 +19,53 @@ import { Toolbar } from './components/Toolbar'
 import { MenuBar } from './components/MenuBar'
 import { Dialogs } from './components/Dialogs'
 
-/** Re-validate the circuit (debounced) whenever it changes. */
+/** A number that changes when the circuit changes electrically: an element
+ *  added, removed, re-wired or given new parameters. Moving or selecting
+ *  something does not change it -- and on a 10,000-element feeder every
+ *  click used to post the whole 5 MB circuit for validation. The check is a
+ *  reference comparison per element: the store replaces an element's `data`
+ *  whenever its parameters change, and keeps it when only the position or
+ *  selection does. */
+function useElectricalRevision(): number {
+  const [revision, setRevision] = useState(0)
+  useEffect(() => {
+    let lastNodes: unknown[] = []
+    let lastEdges: unknown[] = []
+    const changed = (s: ReturnType<typeof useCircuitStore.getState>) => {
+      const { nodes, edges } = s
+      if (nodes.length !== lastNodes.length / 3 || edges.length !== lastEdges.length / 6) return true
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i]
+        if (lastNodes[3 * i] !== n.id || lastNodes[3 * i + 1] !== n.data || lastNodes[3 * i + 2] !== n.width) return true
+      }
+      for (let i = 0; i < edges.length; i++) {
+        const e = edges[i]
+        const k = 6 * i
+        if (lastEdges[k] !== e.id || lastEdges[k + 1] !== e.data?.params || lastEdges[k + 2] !== e.source ||
+          lastEdges[k + 3] !== e.target || lastEdges[k + 4] !== e.sourceHandle || lastEdges[k + 5] !== e.targetHandle) return true
+      }
+      return false
+    }
+    const remember = (s: ReturnType<typeof useCircuitStore.getState>) => {
+      lastNodes = s.nodes.flatMap((n) => [n.id, n.data, n.width])
+      lastEdges = s.edges.flatMap((e) => [e.id, e.data?.params, e.source, e.target, e.sourceHandle, e.targetHandle])
+    }
+    const check = (s: ReturnType<typeof useCircuitStore.getState>) => {
+      if (!changed(s)) return
+      remember(s)
+      setRevision((r) => r + 1)
+    }
+    check(useCircuitStore.getState())
+    return useCircuitStore.subscribe((s, prev) => {
+      if (s.nodes !== prev.nodes || s.edges !== prev.edges) check(s)
+    })
+  }, [])
+  return revision
+}
+
+/** Re-validate the circuit (debounced) whenever it changes electrically. */
 function useValidation() {
-  const nodes = useCircuitStore((s) => s.nodes)
-  const edges = useCircuitStore((s) => s.edges)
+  const revision = useElectricalRevision()
   // Limits change what a solve flags, so they re-run it like an edit does.
   const limits = useCircuitStore((s) => s.limits)
   const setIssues = useResultsStore((s) => s.setIssues)
@@ -31,7 +74,7 @@ function useValidation() {
 
   useEffect(() => {
     window.clearTimeout(timer.current)
-    if (!hasElements(nodes)) {
+    if (!hasElements(useCircuitStore.getState().nodes)) {
       setIssues([])
       setPhases(null)
       return
@@ -57,7 +100,7 @@ function useValidation() {
       }
     }, 400)
     return () => window.clearTimeout(timer.current)
-  }, [nodes, edges, limits, setIssues, setPhases])
+  }, [revision, limits, setIssues, setPhases])
 }
 
 const AUTOSAVE_KEY = 'autosave'

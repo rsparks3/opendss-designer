@@ -38,6 +38,10 @@ interface UiState {
   fileHandle: FileHandle | null
   setFileHandle: (h: FileHandle | null) => void
 
+  /** A wire is being drawn or moved: every terminal is a possible home. */
+  routing: boolean
+  setRouting: (v: boolean) => void
+
   showGrid: boolean
   snapToGrid: boolean
   setShowGrid: (v: boolean) => void
@@ -124,6 +128,9 @@ export const useUiStore = create<UiState>()((set, get) => ({
 
   fileHandle: null,
   setFileHandle: (fileHandle) => set({ fileHandle }),
+
+  routing: false,
+  setRouting: (routing) => set({ routing }),
 
   showGrid: readFlag('showGrid', true),
   snapToGrid: readFlag('snapToGrid', true),

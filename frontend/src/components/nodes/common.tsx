@@ -1,5 +1,6 @@
+import { issueSeverity, resultById } from '../../lib/indexes'
 import { Handle, Position, useReactFlow, useUpdateNodeInternals, type HandleProps } from '@xyflow/react'
-import { createContext, useContext, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react'
 import { useAltHeld } from '../../lib/altKey'
 import { loadingColor, NEUTRAL, voltageColor } from '../../lib/colorScale'
 import { reliabilityOf, sectionColor, sectionHeadedBy } from '../../lib/reliability'
@@ -93,7 +94,13 @@ export function useSymbolRotation(id: string, params: Params): number {
   const rotation = Number(params.rotation) || 0
   const flip = params.flip === true
   const updateNodeInternals = useUpdateNodeInternals()
-  useEffect(() => updateNodeInternals(id), [rotation, flip, id, updateNodeInternals])
+  // Not on mount: React Flow measures a new node itself, and every symbol of
+  // a large import asking again is one pass over all nodes per symbol.
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (mounted.current) updateNodeInternals(id)
+    mounted.current = true
+  }, [rotation, flip, id, updateNodeInternals])
   return rotation
 }
 
@@ -171,10 +178,9 @@ export function SymbolSvg({
 }
 
 export function useNodeIssueClass(id: string): string {
-  const issues = useResultsStore((s) => s.issues)
-  const mine = issues.filter((i) => i.nodeId === id)
-  if (mine.some((i) => i.severity === 'error')) return ' issue-error'
-  if (mine.length) return ' issue-warning'
+  const severity = useResultsStore((s) => issueSeverity(s.issues).get(id))
+  if (severity === 'error') return ' issue-error'
+  if (severity) return ' issue-warning'
   return ''
 }
 
@@ -317,7 +323,7 @@ export function ElementBadge({ nodeId }: { nodeId: string }) {
   const result = useResultsStore(activeResult)
   if (overlay === 'reliability') return <ReliabilityBadge nodeId={nodeId} />
   if ((overlay !== 'loading' && overlay !== 'power') || !result?.converged) return null
-  const el = Object.values(result.elements).find((e) => e.id === nodeId)
+  const el = resultById(result).get(nodeId)
   if (!el) return null
   if (overlay === 'power') {
     return <Badge color="#455a64">{el.kw.toFixed(0)} kW</Badge>

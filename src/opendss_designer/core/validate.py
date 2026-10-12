@@ -6,7 +6,14 @@ from ..settings import Settings
 from .compiler import compile_circuit
 from .connectivity import BUSBAR_CANON_HANDLE, sanitize_name, synthesize, terminal_key
 from .model import Circuit, Issue, conducts, in_service, node_terminals
-from .phasing import PHASE_LETTERS, default_phasing, parse_phasing, phase_count, phase_set
+from .phasing import (
+    NODE_TO_LETTER,
+    PHASE_LETTERS,
+    default_phasing,
+    parse_phasing,
+    phase_count,
+    phase_set,
+)
 
 # 2-terminal devices that carry power between their two buses. Protective
 # devices are switches, so they conduct unless their `closed` flag says
@@ -20,8 +27,40 @@ SWITCH_TYPES = ("breaker", "fuse", "recloser", "relay")
 CARRY_TYPES = ("regulator", *SWITCH_TYPES)
 
 
+def _raw_letters(raw: object) -> frozenset[str] | None:
+    """The phases a raw node suffix names (".2" -> B, ".1.2.3.0" -> ABC);
+    neutral and higher nodes say nothing about phases. None if it names none."""
+    if not isinstance(raw, str):
+        return None
+    letters = frozenset(NODE_TO_LETTER[int(p)] for p in raw.split(".")
+                        if p.isdigit() and int(p) in NODE_TO_LETTER)
+    return letters or None
+
+
 def _phases_of(params: dict) -> frozenset[str]:
-    return phase_set(params.get("phasing"), phase_count(params))
+    """The phases an element is on: its pin, or else the raw node suffix an
+    import kept (a single-phase transformer written `buses=(n.2, x.2)` has no
+    pin, since its secondary is not bare), or else the first N phases."""
+    pinned = parse_phasing(params.get("phasing"))
+    if pinned:
+        return frozenset(pinned)
+    raw = params.get("busNodes")
+    first = raw[0] if isinstance(raw, list) and raw else raw
+    letters = _raw_letters(first) or _raw_letters(params.get("nodes1"))
+    return letters or phase_set(None, phase_count(params))
+
+
+def _winding_phases(params: dict, winding: int) -> frozenset[str]:
+    """What a transformer puts on one winding's bus: the phases that winding's
+    raw suffix names, or a fresh set starting at A."""
+    raw = params.get("busNodes")
+    if isinstance(raw, list) and winding < len(raw):
+        letters = _raw_letters(raw[winding])
+        if letters:
+            return letters
+    if winding == 0 and parse_phasing(params.get("phasing")):
+        return frozenset(parse_phasing(params.get("phasing")) or "")
+    return frozenset(default_phasing(phase_count(params)))
 
 
 def phases_available(circuit: Circuit, conn, sources: list) -> dict[str, frozenset[str]]:
@@ -37,14 +76,18 @@ def phases_available(circuit: Circuit, conn, sources: list) -> dict[str, frozens
         return {}
     phases_of = _phases_of
 
-    # Every series path as (bus_in, bus_out, phases it delivers).
-    links: list[tuple[str, str, frozenset[str]]] = []
+    # Every series path as (bus_in, bus_out, phases it needs at the input,
+    # phases it delivers). A line or a switch delivers the phases it is on
+    # that arrive (needs and delivers the same set); a transformer delivers
+    # its output winding's phases whenever its input winding is live on any
+    # of its own -- a centre-tapped secondary's legs are not the primary's.
+    links: list[tuple[str, str, frozenset[str], frozenset[str] | None]] = []
     for e in circuit.edges:
         if e.type == "line" and e.id in conn.line_buses and in_service(e.params):
             b1, b2 = conn.line_buses[e.id]
             carried = phases_of(e.params)
-            links.append((b1, b2, carried))
-            links.append((b2, b1, carried))
+            links.append((b1, b2, carried, None))
+            links.append((b2, b1, carried, None))
     for n in circuit.nodes:
         buses = conn.node_buses.get(n.id, [])
         if n.type not in SERIES_TYPES or len(buses) < 2:
@@ -53,17 +96,17 @@ def phases_available(circuit: Circuit, conn, sources: list) -> dict[str, frozens
             continue
         if n.type in CARRY_TYPES:
             carried = phases_of(n.params)
-            links.append((buses[0], buses[1], carried))
-            links.append((buses[1], buses[0], carried))
+            links.append((buses[0], buses[1], carried, None))
+            links.append((buses[1], buses[0], carried, None))
         else:
             # A transformer re-establishes phases on every winding it feeds,
             # and power can enter it by any winding, so each pair of its
             # buses is a two-way path -- three pairs for a three-winding unit.
-            fresh = frozenset(default_phasing(phase_count(n.params)))
             for i, a in enumerate(buses):
-                for b in buses[i + 1:]:
-                    links.append((a, b, fresh))
-                    links.append((b, a, fresh))
+                for j, b in enumerate(buses[i + 1:], start=i + 1):
+                    wi, wj = _winding_phases(n.params, i), _winding_phases(n.params, j)
+                    links.append((a, b, wj, wi))
+                    links.append((b, a, wi, wj))
 
     available: dict[str, frozenset[str]] = {}
     for s in sources:
@@ -71,20 +114,25 @@ def phases_available(circuit: Circuit, conn, sources: list) -> dict[str, frozens
         if bus:
             available[bus] = available.get(bus, frozenset()) | phases_of(s.params)
 
-    # Relax until nothing grows. Bounded by buses x 3 phases, and a feeder
-    # settles in a handful of passes; the loop guard is for meshed networks.
-    for _ in range(len(links) + 1):
-        changed = False
-        for src, dst, carried in links:
-            upstream = available.get(src)
-            if not upstream:
-                continue
-            delivered = upstream & carried
+    # Spread outward, revisiting a bus only when what reaches it grows: a
+    # bus can grow at most three times, so this is linear in the links.
+    # (Sweeping every link until nothing changed was quadratic on a deep
+    # feeder.)
+    out: dict[str, list[tuple[str, frozenset[str], frozenset[str] | None]]] = {}
+    for src, dst, carried, needs in links:
+        out.setdefault(src, []).append((dst, carried, needs))
+    queue = list(available)
+    while queue:
+        src = queue.pop()
+        upstream = available.get(src, frozenset())
+        for dst, carried, needs in out.get(src, ()):
+            if needs is None:
+                delivered = upstream & carried
+            else:
+                delivered = carried if upstream & needs else frozenset()
             if delivered and not delivered <= available.get(dst, frozenset()):
                 available[dst] = available.get(dst, frozenset()) | delivered
-                changed = True
-        if not changed:
-            break
+                queue.append(dst)
     return available
 
 

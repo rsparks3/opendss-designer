@@ -4,7 +4,8 @@ import '@xyflow/react/dist/style.css'
 import './index.css'
 import App from './App'
 import { autoLayout } from './lib/layout'
-import { redo, undo, useCircuitStore } from './store/circuitStore'
+import type { ReactFlowInstance } from '@xyflow/react'
+import { redo, undo, useCircuitStore, type AppEdge, type AppNode } from './store/circuitStore'
 import { useResultsStore } from './store/resultsStore'
 
 // Scripting/debugging hook: drive the editor from the browser console.
@@ -16,6 +17,8 @@ declare global {
       undo: typeof undo
       redo: typeof redo
       autoLayout: typeof autoLayout
+      /** The canvas's React Flow instance (viewport, fitting), once drawn. */
+      flow?: ReactFlowInstance<AppNode, AppEdge>
     }
   }
 }

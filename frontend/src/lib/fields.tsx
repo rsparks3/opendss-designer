@@ -47,8 +47,13 @@ const RELIABILITY_FIELDS = (perLength: boolean): Field[] => [
   { key: 'meter', label: 'Reliability meter here', kind: 'checkbox', defaultOff: true },
 ]
 
-/** True unless the line is on one of the circuit's line codes. */
+const isReactor = (params: Params) => params.reactor === true
+const notReactor = (params: Params) => params.reactor !== true
+
+/** True unless the line is on one of the circuit's line codes (or is a
+ *  reactor, which is in ohms). */
 function ownImpedance(params: Params): boolean {
+  if (isReactor(params)) return false
   const code = params.linecode
   return typeof code !== 'string' || !useCircuitStore.getState().lineCodes[code]
 }
@@ -117,8 +122,11 @@ export const FIELDS: Record<string, Field[]> = {
   ],
   line: [
     { key: 'name', label: 'Name', kind: 'text' },
-    { key: 'length', label: 'Length', kind: 'number' },
-    { key: 'units', label: 'Units', kind: 'select', options: ['km', 'm', 'mi', 'kft', 'ft'] },
+    // A series reactor (imported) is a line edge in ohms, with no length.
+    { key: 'r', label: 'Resistance', kind: 'number', unit: 'Ω', showIf: isReactor },
+    { key: 'x', label: 'Reactance', kind: 'number', unit: 'Ω', showIf: isReactor },
+    { key: 'length', label: 'Length', kind: 'number', showIf: notReactor },
+    { key: 'units', label: 'Units', kind: 'select', options: ['km', 'm', 'mi', 'kft', 'ft'], showIf: notReactor },
     // A line on one of the circuit's line codes takes its impedance from the
     // code, so its own sequence values are not shown (they would not be used).
     { key: 'r1', label: 'R1', kind: 'number', unit: 'Ω/unit', showIf: ownImpedance },

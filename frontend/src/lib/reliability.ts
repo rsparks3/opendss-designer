@@ -1,6 +1,7 @@
 /** The reliability study on the drawing: which protection section an
  *  element is in, the colour that section wears, and the legend's wording.
  *  The numbers themselves come from the engine (core/reliability.py). */
+import { reliabilityIndex } from './indexes'
 import type { ReliabilityResult, ReliabilitySection } from '../types/circuit'
 import type { LegendEntry } from './exportDiagram'
 
@@ -14,22 +15,19 @@ export const UNSECTIONED_COLOR = '#9e9e9e'
 
 export function sectionColor(result: ReliabilityResult, sectionId: string | null | undefined): string {
   if (!sectionId) return UNSECTIONED_COLOR
-  const i = result.sections.findIndex((s) => s.id === sectionId)
-  return i < 0 ? UNSECTIONED_COLOR : SECTION_COLORS[i % SECTION_COLORS.length]
+  const i = reliabilityIndex(result).sectionOrder.get(sectionId)
+  return i === undefined ? UNSECTIONED_COLOR : SECTION_COLORS[i % SECTION_COLORS.length]
 }
 
 /** The study's entry for a diagram element, by node or edge id. */
 export function reliabilityOf(result: ReliabilityResult | null, id: string) {
   if (!result?.converged) return null
-  for (const [name, el] of Object.entries(result.elements)) {
-    if (el.id === id) return { name, data: el }
-  }
-  return null
+  return reliabilityIndex(result).elements.get(id) ?? null
 }
 
 /** The section an element heads, if it heads one. */
 export function sectionHeadedBy(result: ReliabilityResult | null, id: string): ReliabilitySection | null {
-  return result?.sections.find((s) => s.headId === id) ?? null
+  return result ? (reliabilityIndex(result).heads.get(id) ?? null) : null
 }
 
 const f = (v: number | null | undefined, digits: number) => (v == null ? '—' : v.toFixed(digits))
