@@ -7,6 +7,7 @@ import { DEFAULT_PHASES, PHASE_KEY_LABELS, PHASE_KEYS, type ThemePref } from '..
 import { useCircuitStore } from '../store/circuitStore'
 import { useUiStore } from '../store/uiStore'
 import { FindDialog } from './FindDialog'
+import { GisImportDialog } from './GisImportDialog'
 import { ProjectDialog } from './ProjectDialog'
 import { ReportDialog } from './ReportDialog'
 import { LibraryDialog, SaveAsDialog } from './ProjectLibrary'
@@ -52,6 +53,8 @@ export function Dialogs() {
       return <ProjectDialog onClose={close} />
     case 'report':
       return <ReportDialog onClose={close} />
+    case 'gis':
+      return <GisImportDialog onClose={close} />
     default:
       return null
   }

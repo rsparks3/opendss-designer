@@ -18,7 +18,7 @@ import {
  * or saved with a project; the preferences persist per browser.
  */
 
-export type Dialog = 'saveAs' | 'library' | 'shortcuts' | 'about' | 'find' | 'prefs' | 'project' | 'report' | null
+export type Dialog = 'saveAs' | 'library' | 'shortcuts' | 'about' | 'find' | 'prefs' | 'project' | 'report' | 'gis' | null
 
 /** Panels the View menu can show and hide. Keys match SidePanel storage keys. */
 export type PanelKey = 'palette2' | 'properties' | 'bottom'

@@ -201,7 +201,17 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
       item('Import .dss…', () => void importDss(), {
         title: 'Import OpenDSS .dss file(s) — select the main file plus anything it references (line codes, BusCoords csv)',
       }),
-      { kind: 'sub', label: 'Import from', items: importFrom(convert) },
+      {
+        kind: 'sub',
+        label: 'Import from',
+        items: [
+          item('GIS layers or CSV tables…', () => ui.openDialog('gis'), {
+            title: 'Shapefiles, GeoJSON or CSV: map each layer to an element class and its columns to properties',
+          }),
+          sep,
+          ...importFrom(convert),
+        ],
+      },
       sep,
       item('Save', save, { keys: 'Mod+S', title: 'Save to this browser' }),
       item('Save as…', () => ui.openDialog('saveAs'), { keys: 'Mod+Shift+S' }),
