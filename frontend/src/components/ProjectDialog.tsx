@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { DEFAULT_LIMITS, EMPTY_STUDY, limitsOf, limitsProblem, sameLimits } from '../lib/limits'
+import { DEFAULT_LIMITS, EMPTY_STUDY, limitsOf, limitsProblem, sameLimits, studyIsEmpty } from '../lib/limits'
 import { useCircuitStore } from '../store/circuitStore'
 import type { LimitsJSON, StudyInfoJSON } from '../types/circuit'
 
@@ -39,9 +39,9 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
   const problem = limitsProblem(parsed)
   const changed = !problem && !sameLimits(parsed, limitsOf(stored))
 
-  const edit = (key: keyof StudyInfoJSON, value: string) => {
+  const edit = (key: keyof StudyInfoJSON, value: string | boolean) => {
     const next = { ...study, [key]: value }
-    setStudy(Object.values(next).some((v) => v.trim()) ? next : null)
+    setStudy(studyIsEmpty(next) ? null : next)
   }
   const apply = () => {
     if (!changed) return
@@ -68,7 +68,7 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
             {STUDY_FIELDS.map(([key, label]) => (
               <label key={key}>
                 {label}
-                <input value={study[key]} maxLength={200} onChange={(e) => edit(key, e.target.value)} />
+                <input value={String(study[key] ?? '')} maxLength={200} onChange={(e) => edit(key, e.target.value)} />
               </label>
             ))}
           </div>
@@ -81,7 +81,14 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
               onChange={(e) => edit('description', e.target.value)}
             />
           </label>
-          <div className="library-note">Printed in the title block of study reports.</div>
+          <label className="prefs-radio">
+            <input type="checkbox" checked={study.sheet === true} onChange={(e) => edit('sheet', e.target.checked)} />
+            Sheet border and title block on exported images
+          </label>
+          <div className="library-note">
+            Printed in the title block of study reports and, with the box ticked, in the corner of every
+            SVG and PNG export, inside a drawing border.
+          </div>
         </fieldset>
         <fieldset className="prefs-group">
           <legend>Abnormal-condition limits</legend>

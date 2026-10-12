@@ -5,7 +5,8 @@ import { reliabilityLegend } from './reliability'
 import type { ReliabilityResult } from '../types/circuit'
 import { useUiStore } from '../store/uiStore'
 import { api } from './api'
-import { diagramToSvg, imageFileName, legendFor, OVERLAY_LABELS, svgToPng } from './exportDiagram'
+import { diagramToSvg, imageFileName, legendFor, OVERLAY_LABELS, svgToPng, type SheetInfo } from './exportDiagram'
+import { instanceHealth } from './instance'
 import {
   canSaveInPlace,
   pickProjectFile,
@@ -339,19 +340,35 @@ export async function captureDiagram(): Promise<string | null> {
   const rs = useResultsStore.getState()
   const label = OVERLAY_LABELS[rs.overlay]
   const unsolved = rs.overlay !== 'off' && rs.overlay !== 'phases' && (rs.stale || !rs.result)
-  const caption = [
-    name || 'circuit',
-    label && `${label} overlay${unsolved ? ' (not solved)' : ''}`,
-    localDate(),
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const drawing = label ? `${label} overlay${unsolved ? ' (not solved)' : ''}` : ''
+  const caption = [name || 'circuit', drawing, localDate()].filter(Boolean).join(' · ')
+  // On a sheet the caption's facts move into the title block.
+  const study = useCircuitStore.getState().study
+  const sheet: SheetInfo | undefined = study?.sheet
+    ? {
+        title: study.title,
+        caseName: study.caseName,
+        engineer: study.engineer,
+        company: study.company,
+        circuit: name || 'circuit',
+        drawing: drawing || 'One-line diagram',
+        date: localDate(),
+        software: await softwareLabel(),
+      }
+    : undefined
   // Exports go on white paper, so they are read off a light-theme drawing.
   const legend =
     rs.overlay === 'reliability'
       ? reliabilityLegend(rs.reliability, (id, fallback) => elementName(id) ?? fallback)
       : legendFor(rs.overlay, limitsOf(limits))
-  return inLightTheme(() => diagramToSvg(pane, { caption, legend }))
+  return inLightTheme(() => diagramToSvg(pane, { caption: sheet ? undefined : caption, legend, sheet }))
+}
+
+/** "OpenDSS Designer 0.7.0", or just the name when the server is not
+ *  answering. */
+async function softwareLabel(): Promise<string> {
+  const h = await instanceHealth()
+  return h?.version ? `OpenDSS Designer ${h.version}` : 'OpenDSS Designer'
 }
 
 export async function exportImage(kind: 'svg' | 'png') {

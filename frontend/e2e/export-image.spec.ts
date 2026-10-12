@@ -102,3 +102,47 @@ test('PNG export rasterises the same drawing at 2x', async ({ page }) => {
   expect(svg).toContain('>0.95–1.05 pu</text>')
   expect(svg).toMatch(/>1\.\d{3} pu</)
 })
+
+// With the project's sheet flag on, an export is a plotted drawing: a
+// double border and a title block carrying the study, circuit and date.
+test('exports go on a bordered sheet with a title block when the project asks', async ({ page }) => {
+  await openWithFixture(page)
+  await menu(page, 'File', 'Project properties…')
+  const props = page.getByRole('dialog', { name: 'Project properties' })
+  const tick = props.getByLabel('Sheet border and title block on exported images')
+  await expect(tick).not.toBeChecked()
+  await tick.check()
+  await props.getByRole('button', { name: 'Close' }).click()
+
+  const { bytes } = await downloadFrom(page, 'SVG')
+  const svg = bytes.toString('utf-8')
+  expect(svg).toContain('>Schema fixture study</text>')
+  expect(svg).toContain('Peak load</text>')
+  expect(svg).toContain('A. Engineer</text>')
+  expect(svg).toContain('Example Utility</text>')
+  expect(svg).toContain('schema-fixture</text>')
+  expect(svg).toMatch(/Voltages overlay \(not solved\)<\/text>/)
+  expect(svg).toMatch(/OpenDSS Designer \d/)
+  expect(svg).toMatch(/\d{4}-\d{2}-\d{2}<\/text>/)
+  // Two border rectangles and the block's own, all unfilled strokes.
+  expect((svg.match(/<rect [^>]*fill="none" stroke="#333"/g) ?? []).length).toBeGreaterThanOrEqual(2)
+  // The caption line moved into the block.
+  expect(svg).not.toMatch(/schema-fixture · Voltages overlay/)
+
+  // Untick it and the export is the plain drawing again.
+  await page.evaluate(() => {
+    const s = (window as any).opendssDesigner.circuit.getState()
+    s.setStudy({ ...s.study, sheet: false })
+  })
+  const plain = (await downloadFrom(page, 'SVG')).bytes.toString('utf-8')
+  expect(plain).not.toContain('>Schema fixture study</text>')
+  expect(plain).toMatch(/schema-fixture · Voltages overlay/)
+
+  // A PNG of the sheet, kept for a look.
+  await page.evaluate(() => {
+    const s = (window as any).opendssDesigner.circuit.getState()
+    s.setStudy({ ...s.study, sheet: true })
+  })
+  const [download] = await Promise.all([page.waitForEvent('download'), menu(page, 'File', 'Export', 'Image (PNG)')])
+  await download.saveAs('test-results/sheet-export.png')
+})

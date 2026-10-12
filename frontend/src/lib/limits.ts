@@ -15,6 +15,12 @@ export const EMPTY_STUDY: StudyInfoJSON = {
   engineer: '',
   company: '',
   description: '',
+  sheet: false,
+}
+
+/** Whether a study block says anything worth saving. */
+export function studyIsEmpty(s: StudyInfoJSON): boolean {
+  return !s.sheet && !Object.values(s).some((v) => typeof v === 'string' && v.trim())
 }
 
 /** The limits a circuit applies: its own, or the defaults. */

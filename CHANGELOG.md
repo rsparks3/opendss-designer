@@ -45,6 +45,11 @@ This project follows [Semantic Versioning](https://semver.org/).
   counted, never makes results stale, and Clean up redraws it around what
   it held. Exported images and reports carry it; a `.dss` export records
   it as a `! Zone:` comment naming the elements inside.
+- **A sheet border and title block on exported images.** Tick the box in
+  *File → Project properties* and every SVG and PNG export (the one-line
+  in a study report too) comes out on a drawing sheet: a double border
+  and a title block in the bottom-right corner carrying the study title,
+  case, engineer, company, circuit, overlay, date and software version.
 
 ## 0.7.0 — 2026-10-11
 

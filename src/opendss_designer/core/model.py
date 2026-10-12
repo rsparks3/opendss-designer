@@ -142,12 +142,16 @@ class Limits(BaseModel):
 
 
 class StudyInfo(BaseModel):
-    """The title block of a study report. Nothing reads it but the report."""
+    """The title block of a study report, and of the drawing when `sheet`
+    asks for one. Nothing reads it but the report and the image export."""
     title: Annotated[str, Field(max_length=200)] = ""
     caseName: Annotated[str, Field(max_length=200)] = ""
     engineer: Annotated[str, Field(max_length=200)] = ""
     company: Annotated[str, Field(max_length=200)] = ""
     description: Annotated[str, Field(max_length=MAX_COMMENT_TEXT)] = ""
+    # Draw exported images on a sheet: a border, and this block in the
+    # bottom-right corner, the way a drawing is plotted.
+    sheet: bool = False
 
 
 class Circuit(BaseModel):

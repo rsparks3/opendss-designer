@@ -110,7 +110,8 @@ name while there is something to save; click it to save.
   solver uses — so anything you draw also runs in stock OpenDSS.
 - **File → Import .dss…** loads existing `.dss` files; see
   [Importing DSS files](importing-dss.md).
-- **File → Export → Image (SVG / PNG)** download the drawing as it is on screen, with the
+- **File → Export → Image (SVG / PNG)** download the drawing as it is on screen (on a
+  bordered sheet with a title block, if *Project properties* says so), with the
   active overlay, a colour key and a caption (name, overlay, date). The SVG
   is a genuine vector file — real paths and text, no embedded screenshot —
   so it opens and edits in Inkscape, Visio and PowerPoint; the PNG is

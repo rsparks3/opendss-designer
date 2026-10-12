@@ -26,6 +26,11 @@ function load(): Promise<HealthInfo | null> {
   return inflight
 }
 
+/** The same answer, for code outside a component (an export's title block). */
+export function instanceHealth(): Promise<HealthInfo | null> {
+  return load()
+}
+
 export function useInstanceHealth(): HealthInfo | null {
   const [health, setHealth] = useState<HealthInfo | null>(cached)
   useEffect(() => {

@@ -34,6 +34,22 @@ export interface ExportOptions {
   legend?: LegendEntry[]
   /** Flow units of white space around the drawing. */
   padding?: number
+  /** Draw the whole thing on a sheet: a border, and this title block in
+   *  the bottom-right corner, as a drawing is plotted. */
+  sheet?: SheetInfo
+}
+
+/** What a drawing's title block says. Empty strings print as a dash. */
+export interface SheetInfo {
+  title: string
+  caseName: string
+  engineer: string
+  company: string
+  circuit: string
+  /** What is drawn: the overlay, or "One-line diagram". */
+  drawing: string
+  date: string
+  software: string
 }
 
 /** What the colours mean for the overlay that is on, so a report reader
@@ -340,6 +356,28 @@ export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): strin
     maxY += rowH + pad / 2
   }
 
+  if (opts.sheet) {
+    // The block wants a width of its own; a narrow drawing is widened to
+    // carry it, so the sheet is never narrower than its title block.
+    const blockW = 400
+    const blockH = 96
+    const margin = 16
+    const gap = 12
+    minX -= margin
+    minY -= margin
+    maxX = Math.max(maxX + margin, minX + blockW + 2 * margin)
+    maxY += gap + blockH + margin
+    const sheetW = maxX - minX
+    const sheetH = maxY - minY
+    chrome.push(
+      `<rect x="${fmt(minX + 2)}" y="${fmt(minY + 2)}" width="${fmt(sheetW - 4)}" height="${fmt(sheetH - 4)}" ` +
+        'fill="none" stroke="#333" stroke-width="1.5"/>',
+      `<rect x="${fmt(minX + 6)}" y="${fmt(minY + 6)}" width="${fmt(sheetW - 12)}" height="${fmt(sheetH - 12)}" ` +
+        'fill="none" stroke="#333" stroke-width="0.6"/>',
+      ...titleBlock(opts.sheet, maxX - margin - blockW, maxY - margin - blockH, blockW, blockH, font),
+    )
+  }
+
   const w = maxX - minX
   const h = maxY - minY
   return (
@@ -351,6 +389,41 @@ export function diagramToSvg(pane: HTMLElement, opts: ExportOptions = {}): strin
     parts.join('\n') +
     '\n</svg>\n'
   )
+}
+
+/** A drawing's title block: the title across the top, then two columns of
+ *  labelled facts, ruled like a plotted sheet. */
+function titleBlock(s: SheetInfo, x: number, y: number, w: number, h: number, font: string): string[] {
+  const dash = (v: string) => (v.trim() ? v : '—')
+  const titleH = 32
+  const rowH = (h - titleH) / 3
+  const mid = x + w / 2
+  const cell = (cx: number, cy: number, label: string, value: string) =>
+    `<text x="${fmt(cx)}" y="${fmt(cy)}" dominant-baseline="central" ${font} font-size="9.5" fill="#333">` +
+    `<tspan font-weight="700" fill="#555">${esc(label)} </tspan>${esc(dash(value))}</text>`
+  const out = [
+    `<rect x="${fmt(x)}" y="${fmt(y)}" width="${fmt(w)}" height="${fmt(h)}" fill="#ffffff" stroke="#333" stroke-width="1"/>`,
+    `<line x1="${fmt(x)}" y1="${fmt(y + titleH)}" x2="${fmt(x + w)}" y2="${fmt(y + titleH)}" stroke="#333" stroke-width="0.8"/>`,
+    `<line x1="${fmt(mid)}" y1="${fmt(y + titleH)}" x2="${fmt(mid)}" y2="${fmt(y + h)}" stroke="#333" stroke-width="0.5"/>`,
+    `<text x="${fmt(x + 10)}" y="${fmt(y + titleH / 2)}" dominant-baseline="central" ${font} font-size="15" ` +
+      `font-weight="700" fill="#111">${esc(dash(s.title))}</text>`,
+    `<text x="${fmt(x + w - 10)}" y="${fmt(y + titleH / 2)}" dominant-baseline="central" text-anchor="end" ${font} ` +
+      `font-size="10" fill="#555">${esc(s.date)}</text>`,
+  ]
+  for (let r = 1; r < 3; r++) {
+    const ly = y + titleH + r * rowH
+    out.push(`<line x1="${fmt(x)}" y1="${fmt(ly)}" x2="${fmt(x + w)}" y2="${fmt(ly)}" stroke="#333" stroke-width="0.5"/>`)
+  }
+  const rows: [string, string, string, string][] = [
+    ['Case', s.caseName, 'Engineer', s.engineer],
+    ['Company', s.company, 'Circuit', s.circuit],
+    ['Drawing', s.drawing, 'Made with', s.software],
+  ]
+  rows.forEach(([l1, v1, l2, v2], i) => {
+    const cy = y + titleH + (i + 0.5) * rowH
+    out.push(cell(x + 10, cy, l1 + ':', v1), cell(mid + 10, cy, l2 + ':', v2))
+  })
+  return out
 }
 
 /** Rasterise an SVG string. `scale` is device pixels per flow unit: 2 gives

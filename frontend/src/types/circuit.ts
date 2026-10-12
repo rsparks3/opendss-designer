@@ -126,6 +126,8 @@ export interface StudyInfoJSON {
   engineer: string
   company: string
   description: string
+  /** Exported images get a sheet border and this block as a title block. */
+  sheet?: boolean
 }
 
 export interface PassthroughJSON {

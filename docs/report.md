@@ -15,7 +15,11 @@ those sections.
 **File → Project properties…** holds two things the report prints:
 
 - **Study**: title, case, engineer, company and a description. These make
-  up the title page and every page header.
+  up the title page and every page header. Tick **Sheet border and title
+  block on exported images** and every SVG or PNG export (the one-line
+  in the report included) is drawn on a sheet: a double border, and the
+  study block, circuit, overlay, date and software in a title block in
+  the bottom-right corner, the way a drawing is plotted.
 - **Abnormal-condition limits**: the undervoltage and overvoltage limits
   (pu), the loading level that counts as a warning, and the level that
   counts as an overload (% of rating). The defaults are ANSI C84.1 Range A

@@ -447,6 +447,7 @@
     "caseName": "Peak load",
     "engineer": "A. Engineer",
     "company": "Example Utility",
-    "description": "Every element type, for the schema-drift tests."
+    "description": "Every element type, for the schema-drift tests.",
+    "sheet": false
   }
 }
