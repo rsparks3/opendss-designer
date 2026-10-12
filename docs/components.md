@@ -226,6 +226,18 @@ switched steps.
 | Mode | 1 = constant kW/pf; 3 = PV mode (holds a voltage setpoint) |
 | V setpoint (pu) | Held voltage in mode 3 |
 
+### Reliability data
+
+Every line, transformer, regulator, breaker, fuse, recloser and relay ends
+its property list with the inputs of the
+[reliability study](analysis.md#reliability): **Fault rate** (per year,
+or per unit length per year for a line), **Permanent faults** (%),
+**Repair time** (h) and a **Reliability meter here** checkbox that makes
+the element the head of a metered zone. Loads have **Customers**. Blank
+fields take OpenDSS's defaults (0.1, 20 %, 3 h and 1 customer), which is
+also what an imported file gets unless it set them, and the export writes
+only what you set.
+
 ## PV system — ++p++
 
 An OpenDSS `PVSystem`: panel + inverter, with built-in inverter efficiency

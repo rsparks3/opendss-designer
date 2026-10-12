@@ -75,6 +75,11 @@ export const OVERLAY_CHOICES: { mode: OverlayMode; label: string; title?: string
   { mode: 'power', label: 'Power' },
   { mode: 'fault', label: 'Fault', title: 'Short-circuit study: prospective fault current at each bus' },
   {
+    mode: 'reliability',
+    label: 'Reliability',
+    title: 'Reliability study: SAIFI, SAIDI and CAIDI from the fault rates, with every element coloured by the protection section it is in',
+  },
+  {
     mode: 'phases',
     label: 'Phases',
     title: 'Colour lines by the phases they carry and buses by the phases that reach them (no solve needed)',

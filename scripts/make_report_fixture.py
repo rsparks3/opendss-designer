@@ -3,13 +3,13 @@
     PYTHONPATH=src python scripts/make_report_fixture.py
 
 writes frontend/src/lib/report/__fixtures__/full-circuit.results.json: the
-snapshot solve, fault study and TCC study of tests/fixtures/full-circuit.
+snapshot solve, fault, TCC and reliability studies of tests/fixtures/full-circuit.
 Rerun it when the fixture or the engine's result shape changes.
 """
 import json
 from pathlib import Path
 
-from opendss_designer.core import engine, protection
+from opendss_designer.core import engine, protection, reliability
 from opendss_designer.core.model import Circuit
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +19,7 @@ out = {
     "solve": engine.solve(circuit),
     "fault": engine.fault_study(circuit),
     "tcc": protection.tcc_study(circuit),
+    "reliability": reliability.reliability_study(circuit),
 }
 target = ROOT / "frontend/src/lib/report/__fixtures__/full-circuit.results.json"
 target.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")

@@ -2,19 +2,20 @@ import { Position, type NodeProps } from '@xyflow/react'
 import type { AppNode } from '../../store/circuitStore'
 import {
   NodeLabel,
+  ReliabilityBadge,
   rotatedBox,
   rotatePosition,
   SymbolSvg,
   Terminal,
   useNodeIssueClass,
-  usePhaseInk,
+  useOverlayInk,
   useSymbolRotation,
   VoltageBadge,
 } from './common'
 
 export function LoadNode({ id, data }: NodeProps<AppNode>) {
   const issueClass = useNodeIssueClass(id)
-  const phaseInk = usePhaseInk(data.params)
+  const phaseInk = useOverlayInk(id, data.params)
   const rot = useSymbolRotation(id, data.params)
   const box = rotatedBox(40, 60, rot)
   const kw = data.params.kw
@@ -33,6 +34,7 @@ export function LoadNode({ id, data }: NodeProps<AppNode>) {
         {kw != null && <div className="sub-label">{Number(kw)} kW</div>}
       </NodeLabel>
       <VoltageBadge nodeId={id} />
+      <ReliabilityBadge nodeId={id} customers={Number(data.params.numcust ?? 1)} />
     </div>
   )
 }

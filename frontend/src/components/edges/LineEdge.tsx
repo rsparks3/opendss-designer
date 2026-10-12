@@ -1,6 +1,7 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
 import { effectivePhasing, phaseColor, phaseLabel } from '../../lib/phasing'
+import { reliabilityOf, sectionColor, sectionHeadedBy } from '../../lib/reliability'
 import { useLimits, type AppEdge } from '../../store/circuitStore'
 import { useIsGrabbed } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
@@ -13,6 +14,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore(activeResult)
   const stale = useResultsStore(activeStale)
+  const reliability = useResultsStore((s) => s.reliability)
   const limits = useLimits()
 
   const el = result?.converged
@@ -35,6 +37,16 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
     } else if (overlay === 'power') {
       stroke = NEUTRAL
       resultText = `${el.kw.toFixed(0)} kW / ${el.kvar.toFixed(0)} kvar`
+    }
+  }
+  // Reliability: the line wears its protection section's colour and says
+  // how often it faults; a section head says what its section costs.
+  if (overlay === 'reliability' && reliability?.converged && !props.selected && !grabbed) {
+    const r = reliabilityOf(reliability, props.id)
+    if (r) {
+      stroke = sectionColor(reliability, r.data.sectionId)
+      const head = sectionHeadedBy(reliability, props.id)
+      resultText = head ? `${head.custInterrupts.toFixed(2)} cust·int/yr` : `λ ${r.data.lambda.toFixed(3)} /yr`
     }
   }
 

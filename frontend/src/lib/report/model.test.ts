@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import fixture from '../../../../tests/fixtures/full-circuit.oneline.json'
 import results from './__fixtures__/full-circuit.results.json'
-import type { CircuitJSON, FaultResult, SolveResult, TimeSeriesResult } from '../../types/circuit'
+import type { CircuitJSON, FaultResult, ReliabilityResult, SolveResult, TimeSeriesResult } from '../../types/circuit'
 import type { TccResult } from '../tcc'
 import { profileSvg, tccSvg, timeSeriesSvg } from './charts'
 import { buildReport, engineLabel, formatCell, header, reportFileName, type Report, type SectionKey, type Table } from './model'
@@ -11,7 +11,8 @@ const circuit = fixture as unknown as CircuitJSON
 const solve = results.solve as unknown as SolveResult
 const fault = results.fault as unknown as FaultResult
 const tcc = results.tcc as unknown as TccResult
-const ALL: SectionKey[] = ['loadflow', 'diagram', 'shortcircuit', 'protection', 'timeseries']
+const reliability = results.reliability as unknown as ReliabilityResult
+const ALL: SectionKey[] = ['loadflow', 'diagram', 'shortcircuit', 'protection', 'reliability', 'timeseries']
 
 function build(overrides: Partial<Parameters<typeof buildReport>[0]> = {}): Report {
   return buildReport({
@@ -19,6 +20,7 @@ function build(overrides: Partial<Parameters<typeof buildReport>[0]> = {}): Repo
     solve,
     fault,
     tcc,
+    reliability,
     sections: new Set(ALL),
     date: new Date('2026-09-28T12:00:00'),
     figures: { diagram: '<svg/>' },
@@ -40,8 +42,30 @@ describe('study report model', () => {
   it('orders the sections the way a load-flow study reads', () => {
     expect(build().sections.map((s) => s.id)).toEqual([
       'study', 'summary', 'abnormal', 'buses', 'branches', 'loads', 'losses',
-      'diagram', 'notes', 'shortcircuit', 'protection',
+      'diagram', 'notes', 'shortcircuit', 'protection', 'reliability',
     ])
+  })
+
+  it('tabulates the reliability study: indices, sections and element fault rates', () => {
+    const r = build()
+    const indices = table(r, 'reliability-indices')
+    expect(value(indices, 'SAIFI')).toBeCloseTo(reliability.saifi!, 3)
+    expect(value(indices, 'Customers')).toBe(2)
+    expect(indices.note).toMatch(/5 elements between a meter/)
+    const sections = table(r, 'reliability-sections')
+    expect(sections.rows.map((x) => x.device).sort()).toEqual(['Fuse', 'Recloser', 'Relay'])
+    expect(sections.rows.find((x) => x.device === 'Fuse')).toMatchObject({ head: 'FU1', customers: 1 })
+    const elements = table(r, 'reliability-elements')
+    const trunk = elements.rows.find((x) => x.element === 'LN1')!
+    expect(trunk.section).toBe('none')
+    expect(trunk.faultrate).toBe(0.1)
+    expect(trunk.pctperm).toBe(20)
+    // One zone: no per-zone table, and the kW-weighted index is reported.
+    expect(r.sections.flatMap((s) => s.tables).find((t) => t.id === 'reliability-zones')).toBeUndefined()
+    expect(value(indices, 'SAIFI (kW-weighted)')).toBeCloseTo(reliability.saifiKw!, 3)
+    // Left out when not asked for, or when it did not run.
+    expect(build({ sections: new Set(['loadflow']) }).sections.find((s) => s.id === 'reliability')).toBeUndefined()
+    expect(build({ reliability: { ...reliability, converged: false } }).sections.find((s) => s.id === 'reliability')).toBeUndefined()
   })
 
   it('carries the title block and the criteria', () => {

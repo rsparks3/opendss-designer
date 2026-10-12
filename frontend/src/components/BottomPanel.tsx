@@ -16,9 +16,19 @@ import { GraphPanel } from './GraphPanel'
 import { CurvesPanel } from './CurvesPanel'
 import { LineCodesPanel } from './LineCodesPanel'
 import { PassthroughPanel } from './PassthroughPanel'
+import { ReliabilityPanel } from './ReliabilityPanel'
 import { ShapesPanel } from './ShapesPanel'
 
-type MainTab = 'problems' | 'elements' | 'losses' | 'graph' | 'shapes' | 'curves' | 'linecodes' | 'passthrough'
+type MainTab =
+  | 'problems'
+  | 'elements'
+  | 'losses'
+  | 'reliability'
+  | 'graph'
+  | 'shapes'
+  | 'curves'
+  | 'linecodes'
+  | 'passthrough'
 
 const TYPE_TABS: { key: string; label: string }[] = [
   { key: 'vsource', label: 'Sources' },
@@ -460,6 +470,16 @@ export function BottomPanel() {
           Losses
         </button>
         <button
+          className={`bp-tab${tab === 'reliability' && open ? ' active' : ''}`}
+          title="SAIFI, SAIDI and CAIDI, and the protection sections behind them"
+          onClick={() => {
+            setTab('reliability')
+            setOpen(tab !== 'reliability' || !open)
+          }}
+        >
+          Reliability
+        </button>
+        <button
           className={`bp-tab${tab === 'graph' && open ? ' active' : ''}`}
           onClick={() => {
             setTab('graph')
@@ -534,6 +554,8 @@ export function BottomPanel() {
             <ProblemsTab />
           ) : tab === 'losses' ? (
             <LossesTab />
+          ) : tab === 'reliability' ? (
+            <ReliabilityPanel />
           ) : tab === 'graph' ? (
             <GraphPanel />
           ) : tab === 'shapes' ? (

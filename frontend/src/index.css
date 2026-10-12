@@ -669,6 +669,29 @@ kbd {
 }
 .phase-legend-item { display: inline-flex; align-items: center; gap: 5px; }
 .phase-legend-swatch { width: 14px; height: 4px; border-radius: 2px; display: inline-block; }
+.reliability-legend { flex-direction: column; align-items: flex-start; gap: 4px; max-width: 420px; }
+.reliability-legend .legend-indices { font-weight: 600; }
+/* Reliability tab */
+.reliability-panel { padding: 6px 8px; display: flex; flex-direction: column; gap: 8px; }
+.reliability-indices { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: 12.5px; }
+.reliability-index b { font-weight: 600; }
+.reliability-indices button, .bp-empty button {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.reliability-warning {
+  background: var(--warn-bg, #fff4e5);
+  border: 1px solid var(--warn, #ed6c02);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.bp-empty p { margin: 0 0 8px; max-width: 70ch; }
 /* Right-click context menu */
 .menu-backdrop {
   position: fixed;

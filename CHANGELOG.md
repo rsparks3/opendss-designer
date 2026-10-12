@@ -21,6 +21,21 @@ This project follows [Semantic Versioning](https://semver.org/).
   browser, instead of printing those characters as `?`. Reports that fit
   the standard fonts are unchanged, apart from being smaller: the PDF's
   streams are now compressed.
+- **Reliability indices.** The *Reliability* overlay (and the new
+  *Reliability* tab) runs OpenDSS's EnergyMeter reliability calculation
+  and reports **SAIFI, SAIDI and CAIDI**, with the drawing coloured by
+  protection section — a fuse, recloser or relay and everything down to
+  the next one — loads badged with their customers and section heads with
+  the customer interruptions a year their section costs. Lines, transformers,
+  regulators and switches gained *Fault rate*, *Permanent faults*, *Repair
+  time* and a *Reliability meter here* checkbox, loads a *Customers* count;
+  blanks take OpenDSS's defaults, imports read what a file set, exports
+  write it back. Meters go on every element leaving the source bus unless
+  you flag your own. Branches above the first protective device are drawn
+  grey and reported as uncounted, which is OpenDSS's convention and the
+  reason a feeder wants a relay at its head. The study report has a
+  *Reliability* section: indices, zones, sections and every element's
+  rates. Every incumbent sells this as a module.
 
 ## 0.7.0 — 2026-10-11
 

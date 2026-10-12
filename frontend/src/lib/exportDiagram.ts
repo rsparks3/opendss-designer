@@ -67,6 +67,7 @@ export const OVERLAY_LABELS: Record<OverlayMode, string> = {
   loading: 'Loading',
   power: 'Power',
   fault: 'Fault current',
+  reliability: 'Reliability',
   phases: 'Phases',
   off: '',
 }

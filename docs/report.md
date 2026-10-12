@@ -7,7 +7,7 @@ go to a colleague, a design review or a regulator as it is.
 
 Everything is built in the browser. If a study the report needs is out of
 date or has not been run yet, the export runs it first: it solves the power
-flow, and runs the fault study or the protection study when you ask for
+flow, and runs the fault, protection or reliability study when you ask for
 those sections.
 
 ## Before you export
@@ -41,6 +41,7 @@ The one-line in the report is drawn with whichever overlay is on
 | **One-line diagram** | The drawing as vectors, on a page turned to suit its shape (an 11×17 sheet for a large feeder), followed by a table of its [notes](components.md#note-n) |
 | **Short circuit** | For every bus: three-phase and line-to-ground fault current, three-phase MVA, the Thevenin R1, X1, R0 and X0, and X/R |
 | **Protection** | Every fuse, recloser and relay element: curve, pickup, the fault current available at its bus and how long it takes to operate at that current. Then interrupting duty (available fault current against each switch's interrupting rating) and the coordination findings, followed by a time-current plot |
+| **Reliability** | SAIFI, SAIDI and CAIDI with the customer interruptions and hours behind them (per metered zone when there are several), the protection sections (head device, branches, exposed length, fault rate, repair time, customers downstream and their interruptions), and every element's fault rate, permanent share, repair time and the rate of everything downstream of it. See [Reliability](analysis.md#reliability) for how OpenDSS counts |
 | **Time series** | The last daily or yearly run: energy, losses and their share, peak demand and when, and the lowest and highest voltage with where and when. A demand/losses chart is included; the workbook also lists every step |
 
 A section you cannot use yet is greyed out in the dialog, with the reason:

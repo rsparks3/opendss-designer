@@ -1,5 +1,6 @@
 import { fmtSimHour } from '../lib/axis'
 import { nodeLetter } from '../lib/phasing'
+import { reliabilityOf, sectionHeadedBy } from '../lib/reliability'
 import { useCircuitStore } from '../store/circuitStore'
 import { activeResult, activeStale, useResultsStore } from '../store/resultsStore'
 import type { BusResult, ElementResult } from '../types/circuit'
@@ -17,6 +18,7 @@ export interface HoverTarget {
 export function ResultTooltip({ target }: { target: HoverTarget }) {
   const result = useResultsStore(activeResult)
   const fault = useResultsStore((s) => s.fault)
+  const reliability = useResultsStore((s) => s.reliability)
   const overlay = useResultsStore((s) => s.overlay)
   const stale = useResultsStore(activeStale)
   // In time-series mode the tooltip reads the scrubbed step; note its hour.
@@ -29,19 +31,24 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
   const scrubMode = useResultsStore((s) => s.timeseries?.mode ?? 'daily')
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
-  if (!result?.converged || stale) return null
+  // The reliability study stands on its own: it needs no solve to read.
+  const rel = overlay === 'reliability' ? reliabilityOf(reliability, target.id) : null
+  const section = rel && reliability ? reliability.sections.find((x) => x.id === rel.data.sectionId) : null
+  const heads = overlay === 'reliability' ? sectionHeadedBy(reliability, target.id) : null
+  const solved = result?.converged && !stale ? result : null
+  if (!solved && !rel) return null
 
   const params =
     target.kind === 'node'
       ? nodes.find((n) => n.id === target.id)?.data.params
       : edges.find((e) => e.id === target.id)?.data?.params
   const busIds =
-    (target.kind === 'node' ? result.nodeBuses[target.id] : result.lineBuses[target.id]) ?? []
+    (solved ? (target.kind === 'node' ? solved.nodeBuses[target.id] : solved.lineBuses[target.id]) : null) ?? []
   // Dedupe (a breaker between the same synthesized bus lists it twice).
   const buses = [...new Set(busIds)]
-    .map((b) => [b, result.buses[b]] as [string, BusResult | undefined])
+    .map((b) => [b, solved?.buses[b]] as [string, BusResult | undefined])
     .filter(([, d]) => d)
-  const element = Object.entries(result.elements).find(([, el]) => el.id === target.id) as
+  const element = Object.entries(solved?.elements ?? {}).find(([, el]) => el.id === target.id) as
     | [string, ElementResult]
     | undefined
   // Fault section only in fault-overlay mode, for the element's first bus.
@@ -50,7 +57,7 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
       ? fault.buses[fault.nodeBuses[target.id]?.[0] ?? '']
       : undefined
 
-  if (!buses.length && !element) return null
+  if (!buses.length && !element && !rel) return null
 
   return (
     <div className="result-tooltip" style={{ left: target.x + 14, top: target.y + 14 }}>
@@ -120,6 +127,47 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
                   {faultData.zsc1.r.toFixed(3)} + j{faultData.zsc1.x.toFixed(3)} Ω
                 </td>
               </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      {rel && (
+        <div className="rt-section">
+          <div className="rt-heading">reliability</div>
+          <table>
+            <tbody>
+              <tr>
+                <td>section</td>
+                <td colSpan={3}>
+                  {section
+                    ? `${nodes.find((n) => n.id === section.headId)?.data.params.name ?? edges.find((e) => e.id === section.headId)?.data?.params.name ?? section.head}${heads ? ' (head)' : ''}`
+                    : 'none — no protective device upstream'}
+                </td>
+              </tr>
+              <tr>
+                <td>faults</td>
+                <td colSpan={3}>
+                  {rel.data.lambda.toFixed(4)} /yr permanent ({rel.data.faultRate} × {rel.data.pctPerm} %)
+                </td>
+              </tr>
+              <tr>
+                <td>downstream</td>
+                <td colSpan={3}>
+                  {rel.data.accumulatedLambda.toFixed(4)} /yr · {rel.data.totalCustomers} customers
+                </td>
+              </tr>
+              <tr>
+                <td>repair</td>
+                <td colSpan={3}>{rel.data.repairHrs} h</td>
+              </tr>
+              {heads && (
+                <tr>
+                  <td>its section</td>
+                  <td colSpan={3}>
+                    {heads.custInterrupts.toFixed(3)} cust·int/yr · {heads.custHours.toFixed(2)} cust·h/yr
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

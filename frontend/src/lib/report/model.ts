@@ -13,6 +13,7 @@ import type {
   CircuitJSON,
   FaultResult,
   LimitsJSON,
+  ReliabilityResult,
   SolveResult,
   StudyInfoJSON,
   TimeSeriesResult,
@@ -21,7 +22,7 @@ import { EMPTY_STUDY, limitsOf } from '../limits'
 import { operateSeconds, type TccResult } from '../tcc'
 import { traceUnit } from './charts'
 
-export type SectionKey = 'loadflow' | 'diagram' | 'shortcircuit' | 'protection' | 'timeseries'
+export type SectionKey = 'loadflow' | 'diagram' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries'
 
 export type Cell = string | number | null
 
@@ -86,6 +87,7 @@ export interface ReportInput {
   solve: SolveResult | null
   fault?: FaultResult | null
   tcc?: TccResult | null
+  reliability?: ReliabilityResult | null
   timeseries?: TimeSeriesResult | null
   /** SVG drawings the caller rendered: the one-line (from the canvas) and
    *  the charts (report/charts.ts). */
@@ -101,6 +103,7 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   diagram: 'One-line diagram',
   shortcircuit: 'Short circuit',
   protection: 'Protection',
+  reliability: 'Reliability',
   timeseries: 'Time series',
 }
 
@@ -276,6 +279,9 @@ export function buildReport(input: ReportInput): Report {
   }
   if (sections.has('protection') && input.tcc) {
     out.push(protectionSection(input.tcc, names, input.figures?.tcc))
+  }
+  if (sections.has('reliability') && input.reliability?.converged) {
+    out.push(reliabilitySection(input.reliability, names))
   }
   if (sections.has('timeseries') && input.timeseries) {
     out.push(timeSeriesSection(input.timeseries, names, input.figures?.timeseries))
@@ -900,6 +906,117 @@ function protectionSection(tcc: TccResult, names: Names, plot?: string): ReportS
     ],
     figures: plot ? [{ id: 'tcc', title: 'Time-current curves', svg: plot }] : [],
   }
+}
+
+function reliabilitySection(rel: ReliabilityResult, names: Names): ReportSection {
+  const device = (headId: string | null, head: string) => names.element(headId ?? head, head)
+  const indices: Table = {
+    id: 'reliability-indices',
+    title: 'Reliability indices',
+    keyValue: true,
+    columns: KV_COLUMNS,
+    rows: [
+      kv('SAIFI', num(rel.saifi, 4), 'interruptions per customer per year'),
+      kv('SAIDI', num(rel.saidi, 4), 'hours per customer per year'),
+      kv('CAIDI', num(rel.caidi, 3), 'hours per interruption'),
+      ...(rel.saifiKw != null ? [kv('SAIFI (kW-weighted)', num(rel.saifiKw, 4), 'interruptions per year')] : []),
+      kv('Customers', rel.totalCustomers),
+      kv('Customer interruptions', num(rel.custInterrupts, 2), 'per year'),
+      kv('Customer hours out', num(rel.custHours, 1), 'per year'),
+      kv('Metered at', rel.meters.map((m) => device(m.elementId, m.element).name).join(', ') || '—'),
+    ],
+    note:
+      "OpenDSS's EnergyMeter reliability calculation: a permanent fault anywhere in a protection section " +
+      "(a fuse, recloser or relay and every branch down to the next one) interrupts every customer downstream " +
+      "of the section's head device, for that branch's repair time." +
+      (rel.unsectioned.count
+        ? ` ${rel.unsectioned.count} element${rel.unsectioned.count === 1 ? '' : 's'} between a meter and the first ` +
+          `protective device (${num(rel.unsectioned.lambda, 4)} faults per year in all) belong to no section, so faults ` +
+          'there are not counted.'
+        : ''),
+  }
+  const tables: Table[] = [indices]
+  if (rel.meters.length > 1) {
+    tables.push({
+      id: 'reliability-zones',
+      title: 'Metered zones',
+      columns: [
+        { key: 'meter', label: 'Metered at', width: 2 },
+        { key: 'customers', label: 'Customers', digits: 0 },
+        { key: 'saifi', label: 'SAIFI', unit: '/yr', digits: 4 },
+        { key: 'saidi', label: 'SAIDI', unit: 'h/yr', digits: 4 },
+        { key: 'caidi', label: 'CAIDI', unit: 'h', digits: 3 },
+        { key: 'ci', label: 'Cust. interruptions', unit: '/yr', digits: 2 },
+      ],
+      rows: rel.meters.map((m) => ({
+        meter: device(m.elementId, m.element).name,
+        customers: m.customers,
+        saifi: num(m.saifi, 4),
+        saidi: num(m.saidi, 4),
+        caidi: num(m.caidi, 3),
+        ci: num(m.custInterrupts, 2),
+      })),
+    })
+  }
+  tables.push({
+    id: 'reliability-sections',
+    title: 'Protection sections',
+    columns: [
+      { key: 'head', label: 'Section head', width: 1.8 },
+      { key: 'device', label: 'Device', width: 1.2 },
+      { key: 'branches', label: 'Branches', digits: 0 },
+      { key: 'km', label: 'Exposed', unit: 'km', digits: 2 },
+      { key: 'lambda', label: 'Faults', unit: '/yr', digits: 4 },
+      { key: 'repair', label: 'Repair', unit: 'h', digits: 1 },
+      { key: 'customers', label: 'Customers downstream', digits: 0 },
+      { key: 'ci', label: 'Cust. interruptions', unit: '/yr', digits: 3 },
+      { key: 'ch', label: 'Cust. hours', unit: '/yr', digits: 2 },
+    ],
+    rows: rel.sections.map((s) => ({
+      head: device(s.headId, s.head).name,
+      device: TYPE_NAMES[s.device] ?? s.device,
+      branches: s.branches,
+      km: num(s.lengthKm, 2),
+      lambda: num(s.lambda, 4),
+      repair: num(s.avgRepairHrs, 1),
+      customers: s.totalCustomers,
+      ci: num(s.custInterrupts, 3),
+      ch: num(s.custHours, 2),
+    })),
+    note: rel.sections.length ? undefined : 'No fuse, recloser or relay is metered, so there are no protection sections.',
+  })
+  tables.push({
+    id: 'reliability-elements',
+    title: 'Element fault rates',
+    columns: [
+      { key: 'element', label: 'Element', width: 1.8 },
+      { key: 'type', label: 'Type', width: 1.2 },
+      { key: 'section', label: 'Section', width: 1.6 },
+      { key: 'faultrate', label: 'Fault rate', unit: '/yr', digits: 4 },
+      { key: 'pctperm', label: 'Permanent', unit: '%', digits: 0 },
+      { key: 'repair', label: 'Repair', unit: 'h', digits: 1 },
+      { key: 'lambda', label: 'Permanent faults', unit: '/yr', digits: 4 },
+      { key: 'downstream', label: 'Incl. downstream', unit: '/yr', digits: 4 },
+      { key: 'customers', label: 'Customers downstream', digits: 0 },
+    ],
+    rows: Object.entries(rel.elements).map(([full, e]) => {
+      const { name, type } = names.element(e.id, full)
+      const section = rel.sections.find((s) => s.id === e.sectionId)
+      return {
+        element: name,
+        type: TYPE_NAMES[type] ?? type,
+        section: section ? device(section.headId, section.head).name : 'none',
+        faultrate: num(e.faultRate, 4),
+        pctperm: num(e.pctPerm, 0),
+        repair: num(e.repairHrs, 1),
+        lambda: num(e.lambda, 4),
+        downstream: num(e.accumulatedLambda, 4),
+        customers: e.totalCustomers,
+      }
+    }),
+    note: "A line's fault rate is per unit of its length per year; a device's is per year.",
+  })
+  return { id: 'reliability', title: 'Reliability', tables, figures: [] }
 }
 
 function timeSeriesSection(ts: TimeSeriesResult, names: Names, chart?: string): ReportSection {

@@ -1066,5 +1066,271 @@
    }
   ],
   "issues": []
+ },
+ "reliability": {
+  "converged": true,
+  "issues": [
+   {
+    "severity": "warning",
+    "code": "unsectioned",
+    "message": "5 elements between a meter and the first fuse, recloser or relay (fault rate 0.09 /yr in all) belong to no protection section, so OpenDSS counts no interruptions for faults there. Put a relay or recloser at the feeder head to count them.",
+    "nodeId": null,
+    "edgeId": null
+   }
+  ],
+  "totalCustomers": 2,
+  "saifi": 5e-05,
+  "saidi": 0.00015,
+  "caidi": 3.0,
+  "saifiKw": 1.4e-05,
+  "custInterrupts": 0.0001,
+  "custHours": 0.0003,
+  "meters": [
+   {
+    "name": "m1",
+    "element": "transformer.t1",
+    "elementId": "n_xfmr",
+    "customers": 2,
+    "saifi": 3e-05,
+    "saidi": 9e-05,
+    "caidi": 3.0,
+    "saifiKw": 1.4e-05,
+    "custInterrupts": 0.0001,
+    "sections": [
+     "m1:1",
+     "m1:2",
+     "m1:3"
+    ],
+    "custHours": 0.0003
+   }
+  ],
+  "sections": [
+   {
+    "id": "m1:1",
+    "meter": "m1",
+    "head": "line.rly1",
+    "headId": "n_rly",
+    "device": "relay",
+    "customers": 0,
+    "totalCustomers": 1,
+    "branches": 1,
+    "lengthKm": 0.0,
+    "lambda": 2e-05,
+    "avgRepairHrs": 3.0,
+    "custInterrupts": 0.0,
+    "custHours": 0.0001
+   },
+   {
+    "id": "m1:2",
+    "meter": "m1",
+    "head": "line.rec1",
+    "headId": "n_rec",
+    "device": "recloser",
+    "customers": 0,
+    "totalCustomers": 1,
+    "branches": 1,
+    "lengthKm": 0.0,
+    "lambda": 2e-05,
+    "avgRepairHrs": 3.0,
+    "custInterrupts": 0.0,
+    "custHours": 0.0001
+   },
+   {
+    "id": "m1:3",
+    "meter": "m1",
+    "head": "line.fu1",
+    "headId": "n_fuse",
+    "device": "fuse",
+    "customers": 1,
+    "totalCustomers": 1,
+    "branches": 1,
+    "lengthKm": 0.0,
+    "lambda": 2e-05,
+    "avgRepairHrs": 3.0,
+    "custInterrupts": 0.0,
+    "custHours": 0.0001
+   }
+  ],
+  "elements": {
+   "transformer.t1": {
+    "id": "n_xfmr",
+    "meter": "m1",
+    "sectionId": null,
+    "lambda": 0.0,
+    "accumulatedLambda": 0.09002,
+    "customers": 0,
+    "totalCustomers": 2,
+    "repairHrs": 0.0,
+    "faultRate": 0.007,
+    "pctPerm": 0.0
+   },
+   "transformer.reg1": {
+    "id": "n_reg",
+    "meter": "m1",
+    "sectionId": null,
+    "lambda": 0.0,
+    "accumulatedLambda": 2e-05,
+    "customers": 0,
+    "totalCustomers": 2,
+    "repairHrs": 0.0,
+    "faultRate": 0.007,
+    "pctPerm": 0.0
+   },
+   "line.ln1": {
+    "id": "e4",
+    "meter": "m1",
+    "sectionId": null,
+    "lambda": 0.05,
+    "accumulatedLambda": 0.05,
+    "customers": 0,
+    "totalCustomers": 0,
+    "repairHrs": 3.0,
+    "faultRate": 0.1,
+    "pctPerm": 20.0
+   },
+   "line.ln2": {
+    "id": "e4b",
+    "meter": "m1",
+    "sectionId": null,
+    "lambda": 0.04,
+    "accumulatedLambda": 0.04002,
+    "customers": 0,
+    "totalCustomers": 2,
+    "repairHrs": 3.0,
+    "faultRate": 0.1,
+    "pctPerm": 20.0
+   },
+   "line.brk1": {
+    "id": "n_brk",
+    "meter": "m1",
+    "sectionId": null,
+    "lambda": 2e-05,
+    "accumulatedLambda": 2e-05,
+    "customers": 1,
+    "totalCustomers": 1,
+    "repairHrs": 3.0,
+    "faultRate": 0.1,
+    "pctPerm": 20.0
+   },
+   "line.fu1": {
+    "id": "n_fuse",
+    "meter": "m1",
+    "sectionId": "m1:3",
+    "lambda": 2e-05,
+    "accumulatedLambda": 2e-05,
+    "customers": 1,
+    "totalCustomers": 1,
+    "repairHrs": 3.0,
+    "faultRate": 0.1,
+    "pctPerm": 20.0
+   },
+   "line.rec1": {
+    "id": "n_rec",
+    "meter": "m1",
+    "sectionId": "m1:2",
+    "lambda": 2e-05,
+    "accumulatedLambda": 2e-05,
+    "customers": 0,
+    "totalCustomers": 1,
+    "repairHrs": 3.0,
+    "faultRate": 0.1,
+    "pctPerm": 20.0
+   },
+   "line.rly1": {
+    "id": "n_rly",
+    "meter": "m1",
+    "sectionId": "m1:1",
+    "lambda": 2e-05,
+    "accumulatedLambda": 2e-05,
+    "customers": 0,
+    "totalCustomers": 1,
+    "repairHrs": 3.0,
+    "faultRate": 0.1,
+    "pctPerm": 20.0
+   }
+  },
+  "unsectioned": {
+   "count": 5,
+   "lambda": 0.09002
+  },
+  "nodeBuses": {
+   "n_src": [
+    "bus_hv"
+   ],
+   "n_bus1": [
+    "bus_hv"
+   ],
+   "n_xfmr": [
+    "bus_hv",
+    "bus_mv"
+   ],
+   "n_bus2": [
+    "bus_mv"
+   ],
+   "n_bus3": [
+    "bus_fdr"
+   ],
+   "n_reg": [
+    "bus_fdr",
+    "bus_reg"
+   ],
+   "n_bus4": [
+    "bus_reg"
+   ],
+   "n_fuse": [
+    "bus_lat",
+    "bus_tap"
+   ],
+   "n_rec": [
+    "bus_prot",
+    "bus_lat"
+   ],
+   "n_rly": [
+    "bus_reg",
+    "bus_prot"
+   ],
+   "n_bus5": [
+    "bus_prot"
+   ],
+   "n_bus6": [
+    "bus_lat"
+   ],
+   "n_bus7": [
+    "bus_tap"
+   ],
+   "n_load2": [
+    "bus_tap"
+   ],
+   "n_brk": [
+    "bus_reg",
+    "tap1"
+   ],
+   "n_load": [
+    "tap1"
+   ],
+   "n_cap": [
+    "bus_fdr"
+   ],
+   "n_gen": [
+    "bus_fdr"
+   ],
+   "n_pv": [
+    "bus_fdr"
+   ],
+   "n_stg": [
+    "bus_fdr"
+   ],
+   "n_note": []
+  },
+  "lineBuses": {
+   "e4": [
+    "bus_mv",
+    "bus_fdr"
+   ],
+   "e4b": [
+    "bus_mv",
+    "bus_fdr"
+   ]
+  }
  }
 }

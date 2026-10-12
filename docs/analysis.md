@@ -52,6 +52,9 @@ choose what's shown:
   capacitor at rated voltage reads 74 %)
 - **Power** — kW/kvar labels on series elements
 - **Fault** — see below
+- **Reliability** — see below: every line and device coloured by the
+  protection section it is in, loads badged with their customers, and a
+  legend with SAIFI, SAIDI and CAIDI
 - **Phases** — the one view that needs no solve: lines and symbols (loads,
   breakers, fuses, transformers and the rest) are coloured by the phases they
   are on (A red, B blue, C green, two-phase purple, three-phase plain), and
@@ -83,6 +86,46 @@ impedances Z₁ / Z₀ at that bus. Source short-circuit strength (`mvasc3` /
 `mvasc1`) is what anchors these numbers. Storage elements are disabled for
 the study (engine limitation; their inverter fault contribution is
 negligible).
+
+## Reliability
+
+Selecting the **Reliability** overlay (or the **Reliability** tab's *Run*
+button) runs OpenDSS's own EnergyMeter reliability calculation and reports
+**SAIFI** (interruptions per customer per year), **SAIDI** (hours out per
+customer per year) and **CAIDI** (hours per interruption). Any circuit
+edit clears it, like the fault study. The report's *Reliability* section
+tabulates the same numbers.
+
+What goes in:
+
+- Every line, transformer, regulator and switch has a **fault rate**
+  (faults per year; for a line, per unit of its length per year), the share
+  of faults that are **permanent**, and a **repair time** in hours. Left
+  blank they are OpenDSS's defaults: 0.1, 20 % and 3 h.
+- Every load has a number of **customers** (default 1).
+
+How it is counted, which is OpenDSS's convention, not this app's: a
+**protection section** is a fuse, recloser or relay together with every
+branch downstream of it up to the next such device. A permanent fault
+anywhere in a section interrupts every customer downstream of the
+section's head device, for the faulted branch's repair time. So SAIFI is
+the sum over sections of (permanent faults a year in the section ×
+customers downstream of its head), divided by all customers. Branches
+between the meter and the first protective device belong to **no
+section**, and faults on them count for nothing — the overlay draws them
+grey, the tab and the report say how much fault rate is going uncounted,
+and the fix is a relay (a breaker with protection) or a recloser at the
+feeder head, which is how a real feeder is built anyway. A breaker on its
+own is a switch, not protection.
+
+Where the meter goes: on every line, switch or transformer leaving the
+source bus, so each feeder out of a substation bus is a zone of its own
+and the overall indices combine the zones by customers. To meter a part
+of the circuit instead, tick **Reliability meter here** on the element
+where the zone should begin; the study then meters only the flagged
+elements. Hovering an element in the overlay shows its own permanent fault
+rate, the rate of everything downstream of it, the customers downstream
+and its section.
 
 ## Losses
 

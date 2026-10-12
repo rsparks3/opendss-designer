@@ -34,6 +34,7 @@ export function sectionAvailability(): Record<SectionKey, string | null> {
     diagram: null,
     shortcircuit: null,
     protection: nodes.some((n) => PROTECTIVE.has(n.type ?? '')) ? null : 'The circuit has no breakers, fuses, reclosers or relays.',
+    reliability: null,
     timeseries: rs.timeseries ? null : 'Run a daily or yearly time series first.',
   }
 }
@@ -73,6 +74,14 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
     tcc = await api.tcc(circuit)
   }
 
+  let reliability = rs.reliability
+  if (sections.has('reliability') && !reliability) {
+    say('Running the reliability study…')
+    reliability = await api.reliability(circuit)
+    if (!reliability.converged) throw new Error('The reliability study did not run; see the Problems list.')
+    useResultsStore.getState().setReliability(reliability)
+  }
+
   say('Drawing the figures…')
   const limits = limitsOf(circuit.limits)
   const names = new Names(circuit, solve?.nodeBuses ?? fault?.nodeBuses ?? {})
@@ -104,6 +113,7 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
     solve,
     fault,
     tcc,
+    reliability,
     timeseries: rs.timeseries,
     figures,
     sections,

@@ -224,6 +224,83 @@ export interface TimeSeriesResult {
   busNames: Record<string, string>
 }
 
+/** One protection section of the reliability study: the branches from a
+ *  fuse, recloser or relay down to the next one. A fault anywhere in it
+ *  interrupts every customer downstream of its head. */
+export interface ReliabilitySection {
+  /** "<meter>:<n>", unique across zones. */
+  id: string
+  meter: string
+  /** The head device: engine name, diagram id, and the drawing's type. */
+  head: string
+  headId: string | null
+  device: string
+  /** Customers on the section's own buses, and downstream of its head. */
+  customers: number
+  totalCustomers: number
+  branches: number
+  lengthKm: number
+  /** Permanent faults per year, summed over the section's branches. */
+  lambda: number
+  avgRepairHrs: number | null
+  custInterrupts: number
+  custHours: number
+}
+
+export interface ReliabilityElement {
+  id: string
+  meter: string
+  sectionId: string | null
+  /** This branch's permanent faults per year, and that plus everything
+   *  downstream of it. */
+  lambda: number
+  accumulatedLambda: number
+  customers: number
+  totalCustomers: number
+  repairHrs: number
+  faultRate: number
+  pctPerm: number
+}
+
+export interface ReliabilityMeter {
+  name: string
+  element: string
+  elementId: string | null
+  customers: number
+  saifi: number | null
+  saidi: number | null
+  caidi: number | null
+  saifiKw: number | null
+  custInterrupts: number
+  custHours: number
+  sections: string[]
+}
+
+/** SAIFI, SAIDI and CAIDI from the engine's EnergyMeter reliability
+ *  calculation (core/reliability.py), over every metered zone. */
+export interface ReliabilityResult {
+  converged: boolean
+  issues: Issue[]
+  totalCustomers: number
+  /** Interruptions per customer per year. */
+  saifi: number | null
+  /** Hours out per customer per year. */
+  saidi: number | null
+  /** Hours per interruption. */
+  caidi: number | null
+  saifiKw: number | null
+  custInterrupts: number
+  custHours: number
+  meters: ReliabilityMeter[]
+  sections: ReliabilitySection[]
+  elements: Record<string, ReliabilityElement>
+  /** Branches between a meter and the first protective device, which the
+   *  engine counts for nothing. */
+  unsectioned: { count: number; lambda: number }
+  nodeBuses: Record<string, string[]>
+  lineBuses: Record<string, string[]>
+}
+
 export interface FaultBusResult {
   kvBase: number
   if3phA: number | null

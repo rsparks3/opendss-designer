@@ -621,6 +621,21 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     all_codes = _read_line_codes()
     all_codes_lower = {k.lower(): k for k in all_codes}
     used_codes: dict[str, LineCodeSpec] = {}
+
+    def reliability(full: str) -> dict:
+        """A power-delivery element's fault rate, permanent share and
+        repair time, when the file set any of them off the defaults."""
+        dss.Circuit.SetActiveElement(full)
+        out = {}
+        for prop, default in (("faultrate", 0.1), ("pctperm", 20.0), ("repair", 3.0)):
+            try:
+                v = float(dss.Properties.Value(prop))
+            except Exception:
+                continue
+            if abs(v - default) > 1e-9:
+                out[prop] = v
+        return out
+
     i = dss.Lines.First()
     while i:
         name = dss.Lines.Name()
@@ -642,7 +657,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                       "c1": dss.Lines.C1(), "c0": dss.Lines.C0(),
                       "length": dss.Lines.Length(),
                       "units": _UNIT_CODES.get(dss.Lines.Units(), "none"),
-                      **device}
+                      **reliability(f"line.{name}"), **device}
             # A switch takes one node list for both of its ends -- it sits
             # inside a single lateral -- so only the first raw key is offered.
             _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
@@ -655,7 +670,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             nph = int(dss.Lines.Phases())
             params = {"name": name, "length": dss.Lines.Length(),
                       "units": units, "normamps": dss.Lines.NormAmps(),
-                      "phases": nph}
+                      "phases": nph, **reliability(f"line.{name}")}
             # Where the impedance lives. A line naming a code takes it from
             # the circuit's copy of that code; one built from a LineGeometry
             # gets a code named after the geometry, shared with every line on
@@ -715,6 +730,8 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                   # Below this the engine swaps the load model for constant
                   # impedance; the file's value decides where that happens.
                   "vminpu": dss.Loads.Vminpu()}
+        if int(dss.Loads.NumCust()) != 1:
+            params["numcust"] = int(dss.Loads.NumCust())
         shape = daily_shape()
         if shape:
             params["loadshape"] = shape

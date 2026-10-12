@@ -1,7 +1,8 @@
 import { Handle, Position, useReactFlow, useUpdateNodeInternals, type HandleProps } from '@xyflow/react'
 import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useAltHeld } from '../../lib/altKey'
-import { loadingColor, voltageColor } from '../../lib/colorScale'
+import { loadingColor, NEUTRAL, voltageColor } from '../../lib/colorScale'
+import { reliabilityOf, sectionColor, sectionHeadedBy } from '../../lib/reliability'
 import { effectivePhasing, PHASE_LETTERS, phaseColor, weakestPhase } from '../../lib/phasing'
 import { rotatePoint } from '../../lib/rotatePoint'
 import { edgesAtTerminal, useCircuitStore, useLimits, type EdgeEnd } from '../../store/circuitStore'
@@ -242,6 +243,36 @@ export function usePhaseInk(params: Params): React.CSSProperties | undefined {
   return { '--ink': phaseColor(letters) } as React.CSSProperties
 }
 
+/** The symbol's ink for whichever overlay is on: its phases, or, in the
+ *  reliability overlay, the colour of the protection section it is in
+ *  (series elements only; a load or a capacitor is in no section). */
+export function useOverlayInk(nodeId: string, params: Params): React.CSSProperties | undefined {
+  const phase = usePhaseInk(params)
+  const overlay = useResultsStore((s) => s.overlay)
+  const reliability = useResultsStore((s) => s.reliability)
+  if (overlay !== 'reliability') return phase
+  const r = reliabilityOf(reliability, nodeId)
+  if (!r || !reliability) return undefined
+  return { '--ink': sectionColor(reliability, r.data.sectionId) } as React.CSSProperties
+}
+
+/** In the reliability overlay: a load says how many customers it serves,
+ *  and a device that heads a protection section says what the section
+ *  costs in customer interruptions a year. */
+export function ReliabilityBadge({ nodeId, customers }: { nodeId: string; customers?: number }) {
+  const overlay = useResultsStore((s) => s.overlay)
+  const reliability = useResultsStore((s) => s.reliability)
+  if (overlay !== 'reliability' || !reliability?.converged) return null
+  const head = sectionHeadedBy(reliability, nodeId)
+  if (head) {
+    return (
+      <Badge color={sectionColor(reliability, head.id)}>{head.custInterrupts.toFixed(2)} cust·int/yr</Badge>
+    )
+  }
+  if (customers != null) return <Badge color={NEUTRAL}>{customers} cust</Badge>
+  return null
+}
+
 /** Which phases reach the node's bus ('phases' overlay). Three phases say
  *  nothing worth a badge; fewer name themselves, and a bus the walk never
  *  reached says so, since a dead lateral drawn in plain ink would look live. */
@@ -284,6 +315,7 @@ export function PieBadge({ pct }: { pct: number }) {
 export function ElementBadge({ nodeId }: { nodeId: string }) {
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore(activeResult)
+  if (overlay === 'reliability') return <ReliabilityBadge nodeId={nodeId} />
   if ((overlay !== 'loading' && overlay !== 'power') || !result?.converged) return null
   const el = Object.values(result.elements).find((e) => e.id === nodeId)
   if (!el) return null

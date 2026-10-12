@@ -13,7 +13,7 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 
 from .. import __version__, context
-from ..core import engine, importer, irradiance, linecodes, nrel, protection, samples
+from ..core import engine, importer, irradiance, linecodes, nrel, protection, reliability, samples
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
@@ -123,6 +123,16 @@ def tcc_curves() -> dict:
 def tcc(circuit: Circuit) -> dict:
     try:
         return protection.tcc_study(circuit)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+@router.post("/reliability")
+def reliability_study(circuit: Circuit) -> dict:
+    """SAIFI, SAIDI and CAIDI from the engine's EnergyMeter reliability
+    calculation, with the protection sections behind them."""
+    try:
+        return reliability.reliability_study(circuit)
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
 

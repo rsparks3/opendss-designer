@@ -9,7 +9,7 @@ import {
   SymText,
   Terminal,
   useNodeIssueClass,
-  usePhaseInk,
+  useOverlayInk,
   useSymbolRotation,
 } from './common'
 
@@ -37,7 +37,7 @@ function ProtectiveDevice({
   h?: number
 }) {
   const issueClass = useNodeIssueClass(id)
-  const phaseInk = usePhaseInk(data.params)
+  const phaseInk = useOverlayInk(id, data.params)
   const rot = useSymbolRotation(id, data.params)
   const box = rotatedBox(w, h, rot)
   const updateNodeParams = useCircuitStore((s) => s.updateNodeParams)

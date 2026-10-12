@@ -25,7 +25,27 @@ export interface Field {
    *  a three-winding transformer's extra reactances mean nothing to a
    *  two-winding one. The spreadsheet view shows every column regardless. */
   showIf?: (params: Params) => boolean
+  /** For kind 'checkbox': an absent value reads as off, not on. */
+  defaultOff?: boolean
+  /** Shown as the field's placeholder: what the engine assumes when the
+   *  value is left blank. */
+  placeholder?: string
 }
+
+/** What every power-delivery element carries for the reliability study:
+ *  OpenDSS's own defaults stand where a value is left blank. */
+const RELIABILITY_FIELDS = (perLength: boolean): Field[] => [
+  {
+    key: 'faultrate',
+    label: 'Fault rate',
+    kind: 'number',
+    unit: perLength ? '/yr per unit length' : '/yr',
+    placeholder: '0.1',
+  },
+  { key: 'pctperm', label: 'Permanent faults', kind: 'number', unit: '%', placeholder: '20' },
+  { key: 'repair', label: 'Repair time', kind: 'number', unit: 'h', placeholder: '3' },
+  { key: 'meter', label: 'Reliability meter here', kind: 'checkbox', defaultOff: true },
+]
 
 /** True unless the line is on one of the circuit's line codes. */
 function ownImpedance(params: Params): boolean {
@@ -74,6 +94,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'model', label: 'Load model', kind: 'select', options: [1, 2, 3, 4, 5] },
     { key: 'loadshape', label: 'Loadshape', kind: 'loadshape' },
+    // Served customers, for SAIFI and SAIDI; the engine assumes one.
+    { key: 'numcust', label: 'Customers', kind: 'number', placeholder: '1' },
   ],
   breaker: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -82,6 +104,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
+    ...RELIABILITY_FIELDS(false),
   ],
   line: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -96,6 +119,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'normamps', label: 'Rating', kind: 'number', unit: 'A' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
+    ...RELIABILITY_FIELDS(true),
   ],
   transformer: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -105,6 +129,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'xht', label: 'Reactance X(H-T)', kind: 'number', unit: '%', showIf: (p) => windingCount(p) === 3 },
     { key: 'xlt', label: 'Reactance X(L-T)', kind: 'number', unit: '%', showIf: (p) => windingCount(p) === 3 },
     { key: 'pctloadloss', label: 'Load loss', kind: 'number', unit: '%' },
+    ...RELIABILITY_FIELDS(false),
   ],
   regulator: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -120,6 +145,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'r', label: 'Line drop comp R', kind: 'number', unit: 'V' },
     { key: 'x', label: 'Line drop comp X', kind: 'number', unit: 'V' },
     { key: 'maxtapchange', label: 'Max tap change / solution', kind: 'number' },
+    ...RELIABILITY_FIELDS(false),
   ],
   fuse: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -131,6 +157,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
+    ...RELIABILITY_FIELDS(false),
   ],
   recloser: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -148,6 +175,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
+    ...RELIABILITY_FIELDS(false),
   ],
   relay: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -161,6 +189,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
+    ...RELIABILITY_FIELDS(false),
   ],
   capacitor: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -434,7 +463,7 @@ export function FieldInput({
     return (
       <input
         type="checkbox"
-        checked={value !== false}
+        checked={field.defaultOff ? value === true : value !== false}
         onChange={(e) => onCommit(e.target.checked)}
       />
     )
@@ -467,6 +496,7 @@ export function FieldInput({
   return (
     <input
       type="text"
+      placeholder={field.placeholder}
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}

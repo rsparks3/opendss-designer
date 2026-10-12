@@ -7,14 +7,14 @@ import {
   SymbolSvg,
   Terminal,
   useNodeIssueClass,
-  usePhaseInk,
+  useOverlayInk,
   useSymbolRotation,
   VoltageBadge,
 } from './common'
 
 export function VsourceNode({ id, data }: NodeProps<AppNode>) {
   const issueClass = useNodeIssueClass(id)
-  const phaseInk = usePhaseInk(data.params)
+  const phaseInk = useOverlayInk(id, data.params)
   const rot = useSymbolRotation(id, data.params)
   const box = rotatedBox(40, 60, rot)
   return (

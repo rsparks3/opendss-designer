@@ -116,6 +116,18 @@ def _square(matrix, n: int) -> bool:
             and all(isinstance(r, list) and len(r) == n for r in matrix))
 
 
+def _reliability(p: dict) -> str:
+    """` faultrate=.. pctperm=.. repair=..` for whichever of the three a
+    power-delivery element carries; the engine's defaults (0.1 per year, or
+    per unit length for a line; 20 % permanent; 3 h) stand otherwise."""
+    out = ""
+    for key in ("faultrate", "pctperm", "repair"):
+        v = _num(p, key)
+        if v is not None and v >= 0:
+            out += f" {key}={v:g}"
+    return out
+
+
 def _capacitance(p: dict) -> list[str]:
     """['c1=..', 'c0=..'] when the params carry them. Left out, the engine
     assumes a few nF per unit length, which is not nothing: a jumper the file
@@ -410,7 +422,7 @@ def compile_circuit(circuit: Circuit,
         cmds.append(
             f"new transformer.{name} phases={phases} windings={len(windings)} "
             f"buses=({bus_list}) conns=({conns}) kvs=({kvs}) kvas=({kvas}) "
-            f"xhl={xhl:g} %loadloss={loadloss:g}{tertiary}")
+            f"xhl={xhl:g} %loadloss={loadloss:g}{tertiary}{_reliability(p)}")
 
     # Regulators: an equal-ratio 2-winding transformer plus the RegControl that
     # moves its taps. They share one name — OpenDSS keeps classes in separate
@@ -439,7 +451,7 @@ def compile_circuit(circuit: Circuit,
         cmds.append(
             f"new transformer.{name} phases={phases} windings=2 "
             f"buses=({bus_list}) conns=({reg_conn}, {reg_conn}) kvs=({kv:g}, {kv:g}) "
-            f"kvas=({kva:g}, {kva:g}) xhl={xhl:g} %loadloss={loadloss:g}")
+            f"kvas=({kva:g}, {kva:g}) xhl={xhl:g} %loadloss={loadloss:g}{_reliability(p)}")
         # PT ratio defaults to whatever turns the regulated winding's nominal
         # voltage into the 120 V control base.
         ptratio = _num(p, "ptratio")
@@ -491,7 +503,7 @@ def compile_circuit(circuit: Circuit,
                 edgeId=e.id))
         cmds.append(
             f"new line.{name} bus1={b1}{sfx1} bus2={b2}{sfx2} phases={phases} "
-            f"{impedance} length={length:g} units={units}{rating}")
+            f"{impedance} length={length:g} units={units}{rating}{_reliability(p)}")
 
     for n in breakers:
         p = n.params
@@ -502,7 +514,7 @@ def compile_circuit(circuit: Circuit,
         normamps = _num(p, "normamps", DEFAULT_BREAKER_NORMAMPS)
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
-            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}")
+            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}{_reliability(p)}")
         if not p.get("closed", True):
             cmds.append(f"open line.{name} term=1")
 
@@ -521,7 +533,7 @@ def compile_circuit(circuit: Circuit,
         normamps = _num(p, "normamps", default_amps)
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
-            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}")
+            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}{_reliability(p)}")
         return name, p
 
     def out_of_service(kind: str, name: str, p: dict) -> None:
@@ -604,10 +616,14 @@ def compile_circuit(circuit: Circuit,
         # sagging bus still converges; an imported one carries its file's.
         vminpu = _num(p, "vminpu", 0.85)
         kv_bases.add(kv)
+        # Customers served, for the reliability indices; the engine's
+        # default is one per load.
+        numcust = _num(p, "numcust")
+        customers = f" numcust={int(numcust)}" if numcust is not None and numcust >= 0 else ""
         cmds.append(
             f"new load.{name} bus1={bus} phases={phases} conn={load_conn} "
             f"kv={kv:g} kw={kw:g} pf={pf:g} model={model} vminpu={vminpu:g}"
-            + shape_ref(p, n.id))
+            + customers + shape_ref(p, n.id))
 
     for n in capacitors:
         p = n.params

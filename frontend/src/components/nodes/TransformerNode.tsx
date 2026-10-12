@@ -9,7 +9,7 @@ import {
   Terminal,
   terminalPlacement,
   useNodeIssueClass,
-  usePhaseInk,
+  useOverlayInk,
   useSymbolRotation,
 } from './common'
 
@@ -21,7 +21,7 @@ import {
  *  tertiary does not move the wires already on it. */
 export function TransformerNode({ id, data }: NodeProps<AppNode>) {
   const issueClass = useNodeIssueClass(id)
-  const phaseInk = usePhaseInk(data.params)
+  const phaseInk = useOverlayInk(id, data.params)
   const rot = useSymbolRotation(id, data.params)
   const windings = (data.params.windings as Winding[] | undefined) ?? []
   const tertiary = windings.length >= 3

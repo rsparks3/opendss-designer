@@ -1,5 +1,8 @@
 import { toCircuitJSON, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore, type OverlayMode } from '../store/resultsStore'
+import { firstError, mergeRunIssues } from './issues'
+import { reliabilityLegend } from './reliability'
+import type { ReliabilityResult } from '../types/circuit'
 import { useUiStore } from '../store/uiStore'
 import { api } from './api'
 import { diagramToSvg, imageFileName, legendFor, OVERLAY_LABELS, svgToPng } from './exportDiagram'
@@ -81,6 +84,14 @@ const circuit = () => toCircuitJSON(useCircuitStore.getState())
 const flash = (msg: string, kind?: 'error' | 'info', durationMs?: number) =>
   useResultsStore.getState().setFlash(msg, kind, durationMs)
 const errText = (err: unknown) => (err instanceof Error ? err.message : String(err))
+/** What the drawing calls an element, by node or edge id. */
+const elementName = (id: string | null): string | null => {
+  if (!id) return null
+  const st = useCircuitStore.getState()
+  const node = st.nodes.find((n) => n.id === id)
+  const name = node ? node.data.params.name : st.edges.find((e) => e.id === id)?.data?.params.name
+  return typeof name === 'string' && name ? name : null
+}
 
 /** True when it is fine to replace the circuit on screen. */
 function mayDiscard(what: string): boolean {
@@ -299,6 +310,26 @@ export async function exportDss() {
  *  voltage plot is exactly what goes into a report. Selection is dropped
  *  first so no element carries the editor's blue outline, and the capture
  *  waits a frame for that to render. Null when there is no canvas. */
+/** The reliability study for the current drawing, published to the store.
+ *  Returns it, or null when it could not run (which has been said out loud). */
+export async function runReliability(): Promise<ReliabilityResult | null> {
+  try {
+    const r = await api.reliability(circuit())
+    const rs = useResultsStore.getState()
+    rs.setReliability(r)
+    rs.setIssues(mergeRunIssues(rs.issues, r.issues))
+    if (!r.converged) {
+      const why = firstError(r.issues)
+      flash(why ? `Reliability study refused: ${why}` : 'Reliability study failed — check the problems list')
+      return null
+    }
+    return r
+  } catch (err) {
+    flash(`Reliability study failed: ${errText(err)}`)
+    return null
+  }
+}
+
 export async function captureDiagram(): Promise<string | null> {
   const pane = document.querySelector('.react-flow') as HTMLElement | null
   if (!pane) return null
@@ -316,7 +347,11 @@ export async function captureDiagram(): Promise<string | null> {
     .filter(Boolean)
     .join(' · ')
   // Exports go on white paper, so they are read off a light-theme drawing.
-  return inLightTheme(() => diagramToSvg(pane, { caption, legend: legendFor(rs.overlay, limitsOf(limits)) }))
+  const legend =
+    rs.overlay === 'reliability'
+      ? reliabilityLegend(rs.reliability, (id, fallback) => elementName(id) ?? fallback)
+      : legendFor(rs.overlay, limitsOf(limits))
+  return inLightTheme(() => diagramToSvg(pane, { caption, legend }))
 }
 
 export async function exportImage(kind: 'svg' | 'png') {
@@ -366,10 +401,14 @@ export async function elkCleanUp() {
   fitView()
 }
 
-/** The fault study runs lazily when its overlay is first selected (results
- *  are cleared on any circuit change, so re-selecting re-runs it). */
+/** The fault and reliability studies run lazily when their overlay is
+ *  first selected (results are cleared on any circuit change, so
+ *  re-selecting re-runs them). */
 export function chooseOverlay(mode: OverlayMode) {
   useResultsStore.getState().setOverlay(mode)
+  if (mode === 'reliability' && !useResultsStore.getState().reliability) {
+    void runReliability()
+  }
   if (mode === 'fault' && !useResultsStore.getState().fault) {
     void (async () => {
       try {

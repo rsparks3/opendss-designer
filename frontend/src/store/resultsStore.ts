@@ -1,7 +1,15 @@
 import { create } from 'zustand'
 import { tsIndexNearHour, tsSlice } from '../lib/tsSlice'
 import { DEFAULT_LIMITS } from '../lib/limits'
-import type { FaultResult, Issue, LimitsJSON, PhaseMap, SolveResult, TimeSeriesResult } from '../types/circuit'
+import type {
+  FaultResult,
+  Issue,
+  LimitsJSON,
+  PhaseMap,
+  ReliabilityResult,
+  SolveResult,
+  TimeSeriesResult,
+} from '../types/circuit'
 
 // The circuit's limits, for flagging time-series slices. circuitStore
 // imports this store, so it registers the source rather than being imported.
@@ -12,7 +20,7 @@ export function setLimitsSource(fn: () => LimitsJSON): void {
 
 export type AnalysisMode = 'snapshot' | 'timeseries'
 
-export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'phases' | 'off'
+export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'reliability' | 'phases' | 'off'
 
 interface ResultsState {
   result: SolveResult | null
@@ -20,6 +28,9 @@ interface ResultsState {
    *  it's either for the current circuit or gone). */
   fault: FaultResult | null
   setFault: (f: FaultResult | null) => void
+  /** Reliability study; cleared on any circuit change like `fault`. */
+  reliability: ReliabilityResult | null
+  setReliability: (r: ReliabilityResult | null) => void
   stale: boolean
   solving: boolean
   overlay: OverlayMode
@@ -84,6 +95,8 @@ export const useResultsStore = create<ResultsState>((set) => ({
   result: null,
   fault: null,
   setFault: (fault) => set({ fault }),
+  reliability: null,
+  setReliability: (reliability) => set({ reliability }),
   stale: false,
   solving: false,
   overlay: 'voltage',
@@ -135,8 +148,8 @@ export const useResultsStore = create<ResultsState>((set) => ({
 
   setResult: (result) => set({ result, stale: false }),
   markStale: () =>
-    set({ stale: true, fault: null, timeseries: null, tsIndex: null, scrubResult: null,
-          tsError: null, protectionIssues: [] }),
+    set({ stale: true, fault: null, reliability: null, timeseries: null, tsIndex: null,
+          scrubResult: null, tsError: null, protectionIssues: [] }),
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),
   setIssues: (issues) => set({ issues }),
