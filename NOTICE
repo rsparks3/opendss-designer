@@ -45,3 +45,9 @@ their own permissive licences (BSD 3-Clause; OpenDSSDirect.py is copyright the
 Alliance for Sustainable Energy, LLC). Those licences are unaffected by this
 one. Frontend dependencies are listed in frontend/package.json and retain their
 respective licences.
+
+Study reports that hold text beyond Latin-1 are set in DejaVu Sans, shipped
+with the frontend as font files (the dejavu-fonts-ttf package). DejaVu is
+copyright 2003 Bitstream, Inc. and 2006 Tavmjong Bah, distributed under the
+Bitstream Vera licence, which permits bundling it with software; the full
+text is in the package's LICENSE file.

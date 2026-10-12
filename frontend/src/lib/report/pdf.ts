@@ -6,9 +6,11 @@
  *
  *  The PDF's built-in fonts only cover Latin-1, so the few symbols the
  *  report uses are spelled out (φ -> ph, Ω -> ohm) rather than printed as
- *  blanks. Embedding a Unicode font would lift that at the cost of a few
- *  hundred kilobytes per report. */
+ *  blanks. A report with text beyond that -- a name or a note in another
+ *  script -- is set in DejaVu Sans instead, fetched for the occasion (see
+ *  fonts.ts), and then nothing is substituted. */
 import type { jsPDF as JsPdf } from 'jspdf'
+import { fetchFontFiles, needsUnicodeFont, registerUnicodeFont, SUBSTITUTES, UNICODE_FONT, type FontLoader } from './fonts'
 import type { Figure, Report, RowFlag, Table } from './model'
 import { formatCell, header } from './model'
 
@@ -26,17 +28,6 @@ const BIG_DRAWING = 1500
 /** Tables wider than this go on a landscape page. */
 const WIDE = 9
 
-const SUBSTITUTES: [RegExp, string][] = [
-  [/φ/g, 'ph'],
-  [/∠/g, 'Ang'],
-  [/Ω/g, 'ohm'],
-  [/≥/g, '>='],
-  [/≤/g, '<='],
-  [/→/g, '->'],
-  [/[‘’]/g, "'"],
-  [/[“”]/g, '"'],
-]
-
 /** Text the PDF's standard fonts can draw. */
 export function pdfSafe(s: string): string {
   let out = s
@@ -45,14 +36,44 @@ export function pdfSafe(s: string): string {
   return out.replace(/[^\u0000-ÿ–—•…€]/g, '?')
 }
 
+/** The typeface a document is set in, and how text and drawings are made
+ *  printable in it: the standard fonts need substitutes, the Unicode one
+ *  needs the figures' font names pointed at it. */
+interface Typeface {
+  name: string
+  safe: (s: string) => string
+  svg: (s: string) => string
+}
+
+const STANDARD: Typeface = { name: 'helvetica', safe: pdfSafe, svg: pdfSafe }
+
+/** The standard fonts, unless the report holds text they cannot print and
+ *  the Unicode face can be had; without it the text prints as `?`, as it
+ *  always did, rather than failing the whole export. */
+async function typeface(doc: JsPdf, report: Report, loadFont: FontLoader | null): Promise<Typeface> {
+  if (!loadFont || !needsUnicodeFont(report)) return STANDARD
+  try {
+    registerUnicodeFont(doc, await loadFont())
+  } catch (err) {
+    console.warn('The Unicode font could not be loaded; text outside Latin-1 prints as ?', err)
+    return STANDARD
+  }
+  return {
+    name: UNICODE_FONT,
+    safe: (s) => s,
+    svg: (s) => s.replace(/font-family="[^"]*"/g, `font-family="${UNICODE_FONT}"`),
+  }
+}
+
 export type SvgRenderer = (doc: JsPdf, svg: string, box: { x: number; y: number; w: number; h: number }) => Promise<void>
 
-/** Draw an SVG string with svg2pdf, fitted to the box, keeping its shape. */
+/** Draw an SVG string with svg2pdf, fitted to the box, keeping its shape.
+ *  The string arrives already made printable for the document's face. */
 const svg2pdfRenderer: SvgRenderer = async (doc, svg, box) => {
   // Called directly: loaded on demand, the plug-in does not reliably find
   // the jsPDF it would register itself on.
   const { svg2pdf } = await import('svg2pdf.js')
-  const el = new DOMParser().parseFromString(pdfSafe(svg), 'image/svg+xml').documentElement
+  const el = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement
   // svg2pdf reads computed geometry, so the drawing is attached while it works.
   const holder = document.createElement('div')
   holder.style.cssText = 'position:fixed;left:-100000px;top:0;visibility:hidden'
@@ -72,26 +93,33 @@ export function svgSize(svg: string): { w: number; h: number } {
   return m ? { w: Number(m[1]), h: Number(m[2]) } : { w: 720, h: 380 }
 }
 
-export async function reportPdf(report: Report, render: SvgRenderer = svg2pdfRenderer): Promise<ArrayBuffer> {
+export async function reportPdf(
+  report: Report,
+  render: SvgRenderer = svg2pdfRenderer,
+  loadFont: FontLoader | null = fetchFontFiles,
+): Promise<ArrayBuffer> {
   const { jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
-  const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' })
+  const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait', compress: true })
+  const face = await typeface(doc, report, loadFont)
   const { meta } = report
-  const title = pdfSafe(meta.study.title || meta.circuitName || 'Study report')
+  // Document metadata is stored as text, not glyphs, so it keeps every
+  // character whatever face the pages are set in.
+  const title = meta.study.title || meta.circuitName || 'Study report'
   doc.setProperties({
     title,
-    subject: pdfSafe(meta.study.caseName || 'Load-flow study'),
-    author: pdfSafe(meta.study.engineer),
+    subject: meta.study.caseName || 'Load-flow study',
+    author: meta.study.engineer,
     creator: meta.softwareVersion ? `OpenDSS Designer ${meta.softwareVersion}` : 'OpenDSS Designer',
   })
 
   // The title page carries the title block itself, then the criteria and
   // the model's make-up.
-  let y = titlePage(doc, report) + 24
+  let y = titlePage(doc, report, face) + 24
   const pageW = () => doc.internal.pageSize.getWidth()
   const pageH = () => doc.internal.pageSize.getHeight()
   const study = report.sections.find((s) => s.id === 'study')
-  if (study) drawTables(doc, autoTable, study.tables.slice(1), y)
+  if (study) drawTables(doc, autoTable, study.tables.slice(1), y, face)
 
   for (const section of report.sections) {
     if (section.id === 'study') continue
@@ -105,16 +133,16 @@ export async function reportPdf(report: Report, render: SvgRenderer = svg2pdfRen
     const sheet = ownSize && Math.max(ownSize.w, ownSize.h) > BIG_DRAWING ? 'tabloid' : 'letter'
     doc.addPage(sheet, landscape ? 'landscape' : 'portrait')
     y = MARGIN + HEAD_H
-    doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(...INK)
-    doc.text(pdfSafe(section.title), MARGIN, y + 6)
+    doc.setFont(face.name, 'bold').setFontSize(15).setTextColor(...INK)
+    doc.text(face.safe(section.title), MARGIN, y + 6)
     y += 22
 
     for (const fig of section.figures.filter((f) => f.landscape)) {
-      y = await drawFigure(doc, render, fig, y, pageH() - MARGIN - FOOT_H - y)
+      y = await drawFigure(doc, render, fig, y, pageH() - MARGIN - FOOT_H - y, face)
     }
-    y = drawTables(doc, autoTable, printable, y)
+    y = drawTables(doc, autoTable, printable, y, face)
     if (section.tables.some((t) => t.workbookOnly)) {
-      doc.setFont('helvetica', 'italic').setFontSize(8.5).setTextColor(...MUTED)
+      doc.setFont(face.name, 'italic').setFontSize(8.5).setTextColor(...MUTED)
       doc.text('Every step of the run is listed in the Excel version of this report.', MARGIN, y + 4)
       y += 18
     }
@@ -125,28 +153,28 @@ export async function reportPdf(report: Report, render: SvgRenderer = svg2pdfRen
         doc.addPage(sheet, landscape ? 'landscape' : 'portrait')
         y = MARGIN + HEAD_H
       }
-      y = await drawFigure(doc, render, fig, y, need)
+      y = await drawFigure(doc, render, fig, y, need, face)
     }
   }
 
-  chrome(doc, report, title)
+  chrome(doc, report, face.safe(title), face)
   return doc.output('arraybuffer')
 }
 
 /** Returns where the page's text ended. */
-function titlePage(doc: JsPdf, report: Report): number {
+function titlePage(doc: JsPdf, report: Report, face: Typeface): number {
   const { meta } = report
   const s = meta.study
   const w = doc.internal.pageSize.getWidth()
   let y = 150
-  doc.setFont('helvetica', 'bold').setFontSize(24).setTextColor(...INK)
-  for (const line of doc.splitTextToSize(pdfSafe(s.title || meta.circuitName || 'Study report'), w - 2 * MARGIN)) {
+  doc.setFont(face.name, 'bold').setFontSize(24).setTextColor(...INK)
+  for (const line of doc.splitTextToSize(face.safe(s.title || meta.circuitName || 'Study report'), w - 2 * MARGIN)) {
     doc.text(line, MARGIN, y)
     y += 28
   }
-  doc.setFont('helvetica', 'normal').setFontSize(13).setTextColor(...MUTED)
+  doc.setFont(face.name, 'normal').setFontSize(13).setTextColor(...MUTED)
   const sub = [s.caseName, `Circuit ${meta.circuitName}`].filter(Boolean).join(' - ')
-  doc.text(pdfSafe(sub), MARGIN, y + 2)
+  doc.text(face.safe(sub), MARGIN, y + 2)
   y += 26
   doc.setDrawColor(...INK).setLineWidth(1.2).line(MARGIN, y, w - MARGIN, y)
   y += 24
@@ -158,16 +186,16 @@ function titlePage(doc: JsPdf, report: Report): number {
     ['Solver', meta.engineVersion ?? 'OpenDSS'],
   ]
   for (const [k, v] of rows) {
-    doc.setFont('helvetica', 'bold').text(k, MARGIN, y)
-    doc.setFont('helvetica', 'normal')
-    const lines: string[] = doc.splitTextToSize(pdfSafe(v), w - 2 * MARGIN - 100)
+    doc.setFont(face.name, 'bold').text(k, MARGIN, y)
+    doc.setFont(face.name, 'normal')
+    const lines: string[] = doc.splitTextToSize(face.safe(v), w - 2 * MARGIN - 100)
     doc.text(lines, MARGIN + 100, y)
     y += 18 + (lines.length - 1) * 13
   }
   if (s.description.trim()) {
     y += 10
     doc.setFontSize(10.5).setTextColor(...MUTED)
-    for (const line of doc.splitTextToSize(pdfSafe(s.description), w - 2 * MARGIN)) {
+    for (const line of doc.splitTextToSize(face.safe(s.description), w - 2 * MARGIN)) {
       doc.text(line, MARGIN, y)
       y += 14
     }
@@ -177,7 +205,7 @@ function titlePage(doc: JsPdf, report: Report): number {
 
 type AutoTable = typeof import('jspdf-autotable').default
 
-function drawTables(doc: JsPdf, autoTable: AutoTable, tables: Table[], startY: number): number {
+function drawTables(doc: JsPdf, autoTable: AutoTable, tables: Table[], startY: number, face: Typeface): number {
   let y = startY
   const pageH = doc.internal.pageSize.getHeight()
   for (const t of tables) {
@@ -186,8 +214,8 @@ function drawTables(doc: JsPdf, autoTable: AutoTable, tables: Table[], startY: n
       doc.addPage()
       y = MARGIN + HEAD_H
     }
-    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(...INK)
-    doc.text(pdfSafe(t.title), MARGIN, y + 4)
+    doc.setFont(face.name, 'bold').setFontSize(11).setTextColor(...INK)
+    doc.text(face.safe(t.title), MARGIN, y + 4)
     y += 10
     if (t.rows.length) {
       const numeric = t.columns.map((c) => c.digits != null)
@@ -199,11 +227,11 @@ function drawTables(doc: JsPdf, autoTable: AutoTable, tables: Table[], startY: n
         startY: y,
         margin: { left: MARGIN, right: MARGIN, top: MARGIN + HEAD_H, bottom: MARGIN + FOOT_H },
         tableWidth: tableW,
-        head: t.keyValue ? undefined : [t.columns.map((c) => pdfSafe(header(c)))],
-        body: t.rows.map((r) => t.columns.map((c) => pdfSafe(formatCell(r[c.key], c)))),
+        head: t.keyValue ? undefined : [t.columns.map((c) => face.safe(header(c)))],
+        body: t.rows.map((r) => t.columns.map((c) => face.safe(formatCell(r[c.key], c)))),
         theme: 'grid',
         styles: {
-          font: 'helvetica',
+          font: face.name,
           fontSize: small ? 7 : 8.5,
           cellPadding: small ? 2.5 : 3.5,
           lineColor: [216, 220, 226],
@@ -231,8 +259,8 @@ function drawTables(doc: JsPdf, autoTable: AutoTable, tables: Table[], startY: n
       y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 4
     }
     if (t.note) {
-      doc.setFont('helvetica', 'italic').setFontSize(8).setTextColor(...MUTED)
-      const lines = doc.splitTextToSize(pdfSafe(t.note), doc.internal.pageSize.getWidth() - 2 * MARGIN)
+      doc.setFont(face.name, 'italic').setFontSize(8).setTextColor(...MUTED)
+      const lines = doc.splitTextToSize(face.safe(t.note), doc.internal.pageSize.getWidth() - 2 * MARGIN)
       if (y + lines.length * 10 + 8 > pageH - MARGIN - FOOT_H) {
         doc.addPage()
         y = MARGIN + HEAD_H
@@ -245,33 +273,40 @@ function drawTables(doc: JsPdf, autoTable: AutoTable, tables: Table[], startY: n
   return y
 }
 
-async function drawFigure(doc: JsPdf, render: SvgRenderer, fig: Figure, y: number, maxH: number): Promise<number> {
+async function drawFigure(
+  doc: JsPdf,
+  render: SvgRenderer,
+  fig: Figure,
+  y: number,
+  maxH: number,
+  face: Typeface,
+): Promise<number> {
   const w = doc.internal.pageSize.getWidth() - 2 * MARGIN
   const size = svgSize(fig.svg)
   const h = Math.min(maxH - 16, (w / size.w) * size.h)
   if (!fig.landscape) {
-    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(...INK)
-    doc.text(pdfSafe(fig.title), MARGIN, y + 4)
+    doc.setFont(face.name, 'bold').setFontSize(11).setTextColor(...INK)
+    doc.text(face.safe(fig.title), MARGIN, y + 4)
     y += 12
   }
-  await render(doc, fig.svg, { x: MARGIN, y, w, h })
+  await render(doc, face.svg(fig.svg), { x: MARGIN, y, w, h })
   return y + h + 18
 }
 
 /** Header and footer on every page but the title page. */
-function chrome(doc: JsPdf, report: Report, title: string) {
+function chrome(doc: JsPdf, report: Report, title: string, face: Typeface) {
   const n = doc.getNumberOfPages()
   const { meta } = report
-  const left = [title, meta.study.caseName].filter(Boolean).map(pdfSafe).join(' - ')
+  const left = [title, meta.study.caseName].filter(Boolean).map(face.safe).join(' - ')
   const made = `OpenDSS Designer${meta.softwareVersion ? ` ${meta.softwareVersion}` : ''} - ${meta.date.toLocaleDateString()}`
   for (let i = 1; i <= n; i++) {
     doc.setPage(i)
     const w = doc.internal.pageSize.getWidth()
     const h = doc.internal.pageSize.getHeight()
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...MUTED)
+    doc.setFont(face.name, 'normal').setFontSize(8).setTextColor(...MUTED)
     if (i > 1) {
       doc.text(left, MARGIN, MARGIN)
-      doc.text(pdfSafe(meta.circuitName), w - MARGIN, MARGIN, { align: 'right' })
+      doc.text(face.safe(meta.circuitName), w - MARGIN, MARGIN, { align: 'right' })
       doc.setDrawColor(216, 220, 226).setLineWidth(0.5).line(MARGIN, MARGIN + 6, w - MARGIN, MARGIN + 6)
     }
     doc.text(made, MARGIN, h - MARGIN + 8)

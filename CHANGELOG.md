@@ -15,6 +15,12 @@ This project follows [Semantic Versioning](https://semver.org/).
   time-series loading series and the study report's *Abnormal conditions*
   and *Generation* tables all judge them; previously only lines,
   transformers and switches were checked.
+- **Study reports in any script.** A PDF whose text goes beyond Latin-1 (a
+  bus named in Cyrillic, a note in Chinese, a Greek study title) is set in
+  DejaVu Sans, fetched the first time it is needed and cached by the
+  browser, instead of printing those characters as `?`. Reports that fit
+  the standard fonts are unchanged, apart from being smaller: the PDF's
+  streams are now compressed.
 
 ## 0.7.0 — 2026-10-11
 

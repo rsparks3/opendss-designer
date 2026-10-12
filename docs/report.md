@@ -59,11 +59,16 @@ the title page is headed with the study and circuit and footed with the
 software version, date and page number. Figures are vectors, so the
 one-line stays sharp however far you zoom in.
 
-The PDF uses the standard PDF fonts, which cover Western European text.
-The few symbols those fonts lack are spelled out (φ as *ph*, Ω as *ohm*,
-∠ as *Ang*), and any other character outside that range (text in another
-script, in a name or a note, for example) prints as `?`. The workbook
-keeps everything as typed.
+The PDF uses the standard PDF fonts, which cover Western European text,
+and spells out the few symbols those fonts lack (φ as *ph*, Ω as *ohm*,
+∠ as *Ang*). A report with anything beyond that, text in another script
+in a name, a title or a note, is set in DejaVu Sans instead: the browser
+fetches the typeface (about 2 MB, cached after the first time) only when a
+report needs it, and such a report comes out a couple of hundred kilobytes
+larger, with every character as typed and the symbols printed as
+themselves. If the font cannot be fetched (offline, say), the report is
+still written, with those characters as `?`. The workbook keeps everything
+as typed either way.
 
 ## The workbook
 
