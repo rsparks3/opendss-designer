@@ -326,14 +326,30 @@ hand a study to a colleague.
   operating times, interrupting duty, TCC plot) and time series. It came with
   two things it needed: abnormal-condition limits as a project setting (they
   were hard-coded in six places) and notes on the drawing. `docs/report.md`
-  describes it. Still open: a Unicode font for the PDF (the standard fonts
-  are Latin-1 only), and per-element rating checks beyond series elements
-  (capacitor or generator overloads)
-- **Reliability indices** — SAIFI/SAIDI/CAIDI from OpenDSS's own `EnergyMeter`
-  reliability calculations: needs meter placement, per-line `faultrate`/`pctperm`/
-  repair-time properties in the properties panel, and an indices table plus a
-  per-zone overlay. Every incumbent sells this as a paid module; here it is mostly
-  UI over an engine feature that already exists
+  describes it. The two loose ends closed 2026-10-11: a PDF whose text goes
+  beyond Latin-1 is set in DejaVu Sans, fetched only when needed
+  (`lib/report/fonts.ts`), and generators, PV, storage and capacitors are
+  held to their ratings (kVA, or the engine's 135 % continuous current for a
+  capacitor) in the overlay, the tooltip and the report
+- ~~**Reliability indices**~~ — done 2026-10-11. SAIFI/SAIDI/CAIDI from
+  OpenDSS's own `EnergyMeter` reliability calculation (`core/reliability.py`):
+  meters go on every element leaving the source bus, or on elements flagged
+  *Reliability meter here*; lines, transformers, regulators and switches
+  carry `faultrate`/`pctperm`/`repair`, loads `numcust` (compiled, imported,
+  exported); a *Reliability* overlay colours by protection section with a
+  legend of the indices, a *Reliability* tab holds the sections table, and the
+  study report has a *Reliability* section. The engine's convention that
+  branches above the first fuse, recloser or relay count for nothing is
+  surfaced as a warning rather than hidden. It was, as predicted, UI over an
+  engine feature that already existed
+- ~~**Drawing annotations**~~ — done 2026-10-11, decided the same day as a
+  small follow-on to notes rather than a milestone: **zones** (a labelled,
+  tinted rectangle behind a group of elements, drawn with Z, resizable,
+  pointer-transparent inside, redrawn around what it held by Clean up,
+  exported as a `! Zone:` comment) and a **sheet border and title block** on
+  image exports, switched on in Project properties. Deliberately not done:
+  arbitrary shapes, free lines, colour pickers, images — draw.io's job, not a
+  planning tool's, and each one adds schema, export and dark-mode surface
 
 ## M11 — Real models in
 

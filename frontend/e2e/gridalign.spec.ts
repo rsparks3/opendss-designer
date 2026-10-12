@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test'
 import { NODE_SIZE } from '../src/lib/defaults'
 import type { NodeType } from '../src/types/circuit'
 
-// Symbols with terminals: not busbars (dynamic handles) or notes (none).
-const TYPES = (Object.keys(NODE_SIZE) as NodeType[]).filter((t) => t !== 'busbar' && t !== 'note')
+// Symbols with terminals: not busbars (dynamic handles), notes or zones (none).
+const TYPES = (Object.keys(NODE_SIZE) as NodeType[]).filter((t) => t !== 'busbar' && t !== 'note' && t !== 'zone')
 
 // Sitting above the bar, a 2-terminal device drops from t2 (bottom); the rest
 // expose only t1. Kept as a set so a new series device joins it by name.
