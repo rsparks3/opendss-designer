@@ -102,11 +102,12 @@ class SecurityHeadersMiddleware:
     #: 'unsafe-inline' for styles only -- React Flow sets inline style
     #: attributes on nodes and edges. Scripts stay strict: Vite emits external
     #: modules, so no inline script is needed. blob:/data: images cover the
-    #: canvas export and object-URL download paths.
+    #: canvas export and object-URL download paths; https: covers map tiles
+    #: (OpenStreetMap by default, or any tile server the user names).
     CSP = ("default-src 'self'; "
            "script-src 'self'; "
            "style-src 'self' 'unsafe-inline'; "
-           "img-src 'self' data: blob:; "
+           "img-src 'self' data: blob: https:; "
            "connect-src 'self'; "
            "font-src 'self'; "
            "frame-ancestors 'none'; "

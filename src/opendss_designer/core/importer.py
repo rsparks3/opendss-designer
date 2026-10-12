@@ -330,6 +330,7 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
                 dss.Text.Command(f'compile "{tmpdir / main["name"]}"')
             except Exception as exc:
                 raise ImportFailure(f"OpenDSS could not compile the file: {exc}") from exc
+            _replay_coordinates(files, tmpdir)
             result = _read_model_back(warnings)
             _keep_passthrough(result, files, main["name"])
             _coordinate_system(result, files)
@@ -345,6 +346,34 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 _LATLONG_RE = re.compile(r"^\s*latlongcoords\b", re.IGNORECASE | re.MULTILINE)
+
+
+_COORDS_CMD_RE = re.compile(r"^\s*(buscoords|latlongcoords)\s+(\S+)", re.IGNORECASE | re.MULTILINE)
+
+
+def _replay_coordinates(files: list[dict[str, str]], tmpdir: Path) -> None:
+    """Run the files' coordinate commands again once the bus list exists.
+
+    OpenDSS only places coordinates on buses it already knows, and it knows
+    them after `calcvoltagebases` or a solve. Feeders from EPRI and the IEEE
+    call it first; a file that does not loses every coordinate silently.
+    Replaying is harmless when they did take: the same values land again.
+    """
+    commands = [(m.group(1), m.group(2).strip('"()[]'))
+                for f in files for m in _COORDS_CMD_RE.finditer(f["text"])]
+    if not commands:
+        return
+    try:
+        dss.Text.Command("makebuslist")
+    except Exception:
+        return
+    for verb, name in commands:
+        # Sanitized already: a bare name of an uploaded file in tmpdir.
+        if (tmpdir / name).is_file():
+            try:
+                dss.Text.Command(f'{verb} "{tmpdir / name}"')
+            except Exception:
+                continue
 
 
 def _coordinate_system(result: dict[str, Any], files: list[dict[str, str]]) -> None:

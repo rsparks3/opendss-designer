@@ -276,6 +276,13 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
   const view: Menu = {
     label: 'View',
     items: [
+      item('One-line', () => ui.setView('schematic'), { radio: true, checked: ui.view === 'schematic' }),
+      item('Map', () => ui.setView('geographic'), {
+        radio: true,
+        checked: ui.view === 'geographic',
+        title: 'The circuit on a map, at its bus coordinates',
+      }),
+      sep,
       item('Zoom in', ops.zoomIn, { keys: 'Mod+=' }),
       item('Zoom out', ops.zoomOut, { keys: 'Mod+-' }),
       item('Fit', fitView, { keys: 'Mod+Shift+H' }),

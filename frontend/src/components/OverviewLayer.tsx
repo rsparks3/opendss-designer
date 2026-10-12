@@ -1,9 +1,7 @@
 import { useStore } from '@xyflow/react'
 import { useEffect, useMemo, useRef } from 'react'
-import { loadingColor, voltageColor } from '../lib/colorScale'
 import { NODE_SIZE } from '../lib/defaults'
-import { resultById } from '../lib/indexes'
-import { phaseColor } from '../lib/phasing'
+import { overlayInk } from '../lib/overlayInk'
 import { useCircuitStore, useLimits } from '../store/circuitStore'
 import { activeResult, activeStale, useResultsStore } from '../store/resultsStore'
 import type { NodeType } from '../types/circuit'
@@ -102,27 +100,9 @@ export function OverviewLayer() {
     const style = getComputedStyle(el)
     const ink = style.getPropertyValue('--ink').trim() || '#333'
 
-    const solved = result?.converged && !stale ? result : null
-    const elements = solved ? resultById(solved) : null
-    const busColour = (nodeId: string): string => {
-      if (overlay === 'voltage' && solved) {
-        const bus = solved.nodeBuses[nodeId]?.[0]
-        const v = bus ? solved.buses[bus]?.vminPu : null
-        if (v != null) return voltageColor(v, limits)
-      }
-      if (overlay === 'phases') {
-        const letters = phases?.nodes[nodeId]?.[0]
-        if (letters !== undefined) return phaseColor(letters)
-      }
-      return ink
-    }
-    const lineColour = (s: Segment): string => {
-      if (s.edgeId && overlay === 'loading' && elements) {
-        const pct = elements.get(s.edgeId)?.loadingPct
-        if (pct != null) return loadingColor(pct, limits)
-      }
-      return busColour(s.nodeId)
-    }
+    const colours = overlayInk({ overlay, result, stale, phases, limits, ink })
+    const busColour = colours.bus
+    const lineColour = (seg: Segment) => colours.line(seg.edgeId, seg.nodeId)
 
     // Strokes batched by colour: one path per colour, not one per segment.
     const byColour = new Map<string, Path2D>()

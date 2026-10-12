@@ -1,3 +1,4 @@
+import { useUiStore } from './store/uiStore'
 import { ReactFlowProvider } from '@xyflow/react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from './lib/api'
@@ -18,6 +19,7 @@ import { SidePanel } from './components/SidePanel'
 import { Toolbar } from './components/Toolbar'
 import { MenuBar } from './components/MenuBar'
 import { Dialogs } from './components/Dialogs'
+import { GeoCanvas } from './components/GeoCanvas'
 
 /** A number that changes when the circuit changes electrically: an element
  *  added, removed, re-wired or given new parameters. Moving or selecting
@@ -173,6 +175,7 @@ function useUnsavedWorkProtection() {
 }
 
 export default function App() {
+  const view = useUiStore((s) => s.view)
   useValidation()
   useUnsavedWorkProtection()
   // Conductor preset library (config/linecodes.csv via the backend).
@@ -193,7 +196,7 @@ export default function App() {
           <SidePanel side="left" storageKey="palette2" defaultWidth={210} minWidth={72} maxWidth={360} title="components">
             <Palette />
           </SidePanel>
-          <EditorCanvas />
+          {view === 'geographic' ? <GeoCanvas /> : <EditorCanvas />}
           <SidePanel side="right" storageKey="properties" defaultWidth={250} minWidth={180} maxWidth={560} title="properties">
             <PropertiesPanel />
           </SidePanel>

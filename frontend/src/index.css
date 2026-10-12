@@ -1539,3 +1539,29 @@ kbd {
 .report-what { font-size: 12px; color: var(--muted); }
 .report-busy { margin-right: auto; align-self: center; font-size: 12.5px; color: var(--ink-2); }
 .link-button { border: none; background: none; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
+
+/* ---------- the map (GeoCanvas) ---------- */
+.geo-wrap { flex: 1; min-width: 0; position: relative; overflow: hidden; background: var(--paper); }
+.geo-canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.geo-canvas:active { cursor: grabbing; }
+.geo-toolbar {
+  position: absolute; top: 8px; left: 8px; z-index: 5;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 8px; font-size: 12.5px; max-width: calc(100% - 16px);
+}
+.geo-toolbar label { display: flex; align-items: center; gap: 4px; }
+.geo-tile-url { width: 260px; }
+.geo-status { color: var(--muted); }
+.geo-empty, .geo-note {
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 5;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 12px; font-size: 13px; max-width: min(560px, calc(100% - 32px));
+}
+.geo-empty { top: 40%; }
+.geo-note { bottom: 14px; }
+.geo-note button { margin-left: 4px; }
+.geo-attribution {
+  position: absolute; right: 6px; bottom: 4px; z-index: 5; font-size: 11px;
+  background: rgba(255, 255, 255, 0.8); color: #333; padding: 1px 5px; border-radius: 3px;
+}

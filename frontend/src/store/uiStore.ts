@@ -42,6 +42,15 @@ interface UiState {
   routing: boolean
   setRouting: (v: boolean) => void
 
+  /** The one-line, or the circuit on a map at its coordinates. */
+  view: 'schematic' | 'geographic'
+  setView: (v: 'schematic' | 'geographic') => void
+  /** The map's background: OpenStreetMap, an XYZ tile URL of the user's
+   *  own (satellite, a utility's tile server), or none. */
+  basemap: 'osm' | 'custom' | 'none'
+  basemapUrl: string
+  setBasemap: (b: 'osm' | 'custom' | 'none', url?: string) => void
+
   showGrid: boolean
   snapToGrid: boolean
   setShowGrid: (v: boolean) => void
@@ -131,6 +140,19 @@ export const useUiStore = create<UiState>()((set, get) => ({
 
   routing: false,
   setRouting: (routing) => set({ routing }),
+
+  view: 'schematic',
+  setView: (view) => set({ view }),
+  basemap: ((): 'osm' | 'custom' | 'none' => {
+    const v = readPref('basemap')
+    return v === 'custom' || v === 'none' ? v : 'osm'
+  })(),
+  basemapUrl: readPref('basemapUrl') ?? '',
+  setBasemap: (basemap, url) => {
+    writePref('basemap', basemap)
+    if (url !== undefined) writePref('basemapUrl', url)
+    set(url !== undefined ? { basemap, basemapUrl: url } : { basemap })
+  },
 
   showGrid: readFlag('showGrid', true),
   snapToGrid: readFlag('snapToGrid', true),

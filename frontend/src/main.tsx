@@ -19,6 +19,8 @@ declare global {
       autoLayout: typeof autoLayout
       /** The canvas's React Flow instance (viewport, fitting), once drawn. */
       flow?: ReactFlowInstance<AppNode, AppEdge>
+      /** The map (geographic view), while it is shown. */
+      map?: { screenOf: (id: string) => { x: number; y: number } | null; fit: () => void }
     }
   }
 }

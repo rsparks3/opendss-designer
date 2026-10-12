@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_LIMITS, EMPTY_STUDY, limitsOf, limitsProblem, sameLimits, studyIsEmpty } from '../lib/limits'
+import { crsList, projectionFor, type CrsEntry } from '../lib/geo'
 import { useCircuitStore } from '../store/circuitStore'
 import type { LimitsJSON, StudyInfoJSON } from '../types/circuit'
 
@@ -33,6 +34,37 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
   const parsedBases = parseBases(basesDraft)
   const applyBases = () => {
     if (parsedBases && parsedBases.join(',') !== (bases ?? []).join(',')) setBases(parsedBases)
+  }
+  const crs = useCircuitStore((s) => s.crs)
+  const setCrs = useCircuitStore((s) => s.setCrs)
+  const [crsDraft, setCrsDraft] = useState(crs ?? '')
+  const [crsNote, setCrsNote] = useState<{ ok: boolean; text: string } | null>(null)
+  const [crsChoices, setCrsChoices] = useState<CrsEntry[]>([])
+  useEffect(() => {
+    void crsList().then(setCrsChoices)
+  }, [])
+  // Say what the stored system is when the dialog opens.
+  useEffect(() => {
+    if (crs) void projectionFor(crs).then((p) => setCrsNote(p ? { ok: true, text: p.label } : null))
+  }, [crs])
+  const applyCrs = async () => {
+    const text = crsDraft.trim()
+    // A name picked from the list stands for its code.
+    const picked = crsChoices.find((c) => c.name === text)
+    const value = picked ? picked.code : text
+    if (!value) {
+      setCrs(null)
+      setCrsNote(null)
+      return
+    }
+    const p = await projectionFor(value)
+    if (!p) {
+      setCrsNote({ ok: false, text: 'Not a coordinate system this app knows: use an EPSG code, a name from the list, or a proj4 or WKT definition.' })
+      return
+    }
+    setCrsDraft(value)
+    setCrs(value)
+    setCrsNote({ ok: true, text: p.label })
   }
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => box.current?.focus(), [])
@@ -133,6 +165,34 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
             >
               Use the defaults
             </button>
+          </div>
+        </fieldset>
+        <fieldset className="prefs-group">
+          <legend>Coordinate system</legend>
+          <label>
+            Bus and GIS coordinates are in
+            <input
+              aria-label="Coordinate system"
+              list="crs-choices"
+              value={crsDraft}
+              placeholder="EPSG code, a name, or a proj4/WKT definition"
+              onChange={(e) => setCrsDraft(e.target.value)}
+              onBlur={() => void applyCrs()}
+              onKeyDown={(e) => e.key === 'Enter' && void applyCrs()}
+            />
+          </label>
+          <datalist id="crs-choices">
+            {crsChoices.map((c) => (
+              <option key={c.code} value={c.name}>
+                {c.code}
+              </option>
+            ))}
+          </datalist>
+          {crsNote && <div className={crsNote.ok ? 'library-note' : 'modal-error'}>{crsNote.text}</div>}
+          <div className="library-note">
+            What the map needs to put the circuit on the ground. Feeder models usually keep State Plane feet
+            or UTM metres; LatLongCoords are EPSG:4326, set on import. Blank draws the coordinates on a plain
+            grid.
           </div>
         </fieldset>
         <fieldset className="prefs-group">
