@@ -7,6 +7,49 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Real feeders, full size.** A 10,000-element feeder now imports, lays out
+  and draws in about two seconds, pans smoothly and solves in about one
+  (EPRI's ckt24 used to not finish drawing). Zoomed out, a large circuit is
+  an **overview** coloured by the overlay; zoom in and the symbols return,
+  only those in view. **Clean up** lays large circuits out as a tidy tree
+  with the trunk straight down.
+- **The map.** **Map** on the toolbar shows the circuit at its coordinates
+  over OpenStreetMap (or your own tiles, or none): lines along their routes,
+  devices where they connect, the voltage, loading and phases overlays on
+  the ground. Select and edit there, drag a bus to move it. Coordinate
+  systems: pick any NAD83 State Plane or UTM zone (1,601 bundled), type an
+  EPSG code, or paste a proj4/WKT definition, in **Project properties**.
+- **GIS layers and CSV tables.** **File → Import from → GIS layers or CSV
+  tables** reads shapefiles (loose or zipped), GeoJSON and CSV: say what
+  each layer is, match its columns to properties (done for you where the
+  names are familiar, and remembered), and the network is built from bus
+  columns or, as GIS draws it, from where line ends meet and devices sit.
+- **CYME and Synergi.** With the optional **opendss-designer-convert**
+  plugin installed, **File → Import from** converts CYME and Synergi models.
+- **In service.** Every element can be taken out of service and stays on
+  the drawing, dashed. A `.dss` file's disabled elements (open ties, spare
+  connectors) now import this way instead of disappearing.
+- **Voltage bases** in **Project properties**, read from an imported file's
+  `set voltagebases`.
+- Transformer **no-load loss** and **magnetising current**, load **CVR
+  factors**, and a source's **X/R** in the properties panel.
+
+### Fixed
+
+- Importing real utility models (all measured on EPRI's and the IEEE's
+  large test feeders, now in CI): a master file that redirects to the file
+  defining the circuit imports whole; a folder with unrelated scripts or two
+  masters imports, with a note; 120/240 V services no longer read 1.73 pu;
+  a two-phase line on a one-phase line code no longer floats a phase; a
+  substation LTC stays a transformer; series reactors, taps, winding
+  resistances, magnetising current, CVR and ZIP loads and source X/R are
+  kept; names keep their dashes, so controls still find them; feeders that
+  need more than 15 iterations converge; coordinates given before the bus
+  list existed are kept.
+- No more false phase warnings on single-phase transformers written with a
+  node on both windings, or on centre-tapped services.
+- Selecting or moving something no longer re-validates the whole circuit.
+
 - **Shunt elements have ratings too.** A generator, PV system or storage
   unit is now loaded by its apparent power against its kVA rating (a
   generator gained a *Rating (kVA)* field; blank keeps OpenDSS's 1.2 × kW),

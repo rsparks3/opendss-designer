@@ -55,6 +55,17 @@ docker run --init -p 127.0.0.1:8721:8721 \
 `--init` matters: without it `SIGTERM` does not reach PID 1 and the graceful
 shutdown never runs.
 
+**CYME and Synergi import** need the optional converter plugin, which the
+image leaves out by default because of its dependencies (geopandas, pyarrow
+and friends: several hundred megabytes). Build it in with
+`--build-arg CONVERTER=opendss-designer-convert` (any pip requirement works,
+a git URL included) and give the workers more memory than the plain app's.
+
+**The map's tiles** come from the visitor's browser straight to the tile
+server (OpenStreetMap by default), so the app's Content-Security-Policy
+allows `img-src https:`. A proxy or gateway in front that sets its own CSP
+needs the same, or the map draws with no background.
+
 !!! warning "Three things that will bite you"
     **Keep the loopback names in `OPENDSS_DESIGNER_ALLOWED_HOSTS`.** The value
     *replaces* the defaults, and the image's own `HEALTHCHECK` requests

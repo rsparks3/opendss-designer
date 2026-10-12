@@ -4,7 +4,7 @@ description: How OpenDSS Designer's results compare with the published IEEE PES 
 
 # Validation against the IEEE test feeders
 
-*Generated 2026-09-19 by `scripts/ieee_validation.py` with OpenDSS Designer 0.6.0 on DSS C-API 0.14.5 (OpenDSS SVN 3723), OpenDSSDirect.py 0.9.4. The same comparison runs in CI (`tests/test_ieee_feeders.py`).*
+*Generated 2026-10-12 by `scripts/ieee_validation.py` with OpenDSS Designer 0.7.0 on DSS C-API 0.14.5 (OpenDSS SVN 3723), OpenDSSDirect.py 0.9.4. The same comparison runs in CI (`tests/test_ieee_feeders.py`).*
 
 The [IEEE PES Distribution Test Feeders](https://cmte.ieee.org/pes-testfeeders/resources/) are the benchmark every distribution planning tool is measured against: small radial feeders with unbalanced loads, single-phase laterals, regulators and capacitors, each with a published power-flow solution by W. H. Kersting. This page answers two separate questions about them.
 
@@ -125,11 +125,24 @@ Every element in all four feeders is read (nothing is reported as unsupported), 
 
 It did not start that way. Measured on 2026-09-18 the same table read 0.07 pu on the 13-bus with a third of its losses, because a `LineCode` defined by phase impedance matrices came back as the engine's default `r1 x1 r0 x0`, and three smaller properties were dropped: transformer `%loadloss`, the source's `MVAsc3`/`MVAsc1` and load `vminpu`. Line codes now travel with the circuit (see the Line codes tab), and the last 0.0015 pu on the 37-bus turned out to be a switch's `c1=0 c0=0`, which the engine's default capacitance is not. Switches now keep their own impedance and capacitance, regulators their winding connection.
 
+## 4. Real-sized feeders
+
+The IEEE feeders are small and tidy. Utility models are neither, so the same import round trip runs on EPRI's ckt5, ckt7 and ckt24 test circuits and the IEEE 8500-node feeder: thousands of elements, redirect trees, line geometries, transformer codes, CVR loads, centre-tapped services, open ties written as disabled lines, a substation LTC. The reference is the engine's solution of the files as shipped. Times are the import and the app's rebuild-and-solve, on the machine that wrote this page.
+
+| Feeder | Elements | Node-phases compared | Solves | Max deviation (pu) | Import (s) | Solve (s) |
+|---|---:|---:|:---:|---:|---:|---:|
+| EPRI ckt5 | 4,411 | 3,434 | yes | 5.5e-06 | 0.7 | 0.3 |
+| EPRI ckt7 | 2,232 | 2,452 | yes | 2.1e-04 | 1.2 | 0.5 |
+| EPRI ckt24 | 9,967 | 7,522 | yes | 5.8e-06 | 1.4 | 0.6 |
+| IEEE 8500-node | 6,103 | 8,528 | yes | 1.0e-05 | 1.2 | 0.6 |
+
+Before M11 ckt7 did not import, ckt24 put a bus at 269 pu, ckt5 lost its open ties and read its 240 V services at 1.75 pu, and the 8500-node feeder did not converge. What each one found is in `tests/fixtures/large/README.md`. ckt7's last 0.0002 pu is 4 kW of its 76.5 MW unaccounted for at the source.
+
 ## Reproducing this page
 
 ```
 PYTHONPATH=src python scripts/ieee_validation.py
-PYTHONPATH=src python -m pytest tests/test_ieee_feeders.py
+PYTHONPATH=src python -m pytest tests/test_ieee_feeders.py tests/test_large_feeders.py
 ```
 
 The test holds section 1 to each feeder's tolerance and section 3 to 0.0005 pu and 0.2 % of losses, so an engine upgrade or an importer change that moves either shows up in CI before it shows up here.

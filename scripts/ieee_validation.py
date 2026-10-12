@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tests"))
 
 import ieee_feeders as bench  # noqa: E402
+import large_feeders as big  # noqa: E402
 
 from opendss_designer import __version__  # noqa: E402
 from opendss_designer.core import engine  # noqa: E402
@@ -213,11 +214,37 @@ def main() -> None:
       "which the engine's default capacitance is not. Switches now keep their "
       "own impedance and capacitance, regulators their winding connection.")
     w("")
+    # ---- 4. Real-sized feeders ----------------------------------------------
+    w("## 4. Real-sized feeders")
+    w("")
+    w("The IEEE feeders are small and tidy. Utility models are neither, so the "
+      "same import round trip runs on EPRI's ckt5, ckt7 and ckt24 test circuits "
+      "and the IEEE 8500-node feeder: thousands of elements, redirect trees, "
+      "line geometries, transformer codes, CVR loads, centre-tapped services, "
+      "open ties written as disabled lines, a substation LTC. The reference is "
+      "the engine's solution of the files as shipped. Times are the import and "
+      "the app's rebuild-and-solve, on the machine that wrote this page.")
+    w("")
+    w("| Feeder | Elements | Node-phases compared | Solves | Max deviation (pu) "
+      "| Import (s) | Solve (s) |")
+    w("|---|---:|---:|:---:|---:|---:|---:|")
+    for f in big.FEEDERS:
+        rt = big.round_trip(f)
+        w(f"| {f.title} | {rt.elements:,} | {rt.compared:,} | "
+          f"{'yes' if rt.converged else 'no'} | {rt.max_deviation:.1e} | "
+          f"{rt.import_s:.1f} | {rt.solve_s:.1f} |")
+    w("")
+    w("Before M11 ckt7 did not import, ckt24 put a bus at 269 pu, ckt5 lost its "
+      "open ties and read its 240 V services at 1.75 pu, and the 8500-node "
+      "feeder did not converge. What each one found is in "
+      "`tests/fixtures/large/README.md`. ckt7's last 0.0002 pu is 4 kW of its "
+      "76.5 MW unaccounted for at the source.")
+    w("")
     w("## Reproducing this page")
     w("")
     w("```")
     w("PYTHONPATH=src python scripts/ieee_validation.py")
-    w("PYTHONPATH=src python -m pytest tests/test_ieee_feeders.py")
+    w("PYTHONPATH=src python -m pytest tests/test_ieee_feeders.py tests/test_large_feeders.py")
     w("```")
     w("")
     w("The test holds section 1 to each feeder's tolerance and section 3 to "

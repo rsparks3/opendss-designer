@@ -299,8 +299,9 @@ three-winding transformers and per-phase laterals are table stakes for anything
 below, because a feeder without them is not a feeder. The two M7 items the rest
 depended on followed — SVG/PNG export (the prerequisite for M10's study report) and
 Clean up, the import layout for M11's real feeders — and the rest of M7 with
-them (2026-09-27). **Next: M10's study report**, whose diagram source now
-exists. Each milestone below is chosen to be
+them (2026-09-27). M10 (study output) and M11 (real models in) are done;
+**next: M12's planning studies**, starting with hosting capacity. Each
+milestone below is chosen to be
 useful to someone real on its own, not only at the end of the list.
 
 ## M10 — Study output & proof
@@ -351,7 +352,7 @@ hand a study to a colleague.
   arbitrary shapes, free lines, colour pickers, images — draw.io's job, not a
   planning tool's, and each one adds schema, export and dark-mode surface
 
-## M11 — Real models in
+## M11 — Real models in — ✅ DONE (2026-10-12, branch `m11`)
 
 Nobody hand-draws a utility feeder. Until an engineer can open the model they
 already own, the analysis features have no audience — this is the first real gate.
@@ -377,25 +378,72 @@ already own, the analysis features have no audience — this is the first real g
   `LineGeometry`/`WireData`/`CNData` themselves (their computed matrix comes
   through; the geometry does not), which can wait until someone needs to edit
   a pole configuration in the app
-- **Scale to thousands of elements** — `.dss` import of real feeders needs
-  canvas virtualisation (the layout side is M7's Clean up), and a hard look at
-  rebuild-per-solve. (The parking-lot "incremental solve" item becomes relevant
-  here for *editor responsiveness*; note it trades away the statelessness that
-  makes the hosted workers scale horizontally, so if it lands it must stay behind
-  a flag — see `docs/hosted-service.md`)
-- **Bulk import formats** — CSV element tables, then Esri shapefile/geodatabase
-  (bus coordinates and line geometry). GIS is how every incumbent builds models;
-  CYME Gateway also reads Smallworld and Intergraph
-- **Geographic view** — map background tiles and a schematic/geographic toggle.
-  The importer already keeps bus coordinates; today they are only used to seed the
-  layout
-- **Incumbent model conversion** — CYME, Synergi and WindMil models via NREL's
-  DiTTo, which already targets those formats but has had no activity since
-  December 2023 and has open conversion bugs. Reviving it beats starting over.
-  Belongs in a separate package so this repo does not take on a GIS/converter
-  dependency tree. Strategically this is the biggest lever available: proprietary
-  formats and unreliable conversion are the loudest documented complaint about
-  the incumbents
+- ~~**Real feeders import faithfully**~~ — 2026-10-12, not on the original
+  list but what the rest stood on. EPRI's ckt5, ckt7 and ckt24 and the IEEE
+  8500-node feeder (2,000–10,000 elements, BSD-licensed, in
+  `tests/fixtures/large/`) all broke the importer: ckt7 did not import (the
+  master redirects to the file with `New Circuit`), ckt24 put a bus at 269 pu
+  (two-phase lines on a one-phase code) and turned its 230/34.5 kV LTC into a
+  230/230 kV regulator, ckt5 dropped its open ties (`enabled=no`) and read
+  240 V services at 1.75 pu (the file's `voltagebases` were not kept), and the
+  8500-node feeder did not converge. Now: the main file is the top of the
+  redirect tree; disabled elements are drawn out of service (`enabled`
+  param, "In service" in the panel); voltage bases, CVR/ZIP load exponents,
+  a source's X/R, transformer taps, no-load loss, magnetising current and
+  unequal winding resistances survive; series reactors are drawn as lines;
+  an LTC keeps its control as a passthrough; names keep their dashes. All
+  four round-trip within 1e-5 pu (ckt7 2e-4) and `tests/test_large_feeders.py`
+  holds them there; `docs/validation.md` section 4 keeps the score
+- ~~**Scale to thousands of elements**~~ — 2026-10-12. ckt24 (10,800 nodes)
+  did not finish drawing in ten minutes; it now imports, lays out and draws in
+  2.2 s, pans at 60 fps and solves in 1.2 s. The costs were all in the
+  browser, found with Chrome traces: the undo history stringified the whole
+  document twice per store change, every edge and badge found itself with
+  `array.find` (O(n²) per render), validation re-posted the circuit on every
+  click, busbars rendered twenty terminals each, and dagre took 7–12 s.
+  Fixed with id indexes (`lib/indexes.ts`), reference-equality undo,
+  validation on electrical change only, sparse busbar terminals and
+  visible-only rendering above 1,500 nodes, an **overview canvas** below zoom
+  0.15 (`OverviewLayer`), and a linear Reingold–Tilford **tidy tree**
+  (`lib/treeLayout.ts`, trunk straight, laterals alternating) for Clean up on
+  large circuits. **Incremental solve is not needed**: rebuild-and-solve is
+  0.6 s on ckt24 and 1.4 s on a synthetic 15,000-bus feeder, so the hosted
+  workers stay stateless and the parking-lot item is closed
+- ~~**Bulk import formats**~~ — 2026-10-12: **File → Import from → GIS layers
+  or CSV tables** reads shapefiles (loose or zipped), GeoJSON and CSV in the
+  browser with no dependency (`lib/gis/`). A mapping dialog assigns each layer
+  an element class and its columns to properties (auto-matched, remembered);
+  topology comes from bus columns or, as GIS draws it, from geometry — ends
+  snapped, point devices attached, a switch or transformer drawn as a point
+  inserted with what is downstream moved past it. The result is OpenDSS text
+  read by the ordinary importer. Still not read: Esri file geodatabases
+  (they need GDAL; export them to shapefiles from QGIS or ArcGIS), Smallworld
+  and Intergraph
+- ~~**Geographic view**~~ — 2026-10-12: **Map** on the toolbar (`GeoCanvas`):
+  OpenStreetMap, any XYZ tiles or none; lines along their routes, devices as
+  marks, overlays coloured; select, edit, drag a bus (placing and wiring stay
+  on the one-line). Coordinates stay as the file gave them in the circuit's
+  `crs` — 1,601 named systems bundled (`scripts/make_crs_list.py`), or a
+  pasted proj4/WKT — and proj4js maps them; an export writes them back as
+  `SetBusXY`. Ryan chose map-style symbols, an own tile layer over a map
+  library, and select/edit/move only
+- ~~**Incumbent model conversion**~~ — 2026-10-12: **opendss-designer-convert**,
+  a separate BSD-3 repository of that name (to be published on GitHub),
+  forked from NREL/NLR's DiTTo with its history and trimmed to the CYME and
+  Synergi readers and the OpenDSS writer. The URL the
+  roadmap pointed at turned out to hold NLR's *active* 2024–26 rewrite (on
+  grid-data-models), not the dormant DiTTo with a WindMil reader, and the
+  fork follows the rewrite. Fixed along the way: regulator banks (#77),
+  multiple sources, line-drop compensation, Synergi read without mdbtools
+  (pure-Python `access_parser`), Synergi feeder-head and transformer
+  orientation. Verified on CYME 5.04/8.00 exports of IEEE 13 and 123 (within
+  1 % of EPRI's models) and one Synergi 6.4 model (a real Hawaiian Electric
+  feeder, committed with provenance). The app finds it as an optional plugin
+  (`core/convert.py`, **File → Import from → CYME… / Synergi…**). Still to
+  do: **WindMil** (port the legacy DiTTo reader; needs sample files), offer
+  the fixes upstream, and slim its dependencies (geopandas, pyarrow, h5py,
+  plotly) so the hosted image can include it — today it is behind
+  `--build-arg CONVERTER=...`, off by default
 
 ## M12 — Planning studies
 
@@ -448,9 +496,9 @@ Recorded so they stop being reconsidered:
 
 ## Parking lot (deferred until actually needed)
 
-- **Incremental solve** — reuse the compiled circuit when only parameter values changed;
-  matters once circuits reach thousands of elements (v1 rebuilds every solve).
-  Revisit in M11, where real feeders make it an editor-responsiveness question
+- ~~**Incremental solve**~~ — closed 2026-10-12 by measurement: rebuild-and-solve
+  is 0.6 s on a 10,000-element feeder, so it is not worth giving up stateless
+  workers (see M11)
 - **Multi-circuit tabs** / compare two scenarios side by side — big architectural change;
   wait until the single-circuit workflow is mature. Superseded by M12's scenario
   manager, which is the same need stated as a study rather than as a UI feature

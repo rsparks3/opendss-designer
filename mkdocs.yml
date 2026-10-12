@@ -42,7 +42,8 @@ nav:
   - Shapes & profiles: shapes.md
   - Time-series analysis: timeseries.md
   - Study reports: report.md
-  - Importing DSS files: importing-dss.md
+  - Importing models: importing-dss.md
+  - The map: map.md
   - Validation: validation.md
   - Deploying: deployment.md
   - Hosted service plan: hosted-service.md
