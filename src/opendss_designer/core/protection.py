@@ -23,7 +23,7 @@ from .engine import (
     on_engine_thread,
     quiet_for_fault_study,
 )
-from .model import Circuit, Issue
+from .model import Circuit, Issue, in_service
 from .validate import limit_issues
 
 _BUILTIN_CACHE: dict[str, list[list[float]]] | None = None
@@ -272,7 +272,7 @@ def _upstream_chain(circuit: Circuit, devices: list[dict[str, Any]]) -> dict[str
         links.setdefault(b, []).append((a, device))
 
     for edge in circuit.edges:
-        if edge.type == "line" and edge.id in conn.line_buses:
+        if edge.type == "line" and edge.id in conn.line_buses and in_service(edge.params):
             a, b = conn.line_buses[edge.id]
             link(a, b, None)
     for node in circuit.nodes:
@@ -280,6 +280,8 @@ def _upstream_chain(circuit: Circuit, devices: list[dict[str, Any]]) -> dict[str
         if len(buses) < 2:
             continue
         dev = device_by_node.get(node.id)
+        if not in_service(node.params):
+            continue
         if dev is None and node.type in ("breaker", "fuse", "recloser", "relay"):
             # An open switch with no curve of its own still breaks the path.
             if not by_node[node.id].params.get("closed", True):

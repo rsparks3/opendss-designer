@@ -37,14 +37,16 @@
       "type": "busbar",
       "position": { "x": 100, "y": 320 },
       "width": 240,
-      "params": { "name": "BUS-MV", "basekv": 12.47 }
+      "params": { "name": "BUS-MV", "basekv": 12.47 },
+      "geo": { "x": 699900.5, "y": 3703200.25 }
     },
     {
       "id": "n_bus3",
       "type": "busbar",
       "position": { "x": 500, "y": 320 },
       "width": 160,
-      "params": { "name": "BUS-FDR", "basekv": 12.47 }
+      "params": { "name": "BUS-FDR", "basekv": 12.47 },
+      "geo": { "x": 702400, "y": 3703950 }
     },
     {
       "id": "n_reg",
@@ -234,6 +236,7 @@
         "units": "mi",
         "phases": 3
       },
+      "geometry": [{ "x": 701000, "y": 3703300 }, { "x": 701900, "y": 3703800 }],
       "waypoints": null
     },
     {
@@ -436,6 +439,8 @@
     "circuit": "! Schema fixture",
     "line.ln1": "! the first line"
   },
+  "voltageBases": [115, 12.47],
+  "crs": "EPSG:26912",
   "limits": {
     "vminPu": 0.95,
     "vmaxPu": 1.05,

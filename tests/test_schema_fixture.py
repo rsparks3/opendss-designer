@@ -42,6 +42,10 @@ def test_fixture_covers_every_type(fixture_json):
     assert fixture_json["comments"]
     assert fixture_json["limits"]
     assert fixture_json["study"]
+    assert fixture_json["voltageBases"]
+    assert fixture_json["crs"]
+    assert any(n.get("geo") for n in fixture_json["nodes"])
+    assert any(e.get("geometry") for e in fixture_json["edges"])
     assert any(e["params"].get("linecode") in fixture_json["lineCodes"]
                for e in fixture_json["edges"])
 
@@ -60,10 +64,14 @@ def test_fixture_validates_and_round_trips(fixture_json):
     assert dumped["comments"] == fixture_json["comments"]
     assert dumped["limits"] == fixture_json["limits"]
     assert dumped["study"] == fixture_json["study"]
+    assert dumped["voltageBases"] == fixture_json["voltageBases"]
+    assert dumped["crs"] == fixture_json["crs"]
+    # height, geo and geometry are optional on the wire: the frontend writes
+    # them only when there is one.
     assert dumped["nodes"] == [
-        {"height": None, **n} for n in fixture_json["nodes"]
-    ], "node round trip drifted (height is backend-optional; only zones export one)"
-    assert dumped["edges"] == fixture_json["edges"]
+        {"height": None, "geo": None, **n} for n in fixture_json["nodes"]
+    ], "node round trip drifted"
+    assert dumped["edges"] == [{"geometry": None, **e} for e in fixture_json["edges"]]
 
 
 def test_fixture_compiles_cleanly(fixture_json):

@@ -12,7 +12,7 @@ import {
   type IsValidConnection,
   useConnection,
 } from '@xyflow/react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { renderedEdgePoints } from '../lib/edgeGeometry'
 import {
   beginGesture,
@@ -73,8 +73,21 @@ const edgeTypes = {
 const isValidConnection: IsValidConnection<AppEdge> = (conn) =>
   validateConnection(conn) === null
 
+/** Out-of-service elements wear a class (dashed and faded in index.css);
+ *  only those few nodes are copied, the rest pass through untouched. */
+function markOutOfService(nodes: AppNode[]): AppNode[] {
+  let changed = false
+  const out = nodes.map((n) => {
+    if (n.data.params.enabled !== false) return n
+    changed = true
+    return { ...n, className: `${n.className ?? ''} out-of-service` }
+  })
+  return changed ? out : nodes
+}
+
 export function EditorCanvas() {
-  const nodes = useCircuitStore((s) => s.nodes)
+  const storeNodes = useCircuitStore((s) => s.nodes)
+  const nodes = useMemo(() => markOutOfService(storeNodes), [storeNodes])
   const edges = useCircuitStore((s) => s.edges)
   const onNodesChange = useCircuitStore((s) => s.onNodesChange)
   const onEdgesChange = useCircuitStore((s) => s.onEdgesChange)

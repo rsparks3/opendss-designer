@@ -60,7 +60,7 @@ def test_device_compiles_to_a_switch_and_a_control(device_type, params, expected
 def test_each_device_solves_and_carries_load(device_type):
     result = engine.solve(_feeder(device_type, {}))
     assert result["converged"], result["issues"]
-    assert result["buses"]["bus_b"]["vminPu"] > 0.9
+    assert result["buses"]["bus-b"]["vminPu"] > 0.9
 
 
 @pytest.mark.parametrize("device_type", ["fuse", "recloser", "relay"])
@@ -68,7 +68,7 @@ def test_an_open_device_islands_what_is_downstream(device_type):
     result = engine.solve(_feeder(device_type, {"closed": False}))
     assert result["converged"], result["issues"]
     # De-energized, exactly as an open breaker leaves it.
-    assert result["buses"]["bus_b"]["vmaxPu"] < 0.1
+    assert result["buses"]["bus-b"]["vmaxPu"] < 0.1
 
 
 def test_a_relay_without_a_ground_curve_gets_no_ground_unit():

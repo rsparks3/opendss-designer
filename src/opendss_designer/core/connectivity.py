@@ -22,9 +22,14 @@ BUSBAR_CANON_HANDLE = "__bus__"
 
 
 def sanitize_name(name: str) -> str:
-    """Make a user name safe for OpenDSS (case-insensitive, no dots/spaces)."""
+    """Make a user name safe for OpenDSS (case-insensitive, no dots/spaces).
+
+    A dash is kept: OpenDSS accepts it, real feeders name thousands of
+    elements with one ("ABC28285-1"), and the passthrough controls imported
+    with them refer to those names as the file spelled them.
+    """
     s = name.strip().lower()
-    s = re.sub(r"[^a-z0-9_]+", "_", s).strip("_")
+    s = re.sub(r"[^a-z0-9_-]+", "_", s).strip("_-")
     return s
 
 

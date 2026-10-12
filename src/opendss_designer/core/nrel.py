@@ -84,7 +84,7 @@ def _download(url: str, dest: Path) -> None:
 
 def _fetch_csv(product: str, zone: str, building_type: str) -> Path:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    dest = CACHE_DIR / f"{product}_{zone}_{sanitize_name(building_type)}.csv"
+    dest = CACHE_DIR / f"{product}_{zone}_{sanitize_name(building_type).replace('-', '_')}.csv"
     if dest.exists():
         return dest
     url = BASE_URL.format(product=product, zone=zone, building_type=building_type)
@@ -159,7 +159,7 @@ def fetch_profile(product: str, climate_zone: str, building_type: str,
     divisor = max(kwh) if normalize == "peak" else (sum(kwh) / len(kwh))
     points = [round(v / divisor, 5) if divisor else 0.0 for v in kwh]
 
-    type_slug = sanitize_name(building_type)
+    type_slug = sanitize_name(building_type).replace("-", "_")
     return {
         "name": f"nrel_{zone}_{type_slug}",
         "intervalMin": float(step_min),

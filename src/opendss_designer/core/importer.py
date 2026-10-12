@@ -84,11 +84,61 @@ def _record_phasing(params: dict[str, Any], suffixes: Sequence[str | None],
             params[key] = suffix
 
 
-def _find_main(files: list[dict[str, str]]) -> dict[str, str]:
-    circuit_re = re.compile(r"new\s+(object\s*=\s*)?circuit", re.IGNORECASE)
+_CIRCUIT_RE = re.compile(r"^\s*new\s+(object\s*=\s*)?circuit", re.IGNORECASE | re.MULTILINE)
+_REDIRECT_RE = re.compile(
+    r'^\s*(redirect|compile)\s+["(\[]?([^"()\[\]\s]+)', re.IGNORECASE | re.MULTILINE)
+
+
+def _find_main(files: list[dict[str, str]]) -> tuple[dict[str, str], set[str], list[str]]:
+    """The file to compile -- the top of the redirect tree that defines a
+    circuit -- the lowercase names of every file in its tree, and the other
+    files that could have been the main one (a folder holding a balanced
+    and an unbalanced master, as the IEEE 8500-node one does).
+
+    "The file with `New Circuit` in it" is not enough. EPRI's ckt7 master
+    redirects to a substation file that defines the circuit, and compiling
+    that file alone loses the load shapes the master redirected to first. So
+    follow the redirects: of the files whose tree defines a circuit, take one
+    no other file redirects to. A `compile` reference does not count against
+    a file -- that is a run script wrapping the model, not a part of it -- and
+    run scripts lose ties to the model itself.
+    """
+    by_name = {f["name"].lower(): f for f in files}
+    refs: dict[str, list[str]] = {}
+    redirected: set[str] = set()
     for f in files:
-        if circuit_re.search(f.get("text", "")):
-            return f
+        name = f["name"].lower()
+        refs[name] = []
+        for m in _REDIRECT_RE.finditer(f.get("text", "")):
+            target = _basename(m.group(2)).lower()
+            if target in by_name and target != name:
+                refs[name].append(target)
+                if m.group(1).lower() == "redirect":
+                    redirected.add(target)
+
+    def tree(name: str) -> set[str]:
+        seen: set[str] = set()
+        stack = [name]
+        while stack:
+            n = stack.pop()
+            if n not in seen:
+                seen.add(n)
+                stack.extend(refs.get(n, ()))
+        return seen
+
+    candidates = []
+    for f in files:
+        name = f["name"].lower()
+        reach = tree(name)
+        if any(_CIRCUIT_RE.search(by_name[n].get("text", "")) for n in reach):
+            candidates.append((name in redirected, name.startswith("run"),
+                               "master" not in name, -len(reach), name, f, reach))
+    if candidates:
+        best = min(candidates, key=lambda c: c[:5])
+        # Rivals: other tops of a tree that the chosen one does not contain.
+        rivals = [c[5]["name"] for c in candidates
+                  if c is not best and not c[0] and not c[1] and c[4] not in best[6]]
+        return best[5], best[6], rivals
     raise ImportFailure(
         "None of the selected files defines a circuit (no 'New Circuit.' statement). "
         "Select the feeder's main .dss file (plus any files it references).")
@@ -135,6 +185,20 @@ def _basename(ref: str) -> str:
 
 
 def _sanitize_dss_text(text: str, provided: set[str]) -> tuple[str, list[str]]:
+    clean, warnings, missing = _sanitize(text, provided)
+    if missing:
+        raise ImportFailure(_missing_message(missing))
+    return clean, warnings
+
+
+def _missing_message(missing: list[str]) -> str:
+    return ("This file references other files that were not selected: "
+            + ", ".join(sorted(set(missing)))
+            + ". Select the main .dss file AND those files together "
+            "(Ctrl+click in the file dialog).")
+
+
+def _sanitize(text: str, provided: set[str]) -> tuple[str, list[str], list[str]]:
     """Make one uploaded .dss file safe to hand to the OpenDSS compiler.
 
     Every file reference is rewritten to its *basename*, so a path trying to
@@ -202,13 +266,7 @@ def _sanitize_dss_text(text: str, provided: set[str]) -> tuple[str, list[str]]:
         line = _CSVFILE_PARAM_RE.sub(rewrite, line)
         out_lines.append(line)
 
-    if missing:
-        raise ImportFailure(
-            "This file references other files that were not selected: "
-            + ", ".join(sorted(set(missing)))
-            + ". Select the main .dss file AND those files together "
-            "(Ctrl+click in the file dialog).")
-    return "\n".join(out_lines), warnings
+    return "\n".join(out_lines), warnings, missing
 
 
 def import_dss(text: str) -> dict[str, Any]:
@@ -232,15 +290,34 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
     files = cleaned
     if not files:
         raise ImportFailure("No files were provided.")
-    main = _find_main(files)
+    main, tree, rivals = _find_main(files)
     provided = {f["name"].lower() for f in files}
 
     # Sanitize *every* file: a companion file gets compiled too, via the main
     # file's redirect, so checking only the main one leaves the door open.
+    # A missing reference matters only in a file the main one reaches;
+    # people select a whole folder, and the 8500-node feeder's folder holds a
+    # cloud-transient script naming a CSV nobody ships. Such a file is left
+    # out of the compile rather than written with a reference unresolved.
     warnings: list[str] = []
+    if rivals:
+        warnings.append(
+            f"Imported {main['name']}; {', '.join(rivals)} also define"
+            f"{'s' if len(rivals) == 1 else ''} a circuit. To import "
+            f"{'that one' if len(rivals) == 1 else 'another'}, select it "
+            "without the others.")
+    kept: list[dict[str, str]] = []
     for f in files:
-        f["text"], warns = _sanitize_dss_text(f["text"], provided)
+        f["text"], warns, missing = _sanitize(f["text"], provided)
+        if missing and f["name"].lower() in tree:
+            raise ImportFailure(_missing_message(missing))
+        if missing:
+            warnings.append(f"Left out {f['name']}: the main file does not use it, "
+                            "and it names files that were not selected.")
+            continue
         warnings.extend(warns)
+        kept.append(f)
+    files = kept
 
     with engine.dss_guard():
         engine._ensure_init()
@@ -255,6 +332,7 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
                 raise ImportFailure(f"OpenDSS could not compile the file: {exc}") from exc
             result = _read_model_back(warnings)
             _keep_passthrough(result, files, main["name"])
+            _coordinate_system(result, files)
         finally:
             # Compiling moved OpenDSS's working dir into tmpdir; move it back
             # so the directory can be removed (best-effort — it's in temp).
@@ -264,6 +342,18 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
                 pass
             shutil.rmtree(tmpdir, ignore_errors=True)
     return result
+
+
+_LATLONG_RE = re.compile(r"^\s*latlongcoords\b", re.IGNORECASE | re.MULTILINE)
+
+
+def _coordinate_system(result: dict[str, Any], files: list[dict[str, str]]) -> None:
+    """`LatLongCoords` means WGS84 longitude/latitude (the engine keeps them
+    as x and y). BusCoords can be anything -- State Plane feet, UTM metres,
+    or a drawing's own numbers -- so it gets no system until the user says."""
+    if any(_LATLONG_RE.search(f["text"]) for f in files) and any(
+            n.get("geo") for n in result["circuit"]["nodes"]):
+        result["circuit"]["crs"] = "EPSG:4326"
 
 
 def _keep_passthrough(result: dict[str, Any], files: list[dict[str, str]], main: str) -> None:
@@ -457,7 +547,65 @@ def _sequence_matches(matrix: list[list[float]] | None, z1: float, z0: float) ->
     return True
 
 
+# Classes the diagram models, as the engine names them and as the kinds the
+# compiler emits them under (a regulator and every switch are a Transformer
+# or a Line underneath).
+_MODELLED_CLASSES = ("Vsource", "Transformer", "Line", "Load", "Capacitor",
+                     "Generator", "PVSystem", "Storage")
+_NODE_CLASS = {"vsource": "vsource", "transformer": "transformer",
+               "regulator": "transformer", "breaker": "line", "fuse": "line",
+               "recloser": "line", "relay": "line", "load": "load",
+               "capacitor": "capacitor", "generator": "generator",
+               "pvsystem": "pvsystem", "storage": "storage"}
+
+
+def _enable_disabled() -> set[str]:
+    """Bring back every modelled element the file disabled, and say which.
+
+    A disabled element (`enabled=no`) is how a feeder records its open ties
+    and spare connectors, and the typed iterators skip it, so without this
+    an import silently drops them -- eleven lines of EPRI's ckt5. Enabling
+    them for the read is safe: nothing is solved here, and the import marks
+    each one out of service so the compiler disables it again.
+    """
+    off: set[str] = set()
+    for cls in _MODELLED_CLASSES:
+        try:
+            dss.Circuit.SetActiveClass(cls)
+            names = [str(n) for n in dss.ActiveClass.AllNames() if n]
+        except Exception:
+            continue
+        for name in names:
+            full = f"{cls.lower()}.{name.lower()}"
+            dss.Circuit.SetActiveElement(full)
+            if not dss.CktElement.Enabled():
+                dss.Text.Command(f"{full}.enabled=yes")
+                off.add(full)
+    return off
+
+
+def _source_ratios() -> dict[str, float]:
+    """The active Vsource's X/R ratios, when they differ from the engine's
+    defaults (4 and 3); the compiler writes them back with the strength."""
+    out: dict[str, float] = {}
+    for key, r, x, default in (("x1r1", "r1", "x1", 4.0), ("x0r0", "r0", "x0", 3.0)):
+        # A source written as R and X keeps the default ratio property, so
+        # the ratio comes from the impedance the engine holds.
+        rv, xv = _to_float(dss.Properties.Value(r)), _to_float(dss.Properties.Value(x))
+        v = xv / rv if rv > 0 and xv > 0 else _to_float(dss.Properties.Value(key), default)
+        if v > 0 and abs(v - default) > 1e-6:
+            out[key] = round(v, 6)
+    return out
+
+
+def _equal_ratio(windings: list[dict[str, Any]]) -> bool:
+    """True for a regulator-shaped unit: both windings at one voltage."""
+    kv1, kv2 = float(windings[0]["kv"]), float(windings[1]["kv"])
+    return abs(kv1 - kv2) <= 0.02 * max(kv1, kv2, 1e-9)
+
+
 def _read_model_back(warnings: list[str]) -> dict[str, Any]:
+    disabled = _enable_disabled()
     nodes: list[CircuitNode] = []
     edges: list[CircuitEdge] = []
     bus_node_ids: dict[str, str] = {}
@@ -503,9 +651,14 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     shapes_lower = {k.lower(): k for k in load_shapes}
 
     def daily_shape() -> str | None:
-        """The active element's daily shape, as a loadShapes key (or None)."""
-        raw = dss.Properties.Value("daily").strip()
-        return shapes_lower.get(raw.lower()) if raw else None
+        """The active element's shape, as a loadShapes key (or None). One
+        shape drives an element's daily and yearly runs here, so a file
+        that gave only a yearly one (EPRI's feeders do) has it taken."""
+        for prop in ("daily", "yearly"):
+            raw = dss.Properties.Value(prop).strip()
+            if raw and raw.lower() in shapes_lower:
+                return shapes_lower[raw.lower()]
+        return None
 
     # Vsources
     i = dss.Vsources.First()
@@ -524,7 +677,8 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                     "pu": dss.Vsources.PU(), "phases": dss.Vsources.Phases(),
                     "angle": dss.Vsources.AngleDeg(),
                     "mvasc3": _to_float(dss.Properties.Value("mvasc3"), 2000.0),
-                    "mvasc1": _to_float(dss.Properties.Value("mvasc1"), 2100.0)}))
+                    "mvasc1": _to_float(dss.Properties.Value("mvasc1"), 2100.0),
+                    **_source_ratios()}))
         if buses:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
         i = dss.Vsources.Next()
@@ -561,9 +715,19 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         windings = []
         for w in range(1, nwdg + 1):
             dss.Transformers.Wdg(w)
-            windings.append({"kv": dss.Transformers.kV(),
-                             "kva": dss.Transformers.kVA(),
-                             "conn": "delta" if dss.Transformers.IsDelta() else "wye"})
+            winding = {"kv": dss.Transformers.kV(),
+                       "kva": dss.Transformers.kVA(),
+                       "conn": "delta" if dss.Transformers.IsDelta() else "wye"}
+            tap = float(dss.Transformers.Tap())
+            if abs(tap - 1.0) > 1e-9:
+                winding["tap"] = round(tap, 6)
+            winding["pctr"] = float(dss.Transformers.R())
+            windings.append(winding)
+        # Per-winding resistance only when the windings differ; otherwise
+        # %loadloss says the same thing and is what the panel edits.
+        if len({round(w["pctr"], 9) for w in windings}) == 1:
+            for w in windings:
+                del w["pctr"]
         bus_nodes = [_node_suffix(b) for b in raw_buses[:nwdg]]
         nid = node_id()
         # %loadloss reads back as the sum of the winding %r values, which is
@@ -572,14 +736,21 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             "name": name, "phases": dss.CktElement.NumPhases(),
             "windings": windings, "xhl": dss.Transformers.Xhl(),
             "pctloadloss": _to_float(dss.Properties.Value("%loadloss"), 0.5)}
+        for key, prop in (("pctnoloadloss", "%noloadloss"), ("pctimag", "%imag")):
+            v = _to_float(dss.Properties.Value(prop))
+            if v > 0:
+                params[key] = v
         if nwdg == 3:
             params["xht"] = dss.Transformers.Xht()
             params["xlt"] = dss.Transformers.Xlt()
         reg = reg_controls.get(name.lower())
-        if reg is not None and nwdg != 2:
-            # The regulator element is a two-winding unit by construction.
-            warnings.append(f"RegControl on three-winding Transformer.{name} "
-                            "was dropped; it is imported as a plain transformer.")
+        if reg is not None and (nwdg != 2 or not _equal_ratio(windings)):
+            # The regulator element is an equal-ratio two-winding unit by
+            # construction. A controlled transformer that changes voltage is
+            # a substation LTC (EPRI's ckt24 feeds its 34.5 kV bus through
+            # one): it stays a transformer, and its RegControl is kept as
+            # the file wrote it, as a passthrough control.
+            unsupported.append(f"RegControl.{reg['name']}")
             reg = None
         # Same rule as _record_phasing, spelled out because the raw fallback
         # here is a per-winding list rather than one string: a regulator
@@ -683,12 +854,20 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             xm = _unflatten(dss.Lines.XMatrix(), nph)
             r1, x1, r0, x0 = (dss.Lines.R1(), dss.Lines.X1(),
                               dss.Lines.R0(), dss.Lines.X0())
-            if linecode and linecode.lower() in all_codes_lower:
-                code_name = all_codes_lower[linecode.lower()]
+            # A code is shared only when it fits the line. EPRI's ckt24 has
+            # two-phase lines naming a one-phase code, which the engine
+            # reshapes because `phases=` came after `linecode=`; the compiler
+            # writes them the other way round, so the code would win and
+            # float a phase (to 269 pu). Such a line gets the matrix the
+            # engine actually built for it, like a line that wrote its own.
+            known = all_codes_lower.get(linecode.lower()) if linecode else None
+            misfit = known is not None and all_codes[known].nphases != nph
+            if known is not None and not misfit:
+                code_name = known
                 params["linecode"] = code_name
                 used_codes[code_name] = all_codes[code_name]
             elif rm is not None and xm is not None and (
-                    geometry or not (_sequence_matches(rm, r1, r0)
+                    geometry or misfit or not (_sequence_matches(rm, r1, r0)
                                      and _sequence_matches(xm, x1, x0))):
                 code_name = f"geom_{geometry}" if geometry else name
                 if code_name not in used_codes:
@@ -732,6 +911,13 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                   "vminpu": dss.Loads.Vminpu()}
         if int(dss.Loads.NumCust()) != 1:
             params["numcust"] = int(dss.Loads.NumCust())
+        if params["model"] == 4:
+            params["cvrwatts"] = dss.Loads.CVRwatts()
+            params["cvrvars"] = dss.Loads.CVRvars()
+        elif params["model"] == 8:
+            zipv = [round(float(v), 6) for v in dss.Loads.ZipV()]
+            if len(zipv) == 7:
+                params["zipv"] = zipv
         shape = daily_shape()
         if shape:
             params["loadshape"] = shape
@@ -854,23 +1040,44 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         warnings.append(
             f"{len(unused)} line code{plural} no line uses were left out ({shown}).")
 
+    for n in nodes:
+        cls = _NODE_CLASS.get(n.type)
+        if cls and f"{cls}.{str(n.params.get('name', '')).lower()}" in disabled:
+            n.params["enabled"] = False
+    for e in edges:
+        if e.type == "line" and f"line.{str(e.params.get('name', '')).lower()}" in disabled:
+            e.params["enabled"] = False
+    if disabled:
+        n_off = len(disabled)
+        warnings.append(
+            f"{n_off} element{'s' if n_off != 1 else ''} the file disabled "
+            f"{'are' if n_off != 1 else 'is'} drawn out of service (dashed); "
+            "switch one back on in its properties.")
+
     circuit_name = sanitize_name(dss.Circuit.Name()) or "imported"
+    # The bases the file reported its voltages against: rebuilding them from
+    # element ratings gets a 120/240 V secondary wrong by a factor of root 3.
+    bases = [round(float(b), 6) for b in dss.Settings.VoltageBases() if b and b > 0]
     circuit = Circuit(name=circuit_name, nodes=nodes, edges=edges,
                       loadShapes=load_shapes, tccCurves=_read_tcc_curves(),
-                      lineCodes=used_codes)
+                      lineCodes=used_codes, voltageBases=bases or None)
     return {"circuit": circuit.model_dump(), "unsupported": unsupported,
             "warnings": warnings}
 
 
 def _apply_bus_coords(nodes: list[CircuitNode], bus_node_ids: dict[str, str]) -> None:
-    """Position busbars from BusCoords when the model has them (normalized
-    into a drawing-sized canvas, y flipped from map to screen)."""
+    """Keep each bus's coordinates as `geo`, exactly as the file gave them,
+    and seed busbar positions from them (normalized into a drawing-sized
+    canvas, y flipped from map to screen)."""
     coords: dict[str, tuple[float, float]] = {}
     for bus in dss.Circuit.AllBusNames():
         dss.Circuit.SetActiveBus(bus)
         if dss.Bus.Coorddefined():
             coords[bus.lower()] = (dss.Bus.X(), dss.Bus.Y())
     placed = {b: xy for b, xy in coords.items() if b in bus_node_ids}
+    by_id = {n.id: n for n in nodes}
+    for bus, (x, y) in placed.items():
+        by_id[bus_node_ids[bus]].geo = Position(x=x, y=y)
     if len(placed) < 2:
         return
     xs = [x for x, _ in placed.values()]
@@ -878,7 +1085,6 @@ def _apply_bus_coords(nodes: list[CircuitNode], bus_node_ids: dict[str, str]) ->
     dx = max(xs) - min(xs) or 1.0
     dy = max(ys) - min(ys) or 1.0
     scale = min(_LAYOUT_W / dx, _LAYOUT_H / dy)
-    by_id = {n.id: n for n in nodes}
     for bus, (x, y) in placed.items():
         node = by_id[bus_node_ids[bus]]
         node.position = Position(

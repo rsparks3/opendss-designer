@@ -71,7 +71,7 @@ def test_added_delay_lifts_the_whole_curve():
 def test_each_device_carries_the_fault_current_it_would_have_to_clear():
     result = protection.tcc_study(_feeder("recloser", {"phasetrip": 100}))
     dev = _by_name(result, "dev1")
-    assert dev["bus"] == "bus_b"  # the device's downstream bus
+    assert dev["bus"] == "bus-b"  # the device's downstream bus
     assert dev["faultA3ph"] and dev["faultA3ph"] > 1000
     assert dev["faultA1ph"] and dev["faultA1ph"] > 0
     # A fault this big is well past the pickup, so the device does see it.
@@ -332,9 +332,9 @@ def test_a_circuit_can_define_its_own_curve():
 
 
 def test_a_curve_name_that_needs_sanitising_still_resolves():
-    """`lateral-k` is emitted as `lateral_k`; the device's reference has to
+    """`lateral k` is emitted as `lateral_k`; the device's reference has to
     follow it there, or the solve quietly uses a different curve."""
-    circuit = _with_curve("lateral-k", CUSTOM)
+    circuit = _with_curve("lateral k", CUSTOM)
     res = compile_circuit(circuit)
     assert not [i for i in res.issues if i.code == "unknown-curve"]
     joined = "\n".join(res.commands).lower()

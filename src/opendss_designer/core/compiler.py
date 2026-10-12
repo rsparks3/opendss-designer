@@ -11,8 +11,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import passthrough
-from .connectivity import ConnectivityResult, sanitize_name, synthesize
-from .model import ANNOTATION_TYPES, Circuit, Issue, LineCodeSpec
+from .connectivity import (
+    BUSBAR_CANON_HANDLE,
+    ConnectivityResult,
+    sanitize_name,
+    synthesize,
+    terminal_key,
+)
+from .model import ANNOTATION_TYPES, Circuit, Issue, LineCodeSpec, in_service
 from .phasing import nodes_for, phase_count
 
 # Fallback ratings so loading % is at least defined; a warning is attached
@@ -151,6 +157,82 @@ def _switch_impedance(p: dict) -> str:
     return " " + " ".join(parts)
 
 
+def _winding_resistance(windings: list, loadloss: float) -> str:
+    """`%loadloss`, which the engine splits equally between the windings --
+    unless every winding names its own `%r` and they differ. A centre-tapped
+    service transformer has a primary at half the resistance of each 120 V
+    half (the IEEE 8500-node feeder's are 0.6/1.2/1.2)."""
+    rs = []
+    for w in windings:
+        v = w.get("pctr") if isinstance(w, dict) else None
+        if not isinstance(v, (int, float)) or v < 0:
+            return f"%loadloss={loadloss:g}"
+        rs.append(float(v))
+    return "%rs=(" + ", ".join(f"{r:g}" for r in rs) + ")"
+
+
+def _bus_coordinates(circuit: Circuit, conn: ConnectivityResult) -> list[str]:
+    """Each bus's coordinates as `SetBusXY`, which keeps an exported file one
+    file: BusCoords and LatLongCoords both need a companion. Export only --
+    a solve does not use them. Written after the buses exist."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for n in circuit.nodes:
+        if n.type != "busbar" or n.geo is None:
+            continue
+        bus = conn.terminal_bus.get(terminal_key(n.id, BUSBAR_CANON_HANDLE))
+        if bus and bus not in seen:
+            seen.add(bus)
+            out.append(f"setbusxy bus={bus} x={n.geo.x:.10g} y={n.geo.y:.10g}")
+    return out
+
+
+def _core_losses(p: dict) -> str:
+    """No-load loss and magnetising current, when set. Each is small, but a
+    feeder has thousands of service transformers: EPRI's ckt24 draws 420
+    kvar of magnetising current through its head."""
+    out = ""
+    for key, prop in (("pctnoloadloss", "%noloadloss"), ("pctimag", "%imag")):
+        v = _num(p, key)
+        if v is not None and v > 0:
+            out += f" {prop}={v:g}"
+    return out
+
+
+def _taps(windings: list) -> str:
+    """Off-nominal winding taps, when any winding has one."""
+    taps = []
+    for w in windings:
+        try:
+            taps.append(float(w.get("tap", 1.0)) if isinstance(w, dict) else 1.0)
+        except (TypeError, ValueError):
+            taps.append(1.0)
+    if all(abs(t - 1.0) < 1e-9 for t in taps):
+        return ""
+    return " taps=(" + ", ".join(f"{t:g}" for t in taps) + ")"
+
+
+def _load_model_extras(p: dict, model: int) -> str:
+    """What the voltage-dependent load models need beyond their number: the
+    CVR exponents of model 4 and the seven ZIP fractions of model 8. A real
+    feeder's loads are usually CVR loads, and the engine's default exponents
+    (1 and 2) put EPRI's ckt7 five per cent light at the head."""
+    out = ""
+    if model == 4:
+        for key in ("cvrwatts", "cvrvars"):
+            v = _num(p, key)
+            if v is not None:
+                out += f" {key}={v:g}"
+    elif model == 8:
+        zipv = p.get("zipv")
+        if isinstance(zipv, list) and len(zipv) == 7:
+            try:
+                out += " zipv=[" + " ".join(f"{float(v):g}" for v in zipv) + "]"
+            except (TypeError, ValueError):
+                pass
+    return out
+
+
 def _bus_suffix(explicit, phases: int, phasing=None) -> str:
     """Which nodes this terminal lands on.
 
@@ -236,17 +318,24 @@ def compile_circuit(circuit: Circuit,
         bus = conn.node_buses[n.id][0] + _bus_suffix(
             p.get("busNodes"), phases, p.get("phasing"))
         kv_bases.add(basekv)
+        # The source's X/R, when the file said: strength alone leaves the
+        # engine to assume 4, and EPRI's ckt7 source is 12 -- a 115 kV
+        # source three times too resistive drops the feeder 0.027 pu.
+        # Written first: the short-circuit values then build the impedance.
+        ratios = "".join(
+            f" {key}={v:g}" for key in ("x1r1", "x0r0")
+            if (v := _num(p, key)) is not None and v > 0)
         if i == 0:
             circuit_name = sanitize_name(circuit.name) or "circuit1"
             cmds.append(
                 f"new circuit.{circuit_name} basekv={basekv:g} pu={pu:g} angle={angle:g} "
-                f"phases={phases} bus1={bus} mvasc3={mvasc3:g} mvasc1={mvasc1:g}")
+                f"phases={phases} bus1={bus}{ratios} mvasc3={mvasc3:g} mvasc1={mvasc1:g}")
             res.element_map["vsource.source"] = n.id
         else:
             name = element_name("vsource", p.get("name"), n.id, n.id)
             cmds.append(
                 f"new vsource.{name} basekv={basekv:g} pu={pu:g} angle={angle:g} "
-                f"phases={phases} bus1={bus} mvasc3={mvasc3:g} mvasc1={mvasc1:g}")
+                f"phases={phases} bus1={bus}{ratios} mvasc3={mvasc3:g} mvasc1={mvasc1:g}")
 
     # Loadshape library — after `new circuit` (OpenDSS needs an active circuit)
     # and before any element that references a shape.
@@ -422,7 +511,8 @@ def compile_circuit(circuit: Circuit,
         cmds.append(
             f"new transformer.{name} phases={phases} windings={len(windings)} "
             f"buses=({bus_list}) conns=({conns}) kvs=({kvs}) kvas=({kvas}) "
-            f"xhl={xhl:g} %loadloss={loadloss:g}{tertiary}{_reliability(p)}")
+            f"xhl={xhl:g} {_winding_resistance(windings, loadloss)}{tertiary}"
+            f"{_core_losses(p)}{_taps(windings)}{_reliability(p)}")
 
     # Regulators: an equal-ratio 2-winding transformer plus the RegControl that
     # moves its taps. They share one name — OpenDSS keeps classes in separate
@@ -623,7 +713,7 @@ def compile_circuit(circuit: Circuit,
         cmds.append(
             f"new load.{name} bus1={bus} phases={phases} conn={load_conn} "
             f"kv={kv:g} kw={kw:g} pf={pf:g} model={model} vminpu={vminpu:g}"
-            + customers + shape_ref(p, n.id))
+            + customers + _load_model_extras(p, model) + shape_ref(p, n.id))
 
     for n in capacitors:
         p = n.params
@@ -723,6 +813,22 @@ def compile_circuit(circuit: Circuit,
                     f" chargetrigger={_num(p, 'chargetrigger', 0.0):g}")
         cmds.append(cmd)
 
+    # Out of service: defined, so the file still says what is there, then
+    # disabled -- every object emitted under the element's name, so a fuse
+    # takes its control with it. An imported open tie arrives this way.
+    off = {n.id: n.type for n in circuit.nodes if not in_service(n.params)}
+    off |= {e.id: "line" for e in circuit.edges if e.type == "line" and not in_service(e.params)}
+    for full, ref in res.element_map.items():
+        kind = off.get(ref)
+        if kind is None:
+            continue
+        name = full.split(".", 1)[1]
+        # The control first: one left watching a disabled element errors.
+        control = "regcontrol" if kind == "regulator" else kind
+        if control in ("regcontrol", "fuse", "recloser", "relay"):
+            cmds.append(f"disable {control}.{name}")
+        cmds.append(f"disable {full}")
+
     # What the imported file had that the diagram does not: after every
     # modelled element, so their references resolve, in the file's order.
     if circuit.passthrough:
@@ -744,10 +850,19 @@ def compile_circuit(circuit: Circuit,
             if basekv:
                 kv_bases.add(basekv)
 
-    res.voltage_bases = sorted(kv_bases)
+    # The file's own bases when it gave them: the ones derived from ratings
+    # are a guess (a 0.24 kV single-phase rating reads as line-to-line).
+    res.voltage_bases = sorted(set(circuit.voltageBases or ()) or kv_bases)
     bases = ", ".join(f"{b:g}" for b in res.voltage_bases)
+    # Room to settle. The engine's defaults (15 and 10) are sized for small
+    # circuits; the IEEE 8500-node feeder needs more than 15 power-flow
+    # iterations, and every regulator and capacitor control in series adds
+    # control rounds. A converged answer does not depend on the ceiling.
+    cmds.append("set maxiterations=100 maxcontroliter=100")
     cmds.append(f"set voltagebases=[{bases}]")
     cmds.append("calcvoltagebases")
+    if export:
+        cmds.extend(_bus_coordinates(circuit, conn))
     res.commands = cmds
     return res
 

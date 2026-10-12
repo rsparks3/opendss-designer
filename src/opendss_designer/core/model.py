@@ -24,6 +24,8 @@ MAX_LINE_CODES = 2_000
 MAX_PASSTHROUGH = 20_000
 MAX_PASSTHROUGH_TEXT = 20_000
 MAX_COMMENT_TEXT = 4_000
+MAX_GEOMETRY_POINTS = 10_000
+MAX_CRS_TEXT = 4_000
 
 NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker",
                    "capacitor", "generator", "pvsystem", "storage", "regulator",
@@ -45,6 +47,10 @@ class CircuitNode(BaseModel):
     width: float | None = None
     height: float | None = None
     params: dict[str, Any] = Field(default_factory=dict)
+    # Where it is on the ground, in the circuit's `crs` (a bus's BusCoords,
+    # or a GIS point feature). Drawing-independent: the schematic `position`
+    # is where it sits on the one-line, this is where it sits on the map.
+    geo: Position | None = None
 
 
 class CircuitEdge(BaseModel):
@@ -57,6 +63,9 @@ class CircuitEdge(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
     # User-placed routing points (diagram cosmetics only; no electrical meaning).
     waypoints: list[Position] | None = None
+    # A line's route on the ground between its two buses, in the circuit's
+    # `crs`: the interior vertices of a GIS polyline (the ends are the buses').
+    geometry: Annotated[list[Position], Field(max_length=MAX_GEOMETRY_POINTS)] | None = None
 
 
 class LoadShapeSpec(BaseModel):
@@ -184,6 +193,17 @@ class Circuit(BaseModel):
     # file's header), written above that element on export.
     comments: Annotated[dict[str, Annotated[str, Field(max_length=MAX_COMMENT_TEXT)]],
                         Field(max_length=MAX_NODES)] = Field(default_factory=dict)
+    # The line-to-line kV bases bus voltages are reported against, as an
+    # imported file's `set voltagebases=[...]` gave them. Absent means the
+    # compiler derives them from the elements' ratings, which misreads a
+    # 240 V single-phase secondary as 240 V line-to-line (1.73 pu).
+    voltageBases: Annotated[list[Annotated[float, Field(gt=0)]],
+                            Field(max_length=50)] | None = None
+    # The coordinate system `geo` and `geometry` are in: "EPSG:4326" (what
+    # an imported LatLongCoords file means), another EPSG code, or a
+    # proj4/WKT definition. Absent: coordinates with no known place on Earth,
+    # drawn on a plain grid.
+    crs: Annotated[str, Field(max_length=MAX_CRS_TEXT)] | None = None
     # Absent means the defaults; see Limits.
     limits: Limits | None = None
     study: StudyInfo | None = None
@@ -230,6 +250,24 @@ NODE_TERMINALS: dict[str, list[str]] = {
     # feeder, a service area).
     "zone": [],
 }
+
+
+SWITCH_TYPES = frozenset({"breaker", "fuse", "recloser", "relay"})
+
+
+def in_service(params: dict) -> bool:
+    """False for an element taken out of service (`enabled: false`, an
+    imported file's `enabled=no`): it stays on the drawing, but the engine
+    never sees it, so nothing flows through it."""
+    return params.get("enabled", True) is not False
+
+
+def conducts(node: CircuitNode) -> bool:
+    """Whether a node passes current between its terminals: in service,
+    and closed if it is a switch."""
+    if not in_service(node.params):
+        return False
+    return not (node.type in SWITCH_TYPES and not node.params.get("closed", True))
 
 
 def winding_count(params: dict) -> int:

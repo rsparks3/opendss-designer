@@ -60,12 +60,12 @@ def test_terminal_list_follows_the_winding_count():
     two = next(n for n in _substation(2).nodes if n.type == "transformer")
     assert node_terminals(three) == ["t1", "t2", "t3"]
     assert node_terminals(two) == ["t1", "t2"]
-    assert synthesize(_substation(3)).node_buses["xf"] == ["bus_hv", "bus_mv", "bus_lv"]
+    assert synthesize(_substation(3)).node_buses["xf"] == ["bus-hv", "bus-mv", "bus-lv"]
 
 
 def test_three_windings_reach_the_dss_text():
     joined = "\n".join(compile_circuit(_substation(3)).commands).lower()
-    assert ("new transformer.t1 phases=3 windings=3 buses=(bus_hv, bus_mv, bus_lv) "
+    assert ("new transformer.t1 phases=3 windings=3 buses=(bus-hv, bus-mv, bus-lv) "
             "conns=(delta, wye, wye) kvs=(115, 12.47, 4.16) kvas=(10000, 10000, 5000) "
             "xhl=8 %loadloss=0.5 xht=12 xlt=6") in joined
     assert "set voltagebases=[4.16, 12.47, 115]" in joined
@@ -75,17 +75,17 @@ def test_two_windings_compile_as_before():
     """No tertiary, no extra reactances -- a circuit drawn before this must
     produce the same command it always did."""
     joined = "\n".join(compile_circuit(_substation(2)).commands).lower()
-    assert "windings=2 buses=(bus_hv, bus_mv)" in joined
+    assert "windings=2 buses=(bus-hv, bus-mv)" in joined
     assert "xht" not in joined and "xlt" not in joined
 
 
 def test_tertiary_bus_is_energized_at_its_own_voltage():
     res = engine.solve(_substation(3))
     assert res["converged"], res["issues"]
-    lv = res["buses"]["bus_lv"]
+    lv = res["buses"]["bus-lv"]
     assert abs(lv["kvBase"] * 3 ** 0.5 - 4.16) < 0.01
     assert 0.93 < lv["vminPu"] < 1.02
-    assert 0.93 < res["buses"]["bus_mv"]["vminPu"] < 1.02
+    assert 0.93 < res["buses"]["bus-mv"]["vminPu"] < 1.02
     tertiary_load = next(el for el in res["elements"].values() if el["id"] == "ldlv")
     assert abs(tertiary_load["kw"] - 1500) < 50
 

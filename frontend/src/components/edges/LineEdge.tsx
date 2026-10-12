@@ -1,5 +1,6 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
+import { inService } from '../../lib/fields'
 import { effectivePhasing, phaseColor, phaseLabel } from '../../lib/phasing'
 import { reliabilityOf, sectionColor, sectionHeadedBy } from '../../lib/reliability'
 import { useLimits, type AppEdge } from '../../store/circuitStore'
@@ -50,6 +51,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
     }
   }
 
+  const outOfService = !inService(props.data?.params)
   const name = String(props.data?.params?.name ?? '')
   // Only laterals get a phase chip; a 3-phase trunk says nothing by carrying
   // all three, and labelling every line would hide the ones that matter.
@@ -70,7 +72,9 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
         style={{
           stroke,
           strokeWidth: props.selected ? 3.5 : 2.5,
-          strokeDasharray: grabbed ? '6 4' : undefined,
+          // Out of service: still drawn, so an open tie stays where it is.
+          strokeDasharray: grabbed ? '6 4' : outOfService ? '3 5' : undefined,
+          opacity: outOfService && !props.selected ? 0.55 : undefined,
         }}
       />
       <EdgeLabelRenderer>

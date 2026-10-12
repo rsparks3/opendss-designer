@@ -27,6 +27,13 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
   const stored = useCircuitStore((s) => s.limits)
   const setLimits = useCircuitStore((s) => s.setLimits)
   const [draft, setDraft] = useState<Record<keyof LimitsJSON, string>>(() => asText(limitsOf(stored)))
+  const bases = useCircuitStore((s) => s.voltageBases)
+  const setBases = useCircuitStore((s) => s.setVoltageBases)
+  const [basesDraft, setBasesDraft] = useState(() => (bases ?? []).join(', '))
+  const parsedBases = parseBases(basesDraft)
+  const applyBases = () => {
+    if (parsedBases && parsedBases.join(',') !== (bases ?? []).join(',')) setBases(parsedBases)
+  }
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => box.current?.focus(), [])
 
@@ -128,14 +135,41 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
             </button>
           </div>
         </fieldset>
+        <fieldset className="prefs-group">
+          <legend>Voltage bases</legend>
+          <label>
+            Bases (kV, line-to-line)
+            <input
+              aria-label="Voltage bases"
+              value={basesDraft}
+              placeholder="From the elements' ratings"
+              onChange={(e) => setBasesDraft(e.target.value)}
+              onBlur={applyBases}
+              onKeyDown={(e) => e.key === 'Enter' && applyBases()}
+            />
+          </label>
+          {parsedBases === null && <div className="modal-error">List positive numbers, separated by commas.</div>}
+          <div className="library-note">
+            What every bus voltage in pu is measured against. An imported file brings its own
+            (<code>set voltagebases</code>); left blank, they come from the elements' ratings, which
+            reads a 120/240 V service as 240 V line-to-line.
+          </div>
+        </fieldset>
         <div className="modal-actions">
-          <button type="button" className="modal-primary" onClick={() => { apply(); onClose() }}>
+          <button type="button" className="modal-primary" onClick={() => { apply(); applyBases(); onClose() }}>
             Close
           </button>
         </div>
       </div>
     </div>
   )
+}
+
+/** "115, 12.47" as numbers; [] for blank; null when it is not a list. */
+export function parseBases(text: string): number[] | null {
+  const parts = text.split(/[,\s]+/).filter(Boolean)
+  const values = parts.map(Number)
+  return values.every((v) => Number.isFinite(v) && v > 0) ? values : null
 }
 
 function asText(l: LimitsJSON): Record<keyof LimitsJSON, string> {

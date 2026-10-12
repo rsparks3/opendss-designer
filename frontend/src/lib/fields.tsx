@@ -79,6 +79,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'mvasc3', label: '3φ short-circuit', kind: 'number', unit: 'MVA' },
     { key: 'mvasc1', label: '1φ short-circuit', kind: 'number', unit: 'MVA' },
+    { key: 'x1r1', label: 'X/R (positive seq.)', kind: 'number', placeholder: '4' },
+    { key: 'x0r0', label: 'X/R (zero seq.)', kind: 'number', placeholder: '3' },
   ],
   busbar: [
     { key: 'name', label: 'Bus name', kind: 'text' },
@@ -96,7 +98,10 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
-    { key: 'model', label: 'Load model', kind: 'select', options: [1, 2, 3, 4, 5] },
+    { key: 'model', label: 'Load model', kind: 'select', options: [1, 2, 3, 4, 5, 8] },
+    // Model 4 (CVR): how real and reactive power follow the voltage.
+    { key: 'cvrwatts', label: 'CVR factor (kW)', kind: 'number', placeholder: '1', showIf: (p) => Number(p.model) === 4 },
+    { key: 'cvrvars', label: 'CVR factor (kvar)', kind: 'number', placeholder: '2', showIf: (p) => Number(p.model) === 4 },
     { key: 'loadshape', label: 'Loadshape', kind: 'loadshape' },
     // Served customers, for SAIFI and SAIDI; the engine assumes one.
     { key: 'numcust', label: 'Customers', kind: 'number', placeholder: '1' },
@@ -133,6 +138,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'xht', label: 'Reactance X(H-T)', kind: 'number', unit: '%', showIf: (p) => windingCount(p) === 3 },
     { key: 'xlt', label: 'Reactance X(L-T)', kind: 'number', unit: '%', showIf: (p) => windingCount(p) === 3 },
     { key: 'pctloadloss', label: 'Load loss', kind: 'number', unit: '%' },
+    { key: 'pctnoloadloss', label: 'No-load loss', kind: 'number', unit: '%', placeholder: '0' },
+    { key: 'pctimag', label: 'Magnetising current', kind: 'number', unit: '%', placeholder: '0' },
     ...RELIABILITY_FIELDS(false),
   ],
   regulator: [
@@ -249,6 +256,18 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'chargetrigger', label: 'Charge trigger', kind: 'number' },
   ],
 }
+
+// Every circuit element can be taken out of service: it stays on the
+// drawing, dashed, and the engine never sees it. An imported file's
+// `enabled=no` (an open tie, a spare connector) arrives this way.
+const IN_SERVICE: Field = { key: 'enabled', label: 'In service', kind: 'checkbox' }
+for (const [type, fields] of Object.entries(FIELDS)) {
+  if (type === 'busbar' || type === 'note' || type === 'zone') continue
+  fields.splice(1, 0, IN_SERVICE)
+}
+
+/** False for an element taken out of service. */
+export const inService = (params: Params | undefined): boolean => params?.enabled !== false
 
 /** Flattened winding columns for the transformer spreadsheet view.
  *  Keys look like "w0.kv" and are resolved by windingGet/windingSet. */

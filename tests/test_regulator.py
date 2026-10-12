@@ -52,10 +52,10 @@ def test_regulator_taps_the_load_bus_into_band():
     regulated = engine.solve(_feeder(with_regulator=True))
     assert plain["converged"] and regulated["converged"]
 
-    unregulated_v = plain["buses"]["bus_end"]["vminPu"]
+    unregulated_v = plain["buses"]["bus-end"]["vminPu"]
     assert unregulated_v < 1.0, "feeder should sag without the regulator"
 
-    load_v = regulated["buses"]["bus_reg"]["vminPu"]
+    load_v = regulated["buses"]["bus-reg"]["vminPu"]
     assert load_v > unregulated_v, "regulator should raise the load-side voltage"
     # 122 V ± half the 2 V band, on the 120 V control base.
     assert 121.0 / 120.0 <= load_v <= 123.0 / 120.0

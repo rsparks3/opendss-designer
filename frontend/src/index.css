@@ -447,6 +447,11 @@ kbd {
 .sym.trip-link { stroke-width: 1.2; stroke-dasharray: 2.5 2.5; }
 
 .symbol-node { position: relative; }
+/* Out of service (`enabled: false`): drawn, but dashed and faded, so an open
+   tie keeps its place on the drawing without looking energised. */
+.react-flow__node.out-of-service .sym,
+.react-flow__node.out-of-service .sym-fill { stroke-dasharray: 3 3; }
+.react-flow__node.out-of-service .symbol-node { opacity: 0.5; }
 .react-flow__node.selected .symbol-node { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 .symbol-node.issue-error { outline: 2px solid var(--danger); outline-offset: 3px; border-radius: 4px; }
 .symbol-node.issue-warning { outline: 2px dashed var(--warn); outline-offset: 3px; border-radius: 4px; }

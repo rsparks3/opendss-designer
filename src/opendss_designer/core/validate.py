@@ -5,7 +5,7 @@ from .. import context
 from ..settings import Settings
 from .compiler import compile_circuit
 from .connectivity import BUSBAR_CANON_HANDLE, sanitize_name, synthesize, terminal_key
-from .model import Circuit, Issue, node_terminals
+from .model import Circuit, Issue, conducts, in_service, node_terminals
 from .phasing import PHASE_LETTERS, default_phasing, parse_phasing, phase_count, phase_set
 
 # 2-terminal devices that carry power between their two buses. Protective
@@ -40,7 +40,7 @@ def phases_available(circuit: Circuit, conn, sources: list) -> dict[str, frozens
     # Every series path as (bus_in, bus_out, phases it delivers).
     links: list[tuple[str, str, frozenset[str]]] = []
     for e in circuit.edges:
-        if e.type == "line" and e.id in conn.line_buses:
+        if e.type == "line" and e.id in conn.line_buses and in_service(e.params):
             b1, b2 = conn.line_buses[e.id]
             carried = phases_of(e.params)
             links.append((b1, b2, carried))
@@ -49,7 +49,7 @@ def phases_available(circuit: Circuit, conn, sources: list) -> dict[str, frozens
         buses = conn.node_buses.get(n.id, [])
         if n.type not in SERIES_TYPES or len(buses) < 2:
             continue
-        if n.type in SWITCH_TYPES and not n.params.get("closed", True):
+        if not conducts(n):
             continue
         if n.type in CARRY_TYPES:
             carried = phases_of(n.params)
@@ -309,13 +309,13 @@ def validate(circuit: Circuit) -> list[Issue]:
             adjacency.setdefault(b, set()).add(a)
 
         for e in circuit.edges:
-            if e.type == "line" and e.id in conn.line_buses:
+            if e.type == "line" and e.id in conn.line_buses and in_service(e.params):
                 b1, b2 = conn.line_buses[e.id]
                 link(b1, b2)
         for n in circuit.nodes:
             buses = conn.node_buses.get(n.id, [])
             if n.type in SERIES_TYPES and len(buses) >= 2:
-                if n.type in SWITCH_TYPES and not n.params.get("closed", True):
+                if not conducts(n):
                     continue
                 for b in buses[1:]:  # a tertiary winding is a third bus
                     link(buses[0], b)

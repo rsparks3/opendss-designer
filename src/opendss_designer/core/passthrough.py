@@ -26,7 +26,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import PurePath
 
-from .model import Issue, PassthroughSpec
+from .model import MAX_COMMENT_TEXT, MAX_PASSTHROUGH_TEXT, Issue, PassthroughSpec
 
 # Classes a solve may run. Measurement and control objects, curves and
 # shapes, and a few simple circuit elements: none reads or writes files or
@@ -35,6 +35,9 @@ SOLVABLE_CLASSES = frozenset({
     "monitor", "energymeter", "sensor",
     "capcontrol", "invcontrol", "expcontrol", "storagecontroller",
     "swtcontrol", "gendispatcher", "upfccontrol",
+    # The tap changer on a transformer that is not a regulator (a substation
+    # LTC): the editor draws the transformer, the control rides along.
+    "regcontrol",
     "xycurve", "tshape", "spectrum", "growthshape", "priceshape",
     "reactor", "fault", "isource", "upfc", "vccs", "indmach012",
     # A transformer the editor cannot draw (four windings, say) is still a
@@ -50,7 +53,7 @@ GENERAL_CLASSES = frozenset({"xycurve", "tshape", "spectrum", "growthshape", "pr
 # (engine.quiet_for_fault_study): nothing that operates belongs in it.
 FAULT_STUDY_MUTES = frozenset({
     "monitor", "energymeter", "sensor", "capcontrol", "invcontrol", "expcontrol",
-    "storagecontroller", "swtcontrol", "gendispatcher", "upfccontrol",
+    "storagecontroller", "swtcontrol", "gendispatcher", "upfccontrol", "regcontrol",
 })
 
 # Properties whose value names another element ("line.650632").
@@ -139,6 +142,17 @@ def _statements(files: dict[str, str], main: str) -> tuple[list[_Stmt], list[str
     return out, header
 
 
+# A "comment" this long is data someone commented out -- EPRI's ckt7 keeps
+# a 2.9 MB disabled load shape that way -- not words to carry along.
+_MAX_COMMENT_LINE = 1_000
+
+
+def _comment_text(lines: list[str]) -> str:
+    """Comment lines as one stored comment, within the schema's limit."""
+    text = "\n".join(ln for ln in lines if len(ln) <= _MAX_COMMENT_LINE)
+    return text[:MAX_COMMENT_TEXT]
+
+
 def collect(files: list[dict[str, str]], main: str,
             unsupported: set[str]) -> tuple[list[PassthroughSpec], dict[str, str]]:
     """The passthrough entries and comments of a set of (sanitized) files.
@@ -152,8 +166,8 @@ def collect(files: list[dict[str, str]], main: str,
     names: dict[str, str] = {}
     comments: dict[str, str] = {}
     stmts, header = _statements(texts, main)
-    if header:
-        comments["circuit"] = "\n".join(header)
+    if header and (text := _comment_text(header)):
+        comments["circuit"] = text
     for st in stmts:
         new = _NEW_RE.match(st.text)
         edit = _EDIT_RE.match(st.text) if not new else None
@@ -162,8 +176,8 @@ def collect(files: list[dict[str, str]], main: str,
             continue
         cls, name = m.group(1).lower(), m.group(2)
         key = f"{cls}.{name.lower()}"
-        if new and st.comments and cls != "circuit":
-            comments[key] = "\n".join(st.comments)
+        if new and st.comments and cls != "circuit" and (text := _comment_text(st.comments)):
+            comments[key] = text
         keep = key in unsupported or cls in GENERAL_CLASSES
         if not keep:
             continue
@@ -174,7 +188,9 @@ def collect(files: list[dict[str, str]], main: str,
             entries[key] = [st.text]
         elif key in entries:
             entries[key].append(st.text)
-    kept = [PassthroughSpec(name=names[k], text="\n".join(entries[k])) for k in order]
+    # One too long to store is left out, and reported as dropped by the caller.
+    kept = [PassthroughSpec(name=names[k], text="\n".join(entries[k])) for k in order
+            if len("\n".join(entries[k])) <= MAX_PASSTHROUGH_TEXT]
     return kept, comments
 
 
@@ -253,6 +269,11 @@ def check(entries: list[PassthroughSpec], element_names: set[str],
     return out, issues
 
 
+# A control's `debugtrace=yes` writes a trace file beside the engine on every
+# solve. The file keeps it; a solve here does not need it.
+_DEBUGTRACE_RE = re.compile(r"\s+debugtrace\s*=\s*\S+", re.IGNORECASE)
+
+
 def commands(checked: list[Checked], export: bool) -> list[str]:
     """The lines to send: on the solve path only the solvable entries; on
     export everything, a stale one commented out with the reason, so the
@@ -260,7 +281,8 @@ def commands(checked: list[Checked], export: bool) -> list[str]:
     cmds: list[str] = []
     for c in checked:
         if c.solvable:
-            cmds.extend(_lines(c.entry))
+            lines = _lines(c.entry)
+            cmds.extend(lines if export else [_DEBUGTRACE_RE.sub("", ln) for ln in lines])
         elif export:
             if c.stale:
                 cmds.append(f"! Left out by OpenDSS Designer: {c.stale}")

@@ -26,6 +26,16 @@ export interface Winding {
   kv: number
   kva: number
   conn: 'wye' | 'delta'
+  /** Off-nominal tap (pu), when not 1. */
+  tap?: number
+  /** This winding's %r, when the windings differ (a centre-tapped unit). */
+  pctr?: number
+}
+
+/** A point in the circuit's coordinate system (`CircuitJSON.crs`). */
+export interface GeoPoint {
+  x: number
+  y: number
 }
 
 export interface CircuitNodeJSON {
@@ -35,6 +45,9 @@ export interface CircuitNodeJSON {
   width?: number | null
   height?: number | null
   params: Params
+  /** Where it is on the ground (a bus's BusCoords, a GIS point), in the
+   *  circuit's `crs`. Absent for elements that have no place yet. */
+  geo?: GeoPoint | null
 }
 
 export interface CircuitEdgeJSON {
@@ -46,6 +59,9 @@ export interface CircuitEdgeJSON {
   targetHandle?: string | null
   params: Params
   waypoints?: { x: number; y: number }[] | null
+  /** A line's route on the ground between its two buses: the interior
+   *  vertices of a GIS polyline, in the circuit's `crs`. */
+  geometry?: GeoPoint[] | null
 }
 
 /** A user-defined time-current curve: multiples of the device's pickup
@@ -105,6 +121,12 @@ export interface CircuitJSON {
   /** Comment lines from an imported file, keyed by lowercase "class.name"
    *  ("circuit" for the header), written back above each element on export. */
   comments?: Record<string, string>
+  /** Line-to-line kV bases bus voltages are reported against, as an imported
+   *  file's `set voltagebases` gave them; absent means derived from ratings. */
+  voltageBases?: number[] | null
+  /** Coordinate system of `geo`/`geometry`: "EPSG:4326", another EPSG code,
+   *  or a proj4/WKT definition. Absent: no known place on Earth. */
+  crs?: string | null
   /** Abnormal-condition criteria; absent means DEFAULT_LIMITS (lib/limits). */
   limits?: LimitsJSON | null
   /** The study report's title block. */

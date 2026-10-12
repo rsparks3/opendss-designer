@@ -29,7 +29,7 @@ from ..settings import settings
 from . import cache, passthrough
 from .compiler import CompileResult, compile_circuit
 from .connectivity import ConnectivityResult, synthesize
-from .model import Circuit, Issue
+from .model import Circuit, Issue, conducts, in_service
 from .validate import limit_issues
 
 _lock = threading.Lock()
@@ -324,6 +324,9 @@ def _extract_elements(element_map: dict[str, str],
         idx = dss.Circuit.SetActiveElement(full_name)
         if idx < 0 or dss.CktElement.Name().lower() != full_name:
             continue
+        # Out of service: no currents to read, and asking for them errors.
+        if not dss.CktElement.Enabled():
+            continue
         nphases = dss.CktElement.NumPhases()
         currents = dss.CktElement.CurrentsMagAng()
         powers = dss.CktElement.Powers()
@@ -374,7 +377,6 @@ _KM_PER_UNIT = {"km": 1.0, "m": 0.001, "mi": 1.609344, "kft": 0.3048,
 
 
 _SERIES_DEVICES = ("transformer", "regulator", "breaker", "fuse", "recloser", "relay")
-_SWITCHES = ("breaker", "fuse", "recloser", "relay")
 
 
 def _bus_distances(circuit: Circuit, conn: ConnectivityResult) -> dict[str, float]:
@@ -390,6 +392,8 @@ def _bus_distances(circuit: Circuit, conn: ConnectivityResult) -> dict[str, floa
     edge_by_id = {e.id: e for e in circuit.edges}
     for eid, (b1, b2) in conn.line_buses.items():
         p = edge_by_id[eid].params if eid in edge_by_id else {}
+        if not in_service(p):
+            continue
         try:
             length = float(p.get("length") or 0.0)
         except (TypeError, ValueError):
@@ -400,7 +404,7 @@ def _bus_distances(circuit: Circuit, conn: ConnectivityResult) -> dict[str, floa
         # Every two-terminal device carries the profile across it: a feeder
         # behind a regulator or a recloser is still on the plot.
         if n.type in _SERIES_DEVICES:
-            if n.type in _SWITCHES and not n.params.get("closed", True):
+            if not conducts(n):
                 continue
             buses = conn.node_buses.get(n.id, [])
             for b in buses[1:]:

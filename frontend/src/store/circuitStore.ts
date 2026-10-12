@@ -15,6 +15,7 @@ import { create } from 'zustand'
 import { defaultLineParams, defaultParams, isAnnotation, isNote, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
+  GeoPoint,
   LimitsJSON,
   LineCodeJSON,
   PassthroughJSON,
@@ -31,8 +32,8 @@ export interface XY {
   y: number
 }
 
-export type AppNode = Node<{ params: Params }>
-export type AppEdge = Edge<{ params: Params; waypoints?: XY[] }>
+export type AppNode = Node<{ params: Params; geo?: GeoPoint }>
+export type AppEdge = Edge<{ params: Params; waypoints?: XY[]; geometry?: GeoPoint[] }>
 
 export interface CircuitState {
   name: string
@@ -54,6 +55,14 @@ export interface CircuitState {
   limits: LimitsJSON | null
   /** Replacing the limits changes what the results flag, so they go stale. */
   setLimits: (limits: LimitsJSON | null) => void
+  /** Voltage bases (kV line-to-line) from an imported file; null = derived. */
+  voltageBases: number[] | null
+  setVoltageBases: (bases: number[] | null) => void
+  /** Coordinate system of every `geo` and `geometry`; null = unknown. */
+  crs: string | null
+  setCrs: (crs: string | null) => void
+  /** Move elements on the map (geographic view); positions in `crs`. */
+  setGeo: (moves: Record<string, GeoPoint>) => void
   /** The study report's title block; cosmetic, results stay valid. */
   study: StudyInfoJSON | null
   setStudy: (study: StudyInfoJSON | null) => void
@@ -414,7 +423,7 @@ export function toCircuitJSON(
   s: Pick<
     CircuitState,
     'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves' | 'lineCodes'
-  > & Partial<Pick<CircuitState, 'passthrough' | 'comments' | 'limits' | 'study'>>,
+  > & Partial<Pick<CircuitState, 'passthrough' | 'comments' | 'limits' | 'study' | 'voltageBases' | 'crs'>>,
 ): CircuitJSON {
   return {
     version: SCHEMA_VERSION,
@@ -427,6 +436,7 @@ export function toCircuitJSON(
       // Only a zone has a height of its own; every other box is its type's.
       ...(n.type === 'zone' ? { height: (n.height ?? (n.style?.height as number)) || null } : {}),
       params: n.data.params,
+      ...(n.data.geo ? { geo: n.data.geo } : {}),
     })),
     edges: s.edges.map((e) => ({
       id: e.id,
@@ -437,6 +447,7 @@ export function toCircuitJSON(
       targetHandle: e.targetHandle,
       params: e.data?.params ?? {},
       waypoints: e.data?.waypoints?.length ? e.data.waypoints : null,
+      ...(e.data?.geometry?.length ? { geometry: e.data.geometry } : {}),
     })),
     busNames: s.busNames,
     loadShapes: s.loadShapes,
@@ -446,6 +457,8 @@ export function toCircuitJSON(
     // saves exactly as it always has.
     ...(s.passthrough?.length ? { passthrough: s.passthrough } : {}),
     ...(s.comments && Object.keys(s.comments).length ? { comments: s.comments } : {}),
+    ...(s.voltageBases?.length ? { voltageBases: s.voltageBases } : {}),
+    ...(s.crs ? { crs: s.crs } : {}),
     ...(s.limits ? { limits: s.limits } : {}),
     ...(s.study ? { study: s.study } : {}),
   }
@@ -462,7 +475,7 @@ export function fromCircuitJSON(c: CircuitJSON): { nodes: AppNode[]; edges: AppE
     // moves a node by at most half a grid step and makes old files open
     // aligned. Busbar widths are re-snapped for the same reason.
     position: snapPosition(n.position ?? { x: 0, y: 0 }),
-    data: { params: n.params },
+    data: n.geo ? { params: n.params, geo: n.geo } : { params: n.params },
     ...(n.type === 'busbar'
       ? {
           width: snapBusbarWidth(n.width ?? NODE_SIZE.busbar.w),
@@ -483,7 +496,11 @@ export function fromCircuitJSON(c: CircuitJSON): { nodes: AppNode[]; edges: AppE
     sourceHandle: e.sourceHandle ?? undefined,
     target: e.target,
     targetHandle: e.targetHandle ?? undefined,
-    data: { params: e.params ?? {}, waypoints: e.waypoints ?? undefined },
+    data: {
+      params: e.params ?? {},
+      waypoints: e.waypoints ?? undefined,
+      ...(e.geometry?.length ? { geometry: e.geometry } : {}),
+    },
   }))
   return { nodes, edges }
 }
@@ -509,6 +526,19 @@ export const useCircuitStore = create<CircuitState>()(
         set({ limits, dirty: true })
         markStale()
       },
+      voltageBases: null,
+      setVoltageBases: (voltageBases) => {
+        set({ voltageBases: voltageBases?.length ? voltageBases : null, dirty: true })
+        markStale()
+      },
+      crs: null,
+      // Where things are on the map changes no result.
+      setCrs: (crs) => set({ crs: crs || null, dirty: true }),
+      setGeo: (moves) =>
+        set((s) => ({
+          nodes: s.nodes.map((n) => (moves[n.id] ? { ...n, data: { ...n.data, geo: moves[n.id] } } : n)),
+          dirty: true,
+        })),
       study: null,
       setStudy: (study) => set({ study, dirty: true }),
       placementType: null,
@@ -940,6 +970,8 @@ export const useCircuitStore = create<CircuitState>()(
           comments: c.comments ?? {},
           limits: c.limits ?? null,
           study: c.study ?? null,
+          voltageBases: c.voltageBases?.length ? c.voltageBases : null,
+          crs: c.crs ?? null,
           dirty: false,
         })
         // Cleared here rather than at each call site: Open used to leave the
@@ -959,6 +991,8 @@ export const useCircuitStore = create<CircuitState>()(
           comments: {},
           limits: null,
           study: null,
+          voltageBases: null,
+          crs: null,
           dirty: true,
           projectId: null,
         })
@@ -1140,6 +1174,8 @@ export const useCircuitStore = create<CircuitState>()(
         comments: s.comments,
         limits: s.limits,
         study: s.study,
+        voltageBases: s.voltageBases,
+        crs: s.crs,
       }),
       limit: 100,
       // Structural compare; fine at editor scale (revisit if circuits reach

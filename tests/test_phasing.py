@@ -110,14 +110,14 @@ def _feeder(pin: str | None, *, with_fuse: bool = False) -> Circuit:
 
 def test_pin_reaches_the_dss_text():
     joined = "\n".join(compile_circuit(_feeder("B")).commands).lower()
-    assert "bus1=bus_src.2 bus2=bus_tap.2" in joined
-    assert "bus1=bus_tap.2" in joined  # the load
+    assert "bus1=bus-src.2 bus2=bus-tap.2" in joined
+    assert "bus1=bus-tap.2" in joined  # the load
 
 
 def test_unpinned_still_defaults_to_phase_a():
     """Every circuit drawn before pinning existed must compile unchanged."""
     joined = "\n".join(compile_circuit(_feeder(None)).commands).lower()
-    assert "bus1=bus_src.1 bus2=bus_tap.1" in joined
+    assert "bus1=bus-src.1 bus2=bus-tap.1" in joined
 
 
 @pytest.mark.parametrize("pin, node", [("A", 1), ("B", 2), ("C", 3)])
@@ -126,7 +126,7 @@ def test_a_pinned_lateral_is_energized_on_its_own_phase(pin, node):
     phase it was pinned to, and that phase only."""
     res = engine.solve(_feeder(pin))
     assert res["converged"]
-    tap = res["buses"]["bus_tap"]
+    tap = res["buses"]["bus-tap"]
     assert tap["nodes"] == [node], "the lateral bus should carry one node only"
     assert 0.9 < tap["vmagPu"][0] < 1.05, "and it should be energized"
     # The readout has to name the phase too, or a current on B reads as
@@ -140,10 +140,10 @@ def test_a_fuse_in_a_pinned_lateral_keeps_the_pin():
     """A switch used to take .1 on both terminals whatever the lateral did,
     which quietly islanded everything past it."""
     joined = "\n".join(compile_circuit(_feeder("C", with_fuse=True)).commands).lower()
-    assert "bus1=bus_tap.3 bus2=bus_end.3" in joined
+    assert "bus1=bus-tap.3 bus2=bus-end.3" in joined
     res = engine.solve(_feeder("C", with_fuse=True))
     assert res["converged"]
-    assert res["buses"]["bus_end"]["nodes"] == [3]
+    assert res["buses"]["bus-end"]["nodes"] == [3]
 
 
 def test_pin_survives_export_and_import():
