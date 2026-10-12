@@ -22,7 +22,7 @@ with the converter plugin, CYME and Synergi models.
    **Arrange → Clean up layout** applies (in the direction set under
    **Arrange → Layout direction**), so you can always get back to it.
    From there it's a normal project — edit, solve, save as `.oneline.json`,
-   or re-export. If the file has bus coordinates, **Map** on the toolbar
+   or re-export. If the file has bus coordinates, **Map** (top right of the drawing)
    shows it on the ground (see [The map](map.md)).
 
 ### How it works

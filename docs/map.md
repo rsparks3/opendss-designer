@@ -4,7 +4,7 @@ description: The geographic view in OpenDSS Designer - a circuit on a map at its
 
 # The map
 
-**Map** on the toolbar (or **View → Map**) shows the circuit where its
+**Map**, at the top right of the drawing (or **View → Map**), shows the circuit where its
 coordinates put it, the way a utility planning tool's map does: lines along
 their routes, buses as dots, each kind of device as a small mark where it
 connects, loads and DER fanned out around their bus, over an OpenStreetMap

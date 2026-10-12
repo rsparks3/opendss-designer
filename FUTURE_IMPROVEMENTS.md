@@ -419,7 +419,7 @@ already own, the analysis features have no audience — this is the first real g
   read by the ordinary importer. Still not read: Esri file geodatabases
   (they need GDAL; export them to shapefiles from QGIS or ArcGIS), Smallworld
   and Intergraph
-- ~~**Geographic view**~~ — 2026-10-12: **Map** on the toolbar (`GeoCanvas`):
+- ~~**Geographic view**~~ — 2026-10-12: **One-line | Map** on the canvas (`GeoCanvas`):
   OpenStreetMap, any XYZ tiles or none; lines along their routes, devices as
   marks, overlays coloured; select, edit, drag a bus (placing and wiring stay
   on the one-line). Coordinates stay as the file gave them in the circuit's

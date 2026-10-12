@@ -34,6 +34,7 @@ import { ContextMenu, type MenuTarget } from './ContextMenu'
 import { OVERVIEW_ZOOM, OverviewLayer } from './OverviewLayer'
 import { NODE_SIZE } from '../lib/defaults'
 import { PhaseLegend } from './PhaseLegend'
+import { ViewToggle } from './ViewToggle'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
 import { BreakerNode } from './nodes/BreakerNode'
 import { BusbarNode } from './nodes/BusbarNode'
@@ -489,6 +490,7 @@ export function EditorCanvas() {
       )}
       {overview && <OverviewLayer />}
       <PhaseLegend />
+      <ViewToggle />
       {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
       {menu && <ContextMenu target={menu} onClose={() => setMenu(null)} />}
       {hover && !menu && !busbarDraft && <ResultTooltip target={hover} />}

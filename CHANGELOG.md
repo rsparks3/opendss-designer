@@ -13,7 +13,7 @@ This project follows [Semantic Versioning](https://semver.org/).
   an **overview** coloured by the overlay; zoom in and the symbols return,
   only those in view. **Clean up** lays large circuits out as a tidy tree
   with the trunk straight down.
-- **The map.** **Map** on the toolbar shows the circuit at its coordinates
+- **The map.** **Map**, at the top right of the drawing, shows the circuit at its coordinates
   over OpenStreetMap (or your own tiles, or none): lines along their routes,
   devices where they connect, the voltage, loading and phases overlays on
   the ground. Select and edit there, drag a bus to move it. Coordinate

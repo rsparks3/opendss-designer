@@ -18,6 +18,7 @@ import { activeResult, activeStale, useResultsStore } from '../store/resultsStor
 import { useUiStore } from '../store/uiStore'
 import type { GeoPoint } from '../types/circuit'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
+import { ViewToggle } from './ViewToggle'
 
 /** The view: world point at the centre of the canvas, and pixels per world
  *  unit. On a map the world is Web Mercator pixels at zoom 0, so `k` is
@@ -508,6 +509,7 @@ export function GeoCanvas() {
       {mapped && tileTemplate && (
         <div className="geo-attribution">{basemap === 'osm' ? OSM_ATTRIBUTION : 'Custom tiles'}</div>
       )}
+      <ViewToggle />
       {hover && !press.current && <ResultTooltip target={hover} />}
     </div>
   )

@@ -9,8 +9,6 @@ import { useUiStore } from '../store/uiStore'
  * else, and everything here too, is in the menus.
  */
 export function Toolbar() {
-  const view = useUiStore((s) => s.view)
-  const setView = useUiStore((s) => s.setView)
   const name = useCircuitStore((s) => s.name)
   const setName = useCircuitStore((s) => s.setName)
   const dirty = useCircuitStore((s) => s.dirty)
@@ -85,22 +83,6 @@ export function Toolbar() {
           }
         >
           Auto
-        </button>
-      </div>
-      <div className="tb-group">
-        <button
-          className={view === 'schematic' ? 'active' : ''}
-          onClick={() => setView('schematic')}
-          title="The one-line diagram"
-        >
-          One-line
-        </button>
-        <button
-          className={view === 'geographic' ? 'active' : ''}
-          onClick={() => setView('geographic')}
-          title="The circuit on a map, at its coordinates"
-        >
-          Map
         </button>
       </div>
       <div className="tb-group">
