@@ -5,7 +5,7 @@ dist/
 build/
 *.egg-info/
 
-frontend/node_modules/
+node_modules/
 frontend/dist/
 
 # built frontend copied into the package (regenerate with scripts/build_frontend.py)
@@ -16,7 +16,7 @@ frontend/*.tsbuildinfo
 site/
 
 # Playwright output
-frontend/test-results/
+test-results/
 frontend/playwright-report/
 
 # Local environments and editor state
