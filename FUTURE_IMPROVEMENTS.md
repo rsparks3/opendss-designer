@@ -444,6 +444,25 @@ already own, the analysis features have no audience — this is the first real g
   the fixes upstream, and slim its dependencies (geopandas, pyarrow, h5py,
   plotly) so the hosted image can include it — today it is behind
   `--build-arg CONVERTER=...`, off by default
+- **ETAP import** — asked 2026-10-14, not started: no sample to verify
+  against. No open-source ETAP reader exists (neither DiTTo has one), and an
+  `.oti` project is an undocumented Microsoft Access or SQL Server LocalDB
+  container, so reading it directly means reverse-engineering hundreds of
+  tables per ETAP version. The workable route is a converter reader for what
+  ETAP 22+ exports itself: an element dump from its Python API (etapPy) or
+  REST etapAPI, or failing that the DataX/report Excel export through the
+  CSV mapping dialog. ETAP exports neither CIM nor OpenDSS. Blocked on
+  obtaining one export from a real ETAP 22+ install (its bundled Example-ANSI
+  project would do); ETAP's typical model is a balanced industrial plant
+  (motors, MCCs, cables) rather than a feeder, so expect motors to land as
+  loads and the fit to be weaker than CYME/Synergi. **SKM PowerTools** is the
+  same case, ranked lower: its project is a proprietary database folder with
+  no reader anywhere (ETAP's converter handles PTW 6–8, closed), its only
+  scriptable export is the Datablock CSV, and it serves the arc-flash market
+  this project chose not to enter. Cheap test before any code: run a PTW
+  Datablock CSV (buses, cables, transformers, loads) through File → Import
+  from → CSV; if the mapping dialog gets most of the way, SKM becomes a saved
+  mapping preset, not a reader
 
 ## M12 — Planning studies
 
