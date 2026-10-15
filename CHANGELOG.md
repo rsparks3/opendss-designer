@@ -3,7 +3,14 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 0.8.0 — 2026-10-15
+
+Real models in. A 10,000-element feeder opens, draws and solves in seconds;
+the circuit sits on a map at its coordinates; shapefiles, GeoJSON, CSV and,
+with the converter plugin, CYME and Synergi models come in through File →
+Import from. Behind it, the studies a utility is asked for: reliability
+indices from the engine's meters, ratings on every shunt element, zones and
+a title block on the drawing, and study reports in any script.
 
 ### Added
 
@@ -34,29 +41,6 @@ This project follows [Semantic Versioning](https://semver.org/).
   `set voltagebases`.
 - Transformer **no-load loss** and **magnetising current**, load **CVR
   factors**, and a source's **X/R** in the properties panel.
-
-### Fixed
-
-- A submenu (**Arrange → Align**, **File → Export**) clicked on, rather than
-  only hovered over, stays open instead of closing again.
-- **Elements tab** picks its element type from a dropdown; the row of
-  fifteen type buttons ran off the right of the window.
-- **Components panel**, dragged narrow, snaps each button to a fixed square
-  around its symbol instead of shrinking the buttons with the text gone.
-- Importing real utility models (all measured on EPRI's and the IEEE's
-  large test feeders, now in CI): a master file that redirects to the file
-  defining the circuit imports whole; a folder with unrelated scripts or two
-  masters imports, with a note; 120/240 V services no longer read 1.73 pu;
-  a two-phase line on a one-phase line code no longer floats a phase; a
-  substation LTC stays a transformer; series reactors, taps, winding
-  resistances, magnetising current, CVR and ZIP loads and source X/R are
-  kept; names keep their dashes, so controls still find them; feeders that
-  need more than 15 iterations converge; coordinates given before the bus
-  list existed are kept.
-- No more false phase warnings on single-phase transformers written with a
-  node on both windings, or on centre-tapped services.
-- Selecting or moving something no longer re-validates the whole circuit.
-
 - **Shunt elements have ratings too.** A generator, PV system or storage
   unit is now loaded by its apparent power against its kVA rating (a
   generator gained a *Rating (kVA)* field; blank keeps OpenDSS's 1.2 × kW),
@@ -100,6 +84,28 @@ This project follows [Semantic Versioning](https://semver.org/).
   in a study report too) comes out on a drawing sheet: a double border
   and a title block in the bottom-right corner carrying the study title,
   case, engineer, company, circuit, overlay, date and software version.
+
+### Fixed
+
+- A submenu (**Arrange → Align**, **File → Export**) clicked on, rather than
+  only hovered over, stays open instead of closing again.
+- **Elements tab** picks its element type from a dropdown; the row of
+  fifteen type buttons ran off the right of the window.
+- **Components panel**, dragged narrow, snaps each button to a fixed square
+  around its symbol instead of shrinking the buttons with the text gone.
+- Importing real utility models (all measured on EPRI's and the IEEE's
+  large test feeders, now in CI): a master file that redirects to the file
+  defining the circuit imports whole; a folder with unrelated scripts or two
+  masters imports, with a note; 120/240 V services no longer read 1.73 pu;
+  a two-phase line on a one-phase line code no longer floats a phase; a
+  substation LTC stays a transformer; series reactors, taps, winding
+  resistances, magnetising current, CVR and ZIP loads and source X/R are
+  kept; names keep their dashes, so controls still find them; feeders that
+  need more than 15 iterations converge; coordinates given before the bus
+  list existed are kept.
+- No more false phase warnings on single-phase transformers written with a
+  node on both windings, or on centre-tapped services.
+- Selecting or moving something no longer re-validates the whole circuit.
 
 ## 0.7.0 — 2026-10-11
 
