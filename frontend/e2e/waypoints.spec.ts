@@ -145,12 +145,18 @@ test('a second routing point keeps the shape too, and dots are draggable', async
 
 test('straighten clears the adopted waypoints', async ({ page }) => {
   await openEditor(page)
+  for (let i = 0; i < 3; i++) await page.locator('.react-flow__controls-zoomin').click()
+  await page.waitForTimeout(300)
   const at = await pointOnEdge(page, ELBOW_EDGE, 0.3)
   await page.mouse.dblclick(at.x, at.y)
   await page.waitForTimeout(150)
   expect((await waypointsOf(page, ELBOW_EDGE)).length).toBeGreaterThan(0)
 
-  await page.mouse.click(at.x, at.y, { button: 'right' })
+  // Right-click the wire itself, clear of its routing dots: a dot sits in
+  // the label layer above the wire, so a right-click on one reaches the
+  // pane, not the edge, and the pane menu has no Straighten.
+  const spot = await clearSpotOn(page, ELBOW_EDGE)
+  await page.mouse.click(spot.x, spot.y, { button: 'right' })
   await page.getByRole('button', { name: /Straighten/ }).click()
   expect(await waypointsOf(page, ELBOW_EDGE)).toEqual([])
 })

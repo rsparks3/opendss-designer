@@ -264,7 +264,9 @@ function MenuList({
                 aria-label={entry.label}
                 disabled={entry.disabled}
                 className="mb-item"
-                onClick={() => setSubOpen(subOpen === i ? null : i)}
+                // Open, never toggle: the pointer's arrival already opened
+                // it, so a toggle would close what the person just clicked.
+                onClick={() => setSubOpen(i)}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowRight' || e.key === 'Enter') {
                     e.preventDefault()

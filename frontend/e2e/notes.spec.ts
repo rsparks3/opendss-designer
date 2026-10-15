@@ -37,8 +37,9 @@ test('N places a note that is typed into straight away', async ({ page }) => {
   // Two lines on the canvas, as typed.
   const node = page.locator(`.react-flow__node[data-id="${added!.id}"]`)
   await expect(node.locator('.note-line')).toHaveCount(2)
-  // Placement ended with the note: another click places nothing.
-  await page.locator('.react-flow__pane').click({ position: { x: 20, y: 260 } })
+  // Placement ended with the note: another click places nothing. Click up
+  // and away from the canvas controls, which sit lower on a short pane.
+  await page.locator('.react-flow__pane').click({ position: { x: 400, y: 40 } })
   expect(await notes(page)).toHaveLength(2)
 })
 

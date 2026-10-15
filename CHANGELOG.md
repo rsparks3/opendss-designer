@@ -37,6 +37,8 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A submenu (**Arrange → Align**, **File → Export**) clicked on, rather than
+  only hovered over, stays open instead of closing again.
 - **Elements tab** picks its element type from a dropdown; the row of
   fifteen type buttons ran off the right of the window.
 - **Components panel**, dragged narrow, snaps each button to a fixed square
