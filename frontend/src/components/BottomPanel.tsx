@@ -530,17 +530,19 @@ export function BottomPanel() {
           </button>
         )}
         {tab === 'elements' && open && (
-          <span className="bp-subtabs">
+          <select
+            className="bp-select"
+            aria-label="Element type"
+            title="Which element type the table lists"
+            value={typeTab}
+            onChange={(e) => setTypeTab(e.target.value)}
+          >
             {TYPE_TABS.map((t) => (
-              <button
-                key={t.key}
-                className={`bp-subtab${typeTab === t.key ? ' active' : ''}`}
-                onClick={() => setTypeTab(t.key)}
-              >
+              <option key={t.key} value={t.key}>
                 {t.label}
-              </button>
+              </option>
             ))}
-          </span>
+          </select>
         )}
         <span className="tb-spacer" />
         <StatusLine />

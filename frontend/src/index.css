@@ -389,11 +389,21 @@ kbd {
    padding: 155px of content is about where "Transformer" stops fitting
    beside the symbol and the key. */
 @container palette (max-width: 155px) {
-  .palette { padding-right: 10px; padding-top: 30px; }
+  .palette { padding: 30px 6px 10px; }
   .palette-label,
   .palette-kbd,
-  .palette-title { display: none; }
-  .palette-item { justify-content: center; padding: 6px 4px; }
+  .palette-title,
+  .palette-hint { display: none; }
+  /* Each button snaps to a fixed square around its symbol and stays that
+     size however much narrower the panel is dragged. */
+  .palette-item {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    justify-content: center;
+    padding: 0;
+    margin: 0 auto 4px;
+  }
   .palette-group + .palette-group {
     margin-top: 10px;
     padding-top: 10px;
@@ -905,10 +915,25 @@ kbd {
 }
 .bp-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
   padding: 0 10px;
   border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+/* The Elements tab picks its element type from a dropdown: fifteen type
+   buttons in a row ran off the right of the window. */
+.bp-select {
+  margin-left: 10px;
+  max-width: 180px;
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 1px solid var(--border-2);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--ink);
 }
 .bp-tab {
   border: none;
@@ -943,7 +968,16 @@ kbd {
 }
 .bp-resizer:hover { background: var(--accent); opacity: 0.35; }
 .bp-empty { color: var(--faint); padding: 8px 2px; }
-.status-line { color: var(--ok); font-weight: 600; padding: 2px 8px; font-size: 12.5px; }
+.status-line {
+  color: var(--ok);
+  font-weight: 600;
+  padding: 2px 8px;
+  font-size: 12.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .err-count { color: var(--danger); font-weight: 700; }
 .warn-count { color: var(--warn); font-weight: 700; }
 .problems-list { margin: 2px 0 6px; padding-left: 18px; }

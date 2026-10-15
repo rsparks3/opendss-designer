@@ -64,7 +64,7 @@ test('the Elements table filter selects matching loads for a bulk load-shape ass
   await page.evaluate(() =>
     (window as any).opendssDesigner.circuit.getState().setLoadShape('day24', { intervalMin: 60, points: [0.5, 1, 0.8], kind: 'load' }))
   await page.getByRole('button', { name: 'Elements', exact: true }).click()
-  await page.getByRole('button', { name: 'Loads', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Element type' }).selectOption('load')
   const filter = page.locator('.bp-filter input')
   await filter.fill('kw>=170')
   await expect(page.locator('.bp-count')).toContainText('7 of 15')

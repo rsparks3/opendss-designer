@@ -37,6 +37,10 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Elements tab** picks its element type from a dropdown; the row of
+  fifteen type buttons ran off the right of the window.
+- **Components panel**, dragged narrow, snaps each button to a fixed square
+  around its symbol instead of shrinking the buttons with the text gone.
 - Importing real utility models (all measured on EPRI's and the IEEE's
   large test feeders, now in CI): a master file that redirects to the file
   defining the circuit imports whole; a folder with unrelated scripts or two
