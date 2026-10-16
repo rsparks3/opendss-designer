@@ -420,6 +420,10 @@ def import_converted(req: ConvertRequest) -> dict:
     """A CYME or Synergi model, converted to OpenDSS by the plugin and
     imported like a .dss file."""
     cfg = context.current_settings()
+    locked = convert.locked_reason()
+    if locked:
+        # Decided before any decoding: a withheld feature costs nothing.
+        raise HTTPException(status_code=403, detail=locked)
     if cfg.max_import_files and len(req.files) > cfg.max_import_files:
         raise HTTPException(status_code=413,
                             detail=f"Select at most {cfg.max_import_files} files.")
