@@ -36,6 +36,7 @@ _DEMO_LIMITS: dict[str, object] = {
     "max_total_shape_points": 350_000,
     "max_import_files": 20,
     "max_import_bytes": 2 * 1024 * 1024,
+    "convert_timeout_s": 300.0,         # a CYME/Synergi conversion, in its own process
     "max_queued_engine_calls": 4,
     "engine_result_timeout_s": 120.0,
     "timeseries_timeout_s": 180.0,
@@ -132,6 +133,17 @@ REQUEST_LIMITS: dict[str, str] = {
     "timeseriesTimeoutS": "timeseries_timeout_s",
 }
 
+# Features a trusted proxy may switch *off* per request (header key -> field),
+# under a "features" object in the same header. Like the limits, this only
+# ever tightens: a feature the process has is one a proxy may withhold from a
+# caller, never the reverse. The value is ``false`` (withheld, generic
+# wording) or a string (withheld, and that is the sentence to show the
+# caller, e.g. which plan includes it).
+REQUEST_FEATURES: dict[str, str] = {
+    "convert": "allow_convert",
+}
+_FEATURE_REASON_MAX = 200
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -154,6 +166,7 @@ class Settings:
     max_total_shape_points: int | None = None
     max_import_files: int | None = None
     max_import_bytes: int | None = None
+    convert_timeout_s: float | None = None
     max_queued_engine_calls: int | None = None
     engine_result_timeout_s: float | None = None
     timeseries_timeout_s: float | None = None
@@ -170,6 +183,13 @@ class Settings:
     workdir: Path = Path(tempfile.gettempdir()) / "opendss_designer"
     cache_dir: Path | None = None  # defaults to workdir; share it across sessions
 
+    # Features. True everywhere by default: what the install has, the caller
+    # may use. Only a per-request overlay from a trusted proxy sets one False.
+    allow_convert: bool = True
+    # Why a feature is withheld, per feature key, when the proxy said so in
+    # its own words (otherwise the sentence is composed from `plan_label`).
+    feature_reasons: tuple[tuple[str, str], ...] = ()
+
     @property
     def demo(self) -> bool:
         return self.mode == DEMO
@@ -178,6 +198,14 @@ class Settings:
     def plan_label(self) -> str:
         """How limit messages refer to this configuration."""
         return f"the {self.plan.name} plan" if self.plan else "the public demo"
+
+    def feature_reason(self, key: str, what: str) -> str:
+        """The sentence shown when feature `key` (described as `what`) is
+        withheld: the proxy's wording if it gave any, else a generic one."""
+        for k, reason in self.feature_reasons:
+            if k == key:
+                return reason
+        return f"{what} is not included in {self.plan_label}."
 
     def tightened(self, payload: dict) -> Settings:
         """A copy with the limits in `payload` applied, never loosening any.
@@ -206,7 +234,36 @@ class Settings:
             values[field] = value if current is None else min(current, value)
         if payload.get("plan") is not None:
             values["plan"] = PlanInfo.from_payload(payload["plan"])
+        if payload.get("features") is not None:
+            values.update(self._tightened_features(payload["features"]))
         return dataclasses.replace(self, **values)
+
+    def _tightened_features(self, raw: object) -> dict[str, object]:
+        """`features` in the header: `true` is no opinion, `false` withholds
+        the feature, a string withholds it with that sentence as the reason.
+        Unknown feature keys are ignored, like unknown limit keys."""
+        if not isinstance(raw, dict):
+            raise BadLimitsHeader("features must be a JSON object")
+        values: dict[str, object] = {}
+        reasons = dict(self.feature_reasons)
+        for key, field in REQUEST_FEATURES.items():
+            value = raw.get(key)
+            if value is None or value is True:
+                continue
+            if value is False:
+                values[field] = False
+                continue
+            if isinstance(value, str):
+                reason = value.strip()[:_FEATURE_REASON_MAX]
+                if not reason:
+                    raise BadLimitsHeader(f"features.{key} reason is empty")
+                values[field] = False
+                reasons[key] = reason
+                continue
+            raise BadLimitsHeader(f"features.{key} must be true, false or a string")
+        if reasons:
+            values["feature_reasons"] = tuple(sorted(reasons.items()))
+        return values
 
     @property
     def effective_cache_dir(self) -> Path:

@@ -55,11 +55,25 @@ docker run --init -p 127.0.0.1:8721:8721 \
 `--init` matters: without it `SIGTERM` does not reach PID 1 and the graceful
 shutdown never runs.
 
-**CYME and Synergi import** need the optional converter plugin, which the
-image leaves out by default because of its dependencies (geopandas, pyarrow
-and friends: several hundred megabytes). Build it in with
+**CYME and Synergi import** need the optional converter plugin. The
+published `ghcr.io/rsparks3/opendss-designer` image has it built in; a plain
+`docker build` leaves it out because of its dependencies (geopandas, pyarrow
+and friends take the image from about 470 MB to 1.2 GB). Build it in with
 `--build-arg CONVERTER=opendss-designer-convert` (any pip requirement works,
-a git URL included) and give the workers more memory than the plain app's.
+a source archive URL included). Each conversion runs in a short-lived child
+process, so the plugin costs nothing between conversions; while one runs the
+container needs about 100 MB more than idle, and
+`OPENDSS_DESIGNER_CONVERT_TIMEOUT_S` (300 s in demo mode) stops one that
+hangs. A Synergi model is an Access database of several megabytes, so raise
+`OPENDSS_DESIGNER_MAX_IMPORT_BYTES` and `OPENDSS_DESIGNER_MAX_BODY_BYTES`
+above the demo defaults of 2 MB and 8 MB if real models should fit.
+
+A proxy that tightens limits per request (see `security.md`) can also
+withhold the feature per request: a `features` object in the limits header,
+`{"features": {"convert": false}}`, or a sentence in place of `false` to say
+which plan includes it. The menu still lists the formats, marked locked, and
+a conversion is refused with that sentence. This is how the hosted instance
+keeps the import for its Pro plan.
 
 **The map's tiles** come from the visitor's browser straight to the tile
 server (OpenStreetMap by default), so the app's Content-Security-Policy

@@ -25,10 +25,13 @@ COPY --from=build /dist/*.whl /tmp/
 RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 
 # CYME/Synergi import (core/convert.py) is an optional plugin with a GIS-sized
-# dependency tree, so the hosted image leaves it out unless asked:
+# dependency tree (the image grows from ~470 MB to ~1.2 GB), so a plain build
+# leaves it out unless asked:
 #   docker build --build-arg CONVERTER="opendss-designer-convert" .
-# (any pip requirement works, e.g. a git URL). Empty, the File menu says how
-# to install it instead.
+# (any pip requirement works; the published GHCR image passes a pinned
+# source archive, see .github/workflows/image.yml). Empty, the File menu says
+# how to install it instead. Each conversion runs in a short-lived child
+# process, so the plugin costs the worker nothing between conversions.
 ARG CONVERTER=""
 RUN if [ -n "$CONVERTER" ]; then pip install --no-cache-dir "$CONVERTER"; fi
 

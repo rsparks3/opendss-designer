@@ -146,11 +146,23 @@ export function flipSelection(axis: Axis) {
 }
 
 /** File → Import from: other tools' formats through the converter plugin,
- *  or, without it, one entry that says how to get it. */
+ *  or, without it, one entry that says how to get it. A hosted instance may
+ *  list the formats but withhold them from this plan; they stay on the menu
+ *  so the feature is visible, and say which plan has it when clicked. */
 function importFrom(convert: ConvertFormats | null): MenuEntry[] {
   if (convert?.available) {
+    const locked = convert.locked
+      ? (convert.reason ?? 'CYME and Synergi import is not included in your plan.')
+      : null
     return convert.formats.map((f) =>
-      item(`${f.label}…`, () => void importConverted(f), { title: f.help }))
+      item(
+        `${f.label}…`,
+        () => {
+          if (locked) useResultsStore.getState().setFlash(locked, 'info', 10000)
+          else void importConverted(f)
+        },
+        locked ? { title: locked, hint: 'Locked' } : { title: f.help },
+      ))
   }
   return [
     item('CYME, Synergi…', () => {

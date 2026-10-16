@@ -131,7 +131,14 @@ gateway's database and the numbers below are its seed data.
 | Concurrent runs | 1, and anonymous traffic as a whole never holds more than one worker | 1 | 2 |
 | Queue priority | lowest | normal | highest |
 | Outbound data fetches (NREL, NSRDB) | shared pool | 20 per hour | 60 per hour |
+| CYME and Synergi import | no | no | yes (files up to 24 MB each; the conversion is charged like a solve) |
 | Shapes, points, body size | current demo caps | current demo caps | current demo caps |
+
+The converter is in the worker image for everyone; the gateway withholds it
+per request through the same header that carries the limits (`features:
+{convert: false}`, or a sentence naming the plan that has it), so the app
+never knows what a plan is. The menu still lists the formats, marked locked,
+which is the upgrade prompt.
 
 For scale: on the current image a cost-1 M run is a 107-element feeder for a
 year at hourly steps and takes about 6 s and 69 MiB. Cost 3 M is the app's own

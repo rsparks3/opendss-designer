@@ -3,6 +3,20 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Changed
+
+- **CYME and Synergi import on a hosted instance.** The published container
+  image now has the converter plugin built in, and a reverse proxy that
+  tightens limits per request can withhold the import per request (a
+  `features` object in the limits header; the formats stay on the menu,
+  marked locked, with the proxy's reason when clicked). On
+  opendssdesigner.ryanmsparks.com the import is part of the Pro plan. Each
+  conversion runs in its own short-lived process, so the plugin's memory
+  comes back when it is done and a conversion that hangs is stopped
+  (`OPENDSS_DESIGNER_CONVERT_TIMEOUT_S`, 300 s in demo mode).
+
 ## 0.8.0 — 2026-10-15
 
 Real models in. A 10,000-element feeder opens, draws and solves in seconds;

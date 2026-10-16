@@ -154,7 +154,10 @@ dependencies). Install it beside the app — Python 3.11 or later:
 pip install opendss-designer-convert
 ```
 
-then restart OpenDSS Designer. Without it the menu says how to get it. For
+then restart OpenDSS Designer. Without it the menu says how to get it. On
+the hosted instance the plugin is installed and the import is part of the
+Pro plan: the menu lists CYME and Synergi for everyone, and says so when
+clicked on another plan. For
 CYME, select the network, equipment and load exports together; for Synergi,
 the model's `.mdb` and its warehouse `.mdb`. The converted model is imported
 like a `.dss` file, with the converter's notes (what it could not carry
