@@ -282,7 +282,7 @@ repository, `opendss-designer-cloud`; deployment stays in
 
 ## Direction — the distribution planning market (decided 2026-09-11)
 
-M10–M13 are aimed at a specific goal: becoming an open-source alternative to the
+M10–M18 are aimed at a specific goal: becoming an open-source alternative to the
 commercial **distribution planning** tools — DNV Synergi Electric, Eaton CYME,
 Milsoft WindMil — rather than to the facility/arc-flash tools (SKM PowerTools,
 EasyPower, ETAP's core). The two markets look adjacent and are not. The arc-flash
@@ -300,8 +300,12 @@ below, because a feeder without them is not a feeder. The two M7 items the rest
 depended on followed — SVG/PNG export (the prerequisite for M10's study report) and
 Clean up, the import layout for M11's real feeders — and the rest of M7 with
 them (2026-09-27). M10 (study output) and M11 (real models in) are done;
-**next: M12's planning studies**, starting with hosting capacity. Each
-milestone below is chosen to be
+**next: M12's planning studies**, starting with the load-level and control
+foundation and then hosting capacity. M12 onward was rewritten on
+2026-11-08 from a study-by-study audit of what a distribution planning
+group is actually asked to produce — `PLANNING_AUDIT.md` keeps the
+reasoning, the criteria tables and the references, so the items below can
+stay short. Each milestone below is chosen to be
 useful to someone real on its own, not only at the end of the list.
 
 ## M10 — Study output & proof
@@ -464,41 +468,258 @@ already own, the analysis features have no audience — this is the first real g
   from → CSV; if the mapping dialog gets most of the way, SKM becomes a saved
   mapping preset, not a reader
 
-## M12 — Planning studies
+## M12 — Planning foundation: load levels, controls, scenarios
 
-The studies a utility is under obligation to produce — the reason a tool gets
-adopted rather than admired.
+Planned 2026-11-08 (`PLANNING_AUDIT.md` §2.3, §2.4, §2.15, §3). Every
+planning study is "this feeder, at this load condition, base against
+alternative". The app has none of the three nouns yet: a snapshot solves
+every load at rated kW, two of the three control classes on a real feeder
+cannot be drawn, and there is one circuit and one result at a time. This
+milestone is useful on its own (a planner can finally run a minimum-load
+case and compare two designs) and everything in M13–M17 stands on it.
 
-- **Hosting capacity / integration capacity analysis** — iterative DER injection
-  at each bus until a voltage or thermal limit binds, reusing the time-series
-  worker and its SSE progress streaming, with a colour-coded overlay. This is the
-  wedge: it is the one study regulators increasingly require and the one small
-  utilities are priced out of
-- **Contingency & switching** — tie switches, an N-1 loop, and ranked restoration
-  candidates
-- **Volt/VAR and CVR** — regulator and capacitor setting sweeps with a CVR factor
-  report, building on the M6 `RegControl` work
-- **Scenario manager & batch runs** — several scenarios per project, run as a
-  batch, compared in one table. Supersedes the parked "multi-circuit tabs" item,
-  which was the same need stated as a UI feature
+- **Named load levels** — a project-level list (Peak 1.0 normal, Minimum
+  daytime 0.3 normal, Emergency peak 1.0 emergency, editable) applied as
+  `set loadmult` plus optional per-class factors; snapshot, fault,
+  protection and every later study pick a level, the status bar and the
+  report name it. The engine change is one line; the rest is schema, a
+  toolbar picker and report plumbing
+- **Emergency and seasonal ratings** — `emergamps` on lines and switches,
+  `emerghkva` on transformers and regulators, read and written by the
+  importer and exporter; the loading overlay, abnormal-condition report
+  and limits dialog switch between normal and emergency, and a load level
+  says which applies
+- **Capacitor controls** — `CapControl` as parameters on the capacitor
+  (type voltage/current/kvar/PF/time, monitored element and terminal,
+  on/off settings, PT/CT ratios, delay, dead time), emitted under the
+  capacitor's name like a regulator's `RegControl`; an imported
+  passthrough `CapControl` folds back into its capacitor
+- **Smart inverter functions** — `InvControl` as parameters on PV and
+  storage: volt-var, volt-watt, watt-pf and the combined mode, each with
+  an editable XY curve in the Curves tab (the TCC curve editor already has
+  the shape), IEEE 1547-2018 Category A and B defaults one click away, one
+  control per inverter group as the engine wants it. Regulators gain
+  reverse-power mode (`reversible`, `revvreg`, `revband`) and `cogen`
+- **Control operation counters** — tap changes per regulator and
+  switching operations per bank per time-series run, as a summary row and
+  a plottable series; this is a hosting-capacity criterion and the
+  measure of a Volt/VAR scheme's wear
+- **Scenario manager** — a project holds a base case and alternatives as
+  element-level deltas (a changed setting, an added bank, an opened tie, a
+  new DER), each solvable at any load level; deltas rather than copies keep
+  autosave and the library small and make the diff view trivial.
+  Supersedes the parked "multi-circuit tabs" item, which was the same
+  need stated as a UI feature
+- **Compare view** — two result sets as a difference overlay (ΔV pu,
+  Δloading %, Δlosses) and a table of what changed, sortable by magnitude;
+  a *Base vs alternative* report section
+- **Batch runs** — every scenario × every load level in one click with
+  progress and cancel over the time-series SSE channel, summarised as a
+  matrix (worst voltage, worst loading, losses, violations)
+- **One study library for two apps** — before any study loop is written,
+  the loops in M13–M16 go in one Python package that both this repo and
+  `opendss-designer-desktop` import (compiled circuit in, plain dicts out;
+  FastAPI here, in-process there), so hosting capacity is not written
+  twice. Decide the package boundary and the engine-context rule (one
+  thread per `dss.NewContext()`) in this milestone, measure parallel
+  engines, and add server-side **background jobs** (submit, progress,
+  cancel, fetch later, keep the last N) that the long studies need and
+  the hosted plans can meter as a *study cost* beside the time-series cost
 
-## M13 — Team-scale modeling
+## M13 — Hosting capacity and interconnection screening
+
+The wedge (`PLANNING_AUDIT.md` §2.1, §2.2, §2.9 in part): the study
+regulators require, small utilities are priced out of, and the one that
+turns an interconnection queue into a day's work.
+
+- **Hosting capacity, iterative** — DER placed at each candidate bus and
+  grown by bisection until a criterion binds, at a chosen load level; the
+  criteria, each switchable and each reported as the binding one:
+  overvoltage against the project limit (or a tighter DER limit), rapid
+  voltage change on DER trip (3 %), thermal at normal or emergency rating
+  in either direction, reverse power through a regulator and at the
+  substation, fault-current increase (10 %) and interrupting headroom
+  (87.5 %), protection reach, islanding ratio in a protection section, and
+  control operations from a QSTS pass. **Load hosting capacity** (EV and
+  electrification: the same loop with the sign reversed, binding on
+  undervoltage and thermal) ships in the same release
+- **Hosting capacity, sensitivity method** — one base solve plus one
+  perturbation per bus gives dV/dP and dI/dP; voltage- and thermal-limited
+  capacity by linear extrapolation, confirmed by one or two solves. This is
+  the shape of EPRI's DRIVE and the only way an 8760 hosting-capacity
+  profile per bus is affordable; the iterative method stays as the check
+- **Time-granular results** — the loop at 24 representative hours or
+  every hour of a year, giving a per-bus hosting-capacity profile, the form
+  California's ICA publishes
+- **Outputs** — bus → kW by criterion with the binding one named; colour
+  overlay on the one-line and the map; GeoJSON/shapefile/CSV export keyed
+  by bus so the result can go onto a public ICA map; a report section with
+  method, criteria, load level, scenario and engine version; compare two
+  runs (before and after a mitigation) through M12's compare view
+- **Methodology and validation page** — `docs/hosting-capacity.md` with
+  the criteria, equations and limits, held against a public reference
+  (EPRI's published DRIVE results on the IEEE 123-bus and ckt5, NREL's
+  hosting-capacity papers on the same feeders) the way `docs/validation.md`
+  holds the power flow. Without it a utility will not trust the number
+- **Fault solves the screen needs** — `Fault`-element snapshot solves
+  (LG, LL, LLG, with fault resistance) beside `mode=faultstudy`, so a
+  fault study reports minimum as well as maximum current and includes
+  inverter and generator contribution, which the Thevenin study cannot
+- **Interconnection screening** — a *Screen a DER here* dialog at a point
+  of common coupling that runs the tariff screens in one go and writes the
+  standard screening report: aggregate DER against 15 % of line-section
+  peak (or 100 % of minimum daytime load for export), fault-current
+  contribution under 10 %, interrupting duty under 87.5 %, rapid voltage
+  change under 3 %, effective grounding from the X0/X1 and R0/X1 ratios the
+  fault study already has, and the Category A/B smart-inverter settings
+  the DER must run. Pass/fail per screen with the number and the limit
+
+## M14 — Contingency, Volt/VAR and capacity
+
+Batch studies over the solves M12 made available (`PLANNING_AUDIT.md`
+§2.4, §2.5, §2.7, §2.8).
+
+- **Tie switches and switching sequences** — a normally-open switch
+  between feeders as a first-class element with both feeders named; a
+  scripted sequence (open X, close Y) on a scenario, solved at a load
+  level, with the energised/de-energised state shown (the phases walk
+  already knows *unfed*)
+- **N-1 enumeration and restoration ranking** — for each sectionalising
+  device, substation transformer or feeder breaker: take it out, close the
+  best tie, solve, record worst voltage, worst loading and unserved load
+  (the EnergyMeter's EEN/UE registers); a ranked table and an overlay of
+  what can be restored and what cannot
+- **Transfer capability** — for each tie, the kW it can carry at the
+  emergency rating before a criterion binds, which is M13's load hosting
+  loop at a tie
+- **Volt/VAR setting sweeps** — a grid of regulator setpoint × bandwidth
+  (or LDC R × X) and capacitor settings run over a day or a year,
+  tabulating losses, voltage range, operations and violations
+- **CVR evaluation** — paired runs at normal and reduced setpoint with
+  loads on the CVR models, reporting energy saved, CVR factor and the
+  lowest customer voltage
+- **Capacitor placement** — rank candidate buses by loss reduction and
+  voltage lift for a bank size, by greedy search over M13's sensitivities
+- **Phase balancing** — unbalance % at the feeder head and each device
+  (NEMA and IEEE definitions, as a column everywhere per-phase voltages
+  are shown), a ranked list of single-phase laterals to re-pin with the
+  predicted unbalance after the swap, and *apply* that re-pins and re-solves
+- **Loss evaluation and capacity** — yearly technical losses by element
+  class with a cost line, and the engine's `Capacity` search (the load
+  multiplier at which EEN/UE begin) as a report row
+- **Reconfiguration suggestions** (later in the milestone) — the open-point
+  set that minimises losses or balances feeders, by branch exchange over
+  the tie set
+
+## M15 — Model quality, libraries and the secondary
+
+The model a planner will sign (`PLANNING_AUDIT.md` §2.6, §2.12, §2.13).
+Runs alongside M13–M14 because it is mostly schema and import work.
+
+- **Equipment libraries** — conductors (`WireData`, `CNData`, `TSData`)
+  and pole/trench configurations (`LineGeometry`) editable in the app and
+  shared across projects, with a starter library of standard ACSR/AAC
+  conductors and common cables; transformer and regulator catalogue
+  entries (impedance, losses, ratings) so a unit is picked, not typed.
+  Today only a geometry's computed matrix survives import. Imperial and
+  metric throughout, including the report
+- **Model QA report** — one click, beyond the live validation: missing
+  ratings and impedances, lengths implausible for the voltage class, loads
+  with no customers or kV, voltage bases matching no winding, loops in a
+  radial feeder, open points with no tie, phasing conflicts, orphan
+  passthrough references; a completeness score per class and a CSV. The
+  first thing a utility runs on a converted model
+- **Load classes** — residential/commercial/industrial or the utility's
+  own, used by allocation, adoption scenarios, growth and reports
+- **Service transformers and secondaries** — a split-phase 120/240 V
+  centre-tapped transformer symbol (the single-phase three-winding form),
+  secondary conductors, loads at 120/240 V, a **transformer load
+  management** table (peak loading, hours over rating, IEEE C57.91 loss
+  of life per unit) and a secondary voltage check against 114 V at the
+  meter. The electrification question is asked here, not on the primary
+- **Distributed load along a section** — CYME and Synergi spread load
+  along a line and OpenDSS cannot; the converter and importer split the
+  line or place the equivalent at one-third/two-thirds, and say which
+- **Growth and adoption scenarios** — `GrowthShape` per load or class and
+  a study-year selector on M12's scenarios; EV, heat-pump and PV adoption
+  rates by class or zone drawn at random with a seed, shapes attached (EV
+  charging shapes from user CSV or a public source), run as QSTS over
+  several draws with the spread reported
+- **Load allocation and calibration** — billing kWh or AMI interval kW
+  per customer or per service transformer, matched by transformer ID,
+  meter ID or coordinates in a mapping dialog (the GIS import dialog is
+  the pattern); kWh to kW by class load factor or profile; the engine's
+  `AllocateLoads` against feeder-head `Sensor`/`EnergyMeter` readings;
+  AMI intervals become loadshapes directly; a report of the allocation
+  and the mismatch to SCADA. Every incumbent has this and without it a
+  model is nameplate
+- **Audit trail** — who changed what and when at element level, saved
+  with the project and printable, built on M12's scenario deltas
+
+## M16 — Protection and reliability depth
+
+What the protection engineer and the reliability analyst ask for after M6
+and M10 (`PLANNING_AUDIT.md` §2.9, §2.10).
+
+- **Fault anywhere on a line** — a sliding fault at a chosen distance
+  (the line split in the compiled model only) with the current seen by
+  every upstream device
+- **Reach and fuse-saving** — minimum fault at the end of each device's
+  zone against its pickup, with and without DER; fuse-saving versus
+  fuse-blowing evaluation for recloser–fuse pairs (fast curve clears before
+  the fuse's minimum melt at maximum fault, delayed curve after total clear
+  at minimum fault)
+- **Sectionalizers, sequences and ratings** — `Sectionalizer`, recloser
+  shots and reclose intervals, continuous and interrupting ratings on
+  fuses and reclosers, not only breakers
+- **Settings sheet** — per-device settings in the report as a relay
+  technician reads them: pickup in primary amps and multiples, curve, time
+  dial, instantaneous
+- **Reliability indices** — MAIFI from recloser fast operations and
+  `pctperm`, ASAI, CEMI/CELID, load-weighted ASIFI, and outage cost by
+  customer class
+- **Device placement what-if** — a loop over candidate recloser or
+  automated-switch locations ranked by ΔSAIDI per device, through the
+  scenario manager; the number that justifies the spend
+
+## M17 — Interoperability and power quality
+
+- **CIM import, then export** — IEC 61968-13 CDPSM / CIM100 RDF/XML, the
+  exchange format large utilities and both Synergi and CYME support; the
+  grid-data-models fork under the converter has a reader to build on
+- **MultiSpeak** — the co-op standard WindMil and most co-op GIS/CIS
+  speak; the route to that market without reverse-engineering WindMil
+  files. **WindMil reader** and **ETAP/SKM** stay as noted under M11
+- **Results to GIS** — every study result as GeoJSON/shapefile/CSV keyed
+  by element, and KML, so hosting capacity, voltage and loading publish in
+  the utility's GIS; result legends, click-to-table and layer export on
+  the map
+- **Documented Python API and CLI** — the study library of M12 as the
+  public surface (`opendss_designer.studies`), `opendss-designer run
+  <project> --study …` headless, and OpenAPI docs for the REST routes;
+  matches CYME's CymPy and Synergi's automation
+- **Harmonics** — `mode=harmonics` with a `Spectrum` library, THD per bus
+  against IEEE 519, a report section; last because planning studies come
+  first and users rarely have spectra
+- **Flicker and rapid voltage change** — ΔV from paired solves for motor
+  starting and PV transients against IEEE 1453 / 1547 §4.7, reusing M13's
+  trip test
+
+## M18 — Team-scale modeling
 
 Where a utility could standardise on it — and where support and liability become
 the real questions, not features.
 
-- **Load allocation from billing kWh or AMI data** — OpenDSS's own
-  `AllocateLoads` works off `EnergyMeter` readings and per-load allocation
-  factors, so the engine side largely exists; the work is the data pipeline and
-  the UI for mapping meter data onto loads. Every incumbent has this (CYME's
-  state estimator, Synergi's AMI and customer-management modules) and without it
-  a model cannot be made to match measurements
-- **Documented Python API** — `OpenDSSDirect.py` is already underneath; what is
-  missing is a stable, documented surface for scripted runs, matching CYME's
-  CymPy and Synergi's COM automation
+- **Multi-project and versioning** — open two projects, compare across
+  them, keep history; the library is single-circuit today
 - **Shared model store, versions, review** — collides with this repo's rule that
   it has no user concept (see M8). It belongs in `opendss-designer-cloud` or a
   separate sync service, not here
+- **Methodology documents and support posture** — a page per study in
+  `docs/` with criteria, equations and limits and a validation page each;
+  a changelog that names schema changes; a saved-project migration path;
+  long-term support of the engine version the validation pages were run
+  with; printing a 10,000-element one-line in tiles with a key map
 
 ## Out of scope (decided 2026-09-11)
 
@@ -522,6 +743,16 @@ Recorded so they stop being reconsidered:
   wait until the single-circuit workflow is mature. Superseded by M12's scenario
   manager, which is the same need stated as a study rather than as a UI feature
 - **Explicit grounding elements** (`Reactor` to ground, grounding transformer symbols)
+- **Stochastic hosting capacity** (EPRI's original distributed-portfolio
+  method) — utilities report it mostly as a check on the node-by-node
+  result; add after M13 if a user asks
+- **Cost and NPV of alternatives** — unit costs on scenarios and a
+  present-value comparison; CYME sells it as a module, but every utility
+  has its own spreadsheet and model, so wait for a request
+- **Esri Utility Network / file geodatabase direct read** — needs GDAL or
+  the ArcGIS API; shapefile export from QGIS/ArcGIS covers it today
+- **Dynamics and motor starting in `mode=dynamics`** — outside planning;
+  the flicker check in M17 covers the voltage question
 - **Parking a wire mid-air** (an end connected to nothing) — considered alongside
   drag-to-re-route and declined: ReactFlow has no dangling edge, so it would need a
   placeholder node standing in for "not connected", and grab-and-drop makes the
