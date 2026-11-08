@@ -14,6 +14,7 @@ Modules:
 """
 from __future__ import annotations
 
+from .registry import STUDIES, run_study
 from .scenarios import apply_scenario, effective_circuit, level_named
 
-__all__ = ["apply_scenario", "effective_circuit", "level_named"]
+__all__ = ["STUDIES", "apply_scenario", "effective_circuit", "level_named", "run_study"]

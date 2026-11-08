@@ -38,7 +38,8 @@ from ..studies import voltvar as voltvar_study
 from ..studies import allocation as allocation_study
 from ..studies import secondary as secondary_study
 from ..studies import protection_depth as protection_depth_study
-from ..core import catalog, qa
+from ..core import catalog, cim, multispeak, qa
+from ..studies import harmonics as harmonics_study
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
@@ -846,3 +847,91 @@ def start_recloser_placement(req: RecloserPlacementRequest) -> dict:
     return _submit_study(
         "recloser-placement",
         lambda progress, cancel: protection_depth_study.recloser_placement(req.circuit, req.maxCandidates, progress, cancel))
+
+
+# --- M17: interoperability and power quality ------------------------------------
+
+class TextImportRequest(BaseModel):
+    files: list[DssFile]
+
+
+@router.post("/import/cim")
+def import_cim(req: TextImportRequest) -> dict:
+    """A CIM RDF/XML document (IEC 61968-13 / CIM100) onto the drawing."""
+    _check_import_size(req.files)
+    text = "\n".join(f.text for f in req.files)
+    try:
+        return cim.import_cim_text(text)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+    except (importer.ImportFailure, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"Could not read the CIM file: {exc}") from exc
+    except Exception as exc:  # a malformed XML document is bad input, not a bug
+        if exc.__class__.__name__ == "ParseError":
+            raise HTTPException(status_code=400, detail=f"Not well-formed XML: {exc}") from exc
+        raise
+
+
+@router.post("/import/multispeak")
+def import_multispeak(req: TextImportRequest) -> dict:
+    """A MultiSpeak network model (XML) onto the drawing."""
+    _check_import_size(req.files)
+    text = "\n".join(f.text for f in req.files)
+    try:
+        return multispeak.import_multispeak_text(text)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+    except (importer.ImportFailure, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"Could not read the MultiSpeak file: {exc}") from exc
+    except Exception as exc:
+        if exc.__class__.__name__ == "ParseError":
+            raise HTTPException(status_code=400, detail=f"Not well-formed XML: {exc}") from exc
+        raise
+
+
+@router.post("/export/cim", response_class=PlainTextResponse)
+def export_cim(circuit: Circuit) -> str:
+    return cim.circuit_to_cim(circuit)
+
+
+class HarmonicsRequest(BaseModel):
+    circuit: Circuit
+    orders: list[int] | None = None
+    thdLimit: float = 5.0
+    individualLimit: float = 3.0
+
+
+@router.post("/jobs/harmonics")
+def start_harmonics(req: HarmonicsRequest) -> dict:
+    _study_cap(1 + len(req.orders or harmonics_study.DEFAULT_ORDERS))
+    return _submit_study(
+        "harmonics",
+        lambda progress, cancel: harmonics_study.harmonics(
+            req.circuit, req.orders, req.thdLimit, req.individualLimit, progress, cancel))
+
+
+class RvcRequest(BaseModel):
+    circuit: Circuit
+    bus: str = ""
+    kind: Literal["motorStart", "derTrip"] = "motorStart"
+    kva: float = 500.0
+    pf: float = 0.3
+    lrcMultiple: float = 6.0
+    limitPct: float = 3.0
+    derId: str | None = None
+
+
+@router.post("/rvc")
+def rvc(req: RvcRequest) -> dict:
+    try:
+        return harmonics_study.rapid_voltage_change(
+            req.circuit, req.bus, req.kind, req.kva, req.pf, req.lrcMultiple, req.limitPct, req.derId)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+@router.get("/studies")
+def list_studies() -> dict:
+    """Every study by name, as `opendss-designer run` and scripts see them."""
+    from ..studies.registry import STUDIES
+    return {"studies": [{"name": k, "help": v[0]} for k, v in STUDIES.items()]}

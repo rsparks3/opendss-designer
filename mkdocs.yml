@@ -47,6 +47,8 @@ nav:
   - Planning studies: studies.md
   - Model quality and libraries: model.md
   - Protection and reliability depth: protection.md
+  - Interoperability and power quality: interop.md
+  - Python API and command line: api.md
   - Importing models: importing-dss.md
   - The map: map.md
   - Validation: validation.md

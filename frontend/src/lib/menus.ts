@@ -3,8 +3,10 @@ import {
   chooseOverlay,
   cleanUp,
   elkCleanUp,
+  exportCim,
   exportDss,
   exportImage,
+  importXml,
   fitView,
   importConverted,
   importDss,
@@ -21,6 +23,7 @@ import { hasElements, NODE_SIZE } from './defaults'
 import type { AppNode } from '../store/circuitStore'
 import { runSolve } from './solve'
 import { runBatch } from './batch'
+import { exportResultsToGis } from './resultsGis'
 import { DEFAULT_HC_OPTIONS, runHostingCapacity } from './hostingCapacity'
 import { levelNamed } from './scenarios'
 import { redo, undo, useCircuitStore } from '../store/circuitStore'
@@ -213,6 +216,12 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
           item('GIS layers or CSV tables…', () => ui.openDialog('gis'), {
             title: 'Shapefiles, GeoJSON or CSV: map each layer to an element class and its columns to properties',
           }),
+          item('CIM (IEC 61968-13 RDF/XML)…', () => void importXml('cim'), {
+            title: 'A CIM100 / CDPSM document: lines, transformers, switches, loads, capacitors, DER, coordinates',
+          }),
+          item('MultiSpeak network model…', () => void importXml('multispeak'), {
+            title: 'The co-op GIS exchange: sections, transformers, devices, capacitors, meters',
+          }),
           sep,
           ...importFrom(convert),
         ],
@@ -239,6 +248,16 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
         kind: 'sub',
         label: 'Export',
         items: [
+          item('CIM (RDF/XML)', () => void exportCim(), { title: 'The circuit as a CIM100 document for a CIM tool', disabled: empty }),
+          {
+            kind: 'sub',
+            label: 'Results to GIS',
+            items: [
+              item('GeoJSON', () => void exportResultsToGis('geojson'), { title: 'Buses as points and lines along their routes, with voltage, loading, hosting capacity and reliability' }),
+              item('CSV', () => void exportResultsToGis('csv')),
+              item('KML', () => void exportResultsToGis('kml'), { title: 'For Google Earth; expects WGS84 coordinates' }),
+            ],
+          },
           item('Study report…', () => ui.openDialog('report'), {
             keys: 'Mod+Shift+E',
             title: 'A PDF or Excel report of the load flow, short circuit and protection studies, with the one-line',

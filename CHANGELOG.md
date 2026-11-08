@@ -135,6 +135,24 @@ This project follows [Semantic Versioning](https://semver.org/).
   **settings sheet**.
 - **Reliability indices**: MAIFI, ASAI, CEMI₁/₂/₃/₅, ASIFI and the customer
   interruption cost by class, in the Reliability tab and the report.
+- **CIM import and export** (IEC 61968-13 / CIM100 RDF/XML): lines and
+  per-length impedances, transformers in the end and tank forms with tap
+  changers, switches and protective devices, loads and their phases,
+  sources, capacitors, PV, batteries and machines, coordinates. **File →
+  Import from → CIM…** and **File → Export → CIM**.
+- **MultiSpeak network model import** (the co-op GIS exchange): line
+  sections by section and parent id, transformer banks, devices,
+  capacitors, meters, GPS coordinates. Written from the specification and
+  checked against a synthetic sample; a real export is wanted.
+- **Results to GIS**: **File → Export → Results to GIS** writes every bus
+  and line with coordinates and the last results (voltage, loading,
+  hosting capacity, reliability section, phases) as GeoJSON, CSV or KML.
+- **Power quality** in the Studies tab: harmonic distortion at every bus
+  (THD and the worst harmonic against IEEE 519) and the rapid voltage
+  change of a motor start or a DER trip.
+- **`opendss-designer run`** and `opendss_designer.studies.run_study`: every
+  study by name, headless, on a saved project or a `.dss` file; `GET
+  /api/studies` lists them. `docs/api.md`, `docs/interop.md`.
 - A `studies` package (`opendss_designer.studies`) and background jobs
   (`core/jobs.py`) for the planning studies to come; the demo and hosted
   plans gain a `maxStudySolves` limit.

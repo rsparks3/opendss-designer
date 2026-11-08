@@ -837,6 +837,36 @@ export interface RecloserPlacementResult {
   issues: Issue[]
 }
 
+export interface HarmonicsResult {
+  converged: boolean
+  cancelled: boolean
+  orders: number[]
+  limits: { thdPct: number; individualPct: number }
+  buses: Record<string, { thdPct: number; worstHarmonic: number | null; worstPct: number; spectrum: Record<string, number>; over: boolean }>
+  summary: { buses: number; overLimit: number; worstThdPct: number; worstBus: string | null }
+  loadLevel: LoadLevelJSON
+  issues: Issue[]
+  nodeBuses: Record<string, string[]>
+  busNames: Record<string, string>
+}
+
+export interface RvcResult {
+  converged: boolean
+  kind: 'motorStart' | 'derTrip'
+  bus: string
+  label: string
+  stepAtBusPct: number | null
+  worstStepPct: number | null
+  worstBus: string | null
+  limitPct: number
+  pass: boolean | null
+  steps: Record<string, number>
+  busesOver: number
+  issues: Issue[]
+  nodeBuses: Record<string, string[]>
+  busNames: Record<string, string>
+}
+
 /** One protection section of the reliability study: the branches from a
  *  fuse, recloser or relay down to the next one. A fault anywhere in it
  *  interrupts every customer downstream of its head. */

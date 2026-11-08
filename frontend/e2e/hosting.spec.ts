@@ -65,3 +65,12 @@ test('the Protection study checks reach and grades the fuse pair', async ({ page
   await page.getByRole('button', { name: 'Grade every recloser–fuse pair' }).click()
   await expect(page.locator('.study')).toContainText('Fuse saving', { timeout: 30_000 })
 })
+
+test('the Power quality study reports harmonic distortion', async ({ page }) => {
+  await open(page)
+  await page.locator('.bp-header').getByRole('button', { name: 'Studies', exact: true }).click()
+  await page.locator('.studies-side').getByRole('button', { name: 'Power quality' }).click()
+  await page.getByRole('button', { name: 'Run the harmonic study' }).click()
+  await expect(page.locator('.study table tbody tr').first()).toBeVisible({ timeout: 60_000 })
+  await expect(page.locator('.study .reliability-index').first()).toContainText('buses')
+})

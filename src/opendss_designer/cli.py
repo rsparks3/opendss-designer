@@ -37,7 +37,7 @@ def _open_when_ready(url: str) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="opendss-designer",
-        description="One-line diagram designer for OpenDSS")
+        description="One-line diagram designer for OpenDSS (also: opendss-designer run --list)")
     parser.add_argument("--port", type=int, default=None,
                         help=f"port to bind (default {DEFAULT_PORT}, or $PORT)")
     parser.add_argument("--host", default=None,
@@ -73,7 +73,74 @@ def _report_frontend_build() -> None:
     print(f"  frontend build {name}  ({built})")
 
 
+def run_main(argv: list[str]) -> int:
+    """`opendss-designer run <project> --study <name> [--study ...] [--out file]`:
+    the studies headless, on a saved project (.oneline.json) or a .dss
+    file, writing one JSON object keyed by study name. `--list` names the
+    studies. Options for a study go in `--options '{"hosting-capacity":
+    {"method": "sensitivity"}}'`, or without the outer key when there is
+    one study."""
+    import json
+    import sys
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(prog="opendss-designer run",
+                                     description="Run planning studies on a saved project without the browser")
+    parser.add_argument("project", nargs="?", help="a .oneline.json project, or a .dss file")
+    parser.add_argument("--study", action="append", default=[], metavar="NAME",
+                        help="a study to run (repeatable); see --list")
+    parser.add_argument("--options", default=None, metavar="JSON",
+                        help="options as JSON, keyed by study name (or flat for one study)")
+    parser.add_argument("--scenario", default=None, help="run the named scenario id instead of the open one")
+    parser.add_argument("--level", default=None, help="run at the named load level")
+    parser.add_argument("--out", default=None, metavar="FILE", help="write the JSON here (default: stdout)")
+    parser.add_argument("--list", action="store_true", help="list the studies and exit")
+    args = parser.parse_args(argv)
+
+    from .studies.registry import STUDIES, run_study
+
+    if args.list:
+        width = max(len(k) for k in STUDIES)
+        for name, (help_text, _fn) in STUDIES.items():
+            print(f"  {name.ljust(width)}  {help_text}")
+        return 0
+    if not args.project or not args.study:
+        parser.error("a project and at least one --study are needed (or --list)")
+    from .core.model import Circuit
+
+    path = Path(args.project)
+    text = path.read_text(encoding="utf-8")
+    if path.suffix.lower() == ".dss":
+        from .core.importer import import_dss_files
+        circuit = Circuit.model_validate(import_dss_files([{"name": path.name, "text": text}])["circuit"])
+    else:
+        circuit = Circuit.model_validate(json.loads(text))
+    if args.scenario is not None:
+        circuit = circuit.model_copy(update={"activeScenario": args.scenario or None})
+    if args.level is not None:
+        circuit = circuit.model_copy(update={"activeLevel": args.level or None})
+    options = json.loads(args.options) if args.options else {}
+    results: dict[str, object] = {}
+    for name in args.study:
+        if name not in STUDIES:
+            print(f"unknown study {name!r}; see --list", file=sys.stderr)
+            return 2
+        opts = options.get(name, options if len(args.study) == 1 and not any(k in STUDIES for k in options) else {})
+        results[name] = run_study(name, circuit, opts if isinstance(opts, dict) else {})
+    out = json.dumps(results, indent=1, default=str)
+    if args.out:
+        Path(args.out).write_text(out, encoding="utf-8")
+        print(f"wrote {args.out}")
+    else:
+        print(out)
+    return 0
+
+
 def main() -> None:
+    import sys
+
+    if sys.argv[1:2] == ["run"]:
+        raise SystemExit(run_main(sys.argv[2:]))
     args = build_parser().parse_args()
 
     # Flags are setters over the environment: uvicorn is given an import

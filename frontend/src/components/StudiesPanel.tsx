@@ -15,8 +15,9 @@ import type {
 import { HostingCapacityPanel } from './HostingCapacityPanel'
 import { QaPanel, TlmPanel } from './ModelPanels'
 import { ProtectionPanel } from './ProtectionPanel'
+import { PowerQualityPanel } from './PowerQualityPanel'
 
-type Study = 'qa' | 'hosting' | 'contingency' | 'voltvar' | 'balance' | 'capacity' | 'tlm' | 'protection'
+type Study = 'qa' | 'hosting' | 'contingency' | 'voltvar' | 'balance' | 'capacity' | 'tlm' | 'protection' | 'pq'
 
 const STUDIES: { key: Study; label: string; help: string }[] = [
   { key: 'qa', label: 'Model QA', help: 'Completeness and the things to fix before a study' },
@@ -27,6 +28,7 @@ const STUDIES: { key: Study; label: string; help: string }[] = [
   { key: 'capacity', label: 'Losses & capacity', help: 'Losses by class over a day or a year, and the load the feeder can take' },
   { key: 'tlm', label: 'Service transformers', help: 'Loading and loss of life of every service transformer, and the voltage at the meter' },
   { key: 'protection', label: 'Protection', help: 'Reach, fuse saving, a fault anywhere on a line, where a recloser helps most' },
+  { key: 'pq', label: 'Power quality', help: 'Harmonic distortion at every bus; the voltage step of a motor start or a DER trip' },
 ]
 
 /** The Studies tab: one study at a time, picked on the left. */
@@ -46,6 +48,7 @@ export function StudiesPanel() {
         {study === 'hosting' && <HostingCapacityPanel />}
         {study === 'tlm' && <TlmPanel />}
         {study === 'protection' && <ProtectionPanel />}
+        {study === 'pq' && <PowerQualityPanel />}
         {study === 'contingency' && <ContingencyPanel />}
         {study === 'voltvar' && <VoltVarPanel />}
         {study === 'balance' && <BalancePanel />}

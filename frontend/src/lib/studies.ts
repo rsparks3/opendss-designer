@@ -76,6 +76,8 @@ export const LABELS: Record<StudyKey, string> = {
   reach: 'Reach',
   fusesaving: 'Fuse saving',
   recplacement: 'Recloser placement',
+  harmonics: 'Harmonics',
+  rvc: 'Rapid voltage change',
 }
 
 export const fmtKw = (kw: number | null | undefined) =>

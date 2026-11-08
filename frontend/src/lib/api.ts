@@ -175,6 +175,8 @@ export const api = {
 
   importDss: (files: { name: string; text: string }[]) =>
     post<ImportResult>('/api/import/dss', { files }),
+  importCim: (files: { name: string; text: string }[]) => post<ImportResult>('/api/import/cim', { files }),
+  importMultispeak: (files: { name: string; text: string }[]) => post<ImportResult>('/api/import/multispeak', { files }),
 
   /** Formats the optional converter plugin reads (CYME, Synergi). */
   convertFormats: async (): Promise<ConvertFormats> => {

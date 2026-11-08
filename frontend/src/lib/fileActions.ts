@@ -253,6 +253,38 @@ export async function importDss(fileList?: File[]) {
   }
 }
 
+/** A CIM RDF/XML or MultiSpeak network-model file onto the canvas. */
+export async function importXml(kind: 'cim' | 'multispeak', fileList?: File[]) {
+  const files = fileList ?? (await pickFiles('.xml,.rdf', true))
+  if (!files.length) return
+  const oversize = tooBig(files, MAX_DSS_BYTES)
+  if (oversize) {
+    flash(`Could not import: ${oversize}`)
+    return
+  }
+  try {
+    const texts = await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })))
+    loadImported(kind === 'cim' ? await api.importCim(texts) : await api.importMultispeak(texts))
+  } catch (err) {
+    flash(`Import failed: ${errText(err)}`, 'error', 8000)
+  }
+}
+
+/** The circuit as a CIM100 RDF/XML document. */
+export async function exportCim() {
+  try {
+    const res = await fetch('/api/export/cim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(circuit()),
+    })
+    if (!res.ok) throw new Error(`${res.status}`)
+    download(`${useCircuitStore.getState().name || 'circuit'}.cim.xml`, await res.text(), 'application/rdf+xml')
+  } catch (err) {
+    flash(`CIM export failed: ${errText(err)}`)
+  }
+}
+
 /** An imported circuit onto the canvas: laid out, loaded as a new
  *  document, and what the import had to say said once. */
 export function loadImported({ circuit: imported, unsupported, passthrough, warnings }: ImportResult) {

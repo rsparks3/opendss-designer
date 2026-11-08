@@ -682,26 +682,26 @@ and M10 (`PLANNING_AUDIT.md` §2.9, §2.10).
   automated-switch locations ranked by ΔSAIDI per device, through the
   scenario manager; the number that justifies the spend
 
-## M17 — Interoperability and power quality
+## M17 — Interoperability and power quality — ✅ DONE (2026-11-08)
 
-- **CIM import, then export** — IEC 61968-13 CDPSM / CIM100 RDF/XML, the
+- ~~**CIM import, then export**~~ — done 2026-11-08 (an own reader and writer in `core/cim.py` rather than the grid-data-models reader, which the converter plugin keeps): IEC 61968-13 CDPSM / CIM100 RDF/XML, the
   exchange format large utilities and both Synergi and CYME support; the
   grid-data-models fork under the converter has a reader to build on
-- **MultiSpeak** — the co-op standard WindMil and most co-op GIS/CIS
+- ~~**MultiSpeak**~~ — done 2026-11-08 from the specification, verified against a synthetic sample only; a real export is wanted: the co-op standard WindMil and most co-op GIS/CIS
   speak; the route to that market without reverse-engineering WindMil
   files. **WindMil reader** and **ETAP/SKM** stay as noted under M11
-- **Results to GIS** — every study result as GeoJSON/shapefile/CSV keyed
+- ~~**Results to GIS**~~ — done 2026-11-08 as GeoJSON, CSV and KML (a shapefile writer was not added: GeoJSON opens in every GIS and QGIS converts): every study result as GeoJSON/shapefile/CSV keyed
   by element, and KML, so hosting capacity, voltage and loading publish in
   the utility's GIS; result legends, click-to-table and layer export on
   the map
-- **Documented Python API and CLI** — the study library of M12 as the
+- ~~**Documented Python API and CLI**~~ — done 2026-11-08 (`studies.run_study`, `STUDIES`, `opendss-designer run`, `docs/api.md`): the study library of M12 as the
   public surface (`opendss_designer.studies`), `opendss-designer run
   <project> --study …` headless, and OpenAPI docs for the REST routes;
   matches CYME's CymPy and Synergi's automation
-- **Harmonics** — `mode=harmonics` with a `Spectrum` library, THD per bus
+- ~~**Harmonics**~~ — done 2026-11-08 (the engine's default spectra; a project spectrum library waits for a user with spectra): `mode=harmonics` with a `Spectrum` library, THD per bus
   against IEEE 519, a report section; last because planning studies come
   first and users rarely have spectra
-- **Flicker and rapid voltage change** — ΔV from paired solves for motor
+- ~~**Flicker and rapid voltage change**~~ — done 2026-11-08: ΔV from paired solves for motor
   starting and PV transients against IEEE 1453 / 1547 §4.7, reusing M13's
   trip test
 
