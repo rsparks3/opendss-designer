@@ -29,6 +29,15 @@ from ..core import (
 from ..core.jobs import jobs
 from ..studies import batch as batch_study
 from ..studies import hosting_capacity as hc_study
+from ..studies import faults as fault_study_mod
+from ..studies import screening as screening_study
+from ..studies import balancing as balancing_study
+from ..studies import capacity as capacity_study
+from ..studies import contingency as contingency_study
+from ..studies import voltvar as voltvar_study
+from ..studies import allocation as allocation_study
+from ..studies import secondary as secondary_study
+from ..core import catalog, qa
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
@@ -548,3 +557,232 @@ def start_hosting_capacity(req: HostingCapacityRequest) -> dict:
         "hosting-capacity",
         lambda progress, cancel: hc_study.hosting_capacity(
             req.circuit, req.options, progress, cancel))
+
+
+class FaultPointRequest(BaseModel):
+    circuit: Circuit
+    bus: str
+    kind: Literal["3ph", "lg", "ll", "llg"] = "3ph"
+    rOhm: float = 0.0
+    phase: int | None = None
+
+
+@router.post("/faultpoint")
+def fault_point(req: FaultPointRequest) -> dict:
+    """One fault of a chosen kind and resistance at one bus: the current in
+    the fault, what every series element carries, the voltages meanwhile."""
+    try:
+        return fault_study_mod.fault_point(req.circuit, req.bus, req.kind, req.rOhm, req.phase)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+class FaultSweepRequest(BaseModel):
+    circuit: Circuit
+    rOhm: float = 0.0
+
+
+@router.post("/jobs/fault-sweep")
+def start_fault_sweep(req: FaultSweepRequest) -> dict:
+    """Maximum and minimum fault currents at every bus, as a job."""
+    _study_cap(2 * len(req.circuit.nodes) + 1)
+    return _submit_study(
+        "fault-sweep",
+        lambda progress, cancel: fault_study_mod.fault_sweep(req.circuit, req.rOhm, progress, cancel))
+
+
+class ScreenRequest(BaseModel):
+    circuit: Circuit
+    bus: str
+    options: dict | None = None
+
+
+@router.post("/screen")
+def screen_der(req: ScreenRequest) -> dict:
+    """The interconnection screens for one DER at a point of common coupling."""
+    try:
+        return screening_study.screen(req.circuit, req.bus, req.options)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+# --- M14: contingency, Volt/VAR, balancing, capacity ---------------------------
+
+class SwitchingRequest(BaseModel):
+    circuit: Circuit
+    steps: list[dict]
+
+
+@router.post("/switching")
+def switching(req: SwitchingRequest) -> dict:
+    """Open/close steps applied in order, each solved."""
+    try:
+        return contingency_study.switching_sequence(req.circuit, req.steps[:200])
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+class N1Request(BaseModel):
+    circuit: Circuit
+    options: dict | None = None
+
+
+@router.post("/jobs/n-minus-1")
+def start_n_minus_1(req: N1Request) -> dict:
+    _study_cap(contingency_study.estimate_n1_solves(req.circuit, req.options))
+    return _submit_study(
+        "n-minus-1",
+        lambda progress, cancel: contingency_study.n_minus_1(req.circuit, req.options, progress, cancel))
+
+
+class TransferRequest(BaseModel):
+    circuit: Circuit
+    tie: str
+    toleranceKw: float = 10.0
+
+
+@router.post("/transfer")
+def transfer(req: TransferRequest) -> dict:
+    try:
+        return contingency_study.transfer_capability(req.circuit, req.tie, req.toleranceKw)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+class SweepRequest(BaseModel):
+    circuit: Circuit
+    sweeps: list[dict]
+    stepMin: Literal[60, 15] = 60
+
+
+@router.post("/jobs/sweep")
+def start_sweep(req: SweepRequest) -> dict:
+    _study_cap(voltvar_study.estimate_sweep_solves(req.sweeps, req.stepMin))
+    return _submit_study(
+        "sweep",
+        lambda progress, cancel: voltvar_study.setting_sweep(req.circuit, req.sweeps, req.stepMin, progress, cancel))
+
+
+class CvrRequest(BaseModel):
+    circuit: Circuit
+    reductionV: float = 2.0
+    stepMin: Literal[60, 15] = 60
+
+
+@router.post("/cvr")
+def cvr(req: CvrRequest) -> dict:
+    try:
+        return voltvar_study.cvr(req.circuit, req.reductionV, req.stepMin)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+class PlacementRequest(BaseModel):
+    circuit: Circuit
+    kvar: float = 600.0
+    banks: int = 1
+    buses: list[str] | None = None
+    minKv: float = 1.0
+
+
+@router.post("/jobs/capacitor-placement")
+def start_placement(req: PlacementRequest) -> dict:
+    _study_cap(max(1, req.banks) * (len(req.buses) if req.buses else len(req.circuit.nodes)))
+    return _submit_study(
+        "capacitor-placement",
+        lambda progress, cancel: voltvar_study.capacitor_placement(
+            req.circuit, req.kvar, req.banks, req.buses, req.minKv, progress, cancel))
+
+
+class BalanceRequest(BaseModel):
+    circuit: Circuit
+    maxCandidates: int = 40
+
+
+@router.post("/jobs/phase-balance")
+def start_phase_balance(req: BalanceRequest) -> dict:
+    _study_cap(1 + 2 * max(1, req.maxCandidates))
+    return _submit_study(
+        "phase-balance",
+        lambda progress, cancel: balancing_study.phase_balance(req.circuit, req.maxCandidates, progress, cancel))
+
+
+class LossRequest(BaseModel):
+    circuit: Circuit
+    mode: Literal["daily", "yearly"] = "daily"
+    stepMin: Literal[60, 15] = 60
+    pricePerKwh: float = 0.0
+
+
+@router.post("/jobs/loss-evaluation")
+def start_loss_evaluation(req: LossRequest) -> dict:
+    _study_cap((24 if req.mode == "daily" else 8760) * 60 // req.stepMin)
+    return _submit_study(
+        "loss-evaluation",
+        lambda progress, cancel: capacity_study.loss_evaluation(
+            req.circuit, req.mode, req.stepMin, req.pricePerKwh, progress, cancel))
+
+
+class CapacityRequest(BaseModel):
+    circuit: Circuit
+    maxMult: float = 10.0
+
+
+@router.post("/capacity")
+def capacity_route(req: CapacityRequest) -> dict:
+    try:
+        return capacity_study.capacity_search(req.circuit, req.maxMult)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+# --- M15: model quality, catalogues, the secondary, allocation ------------------
+
+class QaRequest(BaseModel):
+    circuit: Circuit
+
+
+@router.post("/qa")
+def model_qa(req: QaRequest) -> dict:
+    """The one-click model check: findings and a completeness table."""
+    return qa.qa_report(req.circuit)
+
+
+@router.get("/catalog/wires")
+def catalog_wires() -> dict:
+    return catalog.load_wires()
+
+
+@router.get("/catalog/transformers")
+def catalog_transformers() -> dict:
+    return catalog.load_transformers()
+
+
+class TlmRequest(BaseModel):
+    circuit: Circuit
+    mode: Literal["daily", "yearly"] = "daily"
+    stepMin: Literal[60, 15] = 60
+    ambientC: float = 30.0
+
+
+@router.post("/jobs/transformer-loading")
+def start_transformer_loading(req: TlmRequest) -> dict:
+    _study_cap((24 if req.mode == "daily" else 8760) * 60 // req.stepMin)
+    return _submit_study(
+        "transformer-loading",
+        lambda progress, cancel: secondary_study.transformer_loading(
+            req.circuit, req.mode, req.stepMin, req.ambientC, progress, cancel))
+
+
+class AllocateRequest(BaseModel):
+    circuit: Circuit
+    rows: list[dict]
+    options: dict | None = None
+
+
+@router.post("/allocate")
+def allocate_loads(req: AllocateRequest) -> dict:
+    try:
+        return allocation_study.allocate(req.circuit, req.rows[:20000], req.options)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc

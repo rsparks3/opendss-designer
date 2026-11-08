@@ -222,10 +222,12 @@ kbd {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 6px 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
 }
 .app-title { font-weight: 700; font-size: 15px; margin-right: 6px; }
 .circuit-name {
@@ -1696,7 +1698,7 @@ kbd {
 .compare-panel { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
 .compare-panel tr.violation td { color: var(--err, #c62828); }
 .tb-planning { gap: 4px; }
-.tb-level { font: inherit; font-size: 12px; max-width: 170px; }
+.tb-level { font: inherit; font-size: 12px; max-width: 170px; height: 28px; padding: 0 4px; box-sizing: border-box; }
 .tb-scenario-on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .levels-table input, .levels-table select { width: 100%; box-sizing: border-box; font: inherit; font-size: 12px; }
 .levels-table td:nth-child(2) { width: 110px; }
@@ -1711,3 +1713,36 @@ kbd {
 .hosting-num { width: 62px; margin-left: 4px; }
 .hosting-num.wide { width: 80px; }
 .hosting-hours { width: 220px; margin-left: 4px; }
+
+/* --- Interconnection screening (M13) ------------------------------------- */
+.screen-result { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.screen-outcome { font-weight: 600; padding: 6px 8px; border-radius: 4px; background: color-mix(in srgb, #2e7d32 14%, transparent); }
+.screen-outcome.supplemental { background: color-mix(in srgb, #ed6c02 16%, transparent); }
+.screen-outcome.fail { background: color-mix(in srgb, #d32f2f 14%, transparent); }
+.screen-result tr.violation td { color: var(--err, #c62828); }
+
+/* --- Studies tab (M14) --------------------------------------------------------- */
+.studies-panel { display: flex; gap: 12px; padding: 8px; align-items: flex-start; min-height: 100%; }
+.studies-side { flex: 0 0 170px; display: flex; flex-direction: column; gap: 4px; }
+.studies-main { flex: 1 1 auto; min-width: 0; }
+.studies-main .hosting-panel { padding: 0; }
+.study { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; }
+.study select, .study input { font: inherit; font-size: 12px; }
+.study tr.warning td { background: color-mix(in srgb, #ffb300 12%, transparent); }
+
+/* The level and scenario pickers need room; on a narrow window they live
+   in the Scenarios tab and the Analysis menu instead, and the toolbar
+   keeps its one row without a scrollbar. */
+@media (max-width: 1450px) {
+  .tb-planning { display: none; }
+}
+
+/* --- M15: geometries, change log, dialogs --------------------------------- */
+.geometry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 14px; margin-bottom: 8px; }
+.geometry-table input, .geometry-table select { font: inherit; font-size: 12px; width: 100%; box-sizing: border-box; }
+.history-list { list-style: none; margin: 4px 0; padding: 0; max-height: 200px; overflow: auto; font-size: 12px; }
+.history-list li { padding: 2px 0; border-bottom: 1px solid var(--border); }
+.alloc-text { width: 100%; min-height: 120px; font-family: ui-monospace, monospace; font-size: 12px; box-sizing: border-box; }
+.alloc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 12px; margin: 8px 0; }
+.alloc-grid label { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; }
+.alloc-grid input, .alloc-grid select { font: inherit; font-size: 12px; }

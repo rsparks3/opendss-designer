@@ -18,7 +18,7 @@ from .connectivity import (
     synthesize,
     terminal_key,
 )
-from .model import ANNOTATION_TYPES, Circuit, Issue, LineCodeSpec, in_service
+from .model import ANNOTATION_TYPES, Circuit, Issue, LineCodeSpec, LineGeometrySpec, in_service
 from .phasing import nodes_for, phase_count
 from .scenarios import apply_scenario
 
@@ -212,6 +212,42 @@ def _winding_resistance(windings: list, loadloss: float) -> str:
             return f"%loadloss={loadloss:g}"
         rs.append(float(v))
     return "%rs=(" + ", ".join(f"{r:g}" for r in rs) + ")"
+
+
+def _split_phase_transformer(n, name: str, windings: list, buses: list[str], p: dict,
+                             kv_bases: set[float], cmds: list[str]) -> None:
+    """A 120/240 V centre-tapped service transformer: the engine's
+    single-phase three-winding form, primary on one phase, the two
+    secondary half-windings between leg 1 and the centre tap and the
+    centre tap and leg 2 (`lv.1.0` and `lv.0.2`). Kersting's interlaced
+    model splits the impedance as Z_H = 0.5R + j0.8X and Z_L1 = Z_L2 =
+    R + j0.4X, which gives XHL = XHT = 1.2X, XLT = 0.8X and %r of
+    [0.5R, R, R]. Downstream, a 120 V load pins to A (leg 1) or B (leg 2)
+    and a 240 V load takes both."""
+    hv = windings[0] if windings else {"kv": 7.2, "kva": 25, "conn": "wye"}
+    lv = windings[1] if len(windings) > 1 else {"kv": 0.12, "kva": hv.get("kva", 25), "conn": "wye"}
+    kv_hv = float(hv.get("kv", 7.2))
+    kva = float(hv.get("kva", 25))
+    kv_lv = float(lv.get("kv", 0.12))
+    # The secondary winding is rated per half (120 V); a file that says 0.24
+    # means the whole 240 V secondary.
+    if kv_lv > 0.2:
+        kv_lv = kv_lv / 2
+    x = _num(p, "xhl", 2.0)
+    r_total = _num(p, "pctloadloss", 1.2)
+    hv_sfx = _bus_suffix(p.get("busNodes", [None])[0] if isinstance(p.get("busNodes"), list) and p.get("busNodes") else None,
+                         1, p.get("phasing"))
+    hv_conn = _enum(hv if isinstance(hv, dict) else {}, "conn", CONN_TYPES, "wye")
+    kv_bases.add(kv_hv if hv_conn == "delta" else round(kv_hv * 3 ** 0.5, 6))
+    kv_bases.add(0.208)  # 120 V line-to-neutral on the engine's base scale
+    cmds.append(
+        f"new transformer.{name} phases=1 windings=3 "
+        f"buses=({buses[0]}{hv_sfx}, {buses[1]}.1.0, {buses[1]}.0.2) "
+        f"conns=({hv_conn}, wye, wye) kvs=({kv_hv:g}, {kv_lv:g}, {kv_lv:g}) "
+        f"kvas=({kva:g}, {kva:g}, {kva:g}) "
+        f"xhl={1.2 * x:.6g} xht={1.2 * x:.6g} xlt={0.8 * x:.6g} "
+        f"%rs=({0.5 * r_total:.6g}, {r_total:.6g}, {r_total:.6g})"
+        f"{_core_losses(p)}{_reliability(p)}{_emergency(p, 'transformer')}")
 
 
 def _regulator_reverse(p: dict) -> str:
@@ -618,6 +654,55 @@ def compile_circuit(circuit: Circuit,
         line_codes[code] = spec
         cmds.append(cmd)
 
+    # Conductors and the pole configurations that hang them. A geometry names
+    # wires, a line names a geometry, so the order is wires, geometries, lines.
+    wire_kind: dict[str, str] = {}
+    for key, spec in circuit.wireData.items():
+        wname = sanitize_name(key)
+        if not wname or wname in wire_kind:
+            if wname:
+                res.issues.append(Issue(severity="error", code="duplicate-name",
+                                        message=f"Two conductors share the name '{wname}'."))
+            continue
+        cls = {"wire": "wiredata", "cn": "cndata", "ts": "tsdata"}[spec.kind]
+        parts = [f"new {cls}.{wname}"]
+        for prop, value in (("rdc", spec.rdc), ("rac", spec.rac), ("gmrac", spec.gmr),
+                            ("radius", spec.radius), ("normamps", spec.normamps),
+                            ("emergamps", spec.emergamps)):
+            if value is not None and value > 0:
+                parts.append(f"{prop}={value:.6g}")
+        if spec.rdc is None and spec.rac is None:
+            res.issues.append(Issue(severity="warning", code="bad-wire",
+                                    message=f"Conductor '{key}' has no resistance; the engine's default is used."))
+        parts.append(f"runits={_enum({'u': spec.runits}, 'u', LINE_UNITS, 'mi')}")
+        parts.append(f"gmrunits={_enum({'u': spec.gmrunits}, 'u', LINE_UNITS, 'ft')}")
+        parts.append(f"radunits={_enum({'u': spec.radunits}, 'u', LINE_UNITS, 'in')}")
+        for prop, value in spec.extra.items():
+            if re.fullmatch(r"[a-z]+", str(prop)) and isinstance(value, (int, float)):
+                parts.append(f"{prop}={float(value):.6g}")
+        wire_kind[wname] = spec.kind
+        cmds.append(" ".join(parts))
+    geometries: set[str] = set()
+    for key, spec in circuit.lineGeometries.items():
+        gname = sanitize_name(key)
+        if not gname or gname in geometries:
+            continue
+        conds = spec.conductors[: max(1, int(spec.nconds))]
+        if len(conds) < int(spec.nconds) or any(sanitize_name(c.wire) not in wire_kind for c in conds):
+            res.issues.append(Issue(severity="error", code="bad-geometry",
+                                    message=f"Geometry '{key}' needs {spec.nconds} conductors, each naming a "
+                                            "conductor the circuit defines."))
+            continue
+        units = _enum({'u': spec.units}, 'u', LINE_UNITS, 'ft')
+        cmd = (f"new linegeometry.{gname} nconds={int(spec.nconds)} nphases={int(spec.nphases)} "
+               f"reduce={'yes' if spec.reduce else 'no'}")
+        for i, c in enumerate(conds, start=1):
+            w = sanitize_name(c.wire)
+            keyword = {"wire": "wire", "cn": "cncable", "ts": "tscable"}[wire_kind[w]]
+            cmd += f" cond={i} {keyword}={w} x={c.x:.6g} h={c.h:.6g} units={units}"
+        geometries.add(gname)
+        cmds.append(cmd)
+
     def curve_ref(p: dict, key: str, allowed: frozenset[str], default: str,
                   ref_id: str) -> str:
         """A curve name the engine will certainly hold: one of its built-ins,
@@ -663,6 +748,9 @@ def compile_circuit(circuit: Circuit,
             {"kv": 12.47, "kva": 10000, "conn": "wye"},
         ]
         buses = conn.node_buses[n.id]
+        if p.get("splitphase") is True and len(buses) >= 2:
+            _split_phase_transformer(n, name, windings, buses, p, kv_bases, cmds)
+            continue
         bus_nodes = p.get("busNodes") or []
         # A transformer is a phase boundary: the pin names the phase it taps
         # off the primary, and the secondary is a new bus whose phases start
@@ -755,7 +843,17 @@ def compile_circuit(circuit: Circuit,
         # letting the engine quietly resize a lateral.
         code = sanitize_name(str(p.get("linecode") or ""))
         spec = line_codes.get(code)
-        if spec is not None:
+        geometry = sanitize_name(str(p.get("geometry") or ""))
+        if geometry and geometry in geometries:
+            impedance = f"geometry={geometry}"
+            spec = None
+        elif geometry:
+            res.issues.append(Issue(
+                severity="error", code="bad-geometry",
+                message=f"Line '{name}' is on geometry '{geometry}', which this circuit does not define.",
+                edgeId=e.id))
+            impedance = f"linecode={code}" if spec is not None else "r1=0.12 x1=0.38 r0=0.4 x0=1.2"
+        elif spec is not None:
             impedance = f"linecode={code}"
         else:
             r1 = _num(p, "r1", 0.12)
@@ -768,6 +866,8 @@ def compile_circuit(circuit: Circuit,
         rating = ""
         if normamps is not None:
             rating = f" normamps={normamps:g}"
+        elif geometry and geometry in geometries:
+            pass  # the geometry's conductors carry their ampacity
         elif spec is None or not spec.normamps:
             rating = f" normamps={DEFAULT_LINE_NORMAMPS:g}"
             res.issues.append(Issue(

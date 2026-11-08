@@ -7,6 +7,8 @@ are the end-to-end proof; these are the edges.
 """
 from __future__ import annotations
 
+import pytest
+
 from opendss_designer.core import engine
 from opendss_designer.core.compiler import compile_circuit, export_dss
 from opendss_designer.core.importer import import_dss
@@ -171,12 +173,17 @@ def test_import_shares_one_code_between_lines_on_the_same_geometry():
     calcvoltagebases
     """
     back = Circuit.model_validate(import_dss(text)["circuit"])
-    assert set(back.lineCodes) == {"geom_hpole"}
-    spec = back.lineCodes["geom_hpole"]
-    assert spec.source == "geometry:hpole" and spec.units == "mi"
-    assert spec.rmatrix[0][0] > 0.3 and spec.rmatrix[0][1] > 0
-    assert all(e.params["linecode"] == "geom_hpole" for e in back.edges if e.type == "line")
-    # And the circuit solves on the copied matrix.
+    # Since M15 the geometry itself comes through, wires and all, and both
+    # lines point at it; no computed code is made for it.
+    assert back.lineCodes == {}
+    assert set(back.lineGeometries) == {"hpole"} and set(back.wireData) == {"acsr336"}
+    geom = back.lineGeometries["hpole"]
+    assert geom.nconds == 3 and geom.reduce is False and geom.units == "ft"
+    assert [c.wire for c in geom.conductors] == ["acsr336"] * 3 and geom.conductors[2].x == 4
+    assert back.wireData["acsr336"].gmr == pytest.approx(0.0244) and back.wireData["acsr336"].runits == "mi"
+    assert all(e.params["geometry"] == "hpole" and "linecode" not in e.params
+               for e in back.edges if e.type == "line")
+    # And the circuit solves on the geometry the engine rebuilds.
     assert engine.solve(back)["converged"]
 
 

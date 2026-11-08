@@ -5,7 +5,7 @@ import { SECTION_LABELS, type SectionKey } from '../lib/report/model'
 import { useResultsStore } from '../store/resultsStore'
 import { readFlag, useUiStore, writePref } from '../store/uiStore'
 
-const ORDER: SectionKey[] = ['loadflow', 'diagram', 'shortcircuit', 'protection', 'reliability', 'timeseries', 'comparison', 'batch', 'hosting']
+const ORDER: SectionKey[] = ['loadflow', 'diagram', 'shortcircuit', 'protection', 'reliability', 'timeseries', 'comparison', 'batch', 'hosting', 'screening', 'studies', 'history']
 
 const WHAT: Record<SectionKey, string> = {
   loadflow: 'Summary, abnormal conditions, bus voltages, branch flows, loads and generation, losses, voltage profile',
@@ -17,6 +17,9 @@ const WHAT: Record<SectionKey, string> = {
   comparison: 'This solve against the pinned baseline: every bus voltage and element loading that changed',
   batch: 'The batch matrix: every scenario at every load level, with the worst voltage, loading and violations of each',
   hosting: 'The last hosting-capacity run: method, criteria and limits, and the capacity and binding criterion at every bus',
+  screening: 'The last DER interconnection screening: the unit, the line section and every screen with its value, limit and result',
+  studies: 'Every planning study run in the Studies tab: N-1 contingency, transfer capability, setting sweeps, CVR, capacitor placement, phase balance, losses, capacity',
+  history: 'The change log: every parameter change, when, by whom, from what to what',
 }
 
 const FORMATS: [ReportFormat, string][] = [

@@ -10,6 +10,9 @@ import { FindDialog } from './FindDialog'
 import { GisImportDialog } from './GisImportDialog'
 import { ProjectDialog } from './ProjectDialog'
 import { ReportDialog } from './ReportDialog'
+import { ScreeningDialog } from './ScreeningDialog'
+import { AllocationDialog } from './AllocationDialog'
+import { AdoptionDialog } from './AdoptionDialog'
 import { LibraryDialog, SaveAsDialog } from './ProjectLibrary'
 
 /** Whichever dialog the UI store says is open. */
@@ -55,6 +58,12 @@ export function Dialogs() {
       return <ReportDialog onClose={close} />
     case 'gis':
       return <GisImportDialog onClose={close} />
+    case 'screen':
+      return <ScreeningDialog onClose={close} />
+    case 'allocate':
+      return <AllocationDialog onClose={close} />
+    case 'adoption':
+      return <AdoptionDialog onClose={close} />
     default:
       return null
   }

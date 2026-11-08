@@ -16,9 +16,10 @@ async function open(page: Page) {
 
 const brk = fixture.nodes.find((n: { type: string }) => n.type === 'breaker').id
 
-test('a load level picked in the toolbar changes what the solve reads', async ({ page }) => {
+test('a load level picked in the Scenarios tab changes what the solve reads', async ({ page }) => {
   await open(page)
-  const level = page.getByRole('combobox', { name: 'Load level' }).first()
+  await page.locator('.bp-header').getByRole('button', { name: 'Scenarios', exact: true }).click()
+  const level = page.locator('.scenarios-panel').getByRole('combobox', { name: 'Load level' })
   await expect(level).toHaveValue('Peak')
   await page.getByRole('button', { name: /Solve/ }).first().click()
   await expect(page.locator('.status-line')).toContainText('Converged', { timeout: 20_000 })
@@ -41,14 +42,15 @@ test('a load level picked in the toolbar changes what the solve reads', async ({
 test('opening a scenario swaps the drawing in and the base comes back', async ({ page }) => {
   await open(page)
   // The fixture's scenario opens the feeder breaker.
-  const scenario = page.getByRole('combobox', { name: 'Scenario' })
-  await scenario.selectOption('sc1')
+  await page.locator('.bp-header').getByRole('button', { name: 'Scenarios', exact: true }).click()
+  const panel = page.locator('.scenarios-panel')
+  await panel.locator('.scenarios-list li').nth(1).locator('.scenarios-pick').click()
   const closed = () =>
     page.evaluate((id) => (window as any).opendssDesigner.circuit.getState().nodes.find((n: { id: string }) => n.id === id).data.params.closed, brk)
   expect(await closed()).toBe(false)
   // An edit inside the scenario stays in the scenario.
   await page.evaluate((id) => (window as any).opendssDesigner.circuit.getState().updateNodeParams(id, { normamps: 999 }), brk)
-  await scenario.selectOption('')
+  await panel.locator('.scenarios-list li').nth(0).locator('.scenarios-pick').click()
   expect(await closed()).not.toBe(false)
   const json = await page.evaluate(() => {
     const w = (window as any).opendssDesigner
@@ -61,8 +63,6 @@ test('opening a scenario swaps the drawing in and the base comes back', async ({
     expect(overrides[brk]).toEqual({ closed: false, normamps: 999 })
   }
   // The Scenarios tab lists both and says what changed.
-  await page.locator('.bp-header').getByRole('button', { name: 'Scenarios', exact: true }).click()
-  const panel = page.locator('.scenarios-panel')
   await expect(panel).toBeVisible()
   await expect(panel.locator('.scenarios-list li')).toHaveCount(2)
   await expect(panel.locator('.scenarios-list li').nth(1)).toContainText('1 change')

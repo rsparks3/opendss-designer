@@ -5,6 +5,7 @@ import type {
   BatchResult,
   FaultResult,
   HostingCapacityResult,
+  ScreenResult,
   Issue,
   LimitsJSON,
   PhaseMap,
@@ -21,6 +22,9 @@ export function setLimitsSource(fn: () => LimitsJSON): void {
 }
 
 export type AnalysisMode = 'snapshot' | 'timeseries'
+
+/** The M14 studies the Studies tab holds results for. */
+export type StudyKey = 'n1' | 'transfer' | 'switching' | 'sweep' | 'cvr' | 'placement' | 'balance' | 'losses' | 'capacity' | 'qa' | 'tlm'
 
 export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'reliability' | 'phases' | 'compare' | 'hosting' | 'off'
 
@@ -59,6 +63,18 @@ interface ResultsState {
    *  the fault study: it is a property of this circuit at this level. */
   hosting: HostingCapacityResult | null
   setHosting: (r: HostingCapacityResult | null) => void
+  /** The last interconnection screening, for the report. */
+  screening: ScreenResult | null
+  setScreening: (r: ScreenResult | null) => void
+  /** Results of the planning studies (Studies tab), by key. Kept across
+   *  edits like the batch: each says what it was run on. */
+  studies: Partial<Record<StudyKey, unknown>>
+  setStudy: (key: StudyKey, result: unknown) => void
+  studyRunning: Partial<Record<StudyKey, boolean>>
+  studyProgress: Partial<Record<StudyKey, { done: number; total: number; message: string | null }>>
+  studyAbort: Partial<Record<StudyKey, AbortController | null>>
+  setStudyRunning: (key: StudyKey, running: boolean, abort?: AbortController | null) => void
+  setStudyProgress: (key: StudyKey, p: { done: number; total: number; message: string | null } | null) => void
   hcRunning: boolean
   hcProgress: { done: number; total: number; message: string | null } | null
   hcAbort: AbortController | null
@@ -144,6 +160,20 @@ export const useResultsStore = create<ResultsState>((set) => ({
   setBatchProgress: (batchProgress) => set({ batchProgress }),
   hosting: null,
   setHosting: (hosting) => set({ hosting }),
+  screening: null,
+  setScreening: (screening) => set({ screening }),
+  studies: {},
+  setStudy: (key, result) => set((s) => ({ studies: { ...s.studies, [key]: result } })),
+  studyRunning: {},
+  studyProgress: {},
+  studyAbort: {},
+  setStudyRunning: (key, running, abort = null) =>
+    set((s) => ({
+      studyRunning: { ...s.studyRunning, [key]: running },
+      studyAbort: { ...s.studyAbort, [key]: abort },
+      ...(running ? {} : { studyProgress: { ...s.studyProgress, [key]: undefined } }),
+    })),
+  setStudyProgress: (key, p) => set((s) => ({ studyProgress: { ...s.studyProgress, [key]: p ?? undefined } })),
   hcRunning: false,
   hcProgress: null,
   hcAbort: null,

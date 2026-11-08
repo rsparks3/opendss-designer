@@ -15,12 +15,12 @@ import { useResultsStore } from '../store/resultsStore'
 import type { GeoPoint, Params } from '../types/circuit'
 import { GraphPanel } from './GraphPanel'
 import { CurvesPanel } from './CurvesPanel'
-import { LineCodesPanel } from './LineCodesPanel'
+import { LineCodesTab } from './GeometriesPanel'
 import { PassthroughPanel } from './PassthroughPanel'
 import { ReliabilityPanel } from './ReliabilityPanel'
 import { ScenariosPanel } from './ScenariosPanel'
 import { ComparePanel } from './ComparePanel'
-import { HostingCapacityPanel } from './HostingCapacityPanel'
+import { StudiesPanel } from './StudiesPanel'
 import { ShapesPanel } from './ShapesPanel'
 
 type MainTab =
@@ -30,7 +30,7 @@ type MainTab =
   | 'reliability'
   | 'scenarios'
   | 'compare'
-  | 'hosting'
+  | 'studies'
   | 'graph'
   | 'shapes'
   | 'curves'
@@ -694,14 +694,14 @@ export function BottomPanel() {
           Compare
         </button>
         <button
-          className={`bp-tab${tab === 'hosting' && open ? ' active' : ''}`}
-          title="DER or load hosting capacity at every bus"
+          className={`bp-tab${tab === 'studies' && open ? ' active' : ''}`}
+          title="Planning studies: hosting capacity, contingency, Volt/VAR and CVR, phase balance, losses and capacity"
           onClick={() => {
-            setTab('hosting')
-            setOpen(tab !== 'hosting' || !open)
+            setTab('studies')
+            setOpen(tab !== 'studies' || !open)
           }}
         >
-          Hosting
+          Studies
         </button>
         <button
           className={`bp-tab${tab === 'graph' && open ? ' active' : ''}`}
@@ -786,8 +786,8 @@ export function BottomPanel() {
             <ScenariosPanel />
           ) : tab === 'compare' ? (
             <ComparePanel />
-          ) : tab === 'hosting' ? (
-            <HostingCapacityPanel />
+          ) : tab === 'studies' ? (
+            <StudiesPanel />
           ) : tab === 'graph' ? (
             <GraphPanel />
           ) : tab === 'shapes' ? (
@@ -795,7 +795,7 @@ export function BottomPanel() {
           ) : tab === 'curves' ? (
             <CurvesPanel />
           ) : tab === 'linecodes' ? (
-            <LineCodesPanel />
+            <LineCodesTab />
           ) : tab === 'passthrough' ? (
             <PassthroughPanel />
           ) : typeTab === 'buses' ? (

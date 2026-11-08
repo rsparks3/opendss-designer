@@ -1,0 +1,31 @@
+# OpenDSS Designer - conductor library (starter set)
+#
+# Each row is a conductor the Line codes tab can add to a project as WireData
+# (or CNData for a concentric-neutral cable). Values are the ones published in
+# standard conductor tables (the Aluminum Association, Kersting's Distribution
+# System Modeling and Analysis): GMR in feet, resistance in ohms per mile at
+# 50 C, radius in inches, ampacity in amps. Typical, not a manufacturer's
+# sheet: verify against the data sheet of the conductor actually strung.
+# Columns: code,label,kind,rdc,rac,runits,gmr,gmrunits,radius,radunits,normamps,emergamps,extra
+# `extra` is a JSON object of the cable class's own properties (CNData: k,
+# diastrand, gmrstrand, rstrand, epsr, inslayer, diains, diacable).
+code,label,kind,rdc,rac,runits,gmr,gmrunits,radius,radunits,normamps,emergamps,extra
+acsr_4_swan,"#4 6/1 ACSR (Swan)",wire,,2.55,mi,0.00452,ft,0.125,in,140,170,
+acsr_2_sparrow,"#2 6/1 ACSR (Sparrow)",wire,,1.69,mi,0.00418,ft,0.158,in,180,220,
+acsr_1_0_raven,"1/0 6/1 ACSR (Raven)",wire,,1.12,mi,0.00446,ft,0.199,in,230,280,
+acsr_2_0_quail,"2/0 6/1 ACSR (Quail)",wire,,0.895,mi,0.0051,ft,0.2235,in,270,330,
+acsr_3_0_pigeon,"3/0 6/1 ACSR (Pigeon)",wire,,0.723,mi,0.006,ft,0.251,in,300,360,
+acsr_4_0_penguin,"4/0 6/1 ACSR (Penguin)",wire,,0.592,mi,0.00814,ft,0.2815,in,340,410,
+acsr_266_partridge,"266.8 kcmil 26/7 ACSR (Partridge)",wire,,0.385,mi,0.0217,ft,0.321,in,460,550,
+acsr_336_linnet,"336.4 kcmil 26/7 ACSR (Linnet)",wire,,0.306,mi,0.0244,ft,0.3605,in,530,640,
+acsr_477_hawk,"477 kcmil 26/7 ACSR (Hawk)",wire,,0.216,mi,0.029,ft,0.429,in,670,800,
+acsr_556_dove,"556.5 kcmil 26/7 ACSR (Dove)",wire,,0.1859,mi,0.0313,ft,0.4635,in,730,880,
+acsr_795_drake,"795 kcmil 26/7 ACSR (Drake)",wire,,0.1288,mi,0.0375,ft,0.554,in,900,1080,
+aac_1_0,"1/0 7-strand AAC",wire,,0.97,mi,0.0111,ft,0.184,in,310,370,
+aac_4_0,"4/0 7-strand AAC",wire,,0.484,mi,0.0158,ft,0.261,in,480,580,
+aac_250,"250 kcmil 7-strand AAC",wire,,0.41,mi,0.0171,ft,0.2835,in,329,400,
+aac_336,"336.4 kcmil 19-strand AAC",wire,,0.306,mi,0.0255,ft,0.3335,in,530,640,
+cu_1_0,"1/0 7-strand copper",wire,,0.607,mi,0.01113,ft,0.184,in,310,370,
+cu_4_solid,"#4 solid copper",wire,,1.503,mi,0.00663,ft,0.1021,in,170,200,
+cn_250_aa_15kv,"250 kcmil AA 15 kV concentric neutral, 13 x #14 Cu",cn,,0.41,mi,0.0171,ft,0.2835,in,260,300,"{""k"": 13, ""diastrand"": 0.0641, ""gmrstrand"": 0.00208, ""rstrand"": 14.8722, ""epsr"": 2.3, ""inslayer"": 0.22, ""diains"": 1.06, ""diacable"": 1.29}"
+cn_1_0_aa_15kv,"1/0 AA 15 kV concentric neutral, 6 x #14 Cu",cn,,0.97,mi,0.0111,ft,0.184,in,200,230,"{""k"": 6, ""diastrand"": 0.0641, ""gmrstrand"": 0.00208, ""rstrand"": 14.8722, ""epsr"": 2.3, ""inslayer"": 0.22, ""diains"": 0.78, ""diacable"": 0.98}"

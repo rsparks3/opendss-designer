@@ -526,7 +526,7 @@ case and compare two designs) and everything in M13–M17 stands on it.
   cancel, fetch later, keep the last N) that the long studies need and
   the hosted plans can meter as a *study cost* beside the time-series cost
 
-## M13 — Hosting capacity and interconnection screening
+## M13 — Hosting capacity and interconnection screening — ✅ DONE (2026-11-08)
 
 The wedge (`PLANNING_AUDIT.md` §2.1, §2.2, §2.9 in part): the study
 regulators require, small utilities are priced out of, and the one that
@@ -561,11 +561,11 @@ turns an interconnection queue into a day's work.
   (EPRI's published DRIVE results on the IEEE 123-bus and ckt5, NREL's
   hosting-capacity papers on the same feeders) the way `docs/validation.md`
   holds the power flow. Without it a utility will not trust the number
-- **Fault solves the screen needs** — `Fault`-element snapshot solves
+- ~~**Fault solves the screen needs**~~ — done 2026-11-08 (`studies/faults.py`: fault point and sweep; inverter contribution stays analytic, since OpenDSS has no snapshot fault model for an inverter): `Fault`-element snapshot solves
   (LG, LL, LLG, with fault resistance) beside `mode=faultstudy`, so a
   fault study reports minimum as well as maximum current and includes
   inverter and generator contribution, which the Thevenin study cannot
-- **Interconnection screening** — a *Screen a DER here* dialog at a point
+- ~~**Interconnection screening**~~ — done 2026-11-08 (flicker is not evaluated; the smart-inverter settings are reported, not judged): a *Screen a DER here* dialog at a point
   of common coupling that runs the tariff screens in one go and writes the
   standard screening report: aggregate DER against 15 % of line-section
   peak (or 100 % of minimum daytime load for export), fault-current
@@ -574,78 +574,78 @@ turns an interconnection queue into a day's work.
   fault study already has, and the Category A/B smart-inverter settings
   the DER must run. Pass/fail per screen with the number and the limit
 
-## M14 — Contingency, Volt/VAR and capacity
+## M14 — Contingency, Volt/VAR and capacity — ✅ DONE (2026-11-08)
 
 Batch studies over the solves M12 made available (`PLANNING_AUDIT.md`
 §2.4, §2.5, §2.7, §2.8).
 
-- **Tie switches and switching sequences** — a normally-open switch
+- ~~**Tie switches and switching sequences**~~ — done 2026-11-08 (a `tie` flag on breakers; sequences as `POST /api/switching`, kept as scenarios): a normally-open switch
   between feeders as a first-class element with both feeders named; a
   scripted sequence (open X, close Y) on a scenario, solved at a load
   level, with the energised/de-energised state shown (the phases walk
   already knows *unfed*)
-- **N-1 enumeration and restoration ranking** — for each sectionalising
+- ~~**N-1 enumeration and restoration ranking**~~ — done 2026-11-08 (unserved load from the de-energised buses rather than EnergyMeter EEN/UE registers, which need a meter per feeder): for each sectionalising
   device, substation transformer or feeder breaker: take it out, close the
   best tie, solve, record worst voltage, worst loading and unserved load
   (the EnergyMeter's EEN/UE registers); a ranked table and an overlay of
   what can be restored and what cannot
-- **Transfer capability** — for each tie, the kW it can carry at the
+- ~~**Transfer capability**~~ — done 2026-11-08: for each tie, the kW it can carry at the
   emergency rating before a criterion binds, which is M13's load hosting
   loop at a tie
-- **Volt/VAR setting sweeps** — a grid of regulator setpoint × bandwidth
+- ~~**Volt/VAR setting sweeps**~~ — done 2026-11-08: a grid of regulator setpoint × bandwidth
   (or LDC R × X) and capacitor settings run over a day or a year,
   tabulating losses, voltage range, operations and violations
-- **CVR evaluation** — paired runs at normal and reduced setpoint with
+- ~~**CVR evaluation**~~ — done 2026-11-08: paired runs at normal and reduced setpoint with
   loads on the CVR models, reporting energy saved, CVR factor and the
   lowest customer voltage
-- **Capacitor placement** — rank candidate buses by loss reduction and
+- ~~**Capacitor placement**~~ — done 2026-11-08 (direct trial solves rather than M13's sensitivities, which were not needed at this size): rank candidate buses by loss reduction and
   voltage lift for a bank size, by greedy search over M13's sensitivities
-- **Phase balancing** — unbalance % at the feeder head and each device
+- ~~**Phase balancing**~~ — done 2026-11-08: unbalance % at the feeder head and each device
   (NEMA and IEEE definitions, as a column everywhere per-phase voltages
   are shown), a ranked list of single-phase laterals to re-pin with the
   predicted unbalance after the swap, and *apply* that re-pins and re-solves
-- **Loss evaluation and capacity** — yearly technical losses by element
+- ~~**Loss evaluation and capacity**~~ — done 2026-11-08 (capacity by the app's own bisection on `loadmult`, which needs no EnergyMeter): yearly technical losses by element
   class with a cost line, and the engine's `Capacity` search (the load
   multiplier at which EEN/UE begin) as a report row
-- **Reconfiguration suggestions** (later in the milestone) — the open-point
+- **Reconfiguration suggestions** — not done; the N-1 loop's tie evaluation is the building block, and a branch-exchange search over the tie set waits for a feeder with enough ties to need it: the open-point
   set that minimises losses or balances feeders, by branch exchange over
   the tie set
 
-## M15 — Model quality, libraries and the secondary
+## M15 — Model quality, libraries and the secondary — ✅ DONE (2026-11-08)
 
 The model a planner will sign (`PLANNING_AUDIT.md` §2.6, §2.12, §2.13).
 Runs alongside M13–M14 because it is mostly schema and import work.
 
-- **Equipment libraries** — conductors (`WireData`, `CNData`, `TSData`)
+- ~~**Equipment libraries**~~ — done 2026-11-08 (conductors and geometries editable, a starter conductor library and a transformer catalogue as CSV; the report prints miles and feet on request; libraries live with the project and the catalogues with the server, not yet shared across projects in the browser): conductors (`WireData`, `CNData`, `TSData`)
   and pole/trench configurations (`LineGeometry`) editable in the app and
   shared across projects, with a starter library of standard ACSR/AAC
   conductors and common cables; transformer and regulator catalogue
   entries (impedance, losses, ratings) so a unit is picked, not typed.
   Today only a geometry's computed matrix survives import. Imperial and
   metric throughout, including the report
-- **Model QA report** — one click, beyond the live validation: missing
+- ~~**Model QA report**~~ — done 2026-11-08: one click, beyond the live validation: missing
   ratings and impedances, lengths implausible for the voltage class, loads
   with no customers or kV, voltage bases matching no winding, loops in a
   radial feeder, open points with no tie, phasing conflicts, orphan
   passthrough references; a completeness score per class and a CSV. The
   first thing a utility runs on a converted model
-- **Load classes** — residential/commercial/industrial or the utility's
+- ~~**Load classes**~~ — done 2026-11-08 (a free-text *Class* on loads, used by levels, allocation, adoption and the report): residential/commercial/industrial or the utility's
   own, used by allocation, adoption scenarios, growth and reports
-- **Service transformers and secondaries** — a split-phase 120/240 V
+- ~~**Service transformers and secondaries**~~ — done 2026-11-08 (the existing transformer symbol with a *splitphase* flag rather than a new symbol; loads pin to leg A, B or both): a split-phase 120/240 V
   centre-tapped transformer symbol (the single-phase three-winding form),
   secondary conductors, loads at 120/240 V, a **transformer load
   management** table (peak loading, hours over rating, IEEE C57.91 loss
   of life per unit) and a secondary voltage check against 114 V at the
   meter. The electrification question is asked here, not on the primary
-- **Distributed load along a section** — CYME and Synergi spread load
+- ~~**Distributed load along a section**~~ — done 2026-11-08 in the GIS/CSV import (the converter's CYME and Synergi readers already lump it, and changing them is work in that repo): CYME and Synergi spread load
   along a line and OpenDSS cannot; the converter and importer split the
   line or place the equivalent at one-third/two-thirds, and say which
-- **Growth and adoption scenarios** — `GrowthShape` per load or class and
+- ~~**Growth and adoption scenarios**~~ — done 2026-11-08 (growth as generated load levels rather than `GrowthShape`, which the level machinery already does; adoption draws as scenarios with built-in EV shapes): `GrowthShape` per load or class and
   a study-year selector on M12's scenarios; EV, heat-pump and PV adoption
   rates by class or zone drawn at random with a seed, shapes attached (EV
   charging shapes from user CSV or a public source), run as QSTS over
   several draws with the spread reported
-- **Load allocation and calibration** — billing kWh or AMI interval kW
+- ~~**Load allocation and calibration**~~ — done 2026-11-08 (the app's own scaling to the metered head rather than the engine's `AllocateLoads`, which needs a meter and a sensor): billing kWh or AMI interval kW
   per customer or per service transformer, matched by transformer ID,
   meter ID or coordinates in a mapping dialog (the GIS import dialog is
   the pattern); kWh to kW by class load factor or profile; the engine's
@@ -653,7 +653,7 @@ Runs alongside M13–M14 because it is mostly schema and import work.
   AMI intervals become loadshapes directly; a report of the allocation
   and the mismatch to SCADA. Every incumbent has this and without it a
   model is nameplate
-- **Audit trail** — who changed what and when at element level, saved
+- ~~**Audit trail**~~ — done 2026-11-08: who changed what and when at element level, saved
   with the project and printable, built on M12's scenario deltas
 
 ## M16 — Protection and reliability depth

@@ -16,14 +16,17 @@ import { defaultLineParams, defaultParams, isAnnotation, isNote, nextName, NODE_
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
 import type { CircuitJSON, CircuitNodeJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
   GeoPoint,
+  HistoryEntryJSON,
   LimitsJSON,
   LineCodeJSON,
+  LineGeometryJSON,
   LoadLevelJSON,
   PassthroughJSON,
   ScenarioJSON,
   StudyInfoJSON,
   TccCurveJSON,
   Winding,
+  WireDataJSON,
   XYCurveJSON,
 } from '../types/circuit'
 import { SCHEMA_VERSION } from '../lib/schema'
@@ -72,6 +75,17 @@ export interface CircuitState {
   /** The study report's title block; cosmetic, results stay valid. */
   study: StudyInfoJSON | null
   setStudy: (study: StudyInfoJSON | null) => void
+  /** Conductors and pole configurations (OpenDSS WireData, LineGeometry). */
+  wireData: Record<string, WireDataJSON>
+  setWireData: (name: string, spec: WireDataJSON) => void
+  removeWireData: (name: string) => void
+  lineGeometries: Record<string, LineGeometryJSON>
+  setLineGeometry: (name: string, spec: LineGeometryJSON) => void
+  removeLineGeometry: (name: string) => void
+  /** The audit trail: every parameter change, newest last, capped. Not
+   *  undoable: an undo is itself a change worth knowing about. */
+  history: HistoryEntryJSON[]
+  clearChangeLog: () => void
   /** Inverter volt-var / volt-watt curves (OpenDSS XYCurve), by name. */
   xyCurves: Record<string, XYCurveJSON>
   setXyCurve: (name: string, spec: XYCurveJSON) => void
@@ -480,7 +494,8 @@ export function toCircuitJSON(
     CircuitState,
     'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves' | 'lineCodes'
   > & Partial<Pick<CircuitState, 'passthrough' | 'comments' | 'limits' | 'study' | 'voltageBases' | 'crs'
-    | 'xyCurves' | 'loadLevels' | 'activeLevel' | 'scenarios' | 'activeScenario' | 'scenarioBase'>>,
+    | 'xyCurves' | 'loadLevels' | 'activeLevel' | 'scenarios' | 'activeScenario' | 'scenarioBase'
+    | 'wireData' | 'lineGeometries' | 'history'>>,
 ): CircuitJSON {
   // While a scenario is open the drawing on screen is the scenario's; the
   // document holds the base and the deltas, refreshed from the drawing.
@@ -529,6 +544,9 @@ export function toCircuitJSON(
     ...(s.limits ? { limits: s.limits } : {}),
     ...(s.study ? { study: s.study } : {}),
     ...(s.xyCurves && Object.keys(s.xyCurves).length ? { xyCurves: s.xyCurves } : {}),
+    ...(s.wireData && Object.keys(s.wireData).length ? { wireData: s.wireData } : {}),
+    ...(s.lineGeometries && Object.keys(s.lineGeometries).length ? { lineGeometries: s.lineGeometries } : {}),
+    ...(s.history?.length ? { history: s.history } : {}),
     ...(s.loadLevels?.length ? { loadLevels: s.loadLevels } : {}),
     ...(s.activeLevel ? { activeLevel: s.activeLevel } : {}),
     ...(scenarios.length ? { scenarios } : {}),
@@ -634,6 +652,28 @@ export const useCircuitStore = create<CircuitState>()(
         })),
       study: null,
       setStudy: (study) => set({ study, dirty: true }),
+      wireData: {},
+      setWireData: (name, spec) => {
+        set({ wireData: { ...get().wireData, [name]: spec }, dirty: true })
+        markStale()
+      },
+      removeWireData: (name) => {
+        const { [name]: _gone, ...rest } = get().wireData
+        set({ wireData: rest, dirty: true })
+        markStale()
+      },
+      lineGeometries: {},
+      setLineGeometry: (name, spec) => {
+        set({ lineGeometries: { ...get().lineGeometries, [name]: spec }, dirty: true })
+        markStale()
+      },
+      removeLineGeometry: (name) => {
+        const { [name]: _gone, ...rest } = get().lineGeometries
+        set({ lineGeometries: rest, dirty: true })
+        markStale()
+      },
+      history: [],
+      clearChangeLog: () => set({ history: [], dirty: true }),
       xyCurves: {},
       setXyCurve: (name, spec) => {
         set({ xyCurves: { ...get().xyCurves, [name]: spec }, dirty: true })
@@ -869,11 +909,16 @@ export const useCircuitStore = create<CircuitState>()(
       },
       updateNodeParams: (id, patch) => {
         const node = get().nodes.find((n) => n.id === id)
+        // A catalogue pick on a transformer applies the whole nameplate.
+        if (node?.type === 'transformer' && typeof patch.catalog === 'string') {
+          patch = { ...patch, ...catalogPatch(patch.catalog, node.data.params) }
+        }
         set({
           nodes: get().nodes.map((n) =>
-            n.id === id ? { ...n, data: { params: { ...n.data.params, ...patch } } } : n,
+            n.id === id ? { ...n, data: { ...n.data, params: { ...n.data.params, ...patch } } } : n,
           ),
           ...renamed(get(), node?.type ?? '', node?.data.params.name, patch.name),
+          ...logged(get(), id, node?.data.params ?? {}, patch),
           dirty: true,
         })
         if (!node || !isAnnotation(node)) markStale()
@@ -883,11 +928,13 @@ export const useCircuitStore = create<CircuitState>()(
           (e.source === id && e.sourceHandle === 't3') ||
           (e.target === id && e.targetHandle === 't3')
         const edges = get().edges
+        const before = get().nodes.find((n) => n.id === id)?.data.params ?? {}
         set({
           nodes: get().nodes.map((n) =>
-            n.id === id ? { ...n, data: { params: { ...n.data.params, windings } } } : n,
+            n.id === id ? { ...n, data: { ...n.data, params: { ...n.data.params, windings } } } : n,
           ),
           edges: windings.length < 3 && edges.some(onT3) ? edges.filter((e) => !onT3(e)) : edges,
+          ...logged(get(), id, before, { windings }),
           dirty: true,
         })
         markStale()
@@ -901,6 +948,7 @@ export const useCircuitStore = create<CircuitState>()(
               : e,
           ),
           ...renamed(get(), edge?.type ?? '', edge?.data?.params?.name, patch.name),
+          ...logged(get(), id, edge?.data?.params ?? {}, patch),
           dirty: true,
         })
         markStale()
@@ -1036,7 +1084,21 @@ export const useCircuitStore = create<CircuitState>()(
           return { ...e, data: { ...e.data, params: { ...(e.data?.params ?? {}), ...p } } }
         })
         if (!changed) return
-        set({ nodes, edges, dirty: true })
+        // One log line per element, with the keys the patch touched.
+        const entries: HistoryEntryJSON[] = []
+        const who = get().study?.engineer ?? ''
+        const t = Date.now()
+        for (const n of get().nodes) {
+          if (!ns.has(n.id)) continue
+          const p = patch(n.data.params)
+          if (p) for (const [k, v] of Object.entries(p)) entries.push({ t, who, id: n.id, param: k, old: n.data.params[k], new: v, scenario: get().activeScenario })
+        }
+        for (const e of get().edges) {
+          if (!es.has(e.id) || e.type !== 'line') continue
+          const p = patch(e.data?.params ?? {})
+          if (p) for (const [k, v] of Object.entries(p)) entries.push({ t, who, id: e.id, param: k, old: e.data?.params?.[k], new: v, scenario: get().activeScenario })
+        }
+        set({ nodes, edges, history: capped([...get().history, ...entries]), dirty: true })
         markStale()
       },
       applyLayout: (laidOut) => {
@@ -1166,6 +1228,9 @@ export const useCircuitStore = create<CircuitState>()(
           voltageBases: c.voltageBases?.length ? c.voltageBases : null,
           crs: c.crs ?? null,
           xyCurves: c.xyCurves ?? {},
+          wireData: c.wireData ?? {},
+          lineGeometries: c.lineGeometries ?? {},
+          history: c.history ?? [],
           loadLevels: c.loadLevels?.length ? c.loadLevels : null,
           activeLevel: c.activeLevel ?? null,
           scenarios: c.scenarios ?? [],
@@ -1198,6 +1263,9 @@ export const useCircuitStore = create<CircuitState>()(
           voltageBases: null,
           crs: null,
           xyCurves: {},
+          wireData: {},
+          lineGeometries: {},
+          history: [],
           loadLevels: null,
           activeLevel: null,
           scenarios: [],
@@ -1388,6 +1456,8 @@ export const useCircuitStore = create<CircuitState>()(
         voltageBases: s.voltageBases,
         crs: s.crs,
         xyCurves: s.xyCurves,
+        wireData: s.wireData,
+        lineGeometries: s.lineGeometries,
         loadLevels: s.loadLevels,
         activeLevel: s.activeLevel,
         scenarios: s.scenarios,
@@ -1417,6 +1487,55 @@ export const useCircuitStore = create<CircuitState>()(
     },
   ),
 )
+
+const HISTORY_CAP = 5000
+
+function capped(entries: HistoryEntryJSON[]): HistoryEntryJSON[] {
+  return entries.length > HISTORY_CAP ? entries.slice(entries.length - HISTORY_CAP) : entries
+}
+
+/** The audit-trail lines a parameter patch adds: one per key that changed. */
+function logged(
+  s: Pick<CircuitState, 'history' | 'study' | 'activeScenario'>,
+  id: string,
+  before: Params,
+  patch: Params,
+): Partial<Pick<CircuitState, 'history'>> {
+  const t = Date.now()
+  const who = s.study?.engineer ?? ''
+  const entries: HistoryEntryJSON[] = []
+  for (const [k, v] of Object.entries(patch)) {
+    const old = before[k]
+    if (old === v || (old === undefined && v === undefined)) continue
+    if (typeof old === 'object' && typeof v === 'object' && JSON.stringify(old) === JSON.stringify(v)) continue
+    entries.push({ t, who, id, param: k, old, new: v, scenario: s.activeScenario })
+  }
+  return entries.length ? { history: capped([...s.history, ...entries]) } : {}
+}
+
+/** The nameplate a catalogue code stands for, as a parameter patch. The
+ *  catalogue is fetched once by the properties panel (lib/catalog.ts). */
+let transformerCatalog: Record<string, Params> = {}
+export function setTransformerCatalog(entries: Record<string, Params>): void {
+  transformerCatalog = entries
+}
+function catalogPatch(code: string, current: Params): Params {
+  const e = transformerCatalog[code]
+  if (!e) return {}
+  const windings = Array.isArray(current.windings) ? (current.windings as Winding[]) : []
+  const kva = (e.kva as number) ?? windings[0]?.kva ?? 1000
+  return {
+    phases: e.phases,
+    xhl: e.xhl,
+    pctloadloss: e.pctloadloss,
+    pctnoloadloss: e.pctnoloadloss,
+    splitphase: e.splitphase === true,
+    windings: [
+      { kv: e.kvh as number, kva, conn: (e.connh as 'wye' | 'delta') ?? 'wye' },
+      { kv: e.kvl as number, kva, conn: (e.connl as 'wye' | 'delta') ?? 'wye' },
+    ],
+  }
+}
 
 /** Two lists of (selection-stripped) nodes or edges hold the same things:
  *  same length, and every item has the same fields holding the same

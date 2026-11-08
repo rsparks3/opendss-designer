@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useCircuitStore } from '../store/circuitStore'
+import { setTransformerCatalog, useCircuitStore } from '../store/circuitStore'
 import type { Params, Winding } from '../types/circuit'
 
 export interface Field {
@@ -11,7 +11,7 @@ export interface Field {
    *  lines of text; 'target' the element a note's arrow points at. */
   kind:
     | 'number' | 'text' | 'select' | 'checkbox' | 'loadshape' | 'curve' | 'phasing'
-    | 'textarea' | 'target' | 'element' | 'xycurve'
+    | 'textarea' | 'target' | 'element' | 'xycurve' | 'geometry' | 'catalog'
   /** For kind 'loadshape': which shape category the dropdown offers.
    *  Default 'load'; 'any' lists both (storage dispatch). */
   shapeKind?: 'load' | 'irradiance' | 'any'
@@ -80,10 +80,12 @@ const RELIABILITY_FIELDS = (perLength: boolean): Field[] => [
 const isReactor = (params: Params) => params.reactor === true
 const notReactor = (params: Params) => params.reactor !== true
 
-/** True unless the line is on one of the circuit's line codes (or is a
- *  reactor, which is in ohms). */
+/** True unless the line is on one of the circuit's line codes or
+ *  geometries (or is a reactor, which is in ohms). */
 function ownImpedance(params: Params): boolean {
   if (isReactor(params)) return false
+  const geometry = params.geometry
+  if (typeof geometry === 'string' && useCircuitStore.getState().lineGeometries[geometry]) return false
   const code = params.linecode
   return typeof code !== 'string' || !useCircuitStore.getState().lineCodes[code]
 }
@@ -147,8 +149,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'closed', label: 'Closed', kind: 'checkbox' },
     { key: 'normamps', label: 'Rating', kind: 'number', unit: 'A' },
     EMERGENCY_AMPS,
-    EMERGENCY_AMPS,
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
+    { key: 'tie', label: 'Tie switch (normally open)', kind: 'checkbox', defaultOff: true },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(false),
@@ -160,13 +162,16 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'x', label: 'Reactance', kind: 'number', unit: 'Ω', showIf: isReactor },
     { key: 'length', label: 'Length', kind: 'number', showIf: notReactor },
     { key: 'units', label: 'Units', kind: 'select', options: ['km', 'm', 'mi', 'kft', 'ft'], showIf: notReactor },
-    // A line on one of the circuit's line codes takes its impedance from the
-    // code, so its own sequence values are not shown (they would not be used).
+    // A line on a geometry takes its impedance from the conductors and their
+    // spacing; on one of the circuit's line codes, from the code. Either way
+    // its own sequence values are not shown (they would not be used).
+    { key: 'geometry', label: 'Geometry', kind: 'geometry', showIf: notReactor },
     { key: 'r1', label: 'R1', kind: 'number', unit: 'Ω/unit', showIf: ownImpedance },
     { key: 'x1', label: 'X1', kind: 'number', unit: 'Ω/unit', showIf: ownImpedance },
     { key: 'r0', label: 'R0', kind: 'number', unit: 'Ω/unit', showIf: ownImpedance },
     { key: 'x0', label: 'X0', kind: 'number', unit: 'Ω/unit', showIf: ownImpedance },
     { key: 'normamps', label: 'Rating', kind: 'number', unit: 'A' },
+    EMERGENCY_AMPS,
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(true),
@@ -181,6 +186,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'pctloadloss', label: 'Load loss', kind: 'number', unit: '%' },
     { key: 'pctnoloadloss', label: 'No-load loss', kind: 'number', unit: '%', placeholder: '0' },
     EMERGENCY_KVA,
+    { key: 'splitphase', label: '120/240 V centre-tapped service unit', kind: 'checkbox', defaultOff: true },
+    { key: 'catalog', label: 'Pick from catalogue', kind: 'catalog' },
     { key: 'pctimag', label: 'Magnetising current', kind: 'number', unit: '%', placeholder: '0' },
     ...RELIABILITY_FIELDS(false),
   ],
@@ -536,6 +543,54 @@ function XyCurveSelect({ value, onCommit }: { value: unknown; onCommit: (v: unkn
   )
 }
 
+/** One of the circuit's line geometries, or none (the line then takes a
+ *  line code or its own impedance). */
+function GeometrySelect({ value, onCommit }: { value: unknown; onCommit: (v: unknown) => void }) {
+  const geometries = useCircuitStore((s) => s.lineGeometries)
+  const names = Object.keys(geometries).sort()
+  const current = typeof value === 'string' ? value : ''
+  return (
+    <select value={current} onChange={(e) => onCommit(e.target.value || undefined)}>
+      <option value="">(none: line code or own impedance)</option>
+      {names.map((n) => (
+        <option key={n} value={n}>{n}</option>
+      ))}
+      {current && !geometries[current] && <option value={current}>{current} (missing)</option>}
+    </select>
+  )
+}
+
+/** A transformer from the catalogue: picking one applies its nameplate
+ *  (the store does that on the `catalog` key). */
+function CatalogSelect({ value, onCommit }: { value: unknown; onCommit: (v: unknown) => void }) {
+  const [entries, setEntries] = useState<{ code: string; label: string }[]>([])
+  useEffect(() => {
+    void loadTransformerCatalog().then(setEntries)
+  }, [])
+  return (
+    <select value={typeof value === 'string' ? value : ''} onChange={(e) => e.target.value && onCommit(e.target.value)}>
+      <option value="">(choose a unit…)</option>
+      {entries.map((e) => (
+        <option key={e.code} value={e.code}>{e.label}</option>
+      ))}
+    </select>
+  )
+}
+
+let catalogPromise: Promise<{ code: string; label: string }[]> | null = null
+function loadTransformerCatalog(): Promise<{ code: string; label: string }[]> {
+  if (!catalogPromise) {
+    catalogPromise = fetch('/api/catalog/transformers')
+      .then((r) => r.json())
+      .then((data: { transformers: (Params & { code: string; label: string })[] }) => {
+        setTransformerCatalog(Object.fromEntries(data.transformers.map((t) => [t.code, t])))
+        return data.transformers.map((t) => ({ code: t.code, label: t.label }))
+      })
+      .catch(() => [])
+  }
+  return catalogPromise
+}
+
 function TargetSelect({ value, onCommit }: { value: unknown; onCommit: (v: unknown) => void }) {
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
@@ -586,6 +641,12 @@ export function FieldInput({
   }
   if (field.kind === 'xycurve') {
     return <XyCurveSelect value={value} onCommit={onCommit} />
+  }
+  if (field.kind === 'geometry') {
+    return <GeometrySelect value={value} onCommit={onCommit} />
+  }
+  if (field.kind === 'catalog') {
+    return <CatalogSelect value={value} onCommit={onCommit} />
   }
   if (field.kind === 'textarea') {
     return (

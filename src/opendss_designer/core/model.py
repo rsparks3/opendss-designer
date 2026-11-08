@@ -129,6 +129,59 @@ class LineCodeSpec(BaseModel):
         return self.rmatrix is not None and self.xmatrix is not None
 
 
+class WireDataSpec(BaseModel):
+    """A conductor (OpenDSS `WireData`, or `CNData` / `TSData` for a
+    concentric-neutral or tape-shield cable): resistance, GMR, radius and
+    ampacity, in the units named. `extra` holds the cable classes' own
+    properties (k, diastrand, gmrstrand, rstrand, epsr, inslayer, diains,
+    diacable; or diashield, tapelayer, tapelap) by their engine names."""
+    kind: Literal["wire", "cn", "ts"] = "wire"
+    rdc: float | None = None
+    rac: float | None = None
+    runits: str = "mi"
+    gmr: float | None = None
+    gmrunits: str = "ft"
+    radius: float | None = None
+    radunits: str = "in"
+    normamps: float | None = None
+    emergamps: float | None = None
+    extra: dict[str, float] = Field(default_factory=dict)
+    # "library:<code>", "imported", "typed in".
+    source: str | None = None
+
+
+class GeometryConductor(BaseModel):
+    wire: str
+    x: float = 0.0
+    h: float = 0.0
+
+
+class LineGeometrySpec(BaseModel):
+    """A pole or trench configuration (OpenDSS `LineGeometry`): which
+    conductor hangs where. The engine builds the impedance matrix from it,
+    with Carson's equations, so a line on a geometry needs no line code."""
+    nconds: int = 4
+    nphases: int = 3
+    reduce: bool = True
+    units: str = "ft"
+    rhoEarth: float | None = None
+    conductors: Annotated[list[GeometryConductor], Field(max_length=16)] = Field(default_factory=list)
+    source: str | None = None
+
+
+class HistoryEntry(BaseModel):
+    """One change to the model, for the audit trail: when, who (the study's
+    engineer), what element, which parameter, from what to what."""
+    t: float
+    who: str = ""
+    id: str
+    param: str
+    old: Any = None
+    new: Any = None
+    # The scenario the change was made in, or None for the base case.
+    scenario: str | None = None
+
+
 class PassthroughSpec(BaseModel):
     """An element from an imported .dss file the editor does not model,
     kept verbatim: its `New` line, then any `Edit`s of it. See
@@ -207,6 +260,8 @@ class StudyInfo(BaseModel):
     # Draw exported images on a sheet: a border, and this block in the
     # bottom-right corner, the way a drawing is plotted.
     sheet: bool = False
+    # How the report prints lengths: km and m, or miles and feet.
+    units: Literal["metric", "imperial"] = "metric"
 
 
 class Circuit(BaseModel):
@@ -253,6 +308,15 @@ class Circuit(BaseModel):
     # Absent means the defaults; see Limits.
     limits: Limits | None = None
     study: StudyInfo | None = None
+    # Conductors and pole configurations, keyed by name (OpenDSS WireData,
+    # CNData, TSData and LineGeometry). A line with a `geometry` param
+    # takes its impedance from the geometry instead of a line code.
+    wireData: Annotated[dict[str, WireDataSpec],
+                        Field(max_length=MAX_LINE_CODES)] = Field(default_factory=dict)
+    lineGeometries: Annotated[dict[str, LineGeometrySpec],
+                              Field(max_length=MAX_LINE_CODES)] = Field(default_factory=dict)
+    # The audit trail: parameter changes, newest last, capped by the client.
+    history: Annotated[list[HistoryEntry], Field(max_length=5000)] = Field(default_factory=list)
     # Inverter volt-var / volt-watt curves, keyed by name (OpenDSS XYCurve).
     xyCurves: Annotated[dict[str, XYCurveSpec],
                         Field(max_length=MAX_CURVES)] = Field(default_factory=dict)
@@ -371,6 +435,7 @@ def node_terminals(node: CircuitNode) -> list[str]:
     which grows a third terminal (t3) for a tertiary winding. Busbars are
     dynamic and return an empty list, as in NODE_TERMINALS."""
     base = NODE_TERMINALS.get(node.type, [])
-    if node.type == "transformer" and winding_count(node.params) == 3:
+    if node.type == "transformer" and winding_count(node.params) == 3 \
+            and node.params.get("splitphase") is not True:
         return [*base, "t3"]
     return base

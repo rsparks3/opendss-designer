@@ -465,6 +465,18 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
         disabled: empty || rs.batchRunning,
         title: 'A background batch; results land in the Scenarios tab',
       }),
+      item('Screen a DER interconnection…', () => ui.openScreening(null), {
+        disabled: empty || hasErrors,
+        title: 'One DER application at a point of common coupling through the SGIP / IEEE 1547 screens',
+      }),
+      item('Allocate loads from meter data…', () => ui.openDialog('allocate'), {
+        disabled: empty,
+        title: 'Billing kWh, demand kW or AMI intervals matched to the loads; optionally scaled to the metered feeder head',
+      }),
+      item('Adoption scenario…', () => ui.openDialog('adoption'), {
+        disabled: empty,
+        title: 'EV chargers, heat pumps or rooftop PV drawn at random among the loads, as scenarios to batch-solve',
+      }),
       item('Hosting capacity (default criteria)', () => void runHostingCapacity(DEFAULT_HC_OPTIONS), {
         disabled: empty || rs.hcRunning || hasErrors,
         title: 'DER hosting capacity at every three-phase bus with the default criteria; the Hosting tab has the options',

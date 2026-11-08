@@ -39,6 +39,26 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
   const levels = useCircuitStore((s) => s.loadLevels)
   const setLoadLevels = useCircuitStore((s) => s.setLoadLevels)
   const [levelsDraft, setLevelsDraft] = useState<LoadLevelJSON[]>(() => (levels ?? []).map((l) => ({ ...l })))
+  const [growth, setGrowth] = useState({ base: new Date().getFullYear(), rate: 1.5, years: '5, 10' })
+  const history = useCircuitStore((s) => s.history)
+  const clearChangeLog = useCircuitStore((s) => s.clearChangeLog)
+  const nodesForNames = useCircuitStore((s) => s.nodes)
+  const edgesForNames = useCircuitStore((s) => s.edges)
+  const nameOf = (id: string) => {
+    const n = nodesForNames.find((x) => x.id === id)
+    const e = n ? undefined : edgesForNames.find((x) => x.id === id)
+    const nm = n?.data.params.name ?? e?.data?.params.name
+    return typeof nm === 'string' && nm ? nm : id
+  }
+  const addGrowthLevels = () => {
+    const years = growth.years.split(/[,\s]+/).map(Number).filter((y) => Number.isInteger(y) && y > 0)
+    const added = years.map((y) => ({
+      name: `${growth.base + y} (+${growth.rate} %/yr)`,
+      loadmult: Number((1 + growth.rate / 100) ** y).toFixed(4) as unknown as number,
+      rating: 'normal' as const,
+    })).map((l) => ({ ...l, loadmult: Number(l.loadmult) }))
+    setLevelsDraft([...levelsDraft, ...added.filter((l) => !levelsDraft.some((x) => x.name === l.name))])
+  }
   const levelsIssue = levelProblem(levelsDraft)
   const levelsChanged = JSON.stringify(levelsDraft) !== JSON.stringify(levels ?? [])
   const applyLevels = () => {
@@ -135,6 +155,13 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
           <label className="prefs-radio">
             <input type="checkbox" checked={study.sheet === true} onChange={(e) => edit('sheet', e.target.checked)} />
             Sheet border and title block on exported images
+          </label>
+          <label className="prefs-radio">
+            Report lengths in{' '}
+            <select value={study.units ?? 'metric'} onChange={(e) => edit('units', e.target.value as 'metric' | 'imperial')}>
+              <option value="metric">kilometres and metres</option>
+              <option value="imperial">miles and feet</option>
+            </select>
           </label>
           <div className="library-note">
             Printed in the title block of study reports and, with the box ticked, in the corner of every
@@ -246,11 +273,43 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
               Apply levels
             </button>
           </div>
+          <div className="scenarios-head">
+            <span>Growth: from</span>
+            <input className="hosting-num wide" type="number" aria-label="Base year" value={growth.base} onChange={(e) => setGrowth({ ...growth, base: Number(e.target.value) })} />
+            <span>at</span>
+            <input className="hosting-num" type="number" step={0.1} aria-label="Growth rate" value={growth.rate} onChange={(e) => setGrowth({ ...growth, rate: Number(e.target.value) })} />
+            <span>%/yr, after</span>
+            <input className="hosting-num wide" aria-label="Years ahead" value={growth.years} onChange={(e) => setGrowth({ ...growth, years: e.target.value })} />
+            <span>years</span>
+            <button type="button" onClick={addGrowthLevels}>Add growth levels</button>
+          </div>
           <div className="library-note">
             A level multiplies every load (<code>set loadmult</code>), then any class listed by its own
             factor (a load's <i>Class</i> field), and says whether loading is judged against the normal or
             the emergency rating. Pick the level for the next solve in the toolbar or Analysis → Load level.
           </div>
+        </fieldset>
+        <fieldset className="prefs-group">
+          <legend>Change log</legend>
+          {history.length === 0 ? (
+            <div className="library-note">Every parameter change is logged here with the engineer named above, and printed in the report's <i>Change log</i> section.</div>
+          ) : (
+            <>
+              <div className="library-note">{history.length} change{history.length === 1 ? '' : 's'} recorded; the latest first.</div>
+              <ul className="history-list">
+                {history.slice(-30).reverse().map((h, i) => (
+                  <li key={i}>
+                    <span className="scenarios-count">{new Date(h.t).toLocaleString()}</span> {h.who ? `${h.who}: ` : ''}
+                    <b>{nameOf(h.id)}</b> {h.param} {JSON.stringify(h.old ?? null)} → {JSON.stringify(h.new ?? null)}
+                    {h.scenario ? <span className="scenarios-count"> in {h.scenario}</span> : null}
+                  </li>
+                ))}
+              </ul>
+              <div className="project-buttons">
+                <button type="button" onClick={clearChangeLog}>Clear the log</button>
+              </div>
+            </>
+          )}
         </fieldset>
         <fieldset className="prefs-group">
           <legend>Coordinate system</legend>

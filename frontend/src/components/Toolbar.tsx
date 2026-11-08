@@ -8,6 +8,10 @@ import { useUiStore } from '../store/uiStore'
  * The row under the menu bar: only what gets pressed all day. Everything
  * else, and everything here too, is in the menus.
  */
+/** Overlays reached from their own tab and the Analysis menu rather than
+ *  the toolbar, which stays one row high. */
+const STUDY_OVERLAYS = new Set(['compare', 'hosting'])
+
 export function Toolbar() {
   const name = useCircuitStore((s) => s.name)
   const setName = useCircuitStore((s) => s.setName)
@@ -141,7 +145,7 @@ export function Toolbar() {
       </div>
       <div className="tb-group overlay-group">
         <span className="tb-label">Overlay:</span>
-        {OVERLAY_CHOICES.map((o) => (
+        {OVERLAY_CHOICES.filter((o) => !STUDY_OVERLAYS.has(o.mode)).map((o) => (
           <button
             key={o.mode}
             className={overlay === o.mode ? 'active' : ''}

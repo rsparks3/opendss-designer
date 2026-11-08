@@ -476,6 +476,7 @@ export function buildModel(plans: LayerPlan[], opts: BuildOptions): BuildResult 
   const after: string[] = []
   const perKm = { km: 1, m: 1 / 1000, ft: 1 / 3280.84, kft: 1 / 3.28084, mi: 1.609344 } as Record<string, number>
   let ln1 = 0
+  let distributedLoads = 0
   for (const br of branches) {
     const sfx = br.letters && br.letters.length < 3 ? suffix(br.letters) : ''
     const ph = br.letters ? br.letters.length : br.phases
@@ -497,21 +498,48 @@ export function buildModel(plans: LayerPlan[], opts: BuildOptions): BuildResult 
         `kvas=(${fmt(kva)}, ${fmt(kva)}) xhl=${fmt(num(p.xhl, 2))}`)
       continue
     }
+    const impedance: string[] = []
+    if (br.dss === 'line') {
+      if (p.linecode) impedance.push(`linecode=${p.linecode}`)
+      else {
+        const u0 = String(p.units ?? 'km').toLowerCase()
+        const scale = perKm[u0 in perKm ? u0 : 'km'] ?? 1
+        const z = (k: string, typical: number) => fmt(p[k] != null ? num(p[k], typical) : typical * scale)
+        impedance.push(`r1=${z('r1', 0.12)} x1=${z('x1', 0.38)} r0=${z('r0', 0.4)} x0=${z('x0', 1.2)}`)
+      }
+    }
+    const rating = p.normamps != null ? ` normamps=${fmt(num(p.normamps, 400))}` : ''
+    const distributed = br.dss === 'line' && p.kw != null && num(p.kw, 0) > 0
+    if (distributed) {
+      // Load spread along the section, as CYME and Synergi model it. OpenDSS
+      // has no distributed load, so the exact equivalent for both voltage drop
+      // and losses is used (Kersting): two thirds of it a quarter of the way
+      // along, one third at the end, the line split in two to carry it.
+      const u = String(p.units ?? 'km').toLowerCase()
+      const unitsOk = u in perKm || u === 'none'
+      const L = num(p.length, 0.1)
+      const kw = num(p.kw, 0)
+      const kvar = p.kvar != null ? num(p.kvar, 0) : kw * 0.3287 // pf 0.95
+      const mid = `${br.b1}_${br.name}_q`
+      const ld = (n: string, bus: string, share: number) =>
+        `New Load.${n} bus1=${bus}${sfx} phases=${ph} kv=${fmt(ph === 1 ? basekv / SQRT3 : basekv)} kw=${fmt(kw * share)} kvar=${fmt(kvar * share)}`
+      lines.push(`New Line.${br.name}_a bus1=${br.b1}${sfx} bus2=${mid}${sfx} phases=${ph} length=${fmt(L / 4)} units=${unitsOk ? u : 'km'} ${impedance.join(' ')}${rating}`)
+      lines.push(`New Line.${br.name}_b bus1=${mid}${sfx} bus2=${br.b2}${sfx} phases=${ph} length=${fmt((3 * L) / 4)} units=${unitsOk ? u : 'km'} ${impedance.join(' ')}${rating}`)
+      lines.push(ld(`${br.name}_dl1`, mid, 2 / 3))
+      lines.push(ld(`${br.name}_dl2`, br.b2, 1 / 3))
+      distributedLoads++
+      continue
+    }
     const parts = [`New Line.${br.name} bus1=${br.b1}${sfx} bus2=${br.b2}${sfx} phases=${ph}`]
     if (br.dss === 'line') {
       const u = String(p.units ?? 'km').toLowerCase()
       const unitsOk = u in perKm || u === 'none'
       parts.push(`length=${fmt(num(p.length, 0.1))} units=${unitsOk ? u : 'km'}`)
-      if (p.linecode) parts.push(`linecode=${p.linecode}`)
-      else {
-        const scale = perKm[unitsOk ? u : 'km'] ?? 1
-        const z = (k: string, typical: number) => fmt(p[k] != null ? num(p[k], typical) : typical * scale)
-        parts.push(`r1=${z('r1', 0.12)} x1=${z('x1', 0.38)} r0=${z('r0', 0.4)} x0=${z('x0', 1.2)}`)
-      }
+      parts.push(...impedance)
     } else {
       parts.push('switch=yes')
     }
-    if (p.normamps != null) parts.push(`normamps=${fmt(num(p.normamps, 400))}`)
+    if (rating) parts.push(rating.trim())
     lines.push(parts.join(' '))
     const open = isOpen(p.closed)
     const watch = `monitoredobj=Line.${br.name} switchedobj=Line.${br.name}`
@@ -523,6 +551,8 @@ export function buildModel(plans: LayerPlan[], opts: BuildOptions): BuildResult 
     if (open && (br.dss === 'fuse' || br.dss === 'recloser')) after.push(`Disable ${br.dss}.${br.name}`)
     if (open) after.push(`Open Line.${br.name} term=1`)
   }
+  if (distributedLoads) notes.push(`${distributedLoads} line${distributedLoads === 1 ? '' : 's'} carried a distributed load; each was split a quarter of the way along, ` +
+    'with two thirds of the load there and one third at the end (the exact equivalent for voltage drop and losses).')
   if (ln1) notes.push(`${ln1} single-phase transformer${ln1 === 1 ? '' : 's'} recorded at the system's line-to-line ` +
     'voltage were rated line-to-neutral instead.')
   let mvLoads = 0

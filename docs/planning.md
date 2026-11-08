@@ -24,8 +24,9 @@ three* gives:
 | Minimum daytime | 0.3 | normal | Overvoltage and reverse power with DER on the feeder; the case a hosting-capacity study binds on |
 | Emergency peak | 1.0 | emergency | N-1 and transfer cases, where the emergency rating is what is allowed for a few hours |
 
-Pick the level for the next solve in the toolbar (the *Rated* dropdown
-appears once a project has levels) or under **Analysis → Load level**. The
+Pick the level for the next solve under **Analysis → Load level**, in the
+**Scenarios** tab, or in the toolbar, where a *Rated* dropdown appears once
+a project has levels and the window is wide enough for it. The
 status line, the hover tooltips and the study report's title block all name
 it, and a comparison can tell two levels apart.
 

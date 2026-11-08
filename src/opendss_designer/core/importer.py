@@ -23,7 +23,7 @@ import opendssdirect as dss
 
 from . import engine, passthrough
 from .connectivity import sanitize_name
-from .model import XYCurveSpec, Circuit, CircuitEdge, CircuitNode, LineCodeSpec, LoadShapeSpec, Position
+from .model import GeometryConductor, LineGeometrySpec, WireDataSpec, XYCurveSpec, Circuit, CircuitEdge, CircuitNode, LineCodeSpec, LoadShapeSpec, Position
 from .phasing import phasing_from_suffix
 
 _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
@@ -833,6 +833,9 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     all_codes = _read_line_codes()
     all_codes_lower = {k.lower(): k for k in all_codes}
     used_codes: dict[str, LineCodeSpec] = {}
+    all_wires, all_geoms = _read_geometries()
+    used_geoms: dict[str, LineGeometrySpec] = {}
+    used_wires: dict[str, WireDataSpec] = {}
 
     def reliability(full: str) -> dict:
         """A power-delivery element's fault rate, permanent share and
@@ -892,6 +895,28 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             # Only a line defined by sequence values keeps r1/x1/r0/x0 on the
             # line, because for any other the engine reports its defaults.
             linecode = dss.Lines.LineCode()
+            geom_name = str(dss.Lines.Geometry() or "")
+            if geom_name and geom_name.lower() in {g.lower() for g in all_geoms}:
+                # A line on a geometry keeps the geometry, wires and all, so
+                # the pole configuration can be edited; the engine rebuilds
+                # the matrix from it on every solve.
+                gkey = next(g for g in all_geoms if g.lower() == geom_name.lower())
+                spec_g = all_geoms[gkey]
+                used_geoms[gkey] = spec_g
+                for c in spec_g.conductors:
+                    wkey = next((w for w in all_wires if w.lower() == c.wire.lower()), None)
+                    if wkey:
+                        used_wires[wkey] = all_wires[wkey]
+                params["geometry"] = gkey
+                amps = dss.Lines.NormAmps()
+                if amps:
+                    params["normamps"] = float(amps)
+                edges.append(CircuitEdge(
+                    id=edge_id(), type="line",
+                    source=busbar_for(b1), sourceHandle="b0",
+                    target=busbar_for(b2), targetHandle="b0", params=params))
+                i = dss.Lines.Next()
+                continue
             geometry = dss.Lines.Geometry() or dss.Lines.Spacing()
             rm = _unflatten(dss.Lines.RMatrix(), nph)
             xm = _unflatten(dss.Lines.XMatrix(), nph)
@@ -1138,7 +1163,10 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     circuit = Circuit(name=circuit_name, nodes=nodes, edges=edges,
                       loadShapes=load_shapes, tccCurves=_read_tcc_curves(),
                       lineCodes=used_codes, voltageBases=bases or None,
-                      xyCurves=xy_curves)
+                      xyCurves=xy_curves, wireData=used_wires, lineGeometries=used_geoms)
+    folded.update(f"linegeometry.{g.lower()}" for g in used_geoms)
+    folded.update(f"{ {'wire': 'wiredata', 'cn': 'cndata', 'ts': 'tsdata'}[w.kind] }.{k.lower()}"
+                  for k, w in used_wires.items())
     return {"circuit": circuit.model_dump(), "unsupported": unsupported,
             "warnings": warnings, "folded": sorted(folded)}
 
@@ -1298,3 +1326,80 @@ def _fold_controls(nodes: list[CircuitNode], edges: list[CircuitEdge],
             folded.update(f"xycurve.{c.lower()}" for c in settings.values() if c)
         i = dss.ActiveClass.Next()
     return folded, curves
+
+
+_UNIT_NAMES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
+
+
+def _unit_name(code: object, default: str) -> str:
+    try:
+        return _UNIT_NAMES.get(int(code), default)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return default
+
+
+def _read_geometries() -> tuple[dict[str, WireDataSpec], dict[str, LineGeometrySpec]]:
+    """Every WireData, CNData, TSData and LineGeometry the file defined."""
+    wires: dict[str, WireDataSpec] = {}
+    for cls, kind, iface in (("wiredata", "wire", dss.WireData), ("cndata", "cn", getattr(dss, "CNData", None)),
+                             ("tsdata", "ts", getattr(dss, "TSData", None))):
+        if iface is None:
+            continue
+        try:
+            i = iface.First()
+        except Exception:
+            continue
+        while i:
+            name = iface.Name()
+            dss.Circuit.SetActiveClass(cls)
+            try:
+                dss.ActiveClass.Name(name)
+            except Exception:
+                pass
+            spec = WireDataSpec(
+                kind=kind, rdc=_pos(iface.Rdc()), rac=_pos(iface.Rac()),
+                runits=_unit_name(iface.ResistanceUnits(), "mi"),
+                gmr=_pos(iface.GMRac()), gmrunits=_unit_name(iface.GMRUnits(), "ft"),
+                radius=_pos(iface.Radius()), radunits=_unit_name(iface.RadiusUnits(), "in"),
+                normamps=_pos(iface.NormAmps()), emergamps=_pos(iface.EmergAmps()), source="imported")
+            if kind == "cn":
+                for prop in ("k", "diastrand", "gmrstrand", "rstrand", "epsr", "inslayer", "diains", "diacable"):
+                    v = _to_float(dss.Properties.Value(prop))
+                    if v:
+                        spec.extra[prop] = v
+            elif kind == "ts":
+                for prop in ("diashield", "tapelayer", "tapelap", "epsr", "inslayer", "diains", "diacable"):
+                    v = _to_float(dss.Properties.Value(prop))
+                    if v:
+                        spec.extra[prop] = v
+            wires[name] = spec
+            i = iface.Next()
+    geoms: dict[str, LineGeometrySpec] = {}
+    try:
+        i = dss.LineGeometries.First()
+    except Exception:
+        i = 0
+    while i:
+        name = dss.LineGeometries.Name()
+        conds = [str(c) for c in dss.LineGeometries.Conductors()]
+        xs = [float(v) for v in dss.LineGeometries.Xcoords()]
+        ys = [float(v) for v in dss.LineGeometries.Ycoords()]
+        units = dss.LineGeometries.Units()
+        unit = _unit_name(units[0] if isinstance(units, (list, tuple)) and units else units, "ft")
+        geoms[name] = LineGeometrySpec(
+            nconds=int(dss.LineGeometries.Nconds()), nphases=int(dss.LineGeometries.Phases()),
+            reduce=bool(dss.LineGeometries.Reduce()), units=unit,
+            rhoEarth=_pos(dss.LineGeometries.RhoEarth()),
+            conductors=[GeometryConductor(wire=c, x=round(x, 6), h=round(h, 6))
+                        for c, x, h in zip(conds, xs, ys)],
+            source="imported")
+        i = dss.LineGeometries.Next()
+    return wires, geoms
+
+
+def _pos(value: object) -> float | None:
+    try:
+        v = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return v if v > 0 else None

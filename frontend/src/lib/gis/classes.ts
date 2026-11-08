@@ -59,7 +59,9 @@ export const CLASSES: Record<Exclude<ElementClass, 'ignore'>, { label: string; p
       { key: 'r1', label: 'R1', kind: 'number', unit: 'Ω/unit', synonyms: ['r1', 'r_pos', 'rpos'] },
       { key: 'x1', label: 'X1', kind: 'number', unit: 'Ω/unit', synonyms: ['x1', 'x_pos', 'xpos'] },
       { key: 'r0', label: 'R0', kind: 'number', unit: 'Ω/unit', synonyms: ['r0', 'r_zero', 'rzero'] },
-      { key: 'x0', label: 'X0', kind: 'number', unit: 'Ω/unit', synonyms: ['x0', 'x_zero', 'xzero'] }],
+      { key: 'x0', label: 'X0', kind: 'number', unit: 'Ω/unit', synonyms: ['x0', 'x_zero', 'xzero'] },
+      { key: 'kw', label: 'Distributed load', kind: 'number', unit: 'kW', synonyms: ['kw', 'load_kw', 'loadkw', 'distributedload', 'dist_kw', 'connectedkw', 'kw_load'] },
+      { key: 'kvar', label: 'Distributed load', kind: 'number', unit: 'kvar', synonyms: ['kvar', 'load_kvar', 'loadkvar', 'dist_kvar'] }],
   },
   switch: { label: 'Switch', geometry: 'any', props: [name, bus1, bus2, phasing, phases, closed, normamps] },
   fuse: {

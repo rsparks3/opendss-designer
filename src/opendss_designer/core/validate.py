@@ -60,6 +60,10 @@ def _winding_phases(params: dict, winding: int) -> frozenset[str]:
             return letters
     if winding == 0 and parse_phasing(params.get("phasing")):
         return frozenset(parse_phasing(params.get("phasing")) or "")
+    # A centre-tapped service transformer puts two 120 V legs on its
+    # secondary: leg 1 is "A", leg 2 "B", and a 240 V load takes both.
+    if winding == 1 and params.get("splitphase") is True:
+        return frozenset("AB")
     return frozenset(default_phasing(phase_count(params)))
 
 

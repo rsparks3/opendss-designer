@@ -82,6 +82,34 @@ hosting capacity usually binds) and on the open **scenario**, and says so.
   coordinate system) and **CSV**.
 - The report's **Hosting capacity** section.
 
+## Interconnection screening
+
+**Analysis → Screen a DER interconnection…** (or *Screen a DER here…* on an
+element's right-click menu) runs one application at a point of common
+coupling through the tariff screens in one go and prints the standard
+table, with the outcome *pass*, *supplemental review* or *fail*:
+
+| Screen | Test | Default |
+|---|---|---|
+| Aggregate generation on the line section | DER already on the section plus this unit, against a share of the section's peak load (the fast-track screen) | 15 % |
+| Minimum daytime load (supplemental) | When the aggregate screen fails and the unit exports: aggregate against the section's minimum load, taken from the project's level named *Minimum…* (else 30 % of peak) | 100 % |
+| Fault-current contribution | The unit's contribution against the maximum fault current at the PCC | 10 % |
+| Interrupting duty | Every protective device with the unit's contribution added, against its interrupting rating | 87.5 % |
+| Rapid voltage change | The unit tripped, at every bus | 3 % |
+| Steady-state voltage | With the unit running, inside the project's limits | 0.95–1.05 pu |
+| Loading | With the unit running, nothing newly over its rating | 100 % |
+| Effective grounding at the PCC | X0/X1 ≤ 3 and R0/X1 ≤ 1 (IEEE 142), from the Thevenin impedances | |
+| Smart inverter settings | The IEEE 1547-2018 Category A or B characteristics the unit must run; reported, not judged | Category B |
+
+The screens run at the active load level and on the open scenario, as
+every study does. The report's **Interconnection screening** section prints
+the table. `POST /api/screen` is the route; `POST /api/faultpoint` gives one
+fault of any kind (three-phase, line-to-ground, line-to-line,
+double-line-to-ground, through resistance) at one bus with the current in
+every series element, and `POST /api/jobs/fault-sweep` the maximum and
+minimum fault currents at every bus — the pieces the protection work of
+M16 builds on.
+
 ## What has been checked
 
 `tests/test_hosting_capacity.py` holds the method to a feeder built for
@@ -92,6 +120,13 @@ with a fifth of the solves, reverse power at the head binds at the feeder's
 load, the islanding ratio at two thirds of the section's load, load
 hosting capacity on undervoltage or thermal, the worst hour of a
 time-granular run is taken, and pre-existing violations are excluded.
+
+`tests/test_screening.py` holds the screens: a 100 kW unit passes, 500 kW
+on a 2 MW section needs supplemental review (15 % fails, 100 % of minimum
+load passes), 3 MW at the end of a weak feeder fails on voltage and rapid
+voltage change, existing DER counts toward the aggregate, a non-exporting
+unit gets no minimum-load screen, and the fault-element solves agree with
+the fault study within 5 % for the bolted cases.
 
 Not yet done: a comparison with a published reference (EPRI's DRIVE
 results on the IEEE 123-bus feeder, NREL's hosting-capacity papers on the

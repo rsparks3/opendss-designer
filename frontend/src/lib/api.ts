@@ -1,4 +1,4 @@
-import type { CircuitJSON, FaultResult, Issue, JobSnapshot, PhaseMap, SolveResult, ReliabilityResult } from '../types/circuit'
+import type { CircuitJSON, FaultResult, Issue, JobSnapshot, PhaseMap, ScreenOptions, ScreenResult, SolveResult, ReliabilityResult } from '../types/circuit'
 import type { TccResult } from './tcc'
 
 export interface NrelMeta {
@@ -156,6 +156,9 @@ export const api = {
   reliability: (circuit: CircuitJSON) => post<ReliabilityResult>('/api/reliability', circuit),
 
   jobs: () => get<{ jobs: JobSnapshot[] }>('/api/jobs'),
+
+  screen: (circuit: CircuitJSON, bus: string, options: ScreenOptions) =>
+    post<ScreenResult>('/api/screen', { circuit, bus, options }),
 
   validate: (circuit: CircuitJSON) =>
     post<{ issues: Issue[]; phases: PhaseMap }>('/api/validate', circuit),

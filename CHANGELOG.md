@@ -56,6 +56,73 @@ This project follows [Semantic Versioning](https://semver.org/).
   result exports as GeoJSON and CSV, and the report gained a *Hosting
   capacity* section. `docs/hosting-capacity.md` describes the method and
   what has been checked.
+- **Interconnection screening.** **Analysis → Screen a DER
+  interconnection…** (or *Screen a DER here…* on an element) runs one
+  application at a point of common coupling through the SGIP / IEEE 1547
+  screens — aggregate generation against 15 % of the section's peak and
+  100 % of its minimum load, fault-current contribution, interrupting
+  duty, rapid voltage change on trip, steady-state voltage, loading,
+  effective grounding, and the smart-inverter settings required — with a
+  pass / supplemental / fail outcome and a report section.
+- **Fault-element solves.** `POST /api/faultpoint` runs a three-phase,
+  line-to-ground, line-to-line or double-line-to-ground fault, through any
+  resistance, at one bus and returns the current in the fault and in every
+  series element; `POST /api/jobs/fault-sweep` adds the minimum fault
+  currents (line-to-line, and line-to-ground through resistance) at every
+  bus to the maximum ones the fault study gives.
+- **The Studies tab** (the Hosting tab, grown): hosting capacity,
+  **N-1 contingency** (every device taken out; the tie switch — a breaker
+  marked *Tie switch*, or any normally-open one — that restores the most
+  load, with the worst voltage and loading while it does), **transfer
+  capability** of a tie both ways, **setting sweeps** of regulator and
+  capacitor controls over a day, **CVR evaluation** (energy saved, CVR
+  factor, lowest customer voltage), **capacitor placement** by loss
+  reduction, **phase balance** (head and bus unbalance, every lateral
+  tried on each other phase, *Apply* re-pins it), **loss evaluation** by
+  element class over a day or a year with a cost, and the **feeder
+  capacity** (the load multiplier at which a criterion first binds). Each
+  has a report table under *Planning studies*. `docs/studies.md`.
+- The toolbar stays one row high (it scrolls sideways on a narrow window);
+  the Compare and Hosting overlays are reached from their tabs and the
+  Analysis menu.
+- **Conductors and geometries.** The Line codes tab gained *Geometries*
+  (which conductor hangs where on the pole; a line on a geometry needs no
+  line code) and *Conductors* (WireData, and CNData / TSData for cables),
+  with a starter library of standard ACSR, AAC, copper and
+  concentric-neutral sizes (`config/wiredata.csv`). Imported files keep
+  their geometries and wires whole instead of a computed matrix.
+- **Transformer catalogue** (`config/transformers.csv`): pick a pole, pad
+  or substation unit and its nameplate is applied; and the **120/240 V
+  centre-tapped service transformer** (*splitphase*), the engine's
+  single-phase three-winding form, with 120 V loads pinned to leg A or B
+  and 240 V loads across both.
+- **Model QA** in the Studies tab: completeness per element class and the
+  findings a planner wants fixed before signing a model (placeholder
+  impedances, implausible lengths, loads without customers or a class,
+  voltage bases no winding matches, loops, unmarked open points, elements
+  with no place on the map); CSV export and a report table.
+- **Service transformers** in the Studies tab: loading, hours over rating,
+  hottest-spot temperature and IEEE C57.91 loss of life for every service
+  transformer over a day or a year, and the lowest voltage at every
+  secondary load against 114 V at the meter.
+- **Load allocation** (Analysis → Allocate loads from meter data…):
+  billing kWh (with class load factors), demand kW or AMI intervals
+  pasted as CSV and matched to loads by name, bus or class; AMI intervals
+  become loadshapes; an optional metered feeder-head kW scales the whole
+  model. Applied as a scenario or to the base case.
+- **Adoption scenarios** (Analysis → Adoption scenario…): EV chargers,
+  heat pumps or rooftop PV drawn at random among a class of loads at a
+  given adoption rate, with built-in EV charging shapes, several draws as
+  scenarios for the batch to solve.
+- **Growth levels** in Project properties (a rate and years ahead become
+  load levels), a **Class** column in the report's loads table, report
+  lengths in **miles and feet** when the project says so, and a **change
+  log**: every parameter change with its time, the study's engineer, the
+  element, from what to what and in which scenario, shown in Project
+  properties and printed as a report section.
+- GIS import: a line layer's distributed load (kW, kvar columns) is split
+  the exact way, two thirds a quarter of the way along and one third at
+  the end.
 - A `studies` package (`opendss_designer.studies`) and background jobs
   (`core/jobs.py`) for the planning studies to come; the demo and hosted
   plans gain a `maxStudySolves` limit.

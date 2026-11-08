@@ -18,7 +18,7 @@ import {
  * or saved with a project; the preferences persist per browser.
  */
 
-export type Dialog = 'saveAs' | 'library' | 'shortcuts' | 'about' | 'find' | 'prefs' | 'project' | 'report' | 'gis' | null
+export type Dialog = 'saveAs' | 'library' | 'shortcuts' | 'about' | 'find' | 'prefs' | 'project' | 'report' | 'gis' | 'screen' | 'allocate' | 'adoption' | null
 
 /** Panels the View menu can show and hide. Keys match SidePanel storage keys. */
 export type PanelKey = 'palette2' | 'properties' | 'bottom'
@@ -29,6 +29,9 @@ interface UiState {
   dialog: Dialog
   openDialog: (d: Dialog) => void
   closeDialog: () => void
+  /** The node the screening dialog was opened on (its bus is preselected). */
+  screenTarget: string | null
+  openScreening: (nodeId: string | null) => void
 
   panelOpen: Record<PanelKey, boolean>
   setPanelOpen: (key: PanelKey, open: boolean) => void
@@ -123,6 +126,8 @@ const initialPalette = readPalette()
 export const useUiStore = create<UiState>()((set, get) => ({
   dialog: null,
   openDialog: (dialog) => set({ dialog }),
+  screenTarget: null,
+  openScreening: (screenTarget) => set({ screenTarget, dialog: 'screen' }),
   editingNote: null,
   setEditingNote: (editingNote) => set({ editingNote }),
   closeDialog: () => set({ dialog: null }),

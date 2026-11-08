@@ -453,7 +453,8 @@
     "engineer": "A. Engineer",
     "company": "Example Utility",
     "description": "Every element type, for the schema-drift tests.",
-    "sheet": false
+    "sheet": false,
+    "units": "metric"
   },
   "xyCurves": {
     "vv_catB": { "x": [0.5, 0.92, 0.98, 1.02, 1.08, 1.5], "y": [0.44, 0.44, 0, 0, -0.44, -0.44], "source": "ieee1547:catB:voltvar" }

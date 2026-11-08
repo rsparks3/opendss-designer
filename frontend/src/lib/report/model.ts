@@ -13,8 +13,19 @@ import { compareResults } from '../compare'
 import { HC_LABELS } from '../hostingCapacity'
 import { levelNamed } from '../scenarios'
 import type {
+  BalanceResult,
   BatchResult,
+  CapacityResult,
+  CvrResult,
   HostingCapacityResult,
+  LossResult,
+  N1Result,
+  PlacementResult,
+  QaResult,
+  ScreenResult,
+  TlmResult,
+  SweepResult,
+  TransferResult,
   CircuitJSON,
   FaultResult,
   LimitsJSON,
@@ -27,7 +38,7 @@ import { EMPTY_STUDY, limitsOf } from '../limits'
 import { operateSeconds, type TccResult } from '../tcc'
 import { traceUnit } from './charts'
 
-export type SectionKey = 'loadflow' | 'diagram' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting'
+export type SectionKey = 'loadflow' | 'diagram' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
 
 export type Cell = string | number | null
 
@@ -100,6 +111,10 @@ export interface ReportInput {
   batch?: BatchResult | null
   /** The last hosting-capacity run. */
   hosting?: HostingCapacityResult | null
+  /** The last interconnection screening. */
+  screening?: ScreenResult | null
+  /** The M14 planning studies that have been run, by key. */
+  studies?: Partial<Record<string, unknown>> | null
   /** SVG drawings the caller rendered: the one-line (from the canvas) and
    *  the charts (report/charts.ts). */
   figures?: Partial<Record<'diagram' | 'profile' | 'tcc' | 'timeseries', string>>
@@ -119,6 +134,9 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   comparison: 'Comparison',
   batch: 'Scenarios and load levels',
   hosting: 'Hosting capacity',
+  screening: 'Interconnection screening',
+  studies: 'Planning studies',
+  history: 'Change log',
 }
 
 export const TYPE_NAMES: Record<string, string> = {
@@ -270,7 +288,7 @@ export function buildReport(input: ReportInput): Report {
       out.push(abnormalSection(solved, names, limits))
       out.push(busSection(solved, names, limits, input.figures?.profile))
       out.push(branchSection(solved, names, limits))
-      out.push(loadSection(solved, names, limits))
+      out.push(loadSection(solved, names, limits, circuit))
       out.push(lossSection(solved, names))
     }
   }
@@ -310,7 +328,219 @@ export function buildReport(input: ReportInput): Report {
   if (sections.has('hosting') && input.hosting?.converged) {
     out.push(hostingSection(input.hosting, names))
   }
+  if (sections.has('screening') && input.screening?.converged) {
+    out.push(screeningSection(input.screening))
+  }
+  if (sections.has('studies') && input.studies) {
+    const s = studiesSection(input.studies, names)
+    if (s.tables.length) out.push(s)
+  }
+  if (sections.has('history') && circuit.history?.length) {
+    out.push({
+      id: 'history',
+      title: 'Change log',
+      tables: [{
+        id: 'history',
+        title: 'Parameter changes',
+        columns: [
+          { key: 'when', label: 'When' }, { key: 'who', label: 'By' }, { key: 'element', label: 'Element' },
+          { key: 'param', label: 'Parameter' }, { key: 'from', label: 'From' }, { key: 'to', label: 'To' }, { key: 'scenario', label: 'Scenario' },
+        ],
+        rows: [...circuit.history].reverse().map((h) => ({
+          when: new Date(h.t).toLocaleString(), who: h.who || '—', element: names.element(h.id, h.id).name, param: h.param,
+          from: h.old == null ? '—' : typeof h.old === 'object' ? JSON.stringify(h.old) : String(h.old),
+          to: h.new == null ? '—' : typeof h.new === 'object' ? JSON.stringify(h.new) : String(h.new),
+          scenario: h.scenario ? (circuit.scenarios?.find((s) => s.id === h.scenario)?.name ?? h.scenario) : 'base case',
+        })),
+      }],
+      figures: [],
+    })
+  }
   return { meta, sections: out }
+}
+
+function studiesSection(studies: Partial<Record<string, unknown>>, names: Names): ReportSection {
+  const tables: Table[] = []
+  const n1 = studies.n1 as N1Result | undefined
+  if (n1?.converged) {
+    tables.push({
+      id: 'n1',
+      title: 'N-1 contingency',
+      columns: [
+        { key: 'device', label: 'Lost device' },
+        { key: 'kind', label: 'Type' },
+        { key: 'dark', label: 'Load left dark', unit: 'kW', digits: 0 },
+        { key: 'tie', label: 'Best tie' },
+        { key: 'restored', label: 'Restored', unit: 'kW', digits: 0 },
+        { key: 'remaining', label: 'Still dark', unit: 'kW', digits: 0 },
+        { key: 'minV', label: 'Lowest V', unit: 'pu', digits: 3 },
+        { key: 'loading', label: 'Highest loading', unit: '%', digits: 0 },
+        { key: 'viol', label: 'New violations' },
+      ],
+      rows: n1.cases.map((c) => ({
+        device: c.element, kind: c.kind, dark: c.unservedKw, tie: c.bestTie?.tieName ?? ((c.unservedKw ?? 0) > 0.5 ? 'none' : null),
+        restored: c.bestTie?.restoredKw ?? null, remaining: c.remainingUnservedKw,
+        minV: c.bestTie?.minVpu ?? c.noAction?.minVpu ?? null, loading: c.bestTie?.maxLoadingPct ?? c.noAction?.maxLoadingPct ?? null,
+        viol: c.bestTie ? c.bestTie.newViolations : c.noAction ? Math.max(0, c.noAction.violations - n1.base.violations) : null,
+      })),
+      flags: n1.cases.map((c) => ((c.remainingUnservedKw ?? 0) > 0.5 ? 'violation' : null)),
+      note: `${n1.summary.evaluated} devices at ${n1.loadLevel.name}; ties: ${n1.ties.map((t) => t.name).join(', ') || 'none'}; base load ${n1.base.totalLoadKw} kW.`,
+    })
+  }
+  const tr = studies.transfer as TransferResult | undefined
+  if (tr?.converged) {
+    tables.push({
+      id: 'transfer', title: `Transfer capability of tie ${tr.tieName}`,
+      columns: [
+        { key: 'side', label: 'Side isolated at' }, { key: 'load', label: 'Load transferred', unit: 'kW', digits: 0 },
+        { key: 'kw', label: 'Can carry', unit: 'kW', digits: 0 }, { key: 'mult', label: '× present', digits: 2 },
+        { key: 'minV', label: 'Lowest V', unit: 'pu', digits: 3 }, { key: 'loading', label: 'Highest loading', unit: '%', digits: 0 }, { key: 'note', label: 'Note' },
+      ],
+      rows: tr.directions.map((d) => ({ side: d.isolatingName ?? d.sideBus, load: d.transferredLoadKw ?? null, kw: d.kw, mult: d.multiplier ?? null, minV: d.minVpu ?? null, loading: d.maxLoadingPct ?? null, note: d.note ?? (d.carriesPresentLoad ? 'carries the present load' : 'cannot carry the present load') })),
+    })
+  }
+  const sw = studies.sweep as SweepResult | undefined
+  if (sw?.converged) {
+    tables.push({
+      id: 'sweep', title: 'Setting sweep',
+      columns: [
+        { key: 'settings', label: 'Settings' }, { key: 'energy', label: 'Energy', unit: 'kWh', digits: 0 }, { key: 'loss', label: 'Losses', unit: 'kWh', digits: 1 },
+        { key: 'minV', label: 'Lowest V', unit: 'pu', digits: 3 }, { key: 'maxV', label: 'Highest V', unit: 'pu', digits: 3 }, { key: 'ops', label: 'Control operations' },
+        { key: 'under', label: 'Under V (bus·steps)' }, { key: 'over', label: 'Over V (bus·steps)' }, { key: 'overload', label: 'Overload steps' },
+      ],
+      rows: sw.rows.map((r) => ({ settings: Object.entries(r.settings).map(([k, v]) => `${k} = ${v}`).join(', '), energy: r.energyKwh, loss: r.lossesKwh, minV: r.minVpu, maxV: r.maxVpu, ops: r.controlOps, under: r.undervoltageBusSteps, over: r.overvoltageBusSteps, overload: r.overloadSteps })),
+      flags: sw.rows.map((r) => (r.undervoltageBusSteps + r.overvoltageBusSteps + r.overloadSteps ? 'warning' : null)),
+      note: `A day at ${sw.stepMin}-minute steps per row; rows without violations first, then by losses.`,
+    })
+  }
+  const cv = studies.cvr as CvrResult | undefined
+  if (cv?.converged) {
+    tables.push({
+      id: 'cvr', title: 'Conservation voltage reduction', keyValue: true, columns: KV_COLUMNS,
+      rows: [
+        kv('How', cv.how), kv('Energy, present settings', cv.base.energyKwh, 'kWh/day'), kv('Energy, reduced', cv.reduced.energyKwh, 'kWh/day'),
+        kv('Energy saved', cv.energySavedKwh, 'kWh/day'), kv('Energy saved', cv.energySavedPct, '%'), kv('Voltage reduced', cv.voltageReducedPct, '%'),
+        kv('CVR factor', cv.cvrFactor), kv('Losses saved', cv.lossesSavedKwh, 'kWh/day'), kv('Lowest customer voltage, reduced', cv.lowestLoadV120, 'V (120 base)'),
+        kv('Loads on a voltage-dependent model', cv.cvrLoads),
+      ],
+    })
+  }
+  const pl = studies.placement as PlacementResult | undefined
+  if (pl?.converged) {
+    tables.push({
+      id: 'placement', title: `Capacitor placement, ${pl.kvar} kvar banks`,
+      columns: [
+        { key: 'bank', label: 'Bank' }, { key: 'bus', label: 'Bus' }, { key: 'loss', label: 'Loss reduction', unit: 'kW', digits: 2 },
+        { key: 'minV', label: 'Lowest V after', unit: 'pu', digits: 3 }, { key: 'lift', label: 'Voltage lift', unit: 'pu', digits: 4 }, { key: 'maxV', label: 'Highest V after', unit: 'pu', digits: 3 },
+      ],
+      rows: pl.placed.map((p, i) => ({ bank: i + 1, bus: names.bus(p.bus), loss: p.lossReductionKw, minV: p.minVpu, lift: p.voltageLiftPu, maxV: p.maxVpu })),
+      note: `Base losses ${pl.base.lossKw} kW; with the banks ${pl.totalLossReductionKw} kW less. Greedy, one bank at a time, over ${pl.candidates} candidate buses.`,
+    })
+  }
+  const ba = studies.balance as BalanceResult | undefined
+  if (ba?.converged) {
+    tables.push({
+      id: 'balance', title: 'Phase balance',
+      columns: [
+        { key: 'lateral', label: 'Lateral' }, { key: 'load', label: 'Load', unit: 'kW', digits: 0 }, { key: 'move', label: 'Move' },
+        { key: 'after', label: 'Head unbalance after', unit: '%', digits: 1 }, { key: 'impr', label: 'Improvement', unit: 'pts', digits: 1 },
+        { key: 'loss', label: 'Loss change', unit: 'kW', digits: 2 }, { key: 'vunb', label: 'Worst voltage unbalance', unit: '%', digits: 2 },
+      ],
+      rows: ba.candidates.slice(0, 40).map((c) => ({ lateral: c.name, load: c.loadKw, move: `${c.fromPhase} → ${c.toPhase}`, after: c.currentUnbalancePct, impr: c.currentImprovementPct, loss: c.lossChangeKw, vunb: c.voltageUnbalancePct })),
+      note: `Base: head currents ${ba.base.headCurrentsA?.map((a) => a.toFixed(0)).join(' / ') ?? '—'} A, current unbalance ${ba.base.currentUnbalancePct ?? '—'} %, worst voltage unbalance ${ba.base.voltageUnbalancePct ?? '—'} % at ${ba.base.voltageUnbalanceBus ?? '—'}.`,
+    })
+  }
+  const lo = studies.losses as LossResult | undefined
+  if (lo?.converged) {
+    tables.push({
+      id: 'losses-eval', title: `Loss evaluation, ${lo.mode === 'daily' ? 'a day' : 'a year'}`,
+      columns: [{ key: 'cls', label: 'Element class' }, { key: 'kwh', label: 'Losses', unit: 'kWh', digits: 1 }, { key: 'share', label: 'Share', unit: '%', digits: 1 }, { key: 'cost', label: 'Cost', unit: '$', digits: 0 }],
+      rows: lo.byClass.map((r) => ({ cls: r.label, kwh: r.kwh, share: r.share, cost: r.cost })),
+      note: `Energy served ${lo.energyKwh} kWh, losses ${lo.lossesKwh} kWh (${lo.lossPct ?? '—'} %); at peak ${lo.peakLossKw} kW of ${lo.peakKw} kW` + (lo.pricePerKwh ? ` at $${lo.pricePerKwh}/kWh, $${lo.costTotal}.` : '.'),
+    })
+  }
+  const qa = studies.qa as QaResult | undefined
+  if (qa) {
+    tables.push({
+      id: 'qa', title: `Model QA: ${qa.score} % complete`,
+      columns: [{ key: 'severity', label: 'Severity' }, { key: 'code', label: 'Code' }, { key: 'message', label: 'Finding' }],
+      rows: qa.findings.map((f) => ({ severity: f.severity, code: f.code, message: f.message })),
+      flags: qa.findings.map((f) => (f.severity === 'warning' ? 'warning' : null)),
+      note: qa.completeness.map((c) => `${c.class}: ${c.pct} % of ${c.count}`).join('; '),
+    })
+  }
+  const tlm = studies.tlm as TlmResult | undefined
+  if (tlm?.converged) {
+    tables.push({
+      id: 'tlm', title: `Service transformers, ${tlm.mode === 'daily' ? 'a day' : 'a year'} at ${tlm.ambientC} °C`,
+      columns: [
+        { key: 'name', label: 'Transformer' }, { key: 'kva', label: 'kVA', digits: 0 }, { key: 'peak', label: 'Peak', unit: '%', digits: 0 },
+        { key: 'h100', label: 'Hours over 100 %', digits: 1 }, { key: 'h150', label: 'Hours over 150 %', digits: 1 },
+        { key: 'hot', label: 'Hottest spot', unit: '°C', digits: 0 }, { key: 'aging', label: 'Aging factor', digits: 2 }, { key: 'lol', label: 'Loss of life', unit: '%/yr', digits: 3 },
+      ],
+      rows: tlm.transformers.map((t) => ({ name: t.name, kva: t.kva, peak: t.peakPct, h100: t.hoursOver100, h150: t.hoursOver150, hot: t.maxHotSpotC, aging: t.equivalentAging, lol: t.lossOfLifePctPerYear })),
+      flags: tlm.transformers.map((t) => (t.flag === 'overloaded' ? 'violation' : t.flag === 'aging' ? 'warning' : null)),
+    })
+    if (tlm.services.length) {
+      tables.push({
+        id: 'secondary-voltage', title: 'Voltage at the meter',
+        columns: [{ key: 'name', label: 'Load' }, { key: 'min', label: 'Lowest', unit: 'V (120 base)', digits: 1 }, { key: 'hour', label: 'at hour', digits: 2 }, { key: 'max', label: 'Highest', unit: 'V', digits: 1 }],
+        rows: tlm.services.map((s) => ({ name: s.name, min: s.minV120, hour: s.minHour, max: s.maxV120 })),
+        flags: tlm.services.map((s) => (s.flag ? 'violation' : null)),
+        note: 'ANSI C84.1 Range A at the meter is 114 to 126 V.',
+      })
+    }
+  }
+  const ca = studies.capacity as CapacityResult | undefined
+  if (ca?.converged) {
+    tables.push({
+      id: 'capacity', title: 'Feeder capacity', keyValue: true, columns: KV_COLUMNS,
+      rows: [
+        kv('Load level', `${ca.loadLevel.name} (×${ca.baseMult})`), kv('Present load', ca.base.sourceKw, 'kW'),
+        kv('Capacity', ca.capacityKw, 'kW'), kv('Capacity multiplier', ca.capacityMult), kv('Headroom', ca.headroomKw, 'kW'),
+        kv('Binds on', ca.binding === 'voltage' ? `undervoltage at ${ca.atLimit.minVBus ?? '—'}` : ca.binding === 'thermal' ? `overload of ${ca.atLimit.maxLoadingElement ?? '—'}` : ca.binding),
+        kv('At the limit', `lowest V ${ca.atLimit.minVpu ?? '—'} pu, highest loading ${ca.atLimit.maxLoadingPct} %`),
+      ],
+    })
+  }
+  return { id: 'studies', title: 'Planning studies', tables, figures: [] }
+}
+
+function screeningSection(s: ScreenResult): ReportSection {
+  const setup: Table = {
+    id: 'screening-setup',
+    title: 'Interconnection screening',
+    keyValue: true,
+    columns: KV_COLUMNS,
+    rows: [
+      kv('Point of common coupling', `${s.busName} (${s.kvBase} kV, ${s.phases}-phase)`),
+      kv('Unit', `${s.unit.kw} kW, pf ${s.unit.pf}, ${s.unit.kva} kVA ${s.unit.derType}${s.unit.export ? ', exporting' : ', non-export'}`),
+      kv('Line section', `${s.section.peakLoadKw} kW peak load, ${s.section.minLoadKw} kW minimum (×${s.section.minLoadMult}), ${s.section.existingDerKw} kW DER already connected`),
+      kv('Load level', `${s.loadLevel.name} (×${s.loadLevel.loadmult})`),
+      kv('Outcome', s.outcome === 'pass' ? 'Passes the screens' : s.outcome === 'supplemental' ? 'Needs supplemental review' : `Fails: ${s.failed.join(', ')}`),
+    ],
+  }
+  const table: Table = {
+    id: 'screening-rows',
+    title: 'Screens',
+    columns: [
+      { key: 'screen', label: 'Screen' },
+      { key: 'value', label: 'Value' },
+      { key: 'limit', label: 'Limit' },
+      { key: 'result', label: 'Result' },
+      { key: 'note', label: 'Note' },
+    ],
+    rows: s.screens.map((r) => ({
+      screen: r.label,
+      value: r.value == null ? null : `${r.value} ${r.unit}`.trim(),
+      limit: r.limit == null ? null : `${r.limit} ${r.unit}`.trim(),
+      result: r.pass === null ? '—' : r.pass ? 'pass' : 'fail',
+      note: r.note,
+    })),
+    flags: s.screens.map((r) => (r.pass === false ? 'violation' : null)),
+    note: 'Fault-current and interrupting screens use the unit\'s contribution (1.2 × rated for an inverter, 5 × for a synchronous machine) against a base fault study; rapid voltage change is the difference between solves with and without the unit.',
+  }
+  return { id: 'screening', title: 'Interconnection screening', tables: [setup, table], figures: [] }
 }
 
 function hostingSection(h: HostingCapacityResult, names: Names): ReportSection {
@@ -810,7 +1040,7 @@ function branchSection(solve: SolveResult, names: Names, limits: LimitsJSON): Re
   }
 }
 
-function loadSection(solve: SolveResult, names: Names, limits: LimitsJSON): ReportSection {
+function loadSection(solve: SolveResult, names: Names, limits: LimitsJSON, circuit: CircuitJSON): ReportSection {
   const loads: Record<string, Cell>[] = []
   const gens: Record<string, Cell>[] = []
   const genFlags: RowFlag[] = []
@@ -824,6 +1054,7 @@ function loadSection(solve: SolveResult, names: Names, limits: LimitsJSON): Repo
         element: name,
         bus: names.bus(bus),
         phases: phaseLetters(e.phaseNodes),
+        cls: String((circuit.nodes.find((n) => n.id === e.id)?.params.class as string | undefined) ?? '—'),
         kw: num(e.kw, 1),
         kvar: num(e.kvar, 1),
         kva: num(kva, 1),
@@ -854,7 +1085,8 @@ function loadSection(solve: SolveResult, names: Names, limits: LimitsJSON): Repo
         { key: 'element', label: 'Load', width: 2 },
         { key: 'bus', label: 'Bus', width: 2 },
         { key: 'phases', label: 'Ph', width: 0.6 },
-        { key: 'kw', label: 'P', unit: 'kW', digits: 1 },
+        { key: 'cls', label: 'Class' },
+      { key: 'kw', label: 'P', unit: 'kW', digits: 1 },
         { key: 'kvar', label: 'Q', unit: 'kvar', digits: 1 },
         { key: 'kva', label: 'S', unit: 'kVA', digits: 1 },
         { key: 'pf', label: 'PF', digits: 3 },

@@ -44,6 +44,8 @@ nav:
   - Study reports: report.md
   - Planning (levels, scenarios, compare): planning.md
   - Hosting capacity: hosting-capacity.md
+  - Planning studies: studies.md
+  - Model quality and libraries: model.md
   - Importing models: importing-dss.md
   - The map: map.md
   - Validation: validation.md

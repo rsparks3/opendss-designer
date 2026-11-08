@@ -125,6 +125,105 @@ export interface ScenarioJSON {
   removed: string[]
 }
 
+/** A conductor (OpenDSS WireData / CNData / TSData). */
+export interface WireDataJSON {
+  kind: 'wire' | 'cn' | 'ts'
+  rdc?: number | null
+  rac?: number | null
+  runits: string
+  gmr?: number | null
+  gmrunits: string
+  radius?: number | null
+  radunits: string
+  normamps?: number | null
+  emergamps?: number | null
+  extra?: Record<string, number>
+  source?: string | null
+}
+
+/** A pole or trench configuration (OpenDSS LineGeometry). */
+export interface LineGeometryJSON {
+  nconds: number
+  nphases: number
+  reduce: boolean
+  units: string
+  rhoEarth?: number | null
+  conductors: { wire: string; x: number; h: number }[]
+  source?: string | null
+}
+
+/** One change to the model, for the audit trail. */
+export interface HistoryEntryJSON {
+  t: number
+  who: string
+  id: string
+  param: string
+  old?: unknown
+  new?: unknown
+  scenario?: string | null
+}
+
+export interface WireLibraryEntry {
+  code: string
+  label: string
+  kind: 'wire' | 'cn' | 'ts'
+  spec: WireDataJSON
+}
+
+export interface TransformerCatalogEntry {
+  code: string
+  label: string
+  phases: number
+  kva: number | null
+  kvh: number | null
+  kvl: number | null
+  connh: string
+  connl: string
+  xhl: number | null
+  pctloadloss: number | null
+  pctnoloadloss: number | null
+  splitphase: boolean
+}
+
+export interface QaResult {
+  score: number
+  elements: number
+  findings: { severity: 'warning' | 'info'; code: string; message: string; nodeId: string | null; edgeId: string | null }[]
+  warnings: number
+  infos: number
+  loops: number
+  completeness: { class: string; count: number; fields: number; missing: Record<string, number>; pct: number }[]
+  voltageBases: number[]
+}
+
+export interface TlmResult {
+  converged: boolean
+  cancelled: boolean
+  mode: 'daily' | 'yearly'
+  stepMin: number
+  ambientC: number
+  transformers: { id: string; name: string; kva: number; peakPct: number; peakHour: number; hoursOver100: number; hoursOver150: number; equivalentAging: number | null; maxHotSpotC: number; lossOfLifePctPerYear: number; flag: string | null }[]
+  services: { id: string; name: string; kv: number; bus: string; minVpu: number; minV120: number; minHour: number; maxVpu: number; maxV120: number; flag: string | null }[]
+  summary: { transformers: number; overloaded: number; aging: number; services: number; lowVoltage: number; highVoltage: number }
+  loadLevel: LoadLevelJSON
+  issues: Issue[]
+}
+
+export interface AllocationResult {
+  converged: boolean
+  overrides: Record<string, Params>
+  loadShapes: Record<string, LoadShapeJSON>
+  matched: { id: string; name: string; key: unknown; kw: number; from: string; before: number | null; points?: number }[]
+  unmatched: string[]
+  noData: string[]
+  headKwBefore: number | null
+  headKwAfter: number | null
+  targetHeadKw: number | null
+  scale: number | null
+  totalKw: number
+  issues: Issue[]
+}
+
 export interface LoadShapeJSON {
   /** Library category: drives the Shapes tabs, dropdown filtering, and
    *  kind-mismatch validation. Absent (older files) means 'load'. */
@@ -162,6 +261,11 @@ export interface CircuitJSON {
   limits?: LimitsJSON | null
   /** The study report's title block. */
   study?: StudyInfoJSON | null
+  /** Conductors and pole configurations, keyed by name. */
+  wireData?: Record<string, WireDataJSON>
+  lineGeometries?: Record<string, LineGeometryJSON>
+  /** The audit trail, newest last. */
+  history?: HistoryEntryJSON[]
   /** Inverter volt-var / volt-watt curves, keyed by name. */
   xyCurves?: Record<string, XYCurveJSON>
   /** The load conditions studies run at; absent means rated only. */
@@ -190,6 +294,8 @@ export interface StudyInfoJSON {
   description: string
   /** Exported images get a sheet border and this block as a title block. */
   sheet?: boolean
+  /** How the report prints lengths. */
+  units?: 'metric' | 'imperial'
 }
 
 export interface PassthroughJSON {
@@ -415,6 +521,250 @@ export interface HostingCapacityResult {
   issues: Issue[]
   nodeBuses: Record<string, string[]>
   busNames: Record<string, string>
+}
+
+/** What one interconnection screening run is given (studies/screening.py). */
+export interface ScreenOptions {
+  kw: number
+  pf: number
+  kva: number | null
+  derType: 'inverter' | 'synchronous'
+  export: boolean
+  aggregatePct: number
+  minLoadPct: number
+  faultIncreasePct: number
+  interruptingPct: number
+  deviationPct: number
+  thermalPct: number
+  inverterCategory: 'A' | 'B'
+}
+
+export interface ScreenRow {
+  key: string
+  label: string
+  value: number | null
+  limit: number | null
+  unit: string
+  /** null: informational, or could not be judged. */
+  pass: boolean | null
+  note: string
+}
+
+export interface ScreenResult {
+  converged: boolean
+  bus: string
+  busName: string
+  kvBase: number
+  phases: number
+  unit: { kw: number; pf: number; kva: number; derType: string; export: boolean }
+  section: { head: string; peakLoadKw: number; minLoadKw: number; existingDerKw: number; minLoadMult: number }
+  screens: ScreenRow[]
+  failed: string[]
+  outcome: 'pass' | 'supplemental' | 'fail'
+  loadLevel: LoadLevelJSON
+  scenario: string | null
+  issues: Issue[]
+  nodeBuses: Record<string, string[]>
+  busNames: Record<string, string>
+}
+
+/** The headline numbers of one solved case (studies/contingency.py). */
+export interface CaseSummary {
+  minVpu: number | null
+  minVBus: string | null
+  maxVpu: number | null
+  maxVBus: string | null
+  maxLoadingPct: number | null
+  maxLoadingElement: string | null
+  undervoltages: number
+  overvoltages: number
+  overloads: number
+  violations: number
+}
+
+export interface N1Case {
+  id: string
+  element: string
+  kind: string
+  converged: boolean
+  unservedKw: number | null
+  darkBuses?: number
+  noAction?: CaseSummary
+  bestTie: (CaseSummary & { tie: string; tieName: string; restoredKw: number; remainingUnservedKw: number; newViolations: number }) | null
+  remainingUnservedKw: number | null
+}
+
+export interface N1Result {
+  converged: boolean
+  cancelled: boolean
+  base: CaseSummary & { totalLoadKw: number; darkBuses: number }
+  ties: { id: string; name: string }[]
+  cases: N1Case[]
+  summary: { candidates: number; evaluated: number; withLostLoad: number; restorable: number; solves: number }
+  loadLevel: LoadLevelJSON
+  issues: Issue[]
+}
+
+export interface TransferResult {
+  converged: boolean
+  tie: string
+  tieName: string
+  directions: (Partial<CaseSummary> & {
+    sideBus: string
+    isolatingDevice: string | null
+    isolatingName: string | null
+    transferredLoadKw?: number
+    transferredLoads?: number
+    kw: number | null
+    multiplier?: number
+    carriesPresentLoad?: boolean
+    note?: string
+  })[]
+  loadLevel: LoadLevelJSON
+  issues: Issue[]
+}
+
+export interface SwitchingResult {
+  converged: boolean
+  steps: (Partial<CaseSummary> & { step: number; action: string; id?: string; element?: string; converged?: boolean; unservedKw: number | null; darkBuses: number | null; skipped?: boolean })[]
+  totalLoadKw: number
+  issues: Issue[]
+}
+
+export interface DailyRunSummary {
+  energyKwh: number
+  lossesKwh: number
+  lossPct: number | null
+  minVpu: number | null
+  maxVpu: number | null
+  minLoadVpu: number | null
+  meanVpu: number | null
+  controlOps: number
+  undervoltageBusSteps: number
+  overvoltageBusSteps: number
+  overloadSteps: number
+  nonConverged: number
+  steps: number
+}
+
+export interface SweepResult {
+  converged: boolean
+  cancelled: boolean
+  stepMin: number
+  targets: { id: string; name: string; property: string; values: number[] }[]
+  rows: (DailyRunSummary & { settings: Record<string, number> })[]
+  loadLevel: LoadLevelJSON
+  issues: Issue[]
+}
+
+export interface CvrResult {
+  converged: boolean
+  how: string
+  reductionV: number
+  base: DailyRunSummary
+  reduced: DailyRunSummary
+  energySavedKwh: number
+  energySavedPct: number | null
+  voltageReducedPct: number | null
+  cvrFactor: number | null
+  lossesSavedKwh: number
+  lowestLoadVpu: number | null
+  lowestLoadV120: number | null
+  cvrLoads: number
+  loadLevel: LoadLevelJSON
+  issues: Issue[]
+}
+
+export interface PlacementRow {
+  bus: string
+  kvBase: number
+  lossKw: number
+  lossReductionKw: number
+  minVpu: number
+  voltageLiftPu: number
+  maxVpu: number
+  overvoltage: boolean
+}
+
+export interface PlacementResult {
+  converged: boolean
+  cancelled: boolean
+  kvar: number
+  banks: number
+  base: { lossKw: number; minVpu: number }
+  placed: PlacementRow[]
+  rounds: { bank: number; best: PlacementRow; candidates: PlacementRow[] }[]
+  totalLossReductionKw: number
+  candidates: number
+  solves: number
+  issues: Issue[]
+  nodeBuses: Record<string, string[]>
+  busNames: Record<string, string>
+}
+
+export interface BalanceMeasure {
+  headCurrentsA: number[] | null
+  currentUnbalancePct: number | null
+  voltageUnbalancePct: number | null
+  voltageUnbalanceBus: string | null
+  lossKw: number | null
+}
+
+export interface BalanceResult {
+  converged: boolean
+  cancelled: boolean
+  base: BalanceMeasure
+  laterals: { id: string; name: string; rootBuses: string[]; phase: string; loadKw: number; elements: number; members: number }[]
+  candidates: (BalanceMeasure & {
+    lateral: string
+    name: string
+    loadKw: number
+    elements: number
+    fromPhase: string
+    toPhase: string
+    currentImprovementPct: number | null
+    lossChangeKw: number | null
+    overrides: Record<string, Params>
+  })[]
+  solves: number
+  issues: Issue[]
+}
+
+export interface LossResult {
+  converged: boolean
+  cancelled: boolean
+  mode: 'daily' | 'yearly'
+  stepMin: number
+  steps: number
+  energyKwh: number
+  lossesKwh: number
+  lossPct: number | null
+  byClass: { class: string; label: string; kwh: number; share: number | null; cost: number | null }[]
+  pricePerKwh: number
+  costTotal: number | null
+  peakKw: number
+  peakLossKw: number
+  peakHour: number
+  peakLossPct: number | null
+  lossSeriesKw: number[]
+  nonConverged: number
+  issues: Issue[]
+}
+
+export interface CapacityResult {
+  converged: boolean
+  atCapacity: boolean
+  capped?: boolean
+  binding: string
+  baseMult: number
+  capacityMult: number
+  capacityKw: number | null
+  headroomKw: number
+  base: { minVpu: number | null; minVBus: string | null; maxLoadingPct: number; maxLoadingElement: string | null; sourceKw: number }
+  atLimit: { minVpu: number | null; minVBus: string | null; maxLoadingPct: number; maxLoadingElement: string | null; sourceKw: number }
+  solves: number
+  loadLevel: LoadLevelJSON
+  issues: Issue[]
 }
 
 /** One protection section of the reliability study: the branches from a

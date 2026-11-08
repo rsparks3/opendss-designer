@@ -71,6 +71,10 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
       })
     }
     if (node.type !== 'busbar' && !isAnnotation(node)) {
+      items.push({
+        label: 'Screen a DER here…',
+        action: () => useUiStore.getState().openScreening(node.id),
+      })
       items.push({ label: 'Rotate 90°', hint: 'R', action: () => store.rotateNodes([node.id]) })
       items.push({ label: 'Flip horizontally', hint: 'Shift+H', action: () => store.flipNodes([node.id], 'horizontal') })
     }

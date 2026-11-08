@@ -39,6 +39,9 @@ export function sectionAvailability(): Record<SectionKey, string | null> {
     comparison: rs.baseline ? null : 'Pin a solve as the baseline first (Scenarios tab).',
     batch: rs.batch ? null : 'Run the batch first (Scenarios tab → Run all).',
     hosting: rs.hosting?.converged ? null : 'Run a hosting-capacity study first (Hosting tab).',
+    screening: rs.screening?.converged ? null : 'Screen a DER first (Analysis → Screen a DER interconnection).',
+    studies: Object.keys(rs.studies).length ? null : 'Run a study in the Studies tab first.',
+    history: useCircuitStore.getState().history.length ? null : 'No changes have been logged yet.',
   }
 }
 
@@ -121,6 +124,8 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
     baseline: rs.baseline ? { label: rs.baseline.label, result: rs.baseline.result } : null,
     batch: rs.batch?.result ?? null,
     hosting: rs.hosting,
+    screening: rs.screening,
+    studies: rs.studies,
     figures,
     sections,
     date: new Date(),
