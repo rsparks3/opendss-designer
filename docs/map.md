@@ -20,6 +20,11 @@ the phases they carry. Hover over anything for its results.
 - **Select** an element by clicking it (Shift-click adds to the selection)
   and edit it in the properties panel.
 - **Move** a bus: select it, then drag it. One undo step puts it back.
+- **Type coordinates in** on the **Elements** tab, which gains X and Y
+  columns (Longitude and Latitude for a geographic system) once the circuit
+  has any. Clear a cell to take an element's coordinate away so it is placed
+  from its neighbours again; the filter `x=` lists everything without one.
+  Only bus coordinates are written to an exported `.dss` file.
 - **Pan** by dragging the map, **zoom** with the wheel, **Fit** to see it all.
 
 Placing and wiring new elements stays on the one-line, where the terminals

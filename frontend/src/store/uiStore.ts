@@ -23,6 +23,8 @@ export type Dialog = 'saveAs' | 'library' | 'shortcuts' | 'about' | 'find' | 'pr
 /** Panels the View menu can show and hide. Keys match SidePanel storage keys. */
 export type PanelKey = 'palette2' | 'properties' | 'bottom'
 
+export type View = 'schematic' | 'geographic' | 'script'
+
 interface UiState {
   dialog: Dialog
   openDialog: (d: Dialog) => void
@@ -42,9 +44,10 @@ interface UiState {
   routing: boolean
   setRouting: (v: boolean) => void
 
-  /** The one-line, or the circuit on a map at its coordinates. */
-  view: 'schematic' | 'geographic'
-  setView: (v: 'schematic' | 'geographic') => void
+  /** The one-line, the circuit on a map at its coordinates, or the
+   *  OpenDSS script it compiles to. */
+  view: View
+  setView: (v: View) => void
   /** The map's background: OpenStreetMap, an XYZ tile URL of the user's
    *  own (satellite, a utility's tile server), or none. */
   basemap: 'osm' | 'custom' | 'none'

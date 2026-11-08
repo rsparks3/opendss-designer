@@ -59,11 +59,14 @@ test('every symbol wires to a busbar with no bend', async ({ page }) => {
   await page.evaluate((c) => (window as any).opendssDesigner.circuit.getState().loadCircuit(c), circuit as never)
   await expect(page.locator('.react-flow__node')).toHaveCount(TYPES.length + 1)
 
+  // Press the middle of the symbol, not its top edge: the top-centre is the
+  // t1 terminal, and a press-and-release there is React Flow's click-to-
+  // connect, which the next terminal pressed would complete with a new wire.
   for (const t of TYPES) {
     const box = (await page.locator(`.react-flow__node[data-id="${t}"]`).boundingBox())!
-    await page.mouse.move(box.x + box.width / 2, box.y + 6)
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
     await page.mouse.down()
-    await page.mouse.move(box.x + box.width / 2 + 4, box.y + 10, { steps: 4 })
+    await page.mouse.move(box.x + box.width / 2 + 4, box.y + box.height / 2 + 4, { steps: 4 })
     await page.mouse.up()
   }
 

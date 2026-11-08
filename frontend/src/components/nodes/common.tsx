@@ -95,11 +95,14 @@ export function useSymbolRotation(id: string, params: Params): number {
   const flip = params.flip === true
   const updateNodeInternals = useUpdateNodeInternals()
   // Not on mount: React Flow measures a new node itself, and every symbol of
-  // a large import asking again is one pass over all nodes per symbol.
-  const mounted = useRef(false)
+  // a large import asking again is one pass over all nodes per symbol. The
+  // guard compares the turn itself, not a "mounted" flag: StrictMode runs
+  // mount effects twice in development, and a flag let the second run ask.
+  const measured = useRef<string | null>(null)
   useEffect(() => {
-    if (mounted.current) updateNodeInternals(id)
-    mounted.current = true
+    const key = `${rotation}|${flip}`
+    if (measured.current !== null && measured.current !== key) updateNodeInternals(id)
+    measured.current = key
   }, [rotation, flip, id, updateNodeInternals])
   return rotation
 }

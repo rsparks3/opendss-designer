@@ -3,6 +3,40 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **DSS view.** **DSS**, beside One-line and Map, shows the OpenDSS script
+  the drawing compiles to: read-only, line-numbered, with find, Copy and
+  Save .dss. It follows edits made in the properties panel and the
+  Elements tab.
+- **Coordinates in the Elements tab.** Once a circuit has coordinates, each
+  element type's table gains X/Y (or Longitude/Latitude) columns you can
+  type into; clearing one removes the element's own coordinate, and `x=`
+  filters to the elements without one.
+
+### Changed
+
+- **Large circuits draw symbols when they fit.** A large circuit used to
+  switch between the overview and symbols at one zoom; it now switches by
+  how many symbols would be in view, so a narrow lateral shows its
+  elements zoomed well out and a wide view stays an overview on any screen.
+  A **minimap** of the whole drawing sits at the bottom right of a large
+  circuit; click or drag on it to move the view.
+- **The Elements tab draws only the rows in view.** A feeder's thousand
+  loads opened in a second and made every drag on the canvas stutter while
+  the tab was open; the table now scrolls through them in a fixed window.
+
+### Fixed
+
+- **Find** on a large circuit now frames the element it found; it asked
+  the canvas to fit nodes it had not been given, and nothing moved.
+- **The development build** (Vite) took a minute to show a large circuit's
+  symbols after a zoom or an undo: StrictMode runs mount effects twice, and
+  every symbol re-measured itself on the second run. The production build
+  was unaffected.
+
 ## 0.8.0 — 2026-10-15
 
 Real models in. A 10,000-element feeder opens, draws and solves in seconds;

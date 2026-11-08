@@ -20,6 +20,7 @@ import { Toolbar } from './components/Toolbar'
 import { MenuBar } from './components/MenuBar'
 import { Dialogs } from './components/Dialogs'
 import { GeoCanvas } from './components/GeoCanvas'
+import { DssView } from './components/DssView'
 
 /** A number that changes when the circuit changes electrically: an element
  *  added, removed, re-wired or given new parameters. Moving or selecting
@@ -196,7 +197,7 @@ export default function App() {
           <SidePanel side="left" storageKey="palette2" defaultWidth={210} minWidth={72} maxWidth={360} title="components">
             <Palette />
           </SidePanel>
-          {view === 'geographic' ? <GeoCanvas /> : <EditorCanvas />}
+          {view === 'geographic' ? <GeoCanvas /> : view === 'script' ? <DssView /> : <EditorCanvas />}
           <SidePanel side="right" storageKey="properties" defaultWidth={250} minWidth={180} maxWidth={560} title="properties">
             <PropertiesPanel />
           </SidePanel>

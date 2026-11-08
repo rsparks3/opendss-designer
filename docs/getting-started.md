@@ -108,6 +108,9 @@ name while there is something to save; click it to save.
   circuit, protection and time series. See [Study reports](report.md).
 - **File → Export → OpenDSS (.dss)** writes a runnable `.dss` script — the exact commands the built-in
   solver uses — so anything you draw also runs in stock OpenDSS.
+  **DSS**, beside One-line and Map at the top right of the drawing (also
+  **View → DSS**), shows that same script read-only as you edit, with a find
+  box, **Copy** and **Save .dss**.
 - **File → Import .dss…** loads existing `.dss` files; see
   [Importing DSS files](importing-dss.md).
 - **File → Export → Image (SVG / PNG)** download the drawing as it is on screen (on a

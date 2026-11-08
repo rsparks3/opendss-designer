@@ -6,10 +6,10 @@ import { useCircuitStore, useLimits } from '../store/circuitStore'
 import { activeResult, activeStale, useResultsStore } from '../store/resultsStore'
 import type { NodeType } from '../types/circuit'
 
-/** Below this zoom a large circuit is drawn as an overview instead of as
- *  symbols: at 0.15 a symbol is six pixels across, too small to read or to
- *  grab, and mounting ten thousand of them costs minutes. */
-export const OVERVIEW_ZOOM = 0.15
+// When a large circuit is drawn this way rather than as symbols is decided
+// by how many symbols the view would hold (lib/viewBudget): the overview
+// above the budget, symbols below it, and always the overview once a
+// symbol would be too small to read or grab.
 
 interface Segment {
   x1: number

@@ -676,3 +676,17 @@ describe('document identity and history', () => {
     expect([...ids].every((id) => /^n_[a-z0-9]{10}$/.test(id))).toBe(true)
   })
 })
+
+describe('setGeo', () => {
+  it('moves an element and takes its coordinate away again, each as an undo step', () => {
+    useCircuitStore.setState({ nodes: [node('a', 'busbar')] })
+    useCircuitStore.temporal.getState().clear()
+    useCircuitStore.getState().setGeo({ a: { x: 1, y: 2 } })
+    expect(useCircuitStore.getState().nodes[0].data.geo).toEqual({ x: 1, y: 2 })
+    useCircuitStore.getState().setGeo({ a: null })
+    expect('geo' in useCircuitStore.getState().nodes[0].data).toBe(false)
+    expect(toCircuitJSON(useCircuitStore.getState()).nodes[0].geo).toBeUndefined()
+    useCircuitStore.temporal.getState().undo()
+    expect(useCircuitStore.getState().nodes[0].data.geo).toEqual({ x: 1, y: 2 })
+  })
+})

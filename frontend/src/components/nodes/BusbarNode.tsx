@@ -50,11 +50,16 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
 
   // Re-measure the handles when they change -- but not on mount, which
   // React Flow measures anyway: three thousand bars asking at once is three
-  // thousand passes over every node.
-  const mounted = useRef(false)
+  // thousand passes over every node. The guard compares the handle set
+  // itself rather than remembering "mounted": in development StrictMode
+  // runs every effect twice on mount, and a boolean let the second run
+  // through, so every symbol of a feeder asked for a re-measure as it
+  // appeared (a minute of it on a 1,250-bus feeder).
+  const measured = useRef<string | null>(null)
   useEffect(() => {
-    if (mounted.current) updateNodeInternals(id)
-    mounted.current = true
+    const key = `${w}|${count}|${all}|${inUse}`
+    if (measured.current !== null && measured.current !== key) updateNodeInternals(id)
+    measured.current = key
   }, [w, count, id, all, inUse, updateNodeInternals])
 
   return (

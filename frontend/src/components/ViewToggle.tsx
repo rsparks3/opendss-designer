@@ -1,7 +1,7 @@
 import { useUiStore } from '../store/uiStore'
 
-/** One-line | Map, in the canvas's top-right corner where map applications
- *  keep it (and where it costs the toolbar nothing). */
+/** One-line | Map | DSS, in the canvas's top-right corner where map
+ *  applications keep it (and where it costs the toolbar nothing). */
 export function ViewToggle() {
   const view = useUiStore((s) => s.view)
   const setView = useUiStore((s) => s.setView)
@@ -24,6 +24,15 @@ export function ViewToggle() {
         title="The circuit on a map, at its coordinates"
       >
         Map
+      </button>
+      <button
+        type="button"
+        className={view === 'script' ? 'active' : ''}
+        aria-pressed={view === 'script'}
+        onClick={() => setView('script')}
+        title="The OpenDSS script the drawing compiles to (read-only)"
+      >
+        DSS
       </button>
     </div>
   )

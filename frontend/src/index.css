@@ -1469,6 +1469,26 @@ kbd {
 .bp-filter input { min-width: 260px; font: inherit; font-size: 12px; }
 .bp-filter .bp-count { font-size: 12px; opacity: 0.7; }
 
+/* Elements tab: the filter row above a table that scrolls on its own and
+   draws only the rows in view (BottomPanel VirtualTable). */
+.bp-elements { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.bp-table-scroll { flex: 1; min-height: 0; overflow: auto; }
+.bp-table-virtual thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
+.bp-table-virtual td { padding-top: 0; padding-bottom: 0; }
+.bp-table-virtual tr.bp-spacer td { border-bottom: none; padding: 0; }
+
+/* Minimap for a large circuit (LargeMiniMap): the drawing's marks on a
+   canvas with the viewport drawn over them. */
+.large-minimap-panel { margin: 12px; }
+.large-minimap {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  cursor: crosshair;
+}
+
 /* Notes: text on the drawing, with an optional arrow to what it is about. */
 .note-node {
   position: relative;
@@ -1623,3 +1643,31 @@ kbd {
 }
 .view-toggle button + button { border-left: 1px solid var(--border); }
 .view-toggle button.active { background: var(--accent); color: #fff; }
+
+/* The DSS view: the compiled OpenDSS script, read-only. LINE_PX and PAD_PX
+   in DssView.tsx must match the line-height and padding here. */
+.dss-view { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; background: var(--paper); }
+.dss-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  /* Room on the right for the view toggle, which floats over this bar. */
+  padding: 8px 200px 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel);
+  font-size: 12.5px;
+}
+.dss-find { width: 220px; }
+.dss-count, .dss-status { color: var(--muted); }
+.dss-status { margin-left: auto; }
+.dss-error, .dss-empty { margin: 10px; padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+.dss-error { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+.dss-empty { color: var(--muted); }
+.dss-scroll { flex: 1; min-height: 0; overflow: auto; }
+.dss-body { position: relative; display: flex; min-width: max-content; }
+.dss-gutter, .dss-code {
+  margin: 0; padding: 8px 10px; font-family: ui-monospace, Consolas, 'Cascadia Mono', monospace;
+  font-size: 12.5px; line-height: 18px; white-space: pre; tab-size: 4;
+}
+.dss-gutter {
+  position: sticky; left: 0; z-index: 1; text-align: right; user-select: none;
+  color: var(--faint); background: var(--subtle); border-right: 1px solid var(--rule);
+}
+.dss-code { color: var(--ink); flex: 1; position: relative; z-index: 1; }
+.dss-hit { position: absolute; left: 0; right: 0; height: 18px; background: var(--selected); z-index: 0; }

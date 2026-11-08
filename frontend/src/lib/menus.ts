@@ -292,6 +292,11 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
         checked: ui.view === 'geographic',
         title: 'The circuit on a map, at its bus coordinates',
       }),
+      item('DSS', () => ui.setView('script'), {
+        radio: true,
+        checked: ui.view === 'script',
+        title: 'The OpenDSS script the drawing compiles to (read-only)',
+      }),
       sep,
       item('Zoom in', ops.zoomIn, { keys: 'Mod+=' }),
       item('Zoom out', ops.zoomOut, { keys: 'Mod+-' }),

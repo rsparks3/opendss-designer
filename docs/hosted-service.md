@@ -124,7 +124,7 @@ gateway's database and the numbers below are its seed data.
 
 | | Anonymous | Free account | Pro ($20 a year) |
 | --- | --- | --- | --- |
-| Elements per circuit | 10 | 50 | 1,000 |
+| Elements per circuit | 10 | 50 | 3,000 |
 | Time-series cost per run (steps × entities) | 250 k | 1 M | 3 M (bounded by worker memory; see below) |
 | Longest single run | 30 s | 90 s | 600 s |
 | Engine time budget | 10 s per day, per client | 30 s per day | 60 min per month |

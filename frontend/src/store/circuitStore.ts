@@ -61,8 +61,10 @@ export interface CircuitState {
   /** Coordinate system of every `geo` and `geometry`; null = unknown. */
   crs: string | null
   setCrs: (crs: string | null) => void
-  /** Move elements on the map (geographic view); positions in `crs`. */
-  setGeo: (moves: Record<string, GeoPoint>) => void
+  /** Move elements on the map (geographic view); positions in `crs`. Null
+   *  takes an element's own coordinate away, so the map places it from its
+   *  neighbours again. */
+  setGeo: (moves: Record<string, GeoPoint | null>) => void
   /** The study report's title block; cosmetic, results stay valid. */
   study: StudyInfoJSON | null
   setStudy: (study: StudyInfoJSON | null) => void
@@ -574,7 +576,13 @@ export const useCircuitStore = create<CircuitState>()(
       setCrs: (crs) => set({ crs: crs || null, dirty: true }),
       setGeo: (moves) =>
         set((s) => ({
-          nodes: s.nodes.map((n) => (moves[n.id] ? { ...n, data: { ...n.data, geo: moves[n.id] } } : n)),
+          nodes: s.nodes.map((n) => {
+            if (!(n.id in moves)) return n
+            const geo = moves[n.id]
+            if (geo) return { ...n, data: { ...n.data, geo } }
+            const { geo: _gone, ...data } = n.data
+            return { ...n, data }
+          }),
           dirty: true,
         })),
       study: null,

@@ -14,7 +14,7 @@ import {
   type IsValidConnection,
   useConnection,
 } from '@xyflow/react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { renderedEdgePoints } from '../lib/edgeGeometry'
 import {
   beginGesture,
@@ -31,8 +31,9 @@ import { useResultsStore } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
 import type { NodeType } from '../types/circuit'
 import { ContextMenu, type MenuTarget } from './ContextMenu'
-import { OVERVIEW_ZOOM, OverviewLayer } from './OverviewLayer'
-import { NODE_SIZE } from '../lib/defaults'
+import { OverviewLayer } from './OverviewLayer'
+import { LargeMiniMap } from './LargeMiniMap'
+import { decideOverview, nodeBounds, nodesInView } from '../lib/viewBudget'
 import { PhaseLegend } from './PhaseLegend'
 import { ViewToggle } from './ViewToggle'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
@@ -91,26 +92,6 @@ function markOutOfService(nodes: AppNode[]): AppNode[] {
   return changed ? out : nodes
 }
 
-/** The whole drawing's bounds from the store: positions and the symbols'
- *  known sizes. A large circuit's view cannot be fitted by React Flow,
- *  which only counts nodes it has drawn and measured. */
-function storeBounds(nodes: AppNode[]) {
-  let x0 = Infinity
-  let y0 = Infinity
-  let x1 = -Infinity
-  let y1 = -Infinity
-  for (const n of nodes) {
-    const size = NODE_SIZE[n.type as NodeType] ?? NODE_SIZE.load
-    const w = n.width ?? n.measured?.width ?? size.w
-    const h = n.height ?? n.measured?.height ?? size.h
-    x0 = Math.min(x0, n.position.x)
-    y0 = Math.min(y0, n.position.y)
-    x1 = Math.max(x1, n.position.x + w)
-    y1 = Math.max(y1, n.position.y + h)
-  }
-  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
-}
-
 const NO_NODES: AppNode[] = []
 const NO_EDGES: AppEdge[] = []
 
@@ -118,9 +99,20 @@ export function EditorCanvas() {
   const storeNodes = useCircuitStore((s) => s.nodes)
   const storeEdges = useCircuitStore((s) => s.edges)
   const large = storeNodes.length > LARGE_CIRCUIT
-  // A large circuit seen from far away is an overview on a canvas, and
-  // React Flow is given nothing to draw; zoomed in, it draws what is in view.
-  const overview = useStore((s) => large && s.transform[2] < OVERVIEW_ZOOM)
+  // A large circuit with too many symbols in view is an overview on a
+  // canvas, and React Flow is given nothing to draw; with few enough in
+  // view it draws them. "Too many" is counted against the budget on every
+  // viewport change (lib/viewBudget), with hysteresis so the edge does not
+  // flicker; the count reads the store directly, since a selector here
+  // runs on React Flow's changes, not the circuit's.
+  const wasOverview = useRef(false)
+  const overview = useStore((s) => {
+    if (!large) return false
+    const inView = nodesInView(useCircuitStore.getState().nodes, s.transform, s.width, s.height)
+    const next = decideOverview(wasOverview.current, inView, s.transform[2])
+    wasOverview.current = next
+    return next
+  })
   const marked = useMemo(() => markOutOfService(storeNodes), [storeNodes])
   const nodes = overview ? NO_NODES : marked
   const edges = overview ? NO_EDGES : storeEdges
@@ -155,7 +147,13 @@ export function EditorCanvas() {
     const onFit = () => {
       const all = useCircuitStore.getState().nodes
       if (all.length > LARGE_CIRCUIT) {
-        void fitBounds(storeBounds(all), { padding: 0.05 })
+        // The event arrives in the same tick as the load, before this
+        // component has re-rendered with the large circuit's lower minZoom;
+        // fitting at once was clamped at the small circuit's 0.05 and
+        // showed a third of a real feeder. Two frames on, the limit is in.
+        frame = requestAnimationFrame(() => {
+          frame = requestAnimationFrame(() => void fitBounds(nodeBounds(all), { padding: 0.05 }))
+        })
         return
       }
       let tries = 0
@@ -445,6 +443,7 @@ export function EditorCanvas() {
         </Controls>
         {large && overview && <div className="canvas-hint overview-hint">Overview — zoom in to see and edit elements</div>}
         {!large && <MiniMap pannable zoomable />}
+        {large && <LargeMiniMap />}
         {busbarDraft && placementType === 'busbar' && (
           <ViewportPortal>
             <div

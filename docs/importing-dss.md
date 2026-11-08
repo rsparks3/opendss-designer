@@ -67,12 +67,15 @@ the original files.
 ### Large feeders
 
 A circuit of more than about 1,500 elements is drawn more sparingly so that
-it stays quick: zoomed out, it is an **overview** — every line and bus on one
-canvas, coloured by the overlay that is on — and the symbols appear as you
-zoom in, only those in view. **Clean up** lays such a circuit out as a tidy
-tree, the trunk running straight down and laterals branching off either
-side. A 10,000-element feeder imports, lays out and draws in about two
-seconds and solves in about one.
+it stays quick: when more than a few hundred symbols would be in view, it
+is an **overview** — every line and bus on one canvas, coloured by the
+overlay that is on — and the symbols appear as you zoom in on a part of it,
+only those in view. A **minimap** at the bottom right shows the whole
+drawing with the view marked on it; click or drag there to move. **Edit →
+Find** jumps to an element by name. **Clean up** lays such a circuit out as
+a tidy tree, the trunk running straight down and laterals branching off
+either side. A 10,000-element feeder imports, lays out and draws in about
+two seconds and solves in about one.
 
 ### Everything else: passthrough elements and comments
 
