@@ -49,7 +49,12 @@ def test_import_keeps_unmodelled_elements_in_file_order():
     r = _import()
     names = [p["name"] for p in r["circuit"]["passthrough"]]
     # The redirect is followed where it sits, so extras.dss comes first.
-    assert names == ["xycurve.vv", "reactor.gnd", "energymeter.m1", "monitor.mon1", "capcontrol.cc1"]
+    # The CapControl is not here: it folded onto its capacitor, as a
+    # RegControl folds onto its regulator.
+    assert names == ["xycurve.vv", "reactor.gnd", "energymeter.m1", "monitor.mon1"]
+    cap = next(n for n in r["circuit"]["nodes"] if n["type"] == "capacitor")
+    assert cap["params"]["control"] == "voltage" and cap["params"]["onsetting"] == 118
+    assert cap["params"]["ptratio"] == 60
     mon = next(p for p in r["circuit"]["passthrough"] if p["name"] == "monitor.mon1")
     # Continuation joined, the later Edit kept with it.
     assert mon["text"] == "new monitor.mon1 element=line.l1 terminal=2 mode=0\nedit monitor.mon1 ppolar=no"
@@ -72,7 +77,9 @@ def test_export_writes_both_back_and_reimports_the_same():
     text, _ = export_dss(circuit)
     assert "! Mini feeder for the passthrough tests" in text
     assert "! The only line\nnew line.l1 " in text
-    assert "new capcontrol.cc1 element=line.l1 capacitor=c1" in text
+    # The folded control comes back under its capacitor's name, watching
+    # the line the file named.
+    assert "new capcontrol.c1 capacitor=c1 element=line.l1 terminal=1 type=voltage" in text
     assert "edit monitor.mon1 ppolar=no" in text
     again = import_dss(text)
     assert [p["name"] for p in again["circuit"]["passthrough"]] == [
@@ -84,10 +91,10 @@ def test_passthrough_runs_in_the_solve():
     circuit = Circuit.model_validate(_import()["circuit"])
     res = compile_circuit(circuit)
     joined = "\n".join(res.commands)
-    assert "new reactor.gnd" in joined and "new capcontrol.cc1" in joined
+    assert "new reactor.gnd" in joined and "new energymeter.m1" in joined
     # After every modelled element, before the voltage bases.
-    assert joined.index("new capcontrol.cc1") > joined.index("new load.ld1")
-    assert joined.index("new capcontrol.cc1") < joined.index("set voltagebases")
+    assert joined.index("new energymeter.m1") > joined.index("new load.ld1")
+    assert joined.index("new energymeter.m1") < joined.index("set voltagebases")
     result = engine.solve(circuit)
     assert result["converged"], result["issues"]
     assert not [i for i in result["issues"] if i["severity"] == "error"]
@@ -151,4 +158,4 @@ def test_a_circuit_without_any_is_unchanged():
     circuit.passthrough = []
     circuit.comments = {}
     text, _ = export_dss(circuit)
-    assert "capcontrol" not in text and "! The only line" not in text
+    assert "energymeter" not in text and "! The only line" not in text

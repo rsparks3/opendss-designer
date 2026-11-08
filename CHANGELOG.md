@@ -7,6 +7,59 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Load levels.** A project can define load conditions — a multiplier on
+  every load, multipliers by load class on top, and whether loading is
+  judged against the normal or the emergency rating — in **Project
+  properties → Load levels**, and pick one in the toolbar or **Analysis →
+  Load level**. Snapshot, fault, time-series and every other run use it,
+  and the status line and the report say which. Loads gained a *Class*
+  field; lines, switches and protective devices an *Emergency rating* in
+  amps and transformers and regulators one in kVA, read and written on
+  import and export. See *Planning* in the docs.
+- **Scenarios.** Alternatives to the base circuit, stored as element-level
+  deltas: open one from the **Scenarios** tab or **Analysis → Scenario**
+  and every edit on the drawing belongs to it until you return to the base
+  case; switch, duplicate, describe and delete them. A saved project keeps
+  the base, every scenario and which one was open.
+- **Compare.** *Pin solve as baseline*, then solve again (another scenario,
+  another level, an edit): the **Compare** overlay colours every bus and
+  element by what changed, the **Compare** tab lists the changes largest
+  first with the headline differences, and the report gained a
+  *Comparison* section.
+- **Batch runs.** *Run all* in the Scenarios tab solves every scenario at
+  every load level as a background job (progress, cancel, result kept on
+  the server under `/api/jobs`) and tabulates the worst voltage, loading,
+  losses and violations of each; the report gained a *Scenarios and load
+  levels* section.
+- **Capacitor controls** as settings on the capacitor (`CapControl`:
+  voltage, current, kvar, pf or time, watching a line, transformer, switch
+  or its own terminal), and **smart inverter functions** on PV systems and
+  storage (`InvControl`: volt-var, volt-watt, both, watt-pf, watt-var)
+  pointing at **inverter curves** in the Curves tab, with the IEEE 1547
+  Category A and B defaults one click away. Imported controls and curves
+  fold onto their elements instead of riding along as passthrough text.
+- **Regulator reverse-power and cogeneration modes** (`reversible`,
+  `revvreg`, `revband`, `cogen`).
+- **Control operations** in every time-series run: tap changes per
+  regulator and switchings per capacitor bank, in the summary and as a
+  per-step series.
+- **Hosting capacity.** The **Hosting** tab finds how much DER — or how
+  much new load — every bus can take before a criterion binds: voltage,
+  thermal at the level's rating, voltage change when the unit trips,
+  reverse power through a regulator and at the substation, fault-current
+  increase and interrupting duty (analytic, against a base fault study),
+  and the islanding ratio of the protection section; each switchable, each
+  with its limit. Two methods — bisection at every bus, or a sensitivity
+  probe per bus confirmed by a solve (the shape of EPRI's DRIVE) — plus an
+  hourly mode over the loadshapes. Pre-existing violations are excluded
+  and listed. The **Hosting** overlay colours the drawing and the map, the
+  result exports as GeoJSON and CSV, and the report gained a *Hosting
+  capacity* section. `docs/hosting-capacity.md` describes the method and
+  what has been checked.
+- A `studies` package (`opendss_designer.studies`) and background jobs
+  (`core/jobs.py`) for the planning studies to come; the demo and hosted
+  plans gain a `maxStudySolves` limit.
+
 - **DSS view.** **DSS**, beside One-line and Map, shows the OpenDSS script
   the drawing compiles to: read-only, line-numbered, with find, Copy and
   Save .dss. It follows edits made in the properties panel and the

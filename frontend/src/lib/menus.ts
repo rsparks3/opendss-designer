@@ -20,6 +20,9 @@ import { align, distribute, type Alignment, type Axis, type Box } from './arrang
 import { hasElements, NODE_SIZE } from './defaults'
 import type { AppNode } from '../store/circuitStore'
 import { runSolve } from './solve'
+import { runBatch } from './batch'
+import { DEFAULT_HC_OPTIONS, runHostingCapacity } from './hostingCapacity'
+import { levelNamed } from './scenarios'
 import { redo, undo, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore, type OverlayMode } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
@@ -85,6 +88,8 @@ export const OVERLAY_CHOICES: { mode: OverlayMode; label: string; title?: string
     label: 'Phases',
     title: 'Colour lines by the phases they carry and buses by the phases that reach them (no solve needed)',
   },
+  { mode: 'compare', label: 'Compare', title: 'Change from the pinned baseline: bus voltage in pu, element loading in points' },
+  { mode: 'hosting', label: 'Hosting', title: 'Hosting capacity at every bus from the last run (Hosting tab)' },
   { mode: 'off', label: 'Off' },
 ]
 
@@ -421,6 +426,49 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
         disabled: tsMode || hasErrors || rs.solving || rs.tsRunning || empty,
       }),
       item('Auto-solve', toggleAutoSolve, { checked: rs.autoSolve && !tsMode, disabled: tsMode }),
+      sep,
+      {
+        kind: 'sub',
+        label: 'Load level',
+        items: [
+          item('Rated', () => cs.setActiveLevel(null), { radio: true, checked: cs.activeLevel === null }),
+          ...(cs.loadLevels ?? []).map((l) =>
+            item(l.name, () => cs.setActiveLevel(l.name), {
+              radio: true,
+              checked: cs.activeLevel === l.name,
+              hint: `×${l.loadmult}${l.rating === 'emergency' ? ' emerg.' : ''}`,
+            }),
+          ),
+          sep,
+          item('Edit load levels…', () => ui.openDialog('project')),
+        ],
+      },
+      {
+        kind: 'sub',
+        label: 'Scenario',
+        items: [
+          item('Base case', () => cs.activateScenario(null), { radio: true, checked: cs.activeScenario === null }),
+          ...cs.scenarios.map((sc) =>
+            item(sc.name, () => cs.activateScenario(sc.id), { radio: true, checked: cs.activeScenario === sc.id }),
+          ),
+          sep,
+          item('New scenario', () => cs.addScenario(`Alternative ${cs.scenarios.length + 1}`), { disabled: empty }),
+        ],
+      },
+      item('Pin solve as baseline', () => rs.pinBaseline(
+        `${cs.activeScenario ? cs.scenarios.find((s) => s.id === cs.activeScenario)?.name ?? cs.activeScenario : 'Base case'} at ${levelNamed(cs.loadLevels, cs.activeLevel).name}`,
+      ), {
+        disabled: !rs.result?.converged || rs.stale,
+        title: 'Keep this solve as the "before" for the Compare overlay and tab',
+      }),
+      item('Run every scenario at every load level', () => void runBatch(), {
+        disabled: empty || rs.batchRunning,
+        title: 'A background batch; results land in the Scenarios tab',
+      }),
+      item('Hosting capacity (default criteria)', () => void runHostingCapacity(DEFAULT_HC_OPTIONS), {
+        disabled: empty || rs.hcRunning || hasErrors,
+        title: 'DER hosting capacity at every three-phase bus with the default criteria; the Hosting tab has the options',
+      }),
       sep,
       {
         kind: 'sub',

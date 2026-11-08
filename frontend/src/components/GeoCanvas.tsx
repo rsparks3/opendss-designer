@@ -48,6 +48,7 @@ export function GeoCanvas() {
   const crs = useCircuitStore((s) => s.crs)
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore(activeResult)
+  const hosting = useResultsStore((s) => s.hosting)
   const stale = useResultsStore(activeStale)
   const phases = useResultsStore((s) => s.phases)
   const limits = useLimits()
@@ -210,7 +211,7 @@ export function GeoCanvas() {
 
     if (mapped && tileTemplate) drawTiles(ctx, v, size, tileTemplate, tiles.current, () => redraw((f) => f + 1))
 
-    const colours = overlayInk({ overlay, result, stale, phases, limits, ink })
+    const colours = overlayInk({ overlay, result, stale, phases, limits, ink, hosting })
     const selectedEdges = new Set(edges.filter((e) => e.selected).map((e) => e.id))
     const edgeById = indexById(edges)
     const off = (id: string) => byId.get(id)?.data.params.enabled === false
@@ -286,7 +287,7 @@ export function GeoCanvas() {
       }
     }
     // `frame` is in the dependencies so a pan or a loaded tile redraws.
-  }, [frame, placement, size, nodes, edges, byId, overlay, result, stale, phases, limits, mapped,
+  }, [frame, placement, size, nodes, edges, byId, overlay, result, stale, phases, limits, mapped, hosting,
     tileTemplate, fanned, screenOf, toScreen, worldOf])
 
   // --- interaction --------------------------------------------------------

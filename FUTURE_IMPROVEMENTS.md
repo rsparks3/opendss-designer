@@ -468,7 +468,7 @@ already own, the analysis features have no audience — this is the first real g
   from → CSV; if the mapping dialog gets most of the way, SKM becomes a saved
   mapping preset, not a reader
 
-## M12 — Planning foundation: load levels, controls, scenarios
+## M12 — Planning foundation: load levels, controls, scenarios — ✅ DONE (2026-11-08)
 
 Planned 2026-11-08 (`PLANNING_AUDIT.md` §2.3, §2.4, §2.15, §3). Every
 planning study is "this feeder, at this load condition, base against
@@ -478,45 +478,45 @@ cannot be drawn, and there is one circuit and one result at a time. This
 milestone is useful on its own (a planner can finally run a minimum-load
 case and compare two designs) and everything in M13–M17 stands on it.
 
-- **Named load levels** — a project-level list (Peak 1.0 normal, Minimum
+- ~~**Named load levels**~~ — done 2026-11-08: a project-level list (Peak 1.0 normal, Minimum
   daytime 0.3 normal, Emergency peak 1.0 emergency, editable) applied as
   `set loadmult` plus optional per-class factors; snapshot, fault,
   protection and every later study pick a level, the status bar and the
   report name it. The engine change is one line; the rest is schema, a
   toolbar picker and report plumbing
-- **Emergency and seasonal ratings** — `emergamps` on lines and switches,
+- ~~**Emergency and seasonal ratings**~~ — done 2026-11-08 (`emergamps`/`emerghkva`; seasonal sets of ratings were not added — a level picks normal or emergency, which is what the criteria name): `emergamps` on lines and switches,
   `emerghkva` on transformers and regulators, read and written by the
   importer and exporter; the loading overlay, abnormal-condition report
   and limits dialog switch between normal and emergency, and a load level
   says which applies
-- **Capacitor controls** — `CapControl` as parameters on the capacitor
+- ~~**Capacitor controls**~~ — done 2026-11-08: `CapControl` as parameters on the capacitor
   (type voltage/current/kvar/PF/time, monitored element and terminal,
   on/off settings, PT/CT ratios, delay, dead time), emitted under the
   capacitor's name like a regulator's `RegControl`; an imported
   passthrough `CapControl` folds back into its capacitor
-- **Smart inverter functions** — `InvControl` as parameters on PV and
+- ~~**Smart inverter functions**~~ — done 2026-11-08: `InvControl` as parameters on PV and
   storage: volt-var, volt-watt, watt-pf and the combined mode, each with
   an editable XY curve in the Curves tab (the TCC curve editor already has
   the shape), IEEE 1547-2018 Category A and B defaults one click away, one
   control per inverter group as the engine wants it. Regulators gain
   reverse-power mode (`reversible`, `revvreg`, `revband`) and `cogen`
-- **Control operation counters** — tap changes per regulator and
+- ~~**Control operation counters**~~ — done 2026-11-08: tap changes per regulator and
   switching operations per bank per time-series run, as a summary row and
   a plottable series; this is a hosting-capacity criterion and the
   measure of a Volt/VAR scheme's wear
-- **Scenario manager** — a project holds a base case and alternatives as
+- ~~**Scenario manager**~~ — done 2026-11-08, with one design change: the editor swaps a scenario's effective drawing in while it is open and diffs it against the base on the way out, so any edit the editor can make (add, remove, wire) is a scenario change with no second code path; a project holds a base case and alternatives as
   element-level deltas (a changed setting, an added bank, an opened tie, a
   new DER), each solvable at any load level; deltas rather than copies keep
   autosave and the library small and make the diff view trivial.
   Supersedes the parked "multi-circuit tabs" item, which was the same
   need stated as a UI feature
-- **Compare view** — two result sets as a difference overlay (ΔV pu,
+- ~~**Compare view**~~ — done 2026-11-08: two result sets as a difference overlay (ΔV pu,
   Δloading %, Δlosses) and a table of what changed, sortable by magnitude;
   a *Base vs alternative* report section
-- **Batch runs** — every scenario × every load level in one click with
+- ~~**Batch runs**~~ — done 2026-11-08: every scenario × every load level in one click with
   progress and cancel over the time-series SSE channel, summarised as a
   matrix (worst voltage, worst loading, losses, violations)
-- **One study library for two apps** — before any study loop is written,
+- ~~**One study library for two apps**~~ — done 2026-11-08 as `opendss_designer.studies` (scenarios, batch; the loops of M13–M16 go beside them) over `core/jobs.py`, a one-worker job queue with progress, cancel and the last twenty results; parallel engine contexts were not measured, since the first loops run as one engine call each (the time-series pattern) and the job queue serialises them. Before any study loop is written,
   the loops in M13–M16 go in one Python package that both this repo and
   `opendss-designer-desktop` import (compiled circuit in, plain dicts out;
   FastAPI here, in-process there), so hosting capacity is not written
@@ -532,7 +532,7 @@ The wedge (`PLANNING_AUDIT.md` §2.1, §2.2, §2.9 in part): the study
 regulators require, small utilities are priced out of, and the one that
 turns an interconnection queue into a day's work.
 
-- **Hosting capacity, iterative** — DER placed at each candidate bus and
+- ~~**Hosting capacity, iterative**~~ — done 2026-11-08 (protection reach waits for M16's sliding fault; control operations are a post-check option, not yet wired): DER placed at each candidate bus and
   grown by bisection until a criterion binds, at a chosen load level; the
   criteria, each switchable and each reported as the binding one:
   overvoltage against the project limit (or a tighter DER limit), rapid
@@ -543,20 +543,20 @@ turns an interconnection queue into a day's work.
   control operations from a QSTS pass. **Load hosting capacity** (EV and
   electrification: the same loop with the sign reversed, binding on
   undervoltage and thermal) ships in the same release
-- **Hosting capacity, sensitivity method** — one base solve plus one
+- ~~**Hosting capacity, sensitivity method**~~ — done 2026-11-08: one base solve plus one
   perturbation per bus gives dV/dP and dI/dP; voltage- and thermal-limited
   capacity by linear extrapolation, confirmed by one or two solves. This is
   the shape of EPRI's DRIVE and the only way an 8760 hosting-capacity
   profile per bus is affordable; the iterative method stays as the check
-- **Time-granular results** — the loop at 24 representative hours or
+- ~~**Time-granular results**~~ — done 2026-11-08 (a list of hours over the daily shapes; the per-bus profile is kept and the worst hour reported): the loop at 24 representative hours or
   every hour of a year, giving a per-bus hosting-capacity profile, the form
   California's ICA publishes
-- **Outputs** — bus → kW by criterion with the binding one named; colour
+- ~~**Outputs**~~ — done 2026-11-08: bus → kW by criterion with the binding one named; colour
   overlay on the one-line and the map; GeoJSON/shapefile/CSV export keyed
   by bus so the result can go onto a public ICA map; a report section with
   method, criteria, load level, scenario and engine version; compare two
   runs (before and after a mitigation) through M12's compare view
-- **Methodology and validation page** — `docs/hosting-capacity.md` with
+- **Methodology and validation page** — `docs/hosting-capacity.md` written 2026-11-08 with the criteria, methods and the internal checks; the comparison with a published reference is still open: `docs/hosting-capacity.md` with
   the criteria, equations and limits, held against a public reference
   (EPRI's published DRIVE results on the IEEE 123-bus and ckt5, NREL's
   hosting-capacity papers on the same feeders) the way `docs/validation.md`

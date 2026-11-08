@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { formatAmps, formatSeconds, logTicks } from '../lib/tcc'
 import { beginGesture, endGesture, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
-import type { TccCurveJSON } from '../types/circuit'
+import type { TccCurveJSON, XYCurveJSON } from '../types/circuit'
+import { IEEE1547_CURVES } from '../lib/scenarios'
 
 const PREVIEW_W = 380
 const PREVIEW_H = 190
@@ -104,9 +105,182 @@ function Preview({ curve }: { curve: TccCurveJSON }) {
   )
 }
 
+/** Two columns of numbers, one point per line: "x, y" (per-unit voltage,
+ *  per-unit power). Unlike a TCC curve, the y values may be negative. */
+function parseXY(text: string): { x: number[]; y: number[]; bad: number } {
+  const x: number[] = []
+  const y: number[] = []
+  let bad = 0
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    const [a, b] = trimmed.split(/[,\s;\t]+/)
+    const xv = Number(a)
+    const yv = Number(b)
+    if (!Number.isFinite(xv) || !Number.isFinite(yv)) {
+      bad += 1
+      continue
+    }
+    x.push(xv)
+    y.push(yv)
+  }
+  return { x, y, bad }
+}
+
+const xyText = (c: XYCurveJSON) => c.x.map((v, i) => `${v}, ${c.y[i] ?? ''}`).join('\n')
+
+/** A small linear plot of an inverter curve: volts across, power down. */
+function XYPreview({ curve }: { curve: XYCurveJSON }) {
+  const n = Math.min(curve.x.length, curve.y.length)
+  if (n < 2) return <div className="bp-empty">Two points or more to draw a curve.</div>
+  const xs = curve.x.slice(0, n)
+  const ys = curve.y.slice(0, n)
+  const xLo = Math.min(...xs)
+  const xHi = Math.max(...xs)
+  const yLo = Math.min(-0.1, ...ys)
+  const yHi = Math.max(0.1, ...ys)
+  const w = PREVIEW_W - PAD.l - PAD.r
+  const h = PREVIEW_H - PAD.t - PAD.b
+  const x = (v: number) => PAD.l + ((v - xLo) / (xHi - xLo || 1)) * w
+  const y = (v: number) => PAD.t + (1 - (v - yLo) / (yHi - yLo || 1)) * h
+  return (
+    <svg className="vp-chart" viewBox={`0 0 ${PREVIEW_W} ${PREVIEW_H}`} width={PREVIEW_W} height={PREVIEW_H}>
+      <rect x={0} y={0} width={PREVIEW_W} height={PREVIEW_H} className="vp-paper" />
+      <line x1={PAD.l} x2={PAD.l + w} y1={y(0)} y2={y(0)} className="vp-grid major" />
+      {[yLo, yHi].map((v) => (
+        <text key={v} x={PAD.l - 6} y={y(v) + 3} className="vp-tick classic" textAnchor="end">{v.toFixed(2)}</text>
+      ))}
+      {[xLo, xHi].map((v) => (
+        <text key={v} x={x(v)} y={PREVIEW_H - 8} className="vp-tick classic" textAnchor="middle">{v.toFixed(2)} pu</text>
+      ))}
+      <path d={xs.map((v, i) => `${i ? 'L' : 'M'}${x(v).toFixed(2)},${y(ys[i]).toFixed(2)}`).join(' ')} className="vp-trace" stroke="#2e7d32" fill="none" />
+      <rect x={PAD.l} y={PAD.t} width={w} height={h} className="vp-frame" />
+    </svg>
+  )
+}
+
+/** The circuit's inverter curves (OpenDSS XYCurve): the volt-var and
+ *  volt-watt characteristics PV systems and storage units point at. */
+function XYCurvesPanel() {
+  const curves = useCircuitStore((s) => s.xyCurves)
+  const setCurve = useCircuitStore((s) => s.setXyCurve)
+  const removeCurve = useCircuitStore((s) => s.removeXyCurve)
+  const nodes = useCircuitStore((s) => s.nodes)
+  const setFlash = useResultsStore((s) => s.setFlash)
+  const names = Object.keys(curves)
+  const [selected, setSelected] = useState<string | null>(names[0] ?? null)
+  const active = selected && curves[selected] ? selected : (names[0] ?? null)
+  const [text, setText] = useState<string | null>(null)
+  const usedBy = useMemo(() => {
+    if (!active) return []
+    const keys = ['vvcurve', 'vwcurve', 'wpcurve', 'wvcurve']
+    return nodes.filter((n) => keys.some((k) => n.data.params[k] === active)).map((n) => String(n.data.params.name ?? n.id))
+  }, [nodes, active])
+  const addPreset = (key: string) => {
+    const preset = IEEE1547_CURVES[key]
+    const name = uniqueName(key, new Set(names))
+    beginGesture()
+    setCurve(name, { x: preset.x, y: preset.y, source: preset.source })
+    endGesture()
+    setSelected(name)
+    setText(null)
+  }
+  const commit = (raw: string) => {
+    if (!active) return
+    const { x, y, bad } = parseXY(raw)
+    if (x.length < 2) {
+      setFlash('A curve needs at least two points: voltage (pu), power (pu).')
+      return
+    }
+    beginGesture()
+    setCurve(active, { x, y, source: curves[active]?.source ?? 'typed in' })
+    endGesture()
+    setText(null)
+    if (bad) setFlash(`${bad} line${bad === 1 ? '' : 's'} skipped — each needs two numbers.`, 'info')
+  }
+  return (
+    <div className="curves-panel">
+      <div className="curves-list">
+        {Object.entries(IEEE1547_CURVES).map(([key, c]) => (
+          <button key={key} className="curves-add" onClick={() => addPreset(key)} title={`Add the ${c.label} default characteristic`}>
+            + {c.label}
+          </button>
+        ))}
+        {names.length === 0 && (
+          <div className="bp-empty">
+            No inverter curves yet. Add an IEEE 1547 default, then point a PV system's or storage unit's
+            inverter function at it.
+          </div>
+        )}
+        {names.map((n) => (
+          <button key={n} className={`curves-item${n === active ? ' active' : ''}`} onClick={() => { setSelected(n); setText(null) }}>
+            {n}
+            <span className="curves-count">{curves[n].x.length} pts</span>
+          </button>
+        ))}
+      </div>
+      {active && curves[active] && (
+        <div className="curves-editor">
+          <div className="curves-head">
+            <input
+              className="curves-name"
+              value={active}
+              aria-label="Inverter curve name"
+              onChange={(e) => {
+                const next = e.target.value.trim()
+                if (!next || next === active || curves[next]) return
+                beginGesture()
+                setCurve(next, curves[active])
+                removeCurve(active)
+                endGesture()
+                setSelected(next)
+              }}
+            />
+            <button
+              className="curves-delete"
+              onClick={() => { removeCurve(active); setSelected(null) }}
+              title={usedBy.length ? `${usedBy.join(', ')} would lose their inverter control` : 'Delete this curve'}
+            >
+              Delete
+            </button>
+          </div>
+          <div className="curves-body">
+            <label className="curves-points">
+              <span>Voltage (pu), power (pu) — one point per line; negative var absorbs</span>
+              <textarea value={text ?? xyText(curves[active])} spellCheck={false} onChange={(e) => setText(e.target.value)} onBlur={(e) => commit(e.target.value)} />
+            </label>
+            <div>
+              <XYPreview curve={text ? { ...parseXY(text), source: null } : curves[active]} />
+              {usedBy.length > 0 && <div className="curves-used">Used by {usedBy.join(', ')}</div>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** The circuit's own time-current curves. The engine ships ten; these are the
- *  ones you type in from a manufacturer's sheet, and any device can use them. */
+ *  ones you type in from a manufacturer's sheet, and any device can use them.
+ *  A second view holds the inverter (volt-var / volt-watt) curves. */
 export function CurvesPanel() {
+  const [which, setWhich] = useState<'tcc' | 'xy'>('tcc')
+  return (
+    <div className="curves-wrap">
+      <div className="scenarios-head curves-switch">
+        <label className="prefs-radio">
+          <input type="radio" checked={which === 'tcc'} onChange={() => setWhich('tcc')} /> Time-current curves
+        </label>
+        <label className="prefs-radio">
+          <input type="radio" checked={which === 'xy'} onChange={() => setWhich('xy')} /> Inverter curves
+        </label>
+      </div>
+      {which === 'tcc' ? <TccCurvesPanel /> : <XYCurvesPanel />}
+    </div>
+  )
+}
+
+function TccCurvesPanel() {
   const curves = useCircuitStore((s) => s.tccCurves)
   const setCurve = useCircuitStore((s) => s.setTccCurve)
   const removeCurve = useCircuitStore((s) => s.removeTccCurve)

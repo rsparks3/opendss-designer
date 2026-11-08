@@ -9,7 +9,12 @@
  *  losses -- then short circuit, protection and time series when asked.
  *  Numbers are kept as numbers; each column says how many decimals to show.
  */
+import { compareResults } from '../compare'
+import { HC_LABELS } from '../hostingCapacity'
+import { levelNamed } from '../scenarios'
 import type {
+  BatchResult,
+  HostingCapacityResult,
   CircuitJSON,
   FaultResult,
   LimitsJSON,
@@ -22,7 +27,7 @@ import { EMPTY_STUDY, limitsOf } from '../limits'
 import { operateSeconds, type TccResult } from '../tcc'
 import { traceUnit } from './charts'
 
-export type SectionKey = 'loadflow' | 'diagram' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries'
+export type SectionKey = 'loadflow' | 'diagram' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting'
 
 export type Cell = string | number | null
 
@@ -89,6 +94,12 @@ export interface ReportInput {
   tcc?: TccResult | null
   reliability?: ReliabilityResult | null
   timeseries?: TimeSeriesResult | null
+  /** The pinned baseline solve, for the Comparison section. */
+  baseline?: { label: string; result: SolveResult } | null
+  /** The last batch run, for the Batch section. */
+  batch?: BatchResult | null
+  /** The last hosting-capacity run. */
+  hosting?: HostingCapacityResult | null
   /** SVG drawings the caller rendered: the one-line (from the canvas) and
    *  the charts (report/charts.ts). */
   figures?: Partial<Record<'diagram' | 'profile' | 'tcc' | 'timeseries', string>>
@@ -105,6 +116,9 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   protection: 'Protection',
   reliability: 'Reliability',
   timeseries: 'Time series',
+  comparison: 'Comparison',
+  batch: 'Scenarios and load levels',
+  hosting: 'Hosting capacity',
 }
 
 export const TYPE_NAMES: Record<string, string> = {
@@ -287,7 +301,184 @@ export function buildReport(input: ReportInput): Report {
   if (sections.has('timeseries') && input.timeseries) {
     out.push(timeSeriesSection(input.timeseries, names, input.figures?.timeseries))
   }
+  if (sections.has('comparison') && input.baseline && solved) {
+    out.push(comparisonSection(input.baseline, solved, circuit, names))
+  }
+  if (sections.has('batch') && input.batch) {
+    out.push(batchSection(input.batch, names))
+  }
+  if (sections.has('hosting') && input.hosting?.converged) {
+    out.push(hostingSection(input.hosting, names))
+  }
   return { meta, sections: out }
+}
+
+function hostingSection(h: HostingCapacityResult, names: Names): ReportSection {
+  const crit = Object.entries(h.criteria).filter(([, on]) => on).map(([k]) => k)
+  const setup: Table = {
+    id: 'hosting-setup',
+    title: 'Hosting capacity',
+    keyValue: true,
+    columns: KV_COLUMNS,
+    rows: [
+      kv('Kind', h.kind === 'der' ? 'DER (generation)' : 'Load'),
+      kv('Method', h.method === 'sensitivity' ? 'Sensitivity (one probe per bus, confirmed)' : 'Iterative (bisection at every bus)'),
+      kv('Load level', `${h.loadLevel.name} (×${h.loadLevel.loadmult}${h.loadLevel.rating === 'emergency' ? ', emergency ratings' : ''})`),
+      kv('Criteria', crit.map((k) => HC_LABELS[k] ?? k).join(', ')),
+      kv('Limits', [
+        `voltage change on trip ${h.options.deviationPct} %`, `thermal ${h.options.thermalPct} %`,
+        `export ${h.options.substationExportKw} kW`, `fault increase ${h.options.faultIncreasePct} %`,
+        `interrupting ${h.options.interruptingPct} %`, `islanding ratio ${h.options.islandingRatio}`,
+      ].join('; ')),
+      kv('Unit', h.kind === 'der' ? `${h.options.derType} at pf ${h.options.pf}` : `load at pf ${h.options.loadPf}`),
+      ...(h.hours.length ? [kv('Hours', h.hours.join(', '))] : []),
+      kv('Buses evaluated', h.summary.evaluated),
+      kv('Capacity', h.summary.minKw == null ? '—' : `${h.summary.minKw} to ${h.summary.maxKw} kW, median ${h.summary.medianKw}`),
+      kv('Binding criteria', Object.entries(h.summary.bindingCounts).map(([k, n]) => `${HC_LABELS[k] ?? k} ×${n}`).join(', ')),
+      kv('Solves', `${h.summary.solves} in ${h.summary.seconds} s`),
+    ],
+    note: Object.values(h.exclusions).some((l) => l.length)
+      ? 'Excluded as already over a limit in the base case: ' + Object.entries(h.exclusions).filter(([, l]) => l.length).map(([k, l]) => `${k} (${l.join(', ')})`).join('; ')
+      : undefined,
+  }
+  const table: Table = {
+    id: 'hosting-buses',
+    title: 'Capacity by bus',
+    columns: [
+      { key: 'bus', label: 'Bus' },
+      { key: 'kv', label: 'kV', digits: 2 },
+      { key: 'kw', label: 'Capacity', unit: 'kW', digits: 0 },
+      { key: 'binding', label: 'Binds on' },
+      ...crit.map((k) => ({ key: `c_${k}`, label: HC_LABELS[k] ?? k, unit: 'kW', digits: 0 })),
+      ...h.hours.map((hr) => ({ key: `h_${hr}`, label: `h ${hr}`, unit: 'kW', digits: 0 })),
+      { key: 'section', label: 'Section load', unit: 'kW', digits: 0 },
+    ],
+    rows: Object.entries(h.buses)
+      .sort((a, b) => a[1].kw - b[1].kw)
+      .map(([bus, r]) => ({
+        bus: names.bus(bus),
+        kv: r.kvBase,
+        kw: r.kw,
+        binding: (HC_LABELS[r.binding ?? ''] ?? r.binding ?? '—') + (r.capped ? ' (cap reached)' : ''),
+        ...Object.fromEntries(crit.map((k) => [`c_${k}`, r.byCriterion[k] ?? null])),
+        ...Object.fromEntries(h.hours.map((hr) => [`h_${hr}`, r.kwByHour?.[String(hr)] ?? null])),
+        section: r.sectionLoadKw || null,
+      })),
+    note: 'Per-criterion columns are the sensitivity method\'s estimates of the capacity each criterion alone would allow.',
+  }
+  return { id: 'hosting', title: 'Hosting capacity', tables: [setup, table], figures: [] }
+}
+
+function levelLabel(circuit: CircuitJSON, solve: SolveResult | null): string {
+  const lvl = solve?.loadLevel ?? levelNamed(circuit.loadLevels ?? null, circuit.activeLevel ?? null)
+  const rating = lvl.rating === 'emergency' ? ', emergency ratings' : ''
+  return lvl.name === 'Rated' && lvl.loadmult === 1 ? 'Rated (every load at its kW)' : `${lvl.name} (×${lvl.loadmult}${rating})`
+}
+
+function scenarioLabel(circuit: CircuitJSON, solve: SolveResult | null): string {
+  const id = solve?.scenario ?? circuit.activeScenario ?? null
+  if (!id) return 'Base case'
+  return circuit.scenarios?.find((sc) => sc.id === id)?.name ?? id
+}
+
+function comparisonSection(
+  baseline: { label: string; result: SolveResult },
+  solve: SolveResult,
+  circuit: CircuitJSON,
+  names: Names,
+): ReportSection {
+  const cmp = compareResults(baseline.result, solve)
+  const d = (v: number | null) => (v == null ? null : v)
+  const summary: Table = {
+    id: 'comparison-summary',
+    title: 'Comparison',
+    keyValue: true,
+    columns: KV_COLUMNS,
+    rows: [
+      kv('Baseline', baseline.label),
+      kv('This solve', `${scenarioLabel(circuit, solve)} at ${levelLabel(circuit, solve)}`),
+      kv('Change in losses', d(cmp.lossKw), 'kW'),
+      kv('Change in lowest voltage', d(cmp.minV), 'pu'),
+      kv('Change in highest loading', d(cmp.maxLoading), '%'),
+      kv('Violations before → after', `${cmp.violationsBefore} → ${cmp.violationsAfter}`),
+    ],
+  }
+  const buses: Table = {
+    id: 'comparison-buses',
+    title: 'Bus voltages that changed',
+    columns: [
+      { key: 'bus', label: 'Bus' },
+      { key: 'before', label: 'Before', unit: 'pu', digits: 4 },
+      { key: 'after', label: 'After', unit: 'pu', digits: 4 },
+      { key: 'delta', label: 'Change', unit: 'pu', digits: 4 },
+      { key: 'status', label: 'Status' },
+    ],
+    rows: cmp.buses.filter((r) => r.changed).map((r) => ({
+      bus: names.bus(r.key.slice(4)), before: r.before, after: r.after, delta: r.delta, status: r.status,
+    })),
+    flags: cmp.buses.filter((r) => r.changed).map((r) => r.flag),
+    note: 'Lowest phase voltage at each bus; buses within 0.0005 pu of the baseline are left out.',
+  }
+  const elements: Table = {
+    id: 'comparison-elements',
+    title: 'Element loading that changed',
+    columns: [
+      { key: 'element', label: 'Element' },
+      { key: 'before', label: 'Before', unit: '%', digits: 1 },
+      { key: 'after', label: 'After', unit: '%', digits: 1 },
+      { key: 'delta', label: 'Change', unit: '%', digits: 1 },
+      { key: 'kw', label: 'Change in kW', unit: 'kW', digits: 1 },
+      { key: 'loss', label: 'Change in losses', unit: 'kW', digits: 2 },
+    ],
+    rows: cmp.elements.filter((r) => r.changed).map((r) => ({
+      element: r.id ? names.element(r.id, r.label).name : r.label,
+      before: r.before, after: r.after, delta: r.delta, kw: r.deltaKw ?? null, loss: r.deltaLossKw ?? null,
+    })),
+    flags: cmp.elements.filter((r) => r.changed).map((r) => r.flag),
+  }
+  return { id: 'comparison', title: 'Comparison', tables: [summary, buses, elements], figures: [] }
+}
+
+function batchSection(batch: BatchResult, names: Names): ReportSection {
+  const table: Table = {
+    id: 'batch-matrix',
+    title: 'Every scenario at every load level',
+    columns: [
+      { key: 'scenario', label: 'Case' },
+      { key: 'level', label: 'Load level' },
+      { key: 'mult', label: 'Multiplier', digits: 2 },
+      { key: 'rating', label: 'Rating' },
+      { key: 'kw', label: 'Source', unit: 'kW', digits: 0 },
+      { key: 'minV', label: 'Lowest V', unit: 'pu', digits: 3 },
+      { key: 'minVBus', label: 'at bus' },
+      { key: 'maxV', label: 'Highest V', unit: 'pu', digits: 3 },
+      { key: 'loading', label: 'Highest loading', unit: '%', digits: 0 },
+      { key: 'element', label: 'element' },
+      { key: 'loss', label: 'Losses', unit: 'kW', digits: 1 },
+      { key: 'under', label: 'Under V' },
+      { key: 'over', label: 'Over V' },
+      { key: 'overloads', label: 'Overloads' },
+    ],
+    rows: batch.cells.map((c) => ({
+      scenario: c.scenarioName,
+      level: c.levelName,
+      mult: c.loadmult,
+      rating: c.rating,
+      kw: c.converged ? c.sourceKw : null,
+      minV: c.minVpu,
+      minVBus: c.minVBus ? names.bus(c.minVBus) : null,
+      maxV: c.maxVpu,
+      loading: c.maxLoadingPct,
+      element: c.maxLoadingId ? names.element(c.maxLoadingId, c.maxLoadingElement ?? '').name : (c.maxLoadingElement ?? null),
+      loss: c.lossKw,
+      under: c.undervoltages,
+      over: c.overvoltages,
+      overloads: c.converged ? c.overloads : `did not converge`,
+    })),
+    flags: batch.cells.map((c) => (!c.converged || c.undervoltages + c.overvoltages + c.overloads ? 'violation' : c.loadingWarnings ? 'warning' : null)),
+    note: batch.cancelled ? 'The run was cancelled part way; the cells listed are the ones solved.' : undefined,
+  }
+  return { id: 'batch', title: 'Scenarios and load levels', tables: [table], figures: [] }
 }
 
 // --- sections -------------------------------------------------------------
@@ -311,6 +502,8 @@ function studySection(meta: ReportMeta, circuit: CircuitJSON, solve: SolveResult
     kv('Software', meta.softwareVersion ? `OpenDSS Designer ${meta.softwareVersion}` : 'OpenDSS Designer'),
     kv('Solver', meta.engineVersion ?? 'OpenDSS'),
     kv('Solution', solve ? (solve.converged ? `Converged in ${solve.iterations} iterations` : 'Did not converge') : 'Not solved'),
+    kv('Load level', levelLabel(circuit, solve)),
+    kv('Scenario', scenarioLabel(circuit, solve)),
   ]
   const criteria: Table = {
     id: 'criteria',

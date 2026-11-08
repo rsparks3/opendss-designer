@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_LIMITS, EMPTY_STUDY, limitsOf, limitsProblem, sameLimits, studyIsEmpty } from '../lib/limits'
 import { crsList, projectionFor, type CrsEntry } from '../lib/geo'
+import { DEFAULT_LOAD_LEVELS, levelProblem } from '../lib/scenarios'
 import { useCircuitStore } from '../store/circuitStore'
-import type { LimitsJSON, StudyInfoJSON } from '../types/circuit'
+import type { LimitsJSON, LoadLevelJSON, StudyInfoJSON } from '../types/circuit'
 
 const STUDY_FIELDS: [keyof StudyInfoJSON, string][] = [
   ['title', 'Study title'],
@@ -35,6 +36,17 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
   const applyBases = () => {
     if (parsedBases && parsedBases.join(',') !== (bases ?? []).join(',')) setBases(parsedBases)
   }
+  const levels = useCircuitStore((s) => s.loadLevels)
+  const setLoadLevels = useCircuitStore((s) => s.setLoadLevels)
+  const [levelsDraft, setLevelsDraft] = useState<LoadLevelJSON[]>(() => (levels ?? []).map((l) => ({ ...l })))
+  const levelsIssue = levelProblem(levelsDraft)
+  const levelsChanged = JSON.stringify(levelsDraft) !== JSON.stringify(levels ?? [])
+  const applyLevels = () => {
+    if (levelsIssue || !levelsChanged) return
+    setLoadLevels(levelsDraft.map((l) => ({ ...l, name: l.name.trim() })))
+  }
+  const editLevel = (i: number, patch: Partial<LoadLevelJSON>) =>
+    setLevelsDraft(levelsDraft.map((l, k) => (k === i ? { ...l, ...patch } : l)))
   const crs = useCircuitStore((s) => s.crs)
   const setCrs = useCircuitStore((s) => s.setCrs)
   const [crsDraft, setCrsDraft] = useState(crs ?? '')
@@ -168,6 +180,79 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
           </div>
         </fieldset>
         <fieldset className="prefs-group">
+          <legend>Load levels</legend>
+          {levelsDraft.length === 0 ? (
+            <div className="library-note">
+              Every solve runs with every load at its rated kW. Add levels to study the feeder at minimum
+              daytime load, at an emergency rating, or with one class of load scaled.
+            </div>
+          ) : (
+            <table className="bp-table levels-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Load multiplier</th>
+                  <th>Rating</th>
+                  <th>Class multipliers</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {levelsDraft.map((l, i) => (
+                  <tr key={i}>
+                    <td>
+                      <input aria-label="Level name" value={l.name} onChange={(e) => editLevel(i, { name: e.target.value })} />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        step={0.05}
+                        aria-label="Load multiplier"
+                        value={l.loadmult}
+                        onChange={(e) => editLevel(i, { loadmult: Number(e.target.value) })}
+                      />
+                    </td>
+                    <td>
+                      <select aria-label="Rating" value={l.rating} onChange={(e) => editLevel(i, { rating: e.target.value as LoadLevelJSON['rating'] })}>
+                        <option value="normal">normal</option>
+                        <option value="emergency">emergency</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        aria-label="Class multipliers"
+                        placeholder="residential=1.5, commercial=0.8"
+                        value={Object.entries(l.classMult ?? {}).map(([c, m]) => `${c}=${m}`).join(', ')}
+                        onChange={(e) => editLevel(i, { classMult: parseClassMult(e.target.value) })}
+                      />
+                    </td>
+                    <td>
+                      <button type="button" title="Remove this level" onClick={() => setLevelsDraft(levelsDraft.filter((_, k) => k !== i))}>✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {levelsIssue && <div className="modal-error">{levelsIssue}</div>}
+          <div className="project-buttons">
+            <button type="button" onClick={() => setLevelsDraft([...levelsDraft, { name: `Level ${levelsDraft.length + 1}`, loadmult: 1, rating: 'normal' }])}>
+              + Add level
+            </button>
+            <button type="button" disabled={levelsDraft.length > 0} onClick={() => setLevelsDraft(DEFAULT_LOAD_LEVELS.map((l) => ({ ...l })))}>
+              Use the usual three
+            </button>
+            <button type="button" disabled={!!levelsIssue || !levelsChanged} onClick={applyLevels}>
+              Apply levels
+            </button>
+          </div>
+          <div className="library-note">
+            A level multiplies every load (<code>set loadmult</code>), then any class listed by its own
+            factor (a load's <i>Class</i> field), and says whether loading is judged against the normal or
+            the emergency rating. Pick the level for the next solve in the toolbar or Analysis → Load level.
+          </div>
+        </fieldset>
+        <fieldset className="prefs-group">
           <legend>Coordinate system</legend>
           <label>
             Bus and GIS coordinates are in
@@ -216,13 +301,24 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
           </div>
         </fieldset>
         <div className="modal-actions">
-          <button type="button" className="modal-primary" onClick={() => { apply(); applyBases(); onClose() }}>
+          <button type="button" className="modal-primary" onClick={() => { apply(); applyBases(); applyLevels(); onClose() }}>
             Close
           </button>
         </div>
       </div>
     </div>
   )
+}
+
+/** "residential=1.5, commercial=0.8" as a map; entries without a number are dropped. */
+export function parseClassMult(text: string): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const part of text.split(/[,;]+/)) {
+    const [cls, raw] = part.split('=').map((t) => t.trim())
+    const m = Number(raw)
+    if (cls && Number.isFinite(m) && m >= 0) out[cls.toLowerCase()] = m
+  }
+  return out
 }
 
 /** "115, 12.47" as numbers; [] for blank; null when it is not a list. */

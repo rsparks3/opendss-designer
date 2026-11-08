@@ -2,7 +2,9 @@ import { create } from 'zustand'
 import { tsIndexNearHour, tsSlice } from '../lib/tsSlice'
 import { DEFAULT_LIMITS } from '../lib/limits'
 import type {
+  BatchResult,
   FaultResult,
+  HostingCapacityResult,
   Issue,
   LimitsJSON,
   PhaseMap,
@@ -20,7 +22,15 @@ export function setLimitsSource(fn: () => LimitsJSON): void {
 
 export type AnalysisMode = 'snapshot' | 'timeseries'
 
-export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'reliability' | 'phases' | 'off'
+export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'reliability' | 'phases' | 'compare' | 'hosting' | 'off'
+
+/** A solve kept for comparison: the base case, or an earlier alternative,
+ *  pinned so the next solve can be shown as a difference from it. */
+export interface Baseline {
+  label: string
+  result: SolveResult
+  pinnedAt: number
+}
 
 interface ResultsState {
   result: SolveResult | null
@@ -31,6 +41,29 @@ interface ResultsState {
   /** Reliability study; cleared on any circuit change like `fault`. */
   reliability: ReliabilityResult | null
   setReliability: (r: ReliabilityResult | null) => void
+  /** The solve the 'compare' overlay and tab measure the current one
+   *  against. Survives circuit edits on purpose: it is the "before". */
+  baseline: Baseline | null
+  pinBaseline: (label: string) => void
+  clearBaseline: () => void
+  /** The last batch run (every scenario at every load level). Kept across
+   *  edits like the baseline; the table says when it was run. */
+  batch: { result: BatchResult; ranAt: number } | null
+  setBatch: (r: BatchResult | null) => void
+  batchRunning: boolean
+  batchProgress: { done: number; total: number; message: string | null } | null
+  batchAbort: AbortController | null
+  setBatchRunning: (running: boolean, abort?: AbortController | null) => void
+  setBatchProgress: (p: { done: number; total: number; message: string | null } | null) => void
+  /** The last hosting-capacity run. Cleared on any circuit change, like
+   *  the fault study: it is a property of this circuit at this level. */
+  hosting: HostingCapacityResult | null
+  setHosting: (r: HostingCapacityResult | null) => void
+  hcRunning: boolean
+  hcProgress: { done: number; total: number; message: string | null } | null
+  hcAbort: AbortController | null
+  setHcRunning: (running: boolean, abort?: AbortController | null) => void
+  setHcProgress: (p: { done: number; total: number; message: string | null } | null) => void
   stale: boolean
   solving: boolean
   overlay: OverlayMode
@@ -97,6 +130,26 @@ export const useResultsStore = create<ResultsState>((set) => ({
   setFault: (fault) => set({ fault }),
   reliability: null,
   setReliability: (reliability) => set({ reliability }),
+  baseline: null,
+  pinBaseline: (label) =>
+    set((s) => (s.result?.converged ? { baseline: { label, result: s.result, pinnedAt: Date.now() } } : {})),
+  clearBaseline: () => set((s) => ({ baseline: null, overlay: s.overlay === 'compare' ? 'voltage' : s.overlay })),
+  batch: null,
+  setBatch: (result) => set({ batch: result ? { result, ranAt: Date.now() } : null }),
+  batchRunning: false,
+  batchProgress: null,
+  batchAbort: null,
+  setBatchRunning: (batchRunning, batchAbort = null) =>
+    set({ batchRunning, batchAbort, ...(batchRunning ? {} : { batchProgress: null }) }),
+  setBatchProgress: (batchProgress) => set({ batchProgress }),
+  hosting: null,
+  setHosting: (hosting) => set({ hosting }),
+  hcRunning: false,
+  hcProgress: null,
+  hcAbort: null,
+  setHcRunning: (hcRunning, hcAbort = null) =>
+    set({ hcRunning, hcAbort, ...(hcRunning ? {} : { hcProgress: null }) }),
+  setHcProgress: (hcProgress) => set({ hcProgress }),
   stale: false,
   solving: false,
   overlay: 'voltage',
@@ -149,7 +202,7 @@ export const useResultsStore = create<ResultsState>((set) => ({
   setResult: (result) => set({ result, stale: false }),
   markStale: () =>
     set({ stale: true, fault: null, reliability: null, timeseries: null, tsIndex: null,
-          scrubResult: null, tsError: null, protectionIssues: [] }),
+          scrubResult: null, tsError: null, protectionIssues: [], hosting: null }),
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),
   setIssues: (issues) => set({ issues }),

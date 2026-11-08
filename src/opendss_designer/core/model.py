@@ -138,6 +138,52 @@ class PassthroughSpec(BaseModel):
     text: Annotated[str, Field(max_length=MAX_PASSTHROUGH_TEXT)]
 
 
+class XYCurveSpec(BaseModel):
+    """A general x-y curve (OpenDSS `XYCurve`): the volt-var and volt-watt
+    characteristics of a smart inverter, in per-unit voltage against
+    per-unit reactive or active power. Points are in x order."""
+    x: Annotated[list[float], Field(max_length=MAX_CURVE_POINTS)] = Field(default_factory=list)
+    y: Annotated[list[float], Field(max_length=MAX_CURVE_POINTS)] = Field(default_factory=list)
+    # "ieee1547:catB:voltvar", "imported", "typed in".
+    source: str | None = None
+
+
+class LoadLevel(BaseModel):
+    """A load condition a study is run at: a multiplier on every load
+    (`set loadmult`), optional multipliers by load class on top, and which
+    rating -- normal or emergency -- loading is judged against. "Peak" at
+    1.0 on the normal rating is what every circuit solved before levels
+    existed; "Minimum daytime load" at 0.3 is what a hosting-capacity
+    study binds on."""
+    name: Annotated[str, Field(min_length=1, max_length=80)]
+    loadmult: Annotated[float, Field(gt=0, le=100)] = 1.0
+    rating: Literal["normal", "emergency"] = "normal"
+    # Multiplier per load class (the load's `class` param), applied to the
+    # load's kW on top of `loadmult`. A class not listed is 1.
+    classMult: Annotated[dict[str, Annotated[float, Field(ge=0, le=100)]],
+                         Field(max_length=50)] = Field(default_factory=dict)
+
+
+class Scenario(BaseModel):
+    """An alternative to the base circuit, stored as element-level deltas so
+    a project with ten alternatives is still one drawing: parameter
+    overrides on existing elements (a changed setting, an opened tie, a
+    unit taken out of service), elements added (a new DER, a new tie), and
+    elements removed. `studies.scenarios.apply_scenario` builds the
+    effective circuit."""
+    id: Annotated[str, Field(min_length=1, max_length=64)]
+    name: Annotated[str, Field(min_length=1, max_length=120)]
+    description: Annotated[str, Field(max_length=MAX_COMMENT_TEXT)] = ""
+    # element id -> {param: value}; a value of None deletes the param.
+    overrides: Annotated[dict[str, dict[str, Any]], Field(max_length=MAX_NODES)] = Field(
+        default_factory=dict)
+    addedNodes: Annotated[list[CircuitNode], Field(max_length=MAX_NODES)] = Field(
+        default_factory=list)
+    addedEdges: Annotated[list[CircuitEdge], Field(max_length=MAX_EDGES)] = Field(
+        default_factory=list)
+    removed: Annotated[list[str], Field(max_length=MAX_NODES)] = Field(default_factory=list)
+
+
 class Limits(BaseModel):
     """What counts as an abnormal condition: the planning criteria the
     overlays, the solve's violation flags and the study report all apply.
@@ -207,6 +253,18 @@ class Circuit(BaseModel):
     # Absent means the defaults; see Limits.
     limits: Limits | None = None
     study: StudyInfo | None = None
+    # Inverter volt-var / volt-watt curves, keyed by name (OpenDSS XYCurve).
+    xyCurves: Annotated[dict[str, XYCurveSpec],
+                        Field(max_length=MAX_CURVES)] = Field(default_factory=dict)
+    # The load conditions studies are run at. Absent means the one implicit
+    # level: every load at rated kW on the normal rating.
+    loadLevels: Annotated[list[LoadLevel], Field(max_length=50)] | None = None
+    # The level the next solve uses (a LoadLevel name); None is rated.
+    activeLevel: Annotated[str, Field(max_length=80)] | None = None
+    # Alternatives to this base circuit, and which one is being edited and
+    # solved. None means the base case.
+    scenarios: Annotated[list[Scenario], Field(max_length=200)] | None = None
+    activeScenario: Annotated[str, Field(max_length=64)] | None = None
 
     @property
     def criteria(self) -> Limits:
@@ -217,6 +275,35 @@ class Circuit(BaseModel):
         """The nodes that are part of the circuit: everything but the
         annotations (notes and zones)."""
         return [n for n in self.nodes if n.type not in ANNOTATION_TYPES]
+
+    @property
+    def level(self) -> LoadLevel:
+        """The active load level, or the implicit rated one."""
+        if self.activeLevel and self.loadLevels:
+            for lvl in self.loadLevels:
+                if lvl.name == self.activeLevel:
+                    return lvl
+        return RATED_LEVEL
+
+    @property
+    def scenario(self) -> Scenario | None:
+        if self.activeScenario and self.scenarios:
+            for sc in self.scenarios:
+                if sc.id == self.activeScenario:
+                    return sc
+        return None
+
+
+# What every circuit solved before load levels existed.
+RATED_LEVEL = LoadLevel(name="Rated", loadmult=1.0, rating="normal")
+
+# The levels a new project is offered. Minimum daytime load at 30 % of
+# rated is the usual planning assumption when no measurements exist.
+DEFAULT_LOAD_LEVELS: list[LoadLevel] = [
+    LoadLevel(name="Peak", loadmult=1.0, rating="normal"),
+    LoadLevel(name="Minimum daytime", loadmult=0.3, rating="normal"),
+    LoadLevel(name="Emergency peak", loadmult=1.0, rating="emergency"),
+]
 
 
 class Issue(BaseModel):

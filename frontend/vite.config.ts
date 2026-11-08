@@ -12,9 +12,11 @@ export default defineConfig({
     // Bind explicitly to IPv4 — on Windows, plain `localhost` can resolve to
     // ::1 only, which breaks the Playwright webServer health check.
     host: '127.0.0.1',
-    port: 5173,
+    // Both ports can be moved for a second checkout or a parallel e2e run:
+    // VITE_PORT for this server, OPENDSS_API_PORT for the backend it proxies.
+    port: Number(process.env.VITE_PORT ?? 5173),
     proxy: {
-      '/api': 'http://127.0.0.1:8721',
+      '/api': `http://127.0.0.1:${process.env.OPENDSS_API_PORT ?? 8721}`,
     },
   },
   build: {

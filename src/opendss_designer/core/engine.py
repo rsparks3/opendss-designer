@@ -317,8 +317,23 @@ def _kva_rating() -> float | None:
     return value if value > 0 else None
 
 
+def _rating_amps(rating: str) -> float | None:
+    """The active element's ampere rating for `rating` ('normal' or
+    'emergency'); an emergency rating the element lacks falls back to the
+    normal one, so a level on the emergency rating never loses loading %."""
+    norm = dss.CktElement.NormalAmps() or None
+    if rating == "emergency":
+        try:
+            emerg = dss.CktElement.EmergAmps() or None
+        except Exception:
+            emerg = None
+        return emerg or norm
+    return norm
+
+
 def _extract_elements(element_map: dict[str, str],
-                      overload_pct: float = 100.0) -> dict[str, Any]:
+                      overload_pct: float = 100.0,
+                      rating: str = "normal") -> dict[str, Any]:
     elements: dict[str, Any] = {}
     for full_name, diagram_id in element_map.items():
         idx = dss.Circuit.SetActiveElement(full_name)
@@ -339,7 +354,7 @@ def _extract_elements(element_map: dict[str, str],
         phase_nodes = list(dss.CktElement.NodeOrder())[:nphases]
         kw = sum(powers[0 : 2 * ncond : 2])
         kvar = sum(powers[1 : 2 * ncond : 2])
-        norm_amps = dss.CktElement.NormalAmps()
+        norm_amps = _rating_amps(rating)
         rating_kva = None
         loading = None
         violations: list[str] = []
@@ -455,7 +470,8 @@ def solve(circuit: Circuit) -> dict[str, Any]:
             if converged:
                 buses = _extract_buses()
                 elements = _extract_elements(compiled.element_map,
-                                             circuit.criteria.overloadPct)
+                                             circuit.criteria.overloadPct,
+                                             circuit.level.rating)
                 lw = dss.Circuit.Losses()
                 losses = {"kw": round(lw[0] / 1000.0, 3), "kvar": round(lw[1] / 1000.0, 3)}
                 lim = circuit.criteria
@@ -477,6 +493,10 @@ def solve(circuit: Circuit) -> dict[str, Any]:
         "buses": buses,
         "elements": elements,
         "losses": losses,
+        # What the solve was run at, so a result can say so and a
+        # comparison can tell two levels apart.
+        "loadLevel": circuit.level.model_dump(),
+        "scenario": circuit.activeScenario,
         "issues": [i.model_dump() for i in issues],
         "nodeBuses": conn.node_buses if conn else {},
         "lineBuses": {k: list(v) for k, v in conn.line_buses.items()} if conn else {},
@@ -609,11 +629,56 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
             idx = dss.Circuit.SetActiveElement(full_name)
             if idx < 0 or dss.CktElement.Name().lower() != full_name:
                 continue
-            norm_amps = dss.CktElement.NormalAmps() or None
+            norm_amps = _rating_amps(circuit.level.rating)
             rating_kva = (_kva_rating() if not norm_amps and full_name.startswith(_KVA_RATED)
                           else None)
             elem_static.append((full_name, diagram_id, dss.CktElement.NumPhases(),
                                 dss.CktElement.NumConductors(), norm_amps, rating_kva))
+
+        # Control operations: tap changes per regulator and switching
+        # operations per capacitor bank, counted from the step-to-step
+        # change of state. A hosting-capacity criterion and the measure of
+        # a Volt/VAR scheme's wear, so they are recorded on every run.
+        reg_names: list[str] = []
+        i = dss.RegControls.First()
+        while i:
+            reg_names.append(dss.RegControls.Name().lower())
+            i = dss.RegControls.Next()
+        cap_names: list[str] = []
+        i = dss.Capacitors.First()
+        while i:
+            cap_names.append(dss.Capacitors.Name().lower())
+            i = dss.Capacitors.Next()
+        last_taps: dict[str, int] = {}
+        last_states: dict[str, tuple] = {}
+        tap_changes: dict[str, int] = dict.fromkeys(reg_names, 0)
+        switchings: dict[str, int] = dict.fromkeys(cap_names, 0)
+        ops_series: list[float] = []
+
+        def control_ops() -> int:
+            ops = 0
+            if reg_names:
+                i = dss.RegControls.First()
+                while i:
+                    name = dss.RegControls.Name().lower()
+                    tap = int(dss.RegControls.TapNumber())
+                    if name in last_taps:
+                        moved = abs(tap - last_taps[name])
+                        tap_changes[name] = tap_changes.get(name, 0) + moved
+                        ops += moved
+                    last_taps[name] = tap
+                    i = dss.RegControls.Next()
+            if cap_names:
+                i = dss.Capacitors.First()
+                while i:
+                    name = dss.Capacitors.Name().lower()
+                    states = tuple(int(v) for v in (dss.Capacitors.States() or ()))
+                    if name in last_states and states != last_states[name]:
+                        switchings[name] = switchings.get(name, 0) + 1
+                        ops += 1
+                    last_states[name] = states
+                    i = dss.Capacitors.Next()
+            return ops
 
         times: list[float] = []
         total_kw: list[float] = []
@@ -653,6 +718,7 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
                     # Record placeholders so every series stays aligned.
                     total_kw.append(0.0)
                     loss_kw.append(0.0)
+                    ops_series.append(0.0)
                     for b in bus_slices:
                         bus_vmin[b].add(0.0)
                         bus_vmax[b].add(0.0)
@@ -668,6 +734,7 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
                 p_total = dss.Circuit.TotalPower()  # source injection, negative
                 kw_now = -p_total[0]
                 total_kw.append(round(kw_now, 2))
+                ops_series.append(float(control_ops()) if (reg_names or cap_names) else 0.0)
                 lw = dss.Circuit.Losses()
                 loss_kw.append(round(lw[0] / 1000.0, 3))
                 energy_kwh += kw_now * dt_h
@@ -732,6 +799,7 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
         times = time_pairs
         total_kw = ds(total_kw)
         loss_kw = ds(loss_kw)
+        ops_series = ds(ops_series)
 
     conn = compiled.connectivity
     return {
@@ -742,7 +810,20 @@ def solve_timeseries(circuit: Circuit, mode: str = "daily", step_min: int = 60,
         "steps": steps_done,
         "downsampled": downsampled,
         "time": times,
-        "totals": {"kw": total_kw, "lossKw": loss_kw},
+        "totals": {"kw": total_kw, "lossKw": loss_kw, "controlOps": ops_series},
+        "controlOps": {
+            "regulators": {
+                name: {"id": compiled.element_map.get(f"transformer.{name}"),
+                       "tapChanges": n}
+                for name, n in tap_changes.items()},
+            "capacitors": {
+                name: {"id": compiled.element_map.get(f"capacitor.{name}"),
+                       "switchings": n}
+                for name, n in switchings.items()},
+            "total": sum(tap_changes.values()) + sum(switchings.values()),
+        },
+        "loadLevel": circuit.level.model_dump(),
+        "scenario": circuit.activeScenario,
         "buses": {b: {"vmin": bus_out[b], "vmax": bus_max_out[b],
                       "kvBase": bus_kv_base.get(b, 0.0)} for b in bus_slices},
         "elements": {fn: {"id": _id, **elem_out[fn]}

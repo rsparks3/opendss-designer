@@ -32,7 +32,11 @@ The toolbar (and the **Analysis** menu) has two analysis modes:
     A snapshot is the unscaled **base case**: loads at their full rated kW,
     PV systems at their base irradiance parameter, storage idle. Loadshapes
     are *not* applied — they only take effect in time-series runs. The status
-    bar says so whenever shapes are assigned.
+    bar says so whenever shapes are assigned. A project with **load levels**
+    (Project properties) solves at the level picked in the toolbar instead —
+    every load scaled by the level's multiplier, loading judged against the
+    normal or the emergency rating — and the open **scenario** is what is
+    solved. See [Planning](planning.md).
 
 ## Result overlays
 
@@ -55,6 +59,13 @@ choose what's shown:
 - **Reliability** — see below: every line and device coloured by the
   protection section it is in, loads badged with their customers, and a
   legend with SAIFI, SAIDI and CAIDI
+- **Compare** — the change from a pinned baseline solve: the lowest phase
+  voltage at every bus in pu (red lower, green higher) and the loading of
+  every series element in points of per cent (red higher). See
+  [Planning → Compare](planning.md#compare)
+- **Hosting** — every bus coloured by its DER or load hosting capacity
+  from the last run in the Hosting tab, red (none) to green (the most). See
+  [Hosting capacity](hosting-capacity.md)
 - **Phases** — the one view that needs no solve: lines and symbols (loads,
   breakers, fuses, transformers and the rest) are coloured by the phases they
   are on (A red, B blue, C green, two-phase purple, three-phase plain), and

@@ -45,6 +45,7 @@ export function OverviewLayer() {
   const height = useStore((s) => s.height)
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore(activeResult)
+  const hosting = useResultsStore((s) => s.hosting)
   const stale = useResultsStore(activeStale)
   const phases = useResultsStore((s) => s.phases)
   const limits = useLimits()
@@ -100,7 +101,7 @@ export function OverviewLayer() {
     const style = getComputedStyle(el)
     const ink = style.getPropertyValue('--ink').trim() || '#333'
 
-    const colours = overlayInk({ overlay, result, stale, phases, limits, ink })
+    const colours = overlayInk({ overlay, result, stale, phases, limits, ink, hosting })
     const busColour = colours.bus
     const lineColour = (seg: Segment) => colours.line(seg.edgeId, seg.nodeId)
 
@@ -130,7 +131,7 @@ export function OverviewLayer() {
       const h = Math.max(b.bus ? 2 : 1.5, b.h * k)
       ctx.fillRect(sx(b.x), sy(b.y), w, h)
     }
-  }, [geometry, transform, width, height, overlay, result, stale, phases, limits])
+  }, [geometry, transform, width, height, overlay, result, stale, phases, limits, hosting])
 
   return <canvas ref={canvas} className="overview-layer" />
 }

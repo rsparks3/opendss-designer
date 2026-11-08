@@ -2,6 +2,7 @@ import { PHASE_LEGEND } from '../lib/phasing'
 import { indicesLine, reliabilityLegend } from '../lib/reliability'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
+import { formatKw, HC_LABELS, hostingColor } from '../lib/hostingCapacity'
 
 /** Key for the 'phases' overlay. Lines wear the phases they carry, wires and
  *  busbars the phases that reach them, so one legend serves both. In the
@@ -12,6 +13,33 @@ export function PhaseLegend() {
   const reliability = useResultsStore((s) => s.reliability)
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
+  const hosting = useResultsStore((s) => s.hosting)
+  if (overlay === 'hosting') {
+    if (!hosting?.converged) return null
+    const max = hosting.summary.maxKw ?? 0
+    const steps = [0, 0.25, 0.5, 0.75, 1]
+    return (
+      <div className="phase-legend reliability-legend" role="list" aria-label="Hosting capacity">
+        <span role="listitem" className="phase-legend-item legend-indices">
+          {hosting.kind === 'der' ? 'DER' : 'Load'} hosting capacity · {hosting.loadLevel.name} · {hosting.summary.evaluated} buses
+        </span>
+        {steps.map((t) => (
+          <span key={t} role="listitem" className="phase-legend-item">
+            <span className="phase-legend-swatch" style={{ background: hostingColor(t * max, max) }} />
+            {t === 0 ? 'none' : formatKw(t * max)}
+          </span>
+        ))}
+        <span role="listitem" className="phase-legend-item">
+          binds on{' '}
+          {Object.entries(hosting.summary.bindingCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([k, n]) => `${HC_LABELS[k] ?? k} ×${n}`)
+            .join(', ')}
+        </span>
+      </div>
+    )
+  }
   if (overlay === 'reliability') {
     if (!reliability?.converged) return null
     const nameOf = (id: string | null, fallback: string) => {

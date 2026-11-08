@@ -78,6 +78,16 @@ function SummaryTable({ ts }: { ts: TimeSeriesResult }) {
             )}
           </td>
         </tr>
+        {ts.controlOps && (Object.keys(ts.controlOps.regulators).length > 0 || Object.keys(ts.controlOps.capacitors).length > 0) && (
+          <tr>
+            <td>Control operations</td>
+            <td colSpan={5} title="Tap changes per regulator and switching operations per capacitor bank over the run">
+              {ts.controlOps.total} in all
+              {Object.entries(ts.controlOps.regulators).map(([n, r]) => ` · ${n}: ${r.tapChanges} tap${r.tapChanges === 1 ? '' : 's'}`).join('')}
+              {Object.entries(ts.controlOps.capacitors).map(([n, c]) => ` · ${n}: ${c.switchings} switch${c.switchings === 1 ? '' : 'es'}`).join('')}
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   )

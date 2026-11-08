@@ -9,6 +9,8 @@ import { rotatePoint } from '../../lib/rotatePoint'
 import { edgesAtTerminal, useCircuitStore, useLimits, type EdgeEnd } from '../../store/circuitStore'
 import { beginGrab, useGrabStore } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
+import { deltaColor } from '../../lib/compare'
+import { formatKw, hostingColor } from '../../lib/hostingCapacity'
 import type { Params } from '../../types/circuit'
 import { LoadingPie } from '../LoadingPie'
 
@@ -219,6 +221,8 @@ export function Badge({ color, children }: { color: string; children: ReactNode 
 export function VoltageBadge({ nodeId }: { nodeId: string }) {
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore(activeResult)
+  if (overlay === 'compare') return <CompareBadge nodeId={nodeId} kind="bus" />
+  if (overlay === 'hosting') return <HostingBadge nodeId={nodeId} />
   if (overlay !== 'voltage' || !result?.converged) return null
   const bus = result.nodeBuses[nodeId]?.[0]
   const data = bus ? result.buses[bus] : null
@@ -235,6 +239,46 @@ function VBadgeInner({ v, phase }: { v: number; phase: string | null }) {
       {v.toFixed(3)} pu{phase && <span className="badge-phase">{phase}</span>}
     </Badge>
   )
+}
+
+/** Hosting capacity at the node's bus ('hosting' overlay), coloured on
+ *  the run's own scale. */
+export function HostingBadge({ nodeId }: { nodeId: string }) {
+  const hosting = useResultsStore((s) => s.hosting)
+  if (!hosting?.converged) return null
+  const bus = hosting.nodeBuses[nodeId]?.[0]
+  const r = bus ? hosting.buses[bus] : null
+  if (!r) return null
+  return (
+    <div className="result-badge" style={{ background: hostingColor(r.kw, hosting.summary.maxKw ?? 0) }}
+         title={`${hosting.kind === 'der' ? 'DER' : 'Load'} hosting capacity; binds on ${r.binding ?? '—'}`}>
+      {formatKw(r.kw)}{r.capped ? '+' : ''}
+    </div>
+  )
+}
+
+/** The change from the pinned baseline ('compare' overlay): a bus's lowest
+ *  voltage in pu, or a series element's loading in points of per cent. Red
+ *  is worse (lower voltage, higher loading), green better. */
+export function CompareBadge({ nodeId, kind }: { nodeId: string; kind: 'bus' | 'element' }) {
+  const baseline = useResultsStore((s) => s.baseline)
+  const result = useResultsStore((s) => s.result)
+  if (!baseline || !result?.converged) return null
+  if (kind === 'bus') {
+    const bus = result.nodeBuses[nodeId]?.[0]
+    const now = bus ? result.buses[bus]?.vminPu : null
+    const was = bus ? baseline.result.buses[bus]?.vminPu : null
+    if (now == null || was == null) return null
+    const d = now - was
+    if (Math.abs(d) < 0.0005) return null
+    return <Badge color={deltaColor(d, 0.03)}>{d > 0 ? '+' : ''}{d.toFixed(3)} pu</Badge>
+  }
+  const now = resultById(result).get(nodeId)?.loadingPct
+  const was = resultById(baseline.result).get(nodeId)?.loadingPct
+  if (now == null || was == null) return null
+  const d = now - was
+  if (Math.abs(d) < 0.05) return null
+  return <Badge color={deltaColor(-d, 25)}>{d > 0 ? '+' : ''}{d.toFixed(0)} %</Badge>
 }
 
 /** Tint for a symbol in the 'phases' overlay: the phases the element itself
@@ -325,6 +369,7 @@ export function ElementBadge({ nodeId }: { nodeId: string }) {
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore(activeResult)
   if (overlay === 'reliability') return <ReliabilityBadge nodeId={nodeId} />
+  if (overlay === 'compare') return <CompareBadge nodeId={nodeId} kind="element" />
   if ((overlay !== 'loading' && overlay !== 'power') || !result?.converged) return null
   const el = resultById(result).get(nodeId)
   if (!el) return null

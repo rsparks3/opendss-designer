@@ -11,7 +11,7 @@ export interface Field {
    *  lines of text; 'target' the element a note's arrow points at. */
   kind:
     | 'number' | 'text' | 'select' | 'checkbox' | 'loadshape' | 'curve' | 'phasing'
-    | 'textarea' | 'target'
+    | 'textarea' | 'target' | 'element' | 'xycurve'
   /** For kind 'loadshape': which shape category the dropdown offers.
    *  Default 'load'; 'any' lists both (storage dispatch). */
   shapeKind?: 'load' | 'irradiance' | 'any'
@@ -30,7 +30,37 @@ export interface Field {
   /** Shown as the field's placeholder: what the engine assumes when the
    *  value is left blank. */
   placeholder?: string
+  /** For kind 'element': the element types offered; 'self' is offered too
+   *  when `allowSelf`. */
+  elementTypes?: string[]
+  allowSelf?: boolean
 }
+
+const EMERGENCY_AMPS: Field = {
+  key: 'emergamps', label: 'Emergency rating', kind: 'number', unit: 'A', placeholder: '1.5 × continuous',
+}
+const EMERGENCY_KVA: Field = {
+  key: 'emerghkva', label: 'Emergency rating', kind: 'number', unit: 'kVA', placeholder: '1.5 × rated',
+}
+
+const CAP_CONTROL_TYPES = ['none', 'voltage', 'current', 'kvar', 'pf', 'time']
+const hasCapControl = (p: Params) => typeof p.control === 'string' && p.control !== 'none'
+const CAP_SETTING_UNIT: Record<string, string> = {
+  voltage: 'V (PT secondary)', current: 'A (CT secondary)', kvar: 'kvar', pf: 'pf', time: 'h',
+}
+
+const INV_MODES = ['none', 'voltvar', 'voltwatt', 'voltvar_voltwatt', 'wattpf', 'wattvar']
+const invMode = (p: Params) => (typeof p.invmode === 'string' ? p.invmode : 'none')
+/** The smart-inverter settings a PV system or storage unit carries. */
+const INVERTER_FIELDS: Field[] = [
+  { key: 'invmode', label: 'Inverter function', kind: 'select', options: INV_MODES },
+  { key: 'vvcurve', label: 'Volt-var curve', kind: 'xycurve',
+    showIf: (p) => ['voltvar', 'voltvar_voltwatt'].includes(invMode(p)) },
+  { key: 'vwcurve', label: 'Volt-watt curve', kind: 'xycurve',
+    showIf: (p) => ['voltwatt', 'voltvar_voltwatt'].includes(invMode(p)) },
+  { key: 'wpcurve', label: 'Watt-pf curve', kind: 'xycurve', showIf: (p) => invMode(p) === 'wattpf' },
+  { key: 'wvcurve', label: 'Watt-var curve', kind: 'xycurve', showIf: (p) => invMode(p) === 'wattvar' },
+]
 
 /** What every power-delivery element carries for the reliability study:
  *  OpenDSS's own defaults stand where a value is left blank. */
@@ -104,6 +134,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'model', label: 'Load model', kind: 'select', options: [1, 2, 3, 4, 5, 8] },
+    { key: 'class', label: 'Class', kind: 'text', placeholder: 'residential, commercial, …' },
     // Model 4 (CVR): how real and reactive power follow the voltage.
     { key: 'cvrwatts', label: 'CVR factor (kW)', kind: 'number', placeholder: '1', showIf: (p) => Number(p.model) === 4 },
     { key: 'cvrvars', label: 'CVR factor (kvar)', kind: 'number', placeholder: '2', showIf: (p) => Number(p.model) === 4 },
@@ -115,6 +146,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'name', label: 'Name', kind: 'text' },
     { key: 'closed', label: 'Closed', kind: 'checkbox' },
     { key: 'normamps', label: 'Rating', kind: 'number', unit: 'A' },
+    EMERGENCY_AMPS,
+    EMERGENCY_AMPS,
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
@@ -147,6 +180,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'xlt', label: 'Reactance X(L-T)', kind: 'number', unit: '%', showIf: (p) => windingCount(p) === 3 },
     { key: 'pctloadloss', label: 'Load loss', kind: 'number', unit: '%' },
     { key: 'pctnoloadloss', label: 'No-load loss', kind: 'number', unit: '%', placeholder: '0' },
+    EMERGENCY_KVA,
     { key: 'pctimag', label: 'Magnetising current', kind: 'number', unit: '%', placeholder: '0' },
     ...RELIABILITY_FIELDS(false),
   ],
@@ -164,6 +198,13 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'r', label: 'Line drop comp R', kind: 'number', unit: 'V' },
     { key: 'x', label: 'Line drop comp X', kind: 'number', unit: 'V' },
     { key: 'maxtapchange', label: 'Max tap change / solution', kind: 'number' },
+    EMERGENCY_KVA,
+    { key: 'reversible', label: 'Reverse-power mode', kind: 'checkbox', defaultOff: true },
+    { key: 'revvreg', label: 'Reverse setpoint', kind: 'number', unit: 'V (120 base)',
+      showIf: (p) => p.reversible === true, placeholder: '120' },
+    { key: 'revband', label: 'Reverse bandwidth', kind: 'number', unit: 'V',
+      showIf: (p) => p.reversible === true, placeholder: '3' },
+    { key: 'cogen', label: 'Cogeneration mode', kind: 'checkbox', defaultOff: true },
     ...RELIABILITY_FIELDS(false),
   ],
   fuse: [
@@ -173,6 +214,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'fusecurve', label: 'Fuse link', kind: 'curve', curveKind: 'fuse' },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
+    EMERGENCY_AMPS,
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
@@ -191,6 +233,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'shots', label: 'Shots to lockout', kind: 'number' },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
+    EMERGENCY_AMPS,
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
@@ -205,6 +248,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'groundcurve', label: 'Ground curve', kind: 'curve', curveKind: 'relay', allowNone: true },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
+    EMERGENCY_AMPS,
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
@@ -218,6 +262,18 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'numsteps', label: 'Steps', kind: 'number' },
+    { key: 'control', label: 'Control', kind: 'select', options: CAP_CONTROL_TYPES },
+    { key: 'ctrlElement', label: 'Watches', kind: 'element', allowSelf: true,
+      elementTypes: ['line', 'transformer', 'regulator', 'breaker', 'fuse', 'recloser', 'relay'],
+      showIf: hasCapControl },
+    { key: 'onsetting', label: 'Switch on at', kind: 'number', showIf: hasCapControl },
+    { key: 'offsetting', label: 'Switch off at', kind: 'number', showIf: hasCapControl },
+    { key: 'ptratio', label: 'PT ratio', kind: 'number', showIf: (p) => p.control === 'voltage', placeholder: '60' },
+    { key: 'ctratio', label: 'CT ratio', kind: 'number',
+      showIf: (p) => p.control === 'current' || p.control === 'kvar' || p.control === 'pf', placeholder: '60' },
+    { key: 'delay', label: 'On delay', kind: 'number', unit: 's', showIf: hasCapControl, placeholder: '15' },
+    { key: 'delayoff', label: 'Off delay', kind: 'number', unit: 's', showIf: hasCapControl, placeholder: '15' },
+    { key: 'deadtime', label: 'Dead time', kind: 'number', unit: 's', showIf: hasCapControl, placeholder: '300' },
   ],
   generator: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -243,6 +299,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'loadshape', label: 'Irradiance shape', kind: 'loadshape', shapeKind: 'irradiance' },
+    ...INVERTER_FIELDS,
   ],
   storage: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -262,7 +319,16 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'loadshape', label: 'Dispatch shape', kind: 'loadshape', shapeKind: 'any' },
     { key: 'dischargetrigger', label: 'Discharge trigger', kind: 'number' },
     { key: 'chargetrigger', label: 'Charge trigger', kind: 'number' },
+    ...INVERTER_FIELDS,
   ],
+}
+
+/** The unit of a capacitor control's on/off settings follows its type. */
+export function fieldUnit(field: Field, params: Params): string | undefined {
+  if (field.key === 'onsetting' || field.key === 'offsetting') {
+    return CAP_SETTING_UNIT[String(params.control ?? '')]
+  }
+  return field.unit
 }
 
 // Every circuit element can be taken out of service: it stays on the
@@ -429,6 +495,47 @@ export function targetChoices(
   return out.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }))
 }
 
+/** One of the circuit's series elements (by diagram id), or the element
+ *  itself: what a capacitor control watches. */
+function ElementSelect({ field, value, onCommit }: { field: Field; value: unknown; onCommit: (v: unknown) => void }) {
+  const nodes = useCircuitStore((s) => s.nodes)
+  const edges = useCircuitStore((s) => s.edges)
+  const types = new Set(field.elementTypes ?? [])
+  const choices = [
+    ...nodes.filter((n) => types.has(n.type ?? '')).map((n) => ({ id: n.id, label: String(n.data.params.name ?? n.id) })),
+    ...edges.filter((e) => e.type === 'line' && types.has('line')).map((e) => ({ id: e.id, label: String(e.data?.params.name ?? e.id) })),
+  ].sort((a, b) => a.label.localeCompare(b.label))
+  const current = typeof value === 'string' ? value : field.allowSelf ? 'self' : ''
+  return (
+    <select value={current} onChange={(e) => onCommit(e.target.value || undefined)}>
+      {field.allowSelf && <option value="self">(its own terminal)</option>}
+      {!field.allowSelf && <option value="">(none)</option>}
+      {choices.map((c) => (
+        <option key={c.id} value={c.id}>{c.label}</option>
+      ))}
+      {current && current !== 'self' && !choices.some((c) => c.id === current) && (
+        <option value={current}>(deleted element)</option>
+      )}
+    </select>
+  )
+}
+
+/** One of the circuit's XY curves (Curves tab), for a smart-inverter mode. */
+function XyCurveSelect({ value, onCommit }: { value: unknown; onCommit: (v: unknown) => void }) {
+  const curves = useCircuitStore((s) => s.xyCurves)
+  const names = Object.keys(curves).sort()
+  const current = typeof value === 'string' ? value : ''
+  return (
+    <select value={current} onChange={(e) => onCommit(e.target.value || undefined)}>
+      <option value="">(pick a curve)</option>
+      {names.map((n) => (
+        <option key={n} value={n}>{n}</option>
+      ))}
+      {current && !curves[current] && <option value={current}>{current} (missing)</option>}
+    </select>
+  )
+}
+
 function TargetSelect({ value, onCommit }: { value: unknown; onCommit: (v: unknown) => void }) {
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
@@ -473,6 +580,12 @@ export function FieldInput({
   }
   if (field.kind === 'target') {
     return <TargetSelect value={value} onCommit={onCommit} />
+  }
+  if (field.kind === 'element') {
+    return <ElementSelect field={field} value={value} onCommit={onCommit} />
+  }
+  if (field.kind === 'xycurve') {
+    return <XyCurveSelect value={value} onCommit={onCommit} />
   }
   if (field.kind === 'textarea') {
     return (

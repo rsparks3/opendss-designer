@@ -41,6 +41,7 @@ _DEMO_LIMITS: dict[str, object] = {
     "timeseries_timeout_s": 180.0,
     "max_timeseries_cost": 3_000_000,  # steps x (elements + buses)
     "max_concurrent_timeseries": 2,
+    "max_study_solves": 5_000,         # solves one background study may take
     "nrel_cache_bytes": 4 * 1024**3,
     "nsrdb_cache_bytes": 1024**3,
     "shape_cache_bytes": 256 * 1024 * 1024,
@@ -128,6 +129,7 @@ REQUEST_LIMITS: dict[str, str] = {
     "maxImportFiles": "max_import_files",
     "maxImportBytes": "max_import_bytes",
     "maxTimeseriesCost": "max_timeseries_cost",
+    "maxStudySolves": "max_study_solves",
     "engineResultTimeoutS": "engine_result_timeout_s",
     "timeseriesTimeoutS": "timeseries_timeout_s",
 }
@@ -159,6 +161,7 @@ class Settings:
     timeseries_timeout_s: float | None = None
     max_timeseries_cost: int | None = None
     max_concurrent_timeseries: int | None = None
+    max_study_solves: int | None = None
     nrel_cache_bytes: int | None = None
     nsrdb_cache_bytes: int | None = None
     shape_cache_bytes: int | None = None

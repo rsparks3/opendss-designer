@@ -14,6 +14,12 @@ export function Toolbar() {
   const dirty = useCircuitStore((s) => s.dirty)
   const projectId = useCircuitStore((s) => s.projectId)
   const linkedFile = useUiStore((s) => s.fileHandle?.name)
+  const levels = useCircuitStore((s) => s.loadLevels)
+  const activeLevel = useCircuitStore((s) => s.activeLevel)
+  const setActiveLevel = useCircuitStore((s) => s.setActiveLevel)
+  const scenarios = useCircuitStore((s) => s.scenarios)
+  const activeScenario = useCircuitStore((s) => s.activeScenario)
+  const activateScenario = useCircuitStore((s) => s.activateScenario)
 
   const solving = useResultsStore((s) => s.solving)
   const tsRunning = useResultsStore((s) => s.tsRunning)
@@ -85,6 +91,38 @@ export function Toolbar() {
           Auto
         </button>
       </div>
+      {(levels?.length || scenarios.length > 0) && (
+        <div className="tb-group tb-planning">
+          {levels?.length ? (
+            <select
+              className="tb-level"
+              aria-label="Load level"
+              title="The load condition the next solve runs at (Project properties → Load levels)"
+              value={activeLevel ?? ''}
+              onChange={(e) => setActiveLevel(e.target.value || null)}
+            >
+              <option value="">Rated</option>
+              {levels.map((l) => (
+                <option key={l.name} value={l.name}>{l.name}</option>
+              ))}
+            </select>
+          ) : null}
+          {scenarios.length > 0 && (
+            <select
+              className={`tb-level${activeScenario ? ' tb-scenario-on' : ''}`}
+              aria-label="Scenario"
+              title={activeScenario ? 'Edits belong to this scenario until you return to the base case' : 'Open a scenario to edit and solve it'}
+              value={activeScenario ?? ''}
+              onChange={(e) => activateScenario(e.target.value || null)}
+            >
+              <option value="">Base case</option>
+              {scenarios.map((sc) => (
+                <option key={sc.id} value={sc.id}>{sc.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
       <div className="tb-group">
         <button
           className={analysisMode === 'snapshot' ? 'active' : ''}

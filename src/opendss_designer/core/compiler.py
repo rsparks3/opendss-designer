@@ -20,6 +20,7 @@ from .connectivity import (
 )
 from .model import ANNOTATION_TYPES, Circuit, Issue, LineCodeSpec, in_service
 from .phasing import nodes_for, phase_count
+from .scenarios import apply_scenario
 
 # Fallback ratings so loading % is at least defined; a warning is attached
 # whenever these are used.
@@ -40,6 +41,18 @@ MAX_INLINE_SHAPE_PTS = 288
 # appended to the command as extra properties (conn="wye kw=9e9").
 CONN_TYPES = frozenset({"wye", "delta"})
 DISPATCH_MODES = frozenset({"follow", "default"})
+# CapControl types (OpenDSS `type=`) a capacitor's `control` param may name.
+CAPCONTROL_TYPES = frozenset({"voltage", "current", "kvar", "pf", "time"})
+# Smart-inverter functions (OpenDSS InvControl `mode=` / `combimode=`) a PV
+# system's or storage unit's `invmode` param may name, with the curve params
+# each one reads. "voltvar_voltwatt" is the engine's VV_VW combination.
+INVCONTROL_MODES: dict[str, tuple[str, ...]] = {
+    "voltvar": ("vvcurve",),
+    "voltwatt": ("vwcurve",),
+    "voltvar_voltwatt": ("vvcurve", "vwcurve"),
+    "wattpf": ("wpcurve",),
+    "wattvar": ("wvcurve",),
+}
 # The full set OpenDSS accepts for Line.units. Must stay the superset the
 # importer can emit (importer._UNIT_CODES) -- not linecodes.VALID_UNITS, which
 # is the stricter set allowed in the conductor-preset CSV. Kept in sync with
@@ -134,6 +147,16 @@ def _reliability(p: dict) -> str:
     return out
 
 
+def _emergency(p: dict, kind: str) -> str:
+    """` emergamps=..` (lines and switches) or ` emerghkva=..` (transformers
+    and regulators) when the element carries an emergency rating; the
+    engine's own default (1.5 x normal) stands otherwise. The active load
+    level says which rating loading is judged against."""
+    key = "emerghkva" if kind in ("transformer", "regulator") else "emergamps"
+    v = _num(p, key)
+    return f" {key}={v:g}" if v is not None and v > 0 else ""
+
+
 def _capacitance(p: dict) -> list[str]:
     """['c1=..', 'c0=..'] when the params carry them. Left out, the engine
     assumes a few nF per unit length, which is not nothing: a jumper the file
@@ -189,6 +212,114 @@ def _winding_resistance(windings: list, loadloss: float) -> str:
             return f"%loadloss={loadloss:g}"
         rs.append(float(v))
     return "%rs=(" + ", ".join(f"{r:g}" for r in rs) + ")"
+
+
+def _regulator_reverse(p: dict) -> str:
+    """How the control behaves when power flows backwards through it (a
+    feeder tie closed, or DER past it exporting). Off, the engine's
+    default, holds the forward settings regardless; `reversible` switches
+    to the reverse setpoint and band; `cogen` holds the forward side for
+    reverse flow from generation, which is what a DER-rich feeder wants."""
+    out = ""
+    if p.get("reversible") is True:
+        out += " reversible=yes"
+        for key in ("revvreg", "revband"):
+            v = _num(p, key)
+            if v is not None and v > 0:
+                out += f" {key}={v:g}"
+    if p.get("cogen") is True:
+        out += " cogen=yes"
+    return out
+
+
+def _cap_control(n, name: str, res: "CompileResult", cmds: list[str]) -> None:
+    """The CapControl of a switched bank, emitted under the capacitor's own
+    name. It watches `ctrlElement` -- a line, transformer or switch on the
+    drawing (by diagram id), or the capacitor itself -- and switches on the
+    control type's quantity: voltage (on below, off above, volts on the PT
+    secondary), current or kvar through the element (on above, off below),
+    power factor, or time of day."""
+    p = n.params
+    ctype = str(p.get("control") or "none").strip().lower()
+    if ctype not in CAPCONTROL_TYPES:
+        return
+    target = p.get("ctrlElement")
+    element = f"capacitor.{name}"
+    if target and target != "self":
+        full = next((f for f, ref in res.element_map.items()
+                     if ref == target and f.split(".", 1)[0] in ("line", "transformer")), None)
+        if full is None:
+            res.issues.append(Issue(
+                severity="warning", code="capcontrol-element",
+                message=f"Capacitor '{name}': the element its control watches is not "
+                        "on the drawing; it watches its own terminal instead.",
+                nodeId=n.id))
+        else:
+            element = full
+    defaults = {
+        "voltage": (118.0, 126.0), "current": (300.0, 200.0),
+        "kvar": (600.0, 300.0), "pf": (0.95, 1.05), "time": (10.0, 18.0),
+    }
+    on_default, off_default = defaults[ctype]
+    terminal = int(_num(p, "ctrlTerminal", 1.0) or 1)
+    cmd = (f"new capcontrol.{name} capacitor={name} element={element} "
+           f"terminal={min(max(terminal, 1), 2)} type={ctype} "
+           f"onsetting={_num(p, 'onsetting', on_default):g} "
+           f"offsetting={_num(p, 'offsetting', off_default):g} "
+           f"delay={_num(p, 'delay', 15.0):g} delayoff={_num(p, 'delayoff', 15.0):g} "
+           f"deadtime={_num(p, 'deadtime', 300.0):g}")
+    for key, prop in (("ptratio", "ptratio"), ("ctratio", "ctratio")):
+        v = _num(p, key)
+        if v is not None and v > 0:
+            cmd += f" {prop}={v:g}"
+    cmds.append(cmd)
+
+
+def _inv_controls(units: list[tuple[str, str, dict, str]], xy_names: set[str],
+                  res: "CompileResult", cmds: list[str]) -> None:
+    """One InvControl per distinct smart-inverter setting, listing every PV
+    system and storage unit that shares it (the engine wants groups, not a
+    control per unit). `units` holds (class, name, params, diagram id)."""
+    groups: dict[tuple, list[str]] = {}
+    for cls, name, p, ref in units:
+        mode = str(p.get("invmode") or "none").strip().lower()
+        curve_keys = INVCONTROL_MODES.get(mode)
+        if not curve_keys:
+            continue
+        curves: list[str] = []
+        ok = True
+        for key in curve_keys:
+            curve = sanitize_name(str(p.get(key) or ""))
+            if curve not in xy_names:
+                res.issues.append(Issue(
+                    severity="warning", code="unknown-curve",
+                    message=f"{cls.capitalize()} '{name}': its {mode.replace('_', ' + ')} "
+                            f"control needs an XY curve for '{key}' that this circuit "
+                            "does not define; the control is left out.",
+                    nodeId=ref))
+                ok = False
+                break
+            curves.append(curve)
+        if ok:
+            groups.setdefault((mode, *curves), []).append(f"{cls}.{name}")
+    for i, ((mode, *curves), members) in enumerate(groups.items(), start=1):
+        derlist = " ".join(members)
+        cmd = f"new invcontrol.inv{i} derlist=[{derlist}]"
+        if mode == "voltvar":
+            cmd += f" mode=voltvar vvc_curve1={curves[0]} voltage_curvex_ref=rated"
+        elif mode == "voltwatt":
+            cmd += f" mode=voltwatt voltwatt_curve={curves[0]} voltwattyaxis=pmpppu"
+        elif mode == "voltvar_voltwatt":
+            cmd += (f" combimode=vv_vw vvc_curve1={curves[0]} voltwatt_curve={curves[1]} "
+                    "voltage_curvex_ref=rated voltwattyaxis=pmpppu")
+        elif mode == "wattpf":
+            cmd += f" mode=wattpf wattpf_curve={curves[0]}"
+        elif mode == "wattvar":
+            cmd += f" mode=wattvar wattvar_curve={curves[0]}"
+        # Damped, tolerant iteration: the engine's own recommended values
+        # for a converging volt-var loop on a feeder with several units.
+        cmd += " deltaq_factor=0.2 varchangetolerance=0.025 voltagechangetolerance=0.0001"
+        cmds.append(cmd)
 
 
 def _bus_coordinates(circuit: Circuit, conn: ConnectivityResult) -> list[str]:
@@ -281,6 +412,9 @@ def compile_circuit(circuit: Circuit,
     element, the ones a solve would leave out included (commented out when
     they refer to something that is gone)."""
     res = CompileResult()
+    # The active scenario's deltas, so every caller -- solve, fault study,
+    # time series, export -- sees the effective circuit.
+    circuit = apply_scenario(circuit, circuit.scenario)
     conn = synthesize(circuit)
     res.connectivity = conn
     res.issues.extend(conn.issues)
@@ -405,6 +539,31 @@ def compile_circuit(circuit: Circuit,
         curve_names.add(curve)
         cmds.append(f"new tcc_curve.{curve} npts={n} "
                     f"c_array=({mult}) t_array=({secs})")
+
+    # Inverter volt-var / volt-watt curves (XYCurve), before the PV and
+    # storage units whose InvControl names them. A reference to a curve not
+    # emitted here is a hard engine error, so xy_names is the set a unit may
+    # name.
+    xy_names: set[str] = set()
+    for key, spec in circuit.xyCurves.items():
+        curve = sanitize_name(key)
+        if not curve:
+            continue
+        if curve in xy_names or curve in ("pv_pt_default", "pv_eff_default"):
+            res.issues.append(Issue(
+                severity="error", code="duplicate-name",
+                message=f"XY curve '{curve}' collides with another curve."))
+            continue
+        n = min(len(spec.x), len(spec.y))
+        if n < 2:
+            res.issues.append(Issue(
+                severity="warning", code="empty-curve",
+                message=f"XY curve '{curve}' has fewer than 2 points and is ignored."))
+            continue
+        xs = " ".join(f"{float(v):.6g}" for v in spec.x[:n])
+        ys = " ".join(f"{float(v):.6g}" for v in spec.y[:n])
+        xy_names.add(curve)
+        cmds.append(f"new xycurve.{curve} npts={n} xarray=[{xs}] yarray=[{ys}]")
 
     # Conductor definitions. Emitted before any line so a line can name one;
     # a line naming a code that is not emitted would be a hard engine error,
@@ -532,7 +691,7 @@ def compile_circuit(circuit: Circuit,
             f"new transformer.{name} phases={phases} windings={len(windings)} "
             f"buses=({bus_list}) conns=({conns}) kvs=({kvs}) kvas=({kvas}) "
             f"xhl={xhl:g} {_winding_resistance(windings, loadloss)}{tertiary}"
-            f"{_core_losses(p)}{_taps(windings)}{_reliability(p)}")
+            f"{_core_losses(p)}{_taps(windings)}{_reliability(p)}{_emergency(p, 'transformer')}")
 
     # Regulators: an equal-ratio 2-winding transformer plus the RegControl that
     # moves its taps. They share one name — OpenDSS keeps classes in separate
@@ -561,7 +720,8 @@ def compile_circuit(circuit: Circuit,
         cmds.append(
             f"new transformer.{name} phases={phases} windings=2 "
             f"buses=({bus_list}) conns=({reg_conn}, {reg_conn}) kvs=({kv:g}, {kv:g}) "
-            f"kvas=({kva:g}, {kva:g}) xhl={xhl:g} %loadloss={loadloss:g}{_reliability(p)}")
+            f"kvas=({kva:g}, {kva:g}) xhl={xhl:g} %loadloss={loadloss:g}{_reliability(p)}"
+            f"{_emergency(p, 'regulator')}")
         # PT ratio defaults to whatever turns the regulated winding's nominal
         # voltage into the 120 V control base.
         ptratio = _num(p, "ptratio")
@@ -573,7 +733,8 @@ def compile_circuit(circuit: Circuit,
             f"vreg={_num(p, 'vreg', 122.0):g} band={_num(p, 'band', 2.0):g} "
             f"ptratio={ptratio:g} ctprim={_num(p, 'ctprim', 300.0):g} "
             f"R={_num(p, 'r', 0.0):g} X={_num(p, 'x', 0.0):g} "
-            f"maxtapchange={int(_num(p, 'maxtapchange', 16.0) or 16)}")
+            f"maxtapchange={int(_num(p, 'maxtapchange', 16.0) or 16)}"
+            + _regulator_reverse(p))
 
     for e in line_edges:
         p = e.params
@@ -616,7 +777,8 @@ def compile_circuit(circuit: Circuit,
                 edgeId=e.id))
         cmds.append(
             f"new line.{name} bus1={b1}{sfx1} bus2={b2}{sfx2} phases={phases} "
-            f"{impedance} length={length:g} units={units}{rating}{_reliability(p)}")
+            f"{impedance} length={length:g} units={units}{rating}{_reliability(p)}"
+            f"{_emergency(p, 'line')}")
 
     for n in breakers:
         p = n.params
@@ -627,7 +789,8 @@ def compile_circuit(circuit: Circuit,
         normamps = _num(p, "normamps", DEFAULT_BREAKER_NORMAMPS)
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
-            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}{_reliability(p)}")
+            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}{_reliability(p)}"
+            f"{_emergency(p, 'line')}")
         if not p.get("closed", True):
             cmds.append(f"open line.{name} term=1")
 
@@ -646,7 +809,8 @@ def compile_circuit(circuit: Circuit,
         normamps = _num(p, "normamps", default_amps)
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
-            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}{_reliability(p)}")
+            f"switch=yes{_switch_impedance(p)} normamps={normamps:g}{_reliability(p)}"
+            f"{_emergency(p, 'line')}")
         return name, p
 
     def out_of_service(kind: str, name: str, p: dict) -> None:
@@ -714,6 +878,7 @@ def compile_circuit(circuit: Circuit,
         cmds.append(cmd)
         out_of_service("relay", name, p)
 
+    level = circuit.level
     for n in loads:
         p = n.params
         name = element_name("load", p.get("name"), n.id, n.id)
@@ -722,6 +887,13 @@ def compile_circuit(circuit: Circuit,
             p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kw = _num(p, "kw", 100.0)
+        # A load level may scale one class of load (the load's `class`
+        # param) on top of the global multiplier applied below.
+        load_class = str(p.get("class") or "").strip().lower()
+        class_mult = next((m for c, m in level.classMult.items()
+                           if c.strip().lower() == load_class), None)
+        if load_class and class_mult is not None:
+            kw = kw * class_mult
         pf = _num(p, "pf", 0.95)
         load_conn = _enum(p, "conn", CONN_TYPES, "wye")
         model = int(_num(p, "model", 1) or 1)
@@ -754,6 +926,7 @@ def compile_circuit(circuit: Circuit,
         if numsteps > 1:
             cmd += f" numsteps={numsteps}"
         cmds.append(cmd)
+        _cap_control(n, name, res, cmds)
 
     for n in generators:
         p = n.params
@@ -786,9 +959,11 @@ def compile_circuit(circuit: Circuit,
                     "yarray=[1.2 1.0 0.8 0.6]")
         cmds.append("new xycurve.pv_eff_default npts=4 xarray=[0.1 0.2 0.4 1.0] "
                     "yarray=[0.86 0.9 0.93 0.97]")
+    inverter_units: list[tuple[str, str, dict, str]] = []
     for n in pvsystems:
         p = n.params
         name = element_name("pvsystem", p.get("name"), n.id, n.id)
+        inverter_units.append(("pvsystem", name, p, n.id))
         phases = _phases(p)
         bus = conn.node_buses[n.id][0] + _bus_suffix(
             p.get("busNodes"), phases, p.get("phasing"))
@@ -809,6 +984,7 @@ def compile_circuit(circuit: Circuit,
     for n in storages:
         p = n.params
         name = element_name("storage", p.get("name"), n.id, n.id)
+        inverter_units.append(("storage", name, p, n.id))
         phases = _phases(p)
         bus = conn.node_buses[n.id][0] + _bus_suffix(
             p.get("busNodes"), phases, p.get("phasing"))
@@ -835,6 +1011,8 @@ def compile_circuit(circuit: Circuit,
                     f" dischargetrigger={_num(p, 'dischargetrigger', 0.0):g}"
                     f" chargetrigger={_num(p, 'chargetrigger', 0.0):g}")
         cmds.append(cmd)
+
+    _inv_controls(inverter_units, xy_names, res, cmds)
 
     # Out of service: defined, so the file still says what is there, then
     # disabled -- every object emitted under the element's name, so a fuse
@@ -884,6 +1062,10 @@ def compile_circuit(circuit: Circuit,
     cmds.append("set maxiterations=100 maxcontroliter=100")
     cmds.append(f"set voltagebases=[{bases}]")
     cmds.append("calcvoltagebases")
+    # The load level: every load scaled together. Rated (1.0) is left
+    # unsaid so a circuit drawn before levels existed compiles unchanged.
+    if abs(level.loadmult - 1.0) > 1e-12:
+        cmds.append(f"set loadmult={level.loadmult:g}  ! load level: {level.name}")
     if export:
         cmds.extend(_bus_coordinates(circuit, conn))
     res.commands = cmds

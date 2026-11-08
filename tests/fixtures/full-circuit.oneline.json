@@ -130,7 +130,7 @@
       "type": "capacitor",
       "position": { "x": 440, "y": 400 },
       "width": null,
-      "params": { "name": "CAP1", "kv": 12.47, "kvar": 600, "phases": 3, "conn": "wye", "numsteps": 1 }
+      "params": { "name": "CAP1", "kv": 12.47, "kvar": 600, "phases": 3, "conn": "wye", "numsteps": 1, "control": "voltage", "ctrlElement": "self", "onsetting": 118, "offsetting": 126, "ptratio": 60 }
     },
     {
       "id": "n_gen",
@@ -144,7 +144,7 @@
       "type": "pvsystem",
       "position": { "x": 700, "y": 400 },
       "width": null,
-      "params": { "name": "PV1", "kv": 12.47, "kva": 650, "pmpp": 500, "pf": 1.0, "irradiance": 1.0, "phases": 3, "conn": "wye", "loadshape": "sun24" }
+      "params": { "name": "PV1", "kv": 12.47, "kva": 650, "pmpp": 500, "pf": 1.0, "irradiance": 1.0, "phases": 3, "conn": "wye", "loadshape": "sun24", "invmode": "voltvar", "vvcurve": "vv_catB" }
     },
     {
       "id": "n_stg",
@@ -454,5 +454,25 @@
     "company": "Example Utility",
     "description": "Every element type, for the schema-drift tests.",
     "sheet": false
-  }
+  },
+  "xyCurves": {
+    "vv_catB": { "x": [0.5, 0.92, 0.98, 1.02, 1.08, 1.5], "y": [0.44, 0.44, 0, 0, -0.44, -0.44], "source": "ieee1547:catB:voltvar" }
+  },
+  "loadLevels": [
+    { "name": "Peak", "loadmult": 1.0, "rating": "normal", "classMult": {} },
+    { "name": "Minimum daytime", "loadmult": 0.3, "rating": "normal", "classMult": {} },
+    { "name": "Emergency peak", "loadmult": 1.0, "rating": "emergency", "classMult": { "residential": 1.2 } }
+  ],
+  "activeLevel": "Peak",
+  "scenarios": [
+    {
+      "id": "sc1",
+      "name": "Breaker open",
+      "description": "The feeder breaker opened, for the schema tests.",
+      "overrides": { "n_brk": { "closed": false } },
+      "addedNodes": [],
+      "addedEdges": [],
+      "removed": []
+    }
+  ]
 }

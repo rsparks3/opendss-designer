@@ -122,6 +122,10 @@ describe('circuit JSON round trip', () => {
       study: FIXTURE.study ?? null,
       voltageBases: FIXTURE.voltageBases ?? null,
       crs: FIXTURE.crs ?? null,
+      xyCurves: FIXTURE.xyCurves ?? {},
+      loadLevels: FIXTURE.loadLevels ?? null,
+      activeLevel: FIXTURE.activeLevel ?? null,
+      scenarios: FIXTURE.scenarios ?? [],
     })
     // Serialize both so undefined-vs-absent differences disappear.
     expect(JSON.parse(JSON.stringify(out))).toEqual(JSON.parse(JSON.stringify(FIXTURE)))

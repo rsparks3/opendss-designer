@@ -48,6 +48,11 @@ def test_fixture_covers_every_type(fixture_json):
     assert any(e.get("geometry") for e in fixture_json["edges"])
     assert any(e["params"].get("linecode") in fixture_json["lineCodes"]
                for e in fixture_json["edges"])
+    assert fixture_json["xyCurves"]
+    assert fixture_json["loadLevels"] and fixture_json["activeLevel"]
+    assert fixture_json["scenarios"]
+    assert any(n["params"].get("control") for n in fixture_json["nodes"])
+    assert any(n["params"].get("invmode") for n in fixture_json["nodes"])
 
 
 def test_fixture_validates_and_round_trips(fixture_json):
@@ -66,6 +71,10 @@ def test_fixture_validates_and_round_trips(fixture_json):
     assert dumped["study"] == fixture_json["study"]
     assert dumped["voltageBases"] == fixture_json["voltageBases"]
     assert dumped["crs"] == fixture_json["crs"]
+    assert dumped["xyCurves"] == fixture_json["xyCurves"]
+    assert dumped["loadLevels"] == fixture_json["loadLevels"]
+    assert dumped["activeLevel"] == fixture_json["activeLevel"]
+    assert dumped["scenarios"] == fixture_json["scenarios"]
     # height, geo and geometry are optional on the wire: the frontend writes
     # them only when there is one.
     assert dumped["nodes"] == [
@@ -90,7 +99,9 @@ def test_fixture_compiles_cleanly(fixture_json):
                      "new pvsystem.pv1", "new storage.bat1",
                      "new transformer.reg1", "new regcontrol.reg1",
                      "new fuse.fu1", "new recloser.rec1", "new relay.rly1",
-                     "new monitor.m1 element=line.ln1"):
+                     "new monitor.m1 element=line.ln1",
+                     "new xycurve.vv_catb", "new capcontrol.cap1 capacitor=cap1",
+                     "derlist=[pvsystem.pv1] mode=voltvar vvc_curve1=vv_catb"):
         assert fragment in joined.lower()
 
 

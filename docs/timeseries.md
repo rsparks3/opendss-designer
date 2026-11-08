@@ -71,7 +71,10 @@ the snapshot graph.
 
 Above the plot, a summary table reports energy served and losses (MWh and
 percent), peak demand and when it occurred, the voltage extremes with their
-bus and hour, and the step count (with any non-converged steps flagged).
+bus and hour, the step count (with any non-converged steps flagged), and the
+**control operations** of the run: tap changes per regulator and switching
+operations per capacitor bank, counted step to step. The result carries them
+as `controlOps` and as the per-step series `totals.controlOps`.
 
 ## Semantics worth knowing
 

@@ -94,6 +94,37 @@ export interface LineCodeJSON {
   source?: string | null
 }
 
+/** A general x-y curve (OpenDSS XYCurve): a smart inverter's volt-var or
+ *  volt-watt characteristic, in per-unit voltage against per-unit power. */
+export interface XYCurveJSON {
+  x: number[]
+  y: number[]
+  /** "ieee1547:catB:voltvar", "imported", "typed in". */
+  source?: string | null
+}
+
+/** A load condition studies run at: a multiplier on every load, optional
+ *  multipliers by load class on top, and which rating loading is judged
+ *  against. */
+export interface LoadLevelJSON {
+  name: string
+  loadmult: number
+  rating: 'normal' | 'emergency'
+  classMult?: Record<string, number>
+}
+
+/** An alternative to the base circuit, as element-level deltas. */
+export interface ScenarioJSON {
+  id: string
+  name: string
+  description?: string
+  /** element id -> {param: value}; null deletes the param. */
+  overrides: Record<string, Params>
+  addedNodes: CircuitNodeJSON[]
+  addedEdges: CircuitEdgeJSON[]
+  removed: string[]
+}
+
 export interface LoadShapeJSON {
   /** Library category: drives the Shapes tabs, dropdown filtering, and
    *  kind-mismatch validation. Absent (older files) means 'load'. */
@@ -131,6 +162,15 @@ export interface CircuitJSON {
   limits?: LimitsJSON | null
   /** The study report's title block. */
   study?: StudyInfoJSON | null
+  /** Inverter volt-var / volt-watt curves, keyed by name. */
+  xyCurves?: Record<string, XYCurveJSON>
+  /** The load conditions studies run at; absent means rated only. */
+  loadLevels?: LoadLevelJSON[] | null
+  /** The level the next solve uses (a name); absent/null is rated. */
+  activeLevel?: string | null
+  /** Alternatives to this base circuit, and which one is open. */
+  scenarios?: ScenarioJSON[] | null
+  activeScenario?: string | null
 }
 
 export interface LimitsJSON {
@@ -217,6 +257,9 @@ export interface SolveResult {
   busNames: Record<string, string>
   /** Electrical km from the source to each bus (voltage profile x-axis). */
   busDistances: Record<string, number>
+  /** What the solve was run at. Absent from older results. */
+  loadLevel?: LoadLevelJSON
+  scenario?: string | null
 }
 
 export interface TimeSeriesResult {
@@ -229,7 +272,7 @@ export interface TimeSeriesResult {
    *  holds [min, max] per bucket (envelope-preserving polyline data). */
   downsampled: boolean
   time: number[]
-  totals: { kw: number[]; lossKw: number[] }
+  totals: { kw: number[]; lossKw: number[]; controlOps?: number[] }
   buses: Record<string, { vmin: number[]; vmax: number[]; kvBase: number }>
   elements: Record<
     string,
@@ -247,6 +290,130 @@ export interface TimeSeriesResult {
   issues: Issue[]
   nodeBuses: Record<string, string[]>
   lineBuses: Record<string, string[]>
+  busNames: Record<string, string>
+  /** Tap changes per regulator and switching operations per capacitor
+   *  bank over the run. Absent from older results. */
+  controlOps?: {
+    regulators: Record<string, { id: string | null; tapChanges: number }>
+    capacitors: Record<string, { id: string | null; switchings: number }>
+    total: number
+  }
+  loadLevel?: LoadLevelJSON
+  scenario?: string | null
+}
+
+/** A background study on the server (core/jobs.py). */
+export interface JobSnapshot<T = unknown> {
+  id: string
+  kind: string
+  status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled'
+  created: number
+  started: number | null
+  finished: number | null
+  progress: { done: number; total: number; message: string | null }
+  engineSeconds: number
+  error?: string
+  result?: T
+}
+
+/** One cell of a batch run: a scenario at a load level. */
+export interface BatchCell {
+  scenario: string | null
+  scenarioName: string
+  level: string | null
+  levelName: string
+  loadmult: number
+  rating: 'normal' | 'emergency'
+  converged: boolean
+  iterations: number | null
+  minVpu: number | null
+  minVBus: string | null
+  maxVpu: number | null
+  maxVBus: string | null
+  maxLoadingPct: number | null
+  maxLoadingElement: string | null
+  maxLoadingId: string | null
+  lossKw: number | null
+  sourceKw: number | null
+  undervoltages: number
+  overvoltages: number
+  overloads: number
+  loadingWarnings: number
+  errors: string[]
+}
+
+export interface BatchResult {
+  cells: BatchCell[]
+  scenarios: { id: string | null; name: string }[]
+  levels: (string | null)[]
+  cancelled: boolean
+  solves: number
+}
+
+/** What a hosting-capacity run evaluates and how (studies/hosting_capacity.py). */
+export interface HostingCapacityOptions {
+  kind: 'der' | 'load'
+  method: 'iterative' | 'sensitivity'
+  criteria: Record<string, boolean>
+  buses?: string[] | null
+  minKv: number
+  threePhaseOnly: boolean
+  vmaxPu?: number | null
+  vminPu?: number | null
+  deviationPct: number
+  thermalPct: number
+  substationExportKw: number
+  faultIncreasePct: number
+  interruptingPct: number
+  islandingRatio: number
+  derType: 'inverter' | 'synchronous'
+  maxKw: number
+  toleranceKw: number
+  hours: number[] | null
+}
+
+export interface HostingBusResult {
+  /** The capacity, kW; 0 when the base case already binds. */
+  kw: number
+  /** The criterion that bound ('none' when the search cap was reached). */
+  binding: string | null
+  violations: string[]
+  /** The sensitivity method's estimate per criterion, kW. */
+  byCriterion: Record<string, number | null>
+  capped: boolean
+  kvBase: number
+  phases: number
+  section: string | null
+  sectionLoadKw: number
+  baseFaultA: number | null
+  /** Time-granular runs: the capacity at each evaluated hour. */
+  kwByHour?: Record<string, number>
+}
+
+export interface HostingCapacityResult {
+  converged: boolean
+  cancelled: boolean
+  kind: 'der' | 'load'
+  method: 'iterative' | 'sensitivity'
+  criteria: Record<string, boolean>
+  options: Record<string, unknown>
+  loadLevel: LoadLevelJSON
+  scenario: string | null
+  buses: Record<string, HostingBusResult>
+  hours: number[]
+  exclusions: Record<string, string[]>
+  summary: {
+    candidates: number
+    evaluated: number
+    minKw: number | null
+    medianKw: number | null
+    maxKw: number | null
+    bindingCounts: Record<string, number>
+    solves: number
+    seconds: number
+  }
+  issues: Issue[]
+  nodeBuses: Record<string, string[]>
   busNames: Record<string, string>
 }
 

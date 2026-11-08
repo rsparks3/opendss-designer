@@ -23,7 +23,7 @@ import opendssdirect as dss
 
 from . import engine, passthrough
 from .connectivity import sanitize_name
-from .model import Circuit, CircuitEdge, CircuitNode, LineCodeSpec, LoadShapeSpec, Position
+from .model import XYCurveSpec, Circuit, CircuitEdge, CircuitNode, LineCodeSpec, LoadShapeSpec, Position
 from .phasing import phasing_from_suffix
 
 _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
@@ -389,7 +389,8 @@ def _keep_passthrough(result: dict[str, Any], files: list[dict[str, str]], main:
     """Keep what the diagram cannot show -- unmodelled elements and the
     file's comments -- on the imported circuit (see core/passthrough.py)."""
     unsupported = {u.split(" ")[0].lower() for u in result["unsupported"]}
-    entries, comments = passthrough.collect(files, main, unsupported)
+    entries, comments = passthrough.collect(files, main, unsupported,
+                                            skip=set(result.pop("folded", [])))
     result["circuit"]["passthrough"] = [e.model_dump() for e in entries]
     result["circuit"]["comments"] = comments
     kept = {e.name.lower() for e in entries}
@@ -728,6 +729,14 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             "x": dss.RegControls.ForwardX(),
             "maxtapchange": dss.RegControls.MaxTapChange(),
         }
+        if dss.RegControls.IsReversible():
+            reg_controls[xfmr].update({
+                "reversible": True,
+                "revvreg": dss.RegControls.ReverseVreg(),
+                "revband": dss.RegControls.ReverseBand()})
+        dss.Circuit.SetActiveElement(f"regcontrol.{dss.RegControls.Name()}")
+        if dss.Properties.Value("cogen").strip().lower() in ("yes", "true", "y", "t"):
+            reg_controls[xfmr]["cogen"] = True
         i = dss.RegControls.Next()
 
     # Transformers (two or three windings; anything else reported)
@@ -769,6 +778,9 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             v = _to_float(dss.Properties.Value(prop))
             if v > 0:
                 params[key] = v
+        emerg = _to_float(dss.Properties.Value("emerghkva"))
+        if emerg > 0 and abs(emerg - 1.5 * windings[0]["kva"]) > 1e-6:
+            params["emerghkva"] = emerg
         if nwdg == 3:
             params["xht"] = dss.Transformers.Xht()
             params["xlt"] = dss.Transformers.Xlt()
@@ -851,6 +863,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             # the file's values ride along so the export says what the file said.
             params = {"name": name, "closed": closed,
                       "normamps": dss.Lines.NormAmps(),
+                      **_emergamps(dss.Lines.NormAmps(), dss.Lines.EmergAmps()),
                       "phases": dss.Lines.Phases(),
                       "r1": dss.Lines.R1(), "x1": dss.Lines.X1(),
                       "r0": dss.Lines.R0(), "x0": dss.Lines.X0(),
@@ -870,6 +883,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             nph = int(dss.Lines.Phases())
             params = {"name": name, "length": dss.Lines.Length(),
                       "units": units, "normamps": dss.Lines.NormAmps(),
+                      **_emergamps(dss.Lines.NormAmps(), dss.Lines.EmergAmps()),
                       "phases": nph, **reliability(f"line.{name}")}
             # Where the impedance lives. A line naming a code takes it from
             # the circuit's copy of that code; one built from a LineGeometry
@@ -1082,9 +1096,16 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                 target=busbar_for(b2), targetHandle="b0", params=params))
         i = dss.Reactors.Next()
 
+    # Capacitor and inverter controls become settings on the elements they
+    # control, as a RegControl becomes a regulator; the XY curves an
+    # InvControl names travel with the circuit.
+    folded, xy_curves = _fold_controls(nodes, edges, warnings)
+
     # Anything else in the model is out of v1 scope.
     for full in dss.Circuit.AllElementNames():
-        if not full.lower().startswith(SUPPORTED_PREFIXES) and full.lower() not in series_reactors:
+        if full.lower() in folded or full.lower() in series_reactors:
+            continue
+        if not full.lower().startswith(SUPPORTED_PREFIXES):
             unsupported.append(full)
 
     _apply_bus_coords(nodes, bus_node_ids)
@@ -1116,9 +1137,10 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     bases = [round(float(b), 6) for b in dss.Settings.VoltageBases() if b and b > 0]
     circuit = Circuit(name=circuit_name, nodes=nodes, edges=edges,
                       loadShapes=load_shapes, tccCurves=_read_tcc_curves(),
-                      lineCodes=used_codes, voltageBases=bases or None)
+                      lineCodes=used_codes, voltageBases=bases or None,
+                      xyCurves=xy_curves)
     return {"circuit": circuit.model_dump(), "unsupported": unsupported,
-            "warnings": warnings}
+            "warnings": warnings, "folded": sorted(folded)}
 
 
 def _apply_bus_coords(nodes: list[CircuitNode], bus_node_ids: dict[str, str]) -> None:
@@ -1146,3 +1168,133 @@ def _apply_bus_coords(nodes: list[CircuitNode], bus_node_ids: dict[str, str]) ->
         node.position = Position(
             x=round((x - min(xs)) * scale / 10) * 10,
             y=round((max(ys) - y) * scale / 10) * 10)
+
+
+def _emergamps(norm: float, emerg: float) -> dict[str, float]:
+    """A line's emergency rating when the file gave one: the engine's own
+    is 600 A, or nothing distinguishable from 1.5 x normal."""
+    try:
+        norm, emerg = float(norm), float(emerg)
+    except (TypeError, ValueError):
+        return {}
+    if emerg <= 0 or abs(emerg - 600.0) < 1e-6 or abs(emerg - 1.5 * norm) < 1e-6:
+        return {}
+    return {"emergamps": emerg}
+
+
+_CAPCONTROL_TYPES = {"current": "current", "voltage": "voltage", "kvar": "kvar",
+                     "time": "time", "pf": "pf"}
+_INV_MODES = {"voltvar": "voltvar", "voltwatt": "voltwatt", "wattpf": "wattpf",
+              "wattvar": "wattvar"}
+_INV_COMBI = {"vv_vw": "voltvar_voltwatt"}
+
+
+def _fold_controls(nodes: list[CircuitNode], edges: list[CircuitEdge],
+                   warnings: list[str]) -> tuple[set[str], dict[str, XYCurveSpec]]:
+    """CapControls onto their capacitors, InvControls onto the PV systems and
+    storage units they list, with the XY curves those name. Returns the
+    lowercase `class.name` of everything folded (so it is neither reported
+    as unsupported nor kept as passthrough) and the curves."""
+    by_name: dict[tuple[str, str], Any] = {}
+    for n in nodes:
+        cls = _NODE_CLASS.get(n.type)
+        if cls:
+            by_name[(cls, str(n.params.get("name", "")).lower())] = n
+    for e in edges:
+        if e.type == "line":
+            by_name[("line", str(e.params.get("name", "")).lower())] = e
+    folded: set[str] = set()
+    curves: dict[str, XYCurveSpec] = {}
+    # The compiler's own canned PV curves: re-emitted on every solve, so an
+    # exported file's copies must not come back as passthrough objects.
+    for canned in ("pv_pt_default", "pv_eff_default"):
+        folded.add(f"xycurve.{canned}")
+
+    i = dss.CapControls.First()
+    while i:
+        name = dss.CapControls.Name()
+        cap = by_name.get(("capacitor", str(dss.CapControls.Capacitor()).lower()))
+        dss.Circuit.SetActiveElement(f"capcontrol.{name}")
+        ctype = _CAPCONTROL_TYPES.get(dss.Properties.Value("type").strip().lower())
+        if cap is None or ctype is None:
+            i = dss.CapControls.Next()
+            continue
+        p = cap.params
+        p["control"] = ctype
+        monitored = str(dss.CapControls.MonitoredObj()).lower()
+        target = by_name.get(tuple(monitored.split(".", 1))) if "." in monitored else None
+        if monitored == f"capacitor.{str(p.get('name', '')).lower()}" or target is None:
+            p["ctrlElement"] = "self"
+        else:
+            p["ctrlElement"] = target.id
+        p["ctrlTerminal"] = int(dss.CapControls.MonitoredTerm() or 1)
+        p["onsetting"] = float(dss.CapControls.ONSetting())
+        p["offsetting"] = float(dss.CapControls.OFFSetting())
+        p["ptratio"] = float(dss.CapControls.PTRatio())
+        p["ctratio"] = float(dss.CapControls.CTRatio())
+        p["delay"] = float(dss.CapControls.Delay())
+        p["delayoff"] = float(dss.CapControls.DelayOff())
+        p["deadtime"] = float(dss.CapControls.DeadTime())
+        folded.add(f"capcontrol.{name.lower()}")
+        i = dss.CapControls.Next()
+
+    all_curves: dict[str, XYCurveSpec] = {}
+    i = dss.XYCurves.First()
+    while i:
+        cname = dss.XYCurves.Name()
+        xs = [round(float(v), 6) for v in dss.XYCurves.XArray()]
+        ys = [round(float(v), 6) for v in dss.XYCurves.YArray()]
+        if len(xs) >= 2 and len(xs) == len(ys):
+            all_curves[cname.lower()] = (cname, XYCurveSpec(x=xs, y=ys, source="imported"))
+        i = dss.XYCurves.Next()
+
+    def curve(prop: str) -> str | None:
+        raw = dss.Properties.Value(prop).strip().lower()
+        if raw and raw in all_curves:
+            cname, spec = all_curves[raw]
+            curves[cname] = spec
+            return cname
+        return None
+
+    try:
+        dss.Circuit.SetActiveClass("invcontrol")
+        i = dss.ActiveClass.First()
+    except Exception:
+        i = 0
+    while i:
+        name = dss.ActiveClass.Name()
+        dss.Circuit.SetActiveElement(f"invcontrol.{name}")
+        combi = dss.Properties.Value("combimode").strip().lower()
+        mode = _INV_COMBI.get(combi) or _INV_MODES.get(dss.Properties.Value("mode").strip().lower())
+        raw_list = dss.Properties.Value("derlist") or dss.Properties.Value("pvsystemlist")
+        members = [m.strip().lower() for m in raw_list.strip("[]() ").replace(",", " ").split()
+                   if m.strip()]
+        if not members:
+            # An InvControl with no list controls every PV system.
+            members = [f"pvsystem.{k[1]}" for k in by_name if k[0] == "pvsystem"]
+        settings: dict[str, Any] = {}
+        if mode in ("voltvar", "voltvar_voltwatt"):
+            settings["vvcurve"] = curve("vvc_curve1")
+        if mode in ("voltwatt", "voltvar_voltwatt"):
+            settings["vwcurve"] = curve("voltwatt_curve")
+        if mode == "wattpf":
+            settings["wpcurve"] = curve("wattpf_curve")
+        if mode == "wattvar":
+            settings["wvcurve"] = curve("wattvar_curve")
+        if mode is None or any(v is None for v in settings.values()):
+            warnings.append(f"InvControl.{name} uses a mode or curve the editor cannot "
+                            "show; it is kept as a passthrough control.")
+            i = dss.ActiveClass.Next()
+            continue
+        hit = False
+        for member in members:
+            target = by_name.get(tuple(member.split(".", 1))) if "." in member else None
+            if target is not None and target.type in ("pvsystem", "storage"):
+                target.params["invmode"] = mode
+                target.params.update(settings)
+                hit = True
+        if hit:
+            folded.add(f"invcontrol.{name.lower()}")
+            folded.update(f"xycurve.{c.lower()}" for c in settings.values() if c)
+        i = dss.ActiveClass.Next()
+    return folded, curves

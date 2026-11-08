@@ -18,6 +18,9 @@ import { CurvesPanel } from './CurvesPanel'
 import { LineCodesPanel } from './LineCodesPanel'
 import { PassthroughPanel } from './PassthroughPanel'
 import { ReliabilityPanel } from './ReliabilityPanel'
+import { ScenariosPanel } from './ScenariosPanel'
+import { ComparePanel } from './ComparePanel'
+import { HostingCapacityPanel } from './HostingCapacityPanel'
 import { ShapesPanel } from './ShapesPanel'
 
 type MainTab =
@@ -25,6 +28,9 @@ type MainTab =
   | 'elements'
   | 'losses'
   | 'reliability'
+  | 'scenarios'
+  | 'compare'
+  | 'hosting'
   | 'graph'
   | 'shapes'
   | 'curves'
@@ -51,6 +57,8 @@ const TYPE_TABS: { key: string; label: string }[] = [
 
 function StatusLine() {
   const result = useResultsStore((s) => s.result)
+  const scenarios = useCircuitStore((s) => s.scenarios)
+  const scenarioName = (id: string) => scenarios.find((sc) => sc.id === id)?.name ?? id
   const stale = useResultsStore((s) => s.stale)
   // When shapes are assigned, say what the snapshot actually solved — it is
   // the unscaled base case, not any hour of the time series.
@@ -71,6 +79,8 @@ function StatusLine() {
       {result.converged
         ? `✓ Converged in ${result.iterations} iteration${result.iterations === 1 ? '' : 's'}` +
           (result.losses ? ` — losses ${result.losses.kw.toFixed(1)} kW` : '') +
+          (result.loadLevel && result.loadLevel.name !== 'Rated' ? ` · ${result.loadLevel.name}` : '') +
+          (result.scenario ? ` · ${scenarioName(result.scenario)}` : '') +
           (hasShapes ? ' · base case (shapes not applied)' : '') +
           (stale ? ' (stale — re-solve)' : '')
         : '✗ Not converged'}
@@ -664,6 +674,36 @@ export function BottomPanel() {
           Reliability
         </button>
         <button
+          className={`bp-tab${tab === 'scenarios' && open ? ' active' : ''}`}
+          title="Load levels, scenarios (alternatives to the base case) and the batch run of every one"
+          onClick={() => {
+            setTab('scenarios')
+            setOpen(tab !== 'scenarios' || !open)
+          }}
+        >
+          Scenarios
+        </button>
+        <button
+          className={`bp-tab${tab === 'compare' && open ? ' active' : ''}`}
+          title="This solve against a pinned baseline, bus by bus and element by element"
+          onClick={() => {
+            setTab('compare')
+            setOpen(tab !== 'compare' || !open)
+          }}
+        >
+          Compare
+        </button>
+        <button
+          className={`bp-tab${tab === 'hosting' && open ? ' active' : ''}`}
+          title="DER or load hosting capacity at every bus"
+          onClick={() => {
+            setTab('hosting')
+            setOpen(tab !== 'hosting' || !open)
+          }}
+        >
+          Hosting
+        </button>
+        <button
           className={`bp-tab${tab === 'graph' && open ? ' active' : ''}`}
           onClick={() => {
             setTab('graph')
@@ -742,6 +782,12 @@ export function BottomPanel() {
             <LossesTab />
           ) : tab === 'reliability' ? (
             <ReliabilityPanel />
+          ) : tab === 'scenarios' ? (
+            <ScenariosPanel />
+          ) : tab === 'compare' ? (
+            <ComparePanel />
+          ) : tab === 'hosting' ? (
+            <HostingCapacityPanel />
           ) : tab === 'graph' ? (
             <GraphPanel />
           ) : tab === 'shapes' ? (

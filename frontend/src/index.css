@@ -1671,3 +1671,43 @@ kbd {
 }
 .dss-code { color: var(--ink); flex: 1; position: relative; z-index: 1; }
 .dss-hit { position: absolute; left: 0; right: 0; height: 18px; background: var(--selected); z-index: 0; }
+
+/* --- Scenarios, compare and load levels (M12) ------------------------------ */
+.scenarios-panel { display: flex; gap: 16px; padding: 8px; align-items: flex-start; min-height: 100%; }
+.scenarios-side { flex: 0 0 300px; display: flex; flex-direction: column; gap: 8px; }
+.scenarios-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.scenarios-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12.5px; }
+.scenarios-head select, .scenarios-add input { font: inherit; font-size: 12px; }
+.scenarios-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.scenarios-list li { display: flex; align-items: center; gap: 2px; }
+.scenarios-list li.active .scenarios-pick { background: var(--accent); color: #fff; }
+.scenarios-pick { flex: 1 1 auto; text-align: left; display: flex; justify-content: space-between; gap: 8px; }
+.scenarios-count { opacity: 0.7; font-size: 11px; }
+.scenarios-list li.active .scenarios-count { opacity: 0.9; }
+.scenarios-mini { flex: 0 0 auto; padding: 2px 6px; }
+.scenarios-add { display: flex; gap: 4px; }
+.scenarios-add input { flex: 1 1 auto; }
+.scenarios-desc { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.scenarios-desc textarea { font: inherit; font-size: 12px; }
+.scenarios-compare { display: flex; gap: 8px; align-items: center; font-size: 12px; flex-wrap: wrap; }
+.scenarios-matrix td, .scenarios-matrix th { white-space: nowrap; }
+.scenarios-matrix tr.error td { color: var(--err, #c62828); }
+.scenarios-matrix tr.warning td { background: color-mix(in srgb, #ffb300 12%, transparent); }
+.compare-panel { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.compare-panel tr.violation td { color: var(--err, #c62828); }
+.tb-planning { gap: 4px; }
+.tb-level { font: inherit; font-size: 12px; max-width: 170px; }
+.tb-scenario-on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.levels-table input, .levels-table select { width: 100%; box-sizing: border-box; font: inherit; font-size: 12px; }
+.levels-table td:nth-child(2) { width: 110px; }
+.curves-wrap { display: flex; flex-direction: column; }
+.curves-switch { padding: 6px 8px 0; }
+
+/* --- Hosting capacity (M13) ------------------------------------------------- */
+.hosting-panel { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.hosting-options { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.hosting-options select, .hosting-options input { font: inherit; font-size: 12px; }
+.hosting-criteria { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.hosting-num { width: 62px; margin-left: 4px; }
+.hosting-num.wide { width: 80px; }
+.hosting-hours { width: 220px; margin-left: 4px; }

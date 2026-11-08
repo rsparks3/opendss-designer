@@ -18,13 +18,17 @@ import type { CircuitJSON, CircuitNodeJSON, EdgeKind, LoadShapeJSON, NodeType, P
   GeoPoint,
   LimitsJSON,
   LineCodeJSON,
+  LoadLevelJSON,
   PassthroughJSON,
+  ScenarioJSON,
   StudyInfoJSON,
   TccCurveJSON,
   Winding,
+  XYCurveJSON,
 } from '../types/circuit'
 import { SCHEMA_VERSION } from '../lib/schema'
 import { limitsOf } from '../lib/limits'
+import { applyScenario, diffScenario, newScenarioId } from '../lib/scenarios'
 import { setLimitsSource, useResultsStore } from './resultsStore'
 
 export interface XY {
@@ -68,6 +72,28 @@ export interface CircuitState {
   /** The study report's title block; cosmetic, results stay valid. */
   study: StudyInfoJSON | null
   setStudy: (study: StudyInfoJSON | null) => void
+  /** Inverter volt-var / volt-watt curves (OpenDSS XYCurve), by name. */
+  xyCurves: Record<string, XYCurveJSON>
+  setXyCurve: (name: string, spec: XYCurveJSON) => void
+  removeXyCurve: (name: string) => void
+  /** The load conditions studies run at; null = rated only. */
+  loadLevels: LoadLevelJSON[] | null
+  setLoadLevels: (levels: LoadLevelJSON[] | null) => void
+  /** The level the next solve uses (a name); null is rated. */
+  activeLevel: string | null
+  setActiveLevel: (name: string | null) => void
+  /** Alternatives to the base circuit, as deltas. While one is open its
+   *  effective drawing is what `nodes`/`edges` hold and `scenarioBase`
+   *  keeps the base; leaving it diffs the two back into the deltas. */
+  scenarios: ScenarioJSON[]
+  activeScenario: string | null
+  scenarioBase: { nodes: AppNode[]; edges: AppEdge[] } | null
+  addScenario: (name: string, description?: string) => string
+  updateScenario: (id: string, patch: Partial<Pick<ScenarioJSON, 'name' | 'description'>>) => void
+  removeScenario: (id: string) => void
+  duplicateScenario: (id: string) => string | null
+  /** Open a scenario for editing and solving (null returns to the base). */
+  activateScenario: (id: string | null) => void
   placementType: NodeType | null
   connectMode: EdgeKind
   /** True when there are changes not yet saved to a project file. */
@@ -453,12 +479,23 @@ export function toCircuitJSON(
   s: Pick<
     CircuitState,
     'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves' | 'lineCodes'
-  > & Partial<Pick<CircuitState, 'passthrough' | 'comments' | 'limits' | 'study' | 'voltageBases' | 'crs'>>,
+  > & Partial<Pick<CircuitState, 'passthrough' | 'comments' | 'limits' | 'study' | 'voltageBases' | 'crs'
+    | 'xyCurves' | 'loadLevels' | 'activeLevel' | 'scenarios' | 'activeScenario' | 'scenarioBase'>>,
 ): CircuitJSON {
+  // While a scenario is open the drawing on screen is the scenario's; the
+  // document holds the base and the deltas, refreshed from the drawing.
+  const inScenario = !!(s.activeScenario && s.scenarioBase)
+  const nodes = inScenario ? s.scenarioBase!.nodes : s.nodes
+  const edges = inScenario ? s.scenarioBase!.edges : s.edges
+  const scenarios = inScenario
+    ? (s.scenarios ?? []).map((sc) =>
+        sc.id === s.activeScenario ? { ...sc, ...diffScenario(s.scenarioBase!, { nodes: s.nodes, edges: s.edges }) } : sc,
+      )
+    : (s.scenarios ?? [])
   return {
     version: SCHEMA_VERSION,
     name: s.name,
-    nodes: s.nodes.map((n) => ({
+    nodes: nodes.map((n) => ({
       id: n.id,
       type: n.type as NodeType,
       position: n.position,
@@ -468,7 +505,7 @@ export function toCircuitJSON(
       params: n.data.params,
       ...(n.data.geo ? { geo: n.data.geo } : {}),
     })),
-    edges: s.edges.map((e) => ({
+    edges: edges.map((e) => ({
       id: e.id,
       type: (e.type as EdgeKind) ?? 'wire',
       source: e.source,
@@ -491,7 +528,17 @@ export function toCircuitJSON(
     ...(s.crs ? { crs: s.crs } : {}),
     ...(s.limits ? { limits: s.limits } : {}),
     ...(s.study ? { study: s.study } : {}),
+    ...(s.xyCurves && Object.keys(s.xyCurves).length ? { xyCurves: s.xyCurves } : {}),
+    ...(s.loadLevels?.length ? { loadLevels: s.loadLevels } : {}),
+    ...(s.activeLevel ? { activeLevel: s.activeLevel } : {}),
+    ...(scenarios.length ? { scenarios } : {}),
+    ...(s.activeScenario ? { activeScenario: s.activeScenario } : {}),
   }
+}
+
+/** A scenario's stored additions as drawing nodes and edges. */
+function drawingFromJSON(nodes: CircuitNodeJSON[], edges: CircuitJSON['edges']) {
+  return fromCircuitJSON({ version: SCHEMA_VERSION, name: '', nodes, edges, busNames: {}, loadShapes: {} })
 }
 
 function initialSize(n: CircuitNodeJSON): { initialWidth: number; initialHeight: number } {
@@ -587,6 +634,106 @@ export const useCircuitStore = create<CircuitState>()(
         })),
       study: null,
       setStudy: (study) => set({ study, dirty: true }),
+      xyCurves: {},
+      setXyCurve: (name, spec) => {
+        set({ xyCurves: { ...get().xyCurves, [name]: spec }, dirty: true })
+        markStale()
+      },
+      removeXyCurve: (name) => {
+        const { [name]: _gone, ...rest } = get().xyCurves
+        set({ xyCurves: rest, dirty: true })
+        markStale()
+      },
+      loadLevels: null,
+      setLoadLevels: (levels) => {
+        const loadLevels = levels?.length ? levels : null
+        const active = get().activeLevel
+        set({
+          loadLevels,
+          // A level that was renamed or removed leaves the solve at rated.
+          activeLevel: active && loadLevels?.some((l) => l.name === active) ? active : null,
+          dirty: true,
+        })
+        markStale()
+      },
+      activeLevel: null,
+      setActiveLevel: (name) => {
+        const levels = get().loadLevels
+        const activeLevel = name && levels?.some((l) => l.name === name) ? name : null
+        if (activeLevel === get().activeLevel) return
+        set({ activeLevel, dirty: true })
+        markStale()
+      },
+      scenarios: [],
+      activeScenario: null,
+      scenarioBase: null,
+      addScenario: (name, description = '') => {
+        const id = newScenarioId(get().scenarios.map((sc) => sc.id))
+        const scenario: ScenarioJSON = {
+          id, name: name.trim() || id, description,
+          overrides: {}, addedNodes: [], addedEdges: [], removed: [],
+        }
+        set({ scenarios: [...get().scenarios, scenario], dirty: true })
+        get().activateScenario(id)
+        return id
+      },
+      updateScenario: (id, patch) =>
+        set({
+          scenarios: get().scenarios.map((sc) => (sc.id === id ? { ...sc, ...patch } : sc)),
+          dirty: true,
+        }),
+      removeScenario: (id) => {
+        if (get().activeScenario === id) get().activateScenario(null)
+        set({ scenarios: get().scenarios.filter((sc) => sc.id !== id), dirty: true })
+      },
+      duplicateScenario: (id) => {
+        const s = get()
+        // The open scenario's deltas are only up to date once it is closed.
+        const source = s.activeScenario === id && s.scenarioBase
+          ? { ...s.scenarios.find((sc) => sc.id === id)!, ...diffScenario(s.scenarioBase, { nodes: s.nodes, edges: s.edges }) }
+          : s.scenarios.find((sc) => sc.id === id)
+        if (!source) return null
+        const copyId = newScenarioId(s.scenarios.map((sc) => sc.id))
+        set({
+          scenarios: [...s.scenarios, { ...JSON.parse(JSON.stringify(source)), id: copyId, name: `${source.name} (copy)` }],
+          dirty: true,
+        })
+        return copyId
+      },
+      activateScenario: (id) => {
+        const s = get()
+        if (id === s.activeScenario) return
+        let nodes = s.nodes
+        let edges = s.edges
+        let scenarios = s.scenarios
+        if (s.activeScenario && s.scenarioBase) {
+          // Leaving: what changed on screen becomes the scenario's deltas,
+          // and the base comes back.
+          const deltas = diffScenario(s.scenarioBase, { nodes, edges })
+          scenarios = scenarios.map((sc) => (sc.id === s.activeScenario ? { ...sc, ...deltas } : sc))
+          nodes = s.scenarioBase.nodes
+          edges = s.scenarioBase.edges
+        }
+        const target = id ? scenarios.find((sc) => sc.id === id) : undefined
+        if (!target) {
+          set({ nodes, edges, scenarios, activeScenario: null, scenarioBase: null, dirty: true })
+        } else {
+          const base = { nodes, edges }
+          const effective = applyScenario(base, target, drawingFromJSON)
+          set({
+            nodes: effective.nodes,
+            edges: effective.edges,
+            scenarios,
+            activeScenario: target.id,
+            scenarioBase: base,
+            dirty: true,
+          })
+        }
+        // Undo must not cross the switch: an undo of "the whole drawing
+        // changed" would put the base's elements into the scenario.
+        clearHistory()
+        markStale()
+      },
       placementType: null,
       connectMode: 'wire',
       dirty: false,
@@ -1018,12 +1165,23 @@ export const useCircuitStore = create<CircuitState>()(
           study: c.study ?? null,
           voltageBases: c.voltageBases?.length ? c.voltageBases : null,
           crs: c.crs ?? null,
+          xyCurves: c.xyCurves ?? {},
+          loadLevels: c.loadLevels?.length ? c.loadLevels : null,
+          activeLevel: c.activeLevel ?? null,
+          scenarios: c.scenarios ?? [],
+          activeScenario: null,
+          scenarioBase: null,
           dirty: false,
         })
         // Cleared here rather than at each call site: Open used to leave the
         // previous document's history in place, so undo crossed documents.
         clearHistory()
         markStale()
+        // The document's open scenario is reopened on the loaded base.
+        if (c.activeScenario && c.scenarios?.some((sc) => sc.id === c.activeScenario)) {
+          get().activateScenario(c.activeScenario)
+          set({ dirty: false })
+        }
       },
       clearAll: () => {
         set({
@@ -1039,9 +1197,16 @@ export const useCircuitStore = create<CircuitState>()(
           study: null,
           voltageBases: null,
           crs: null,
+          xyCurves: {},
+          loadLevels: null,
+          activeLevel: null,
+          scenarios: [],
+          activeScenario: null,
+          scenarioBase: null,
           dirty: true,
           projectId: null,
         })
+        clearHistory()
         markStale()
       },
 
@@ -1222,6 +1387,10 @@ export const useCircuitStore = create<CircuitState>()(
         study: s.study,
         voltageBases: s.voltageBases,
         crs: s.crs,
+        xyCurves: s.xyCurves,
+        loadLevels: s.loadLevels,
+        activeLevel: s.activeLevel,
+        scenarios: s.scenarios,
       }),
       limit: 100,
       // By reference, element by element. Every action replaces what it

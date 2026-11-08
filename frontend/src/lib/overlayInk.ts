@@ -3,7 +3,8 @@
 // them, lines by loading. The symbols on the one-line work the same out
 // in their own components; this is the one place the canvases do.
 
-import type { LimitsJSON, PhaseMap, SolveResult } from '../types/circuit'
+import type { HostingCapacityResult, LimitsJSON, PhaseMap, SolveResult } from '../types/circuit'
+import { hostingColor } from './hostingCapacity'
 import { loadingColor, voltageColor } from './colorScale'
 import { resultById } from './indexes'
 import { phaseColor } from './phasing'
@@ -23,8 +24,11 @@ export function overlayInk(opts: {
   phases: PhaseMap | null
   limits: LimitsJSON
   ink: string
+  /** The last hosting-capacity run, for the 'hosting' overlay. */
+  hosting?: HostingCapacityResult | null
 }): OverlayInk {
-  const { overlay, phases, limits, ink } = opts
+  const { overlay, phases, limits, ink, hosting } = opts
+  const hostingMax = hosting?.summary.maxKw ?? 0
   const solved = opts.result?.converged && !opts.stale ? opts.result : null
   const elements = solved ? resultById(solved) : null
   const bus = (nodeId: string): string => {
@@ -36,6 +40,11 @@ export function overlayInk(opts: {
     if (overlay === 'phases') {
       const letters = phases?.nodes[nodeId]?.[0]
       if (letters !== undefined) return phaseColor(letters)
+    }
+    if (overlay === 'hosting' && hosting) {
+      const name = hosting.nodeBuses[nodeId]?.[0]
+      const r = name ? hosting.buses[name] : null
+      if (r) return hostingColor(r.kw, hostingMax)
     }
     return ink
   }

@@ -26,6 +26,9 @@ from ..core import (
     reliability,
     samples,
 )
+from ..core.jobs import jobs
+from ..studies import batch as batch_study
+from ..studies import hosting_capacity as hc_study
 from ..core.compiler import export_dss
 from ..core.model import Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
@@ -64,6 +67,7 @@ def health(request: Request) -> dict:
             "maxShapePoints": cfg.max_shape_points,
             "maxBodyBytes": cfg.max_body_bytes,
             "maxTimeseriesCost": cfg.max_timeseries_cost,
+            "maxStudySolves": cfg.max_study_solves,
         }
     if cfg.plan is not None:
         out["plan"] = cfg.plan.as_dict()
@@ -442,3 +446,105 @@ def import_converted(req: ConvertRequest) -> dict:
         raise _busy(exc) from exc
     except convert.ConvertFailure as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+# --- background studies -------------------------------------------------------
+
+def _study_cap(solves: int) -> None:
+    """Refuse a study larger than the plan allows before it starts."""
+    cfg = context.current_settings()
+    if cfg.max_study_solves and solves > cfg.max_study_solves:
+        raise HTTPException(
+            status_code=413,
+            detail=f"This study needs about {solves:,} solves, more than {cfg.plan_label} "
+                   f"allows ({cfg.max_study_solves:,}). Fewer scenarios, levels or "
+                   "candidate buses, or run OpenDSS Designer locally.")
+
+
+def _submit_study(kind: str, fn):
+    """Start a job with the plan's wall-clock budget as a watchdog."""
+    cfg = context.current_settings()
+    job = jobs.submit(kind, fn)
+    if cfg.timeseries_timeout_s:
+        timer = threading.Timer(cfg.timeseries_timeout_s, job.cancel.set)
+        timer.daemon = True
+        timer.start()
+    return {"job": job.snapshot()}
+
+
+class BatchRequest(BaseModel):
+    circuit: Circuit
+    # Scenario ids (None = base case) and level names (None = rated); either
+    # left out means everything the circuit has.
+    scenarios: list[str | None] | None = None
+    levels: list[str | None] | None = None
+
+
+@router.post("/jobs/batch")
+def start_batch(req: BatchRequest) -> dict:
+    """Every scenario at every load level, as a background job."""
+    n_sc = len(req.scenarios) if req.scenarios is not None else 1 + len(req.circuit.scenarios or [])
+    n_lv = len(req.levels) if req.levels is not None else max(1, len(req.circuit.loadLevels or []))
+    _study_cap(n_sc * n_lv)
+    return _submit_study(
+        "batch",
+        lambda progress, cancel: batch_study.run_batch(
+            req.circuit, req.scenarios, req.levels, progress, cancel))
+
+
+@router.get("/jobs")
+def list_jobs() -> dict:
+    return {"jobs": jobs.list()}
+
+
+@router.get("/jobs/{job_id}")
+def get_job(job_id: str) -> dict:
+    job = jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="No such job.")
+    return job.snapshot(with_result=True)
+
+
+@router.delete("/jobs/{job_id}")
+def cancel_job(job_id: str) -> dict:
+    if not jobs.cancel(job_id):
+        raise HTTPException(status_code=404, detail="No such job.")
+    return {"cancelled": True}
+
+
+@router.get("/jobs/{job_id}/events")
+def job_events(job_id: str) -> StreamingResponse:
+    """SSE: {"type":"progress",...} as the job advances, then one
+    {"type":"result", ..., "result": {...}} (or status failed/cancelled with
+    `error`). Comment lines keep the stream warm through proxies."""
+    if jobs.get(job_id) is None:
+        raise HTTPException(status_code=404, detail="No such job.")
+
+    def gen():
+        yield ": open\n\n"
+        for ev in jobs.events(job_id):
+            if ev.get("type") == "ping":
+                yield ": ping\n\n"
+                continue
+            yield f"data: {json.dumps(ev)}\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache",
+                                      "X-Accel-Buffering": "no"})
+
+
+class HostingCapacityRequest(BaseModel):
+    circuit: Circuit
+    # See studies.hosting_capacity.DEFAULT_OPTIONS; anything left out takes
+    # the default.
+    options: dict | None = None
+
+
+@router.post("/jobs/hosting-capacity")
+def start_hosting_capacity(req: HostingCapacityRequest) -> dict:
+    """DER (or load) hosting capacity at every candidate bus, as a job."""
+    _study_cap(hc_study.estimate_solves(req.circuit, req.options))
+    return _submit_study(
+        "hosting-capacity",
+        lambda progress, cancel: hc_study.hosting_capacity(
+            req.circuit, req.options, progress, cancel))

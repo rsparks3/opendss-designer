@@ -1,4 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
+import { deltaColor } from '../../lib/compare'
 import { loadingColor, NEUTRAL } from '../../lib/colorScale'
 import { inService } from '../../lib/fields'
 import { resultById } from '../../lib/indexes'
@@ -17,6 +18,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
   const result = useResultsStore(activeResult)
   const stale = useResultsStore(activeStale)
   const reliability = useResultsStore((s) => s.reliability)
+  const baseline = useResultsStore((s) => s.baseline)
   const limits = useLimits()
 
   const el = result?.converged ? resultById(result).get(props.id) : null
@@ -37,6 +39,13 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
     } else if (overlay === 'power') {
       stroke = NEUTRAL
       resultText = `${el.kw.toFixed(0)} kW / ${el.kvar.toFixed(0)} kvar`
+    } else if (overlay === 'compare' && baseline && el.loadingPct != null) {
+      const was = resultById(baseline.result).get(props.id)?.loadingPct
+      if (was != null && Math.abs(el.loadingPct - was) >= 0.05) {
+        const d = el.loadingPct - was
+        stroke = props.selected || grabbed ? stroke : deltaColor(-d, 25)
+        resultText = `${d > 0 ? '+' : ''}${d.toFixed(0)} %`
+      }
     }
   }
   // Reliability: the line wears its protection section's colour and says

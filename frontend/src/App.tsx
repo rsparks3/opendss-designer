@@ -145,7 +145,8 @@ function useUnsavedWorkProtection() {
     const unsub = useCircuitStore.subscribe((s) => {
       window.clearTimeout(timer)
       timer = window.setTimeout(() => {
-        const slices = [s.nodes, s.edges, s.busNames, s.loadShapes, s.name, s.limits, s.study]
+        const slices = [s.nodes, s.edges, s.busNames, s.loadShapes, s.name, s.limits, s.study,
+          s.xyCurves, s.loadLevels, s.activeLevel, s.scenarios, s.activeScenario]
         if (slices.every((v, i) => v === last[i])) return
         // Never overwrite the recovery copy with an empty document. `New`,
         // `Open` and `Import` all clear the store, and the debounce used to

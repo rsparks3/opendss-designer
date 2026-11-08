@@ -42,6 +42,8 @@ nav:
   - Shapes & profiles: shapes.md
   - Time-series analysis: timeseries.md
   - Study reports: report.md
+  - Planning (levels, scenarios, compare): planning.md
+  - Hosting capacity: hosting-capacity.md
   - Importing models: importing-dss.md
   - The map: map.md
   - Validation: validation.md

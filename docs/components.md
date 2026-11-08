@@ -106,6 +106,9 @@ real control cabinet, expressed on the 120 V control base.
 | CT primary | Current transformer primary rating, used by line drop compensation |
 | Line drop comp R, X | Volts of compensation, to regulate a point out on the feeder rather than at the regulator |
 | Max tap change / solution | Taps the control may move in one solution |
+| Emergency rating (kVA) | `emerghkva`; blank is 1.5 × rated. Judged against when the load level says *emergency* |
+| Reverse-power mode, reverse setpoint and bandwidth | `reversible`, `revvreg`, `revband`: what the control holds when power flows backwards through it (a tie closed, DER exporting) |
+| Cogeneration mode | `cogen`: keep regulating the forward side for reverse flow that comes from generation |
 
 The tap position is chosen by OpenDSS during the solve; the diagram shows the
 resulting voltages. Importing a `.dss` file turns any transformer with a
@@ -120,6 +123,7 @@ open/close it; an open breaker de-energizes everything downstream.
 |---|---|
 | Closed | Switch state |
 | Rating (A) | `normamps`, used for the loading overlay |
+| Emergency rating (A) | `emergamps`; blank is 1.5 × the rating. Judged against when the load level says *emergency* |
 | Interrupting rating (kA) | What it can break; checked against the fault current available at its bus |
 | Phases | 1 / 2 / 3 |
 
@@ -217,6 +221,15 @@ only to [time-series runs](timeseries.md).
 Shunt capacitor bank: rated kV, size (kvar), phases, wye/delta, and number of
 switched steps.
 
+A switched bank carries its **control** (`CapControl`) as settings of its
+own: *Control* picks the type — **voltage** (on below, off above, volts on
+the PT secondary), **current** or **kvar** (on above, off below, measured
+through the element it *Watches*: a line, transformer or switch on the
+drawing, or the capacitor's own terminal), **pf**, or **time** of day — with
+the PT or CT ratio, the on and off delays and the dead time under the
+engine's own names. The control acts in time-series runs and in a snapshot's
+control iterations; see [Planning](planning.md#controls-that-come-with-this).
+
 ## Generator — ++g++
 
 | Parameter | Meaning |
@@ -283,6 +296,17 @@ Dispatch modes:
 Storage only acts during [time-series runs](timeseries.md); in a snapshot it
 idles. Storage elements are excluded from fault studies (a crash in the
 underlying DSS engine — their fault contribution is negligible anyway).
+
+### Smart inverter functions
+
+A PV system or storage unit can run an IEEE 1547-2018 **inverter function**
+(`InvControl`): *Inverter function* picks **volt-var**, **volt-watt**, both
+together, watt-pf or watt-var, and each points at an **inverter curve** from
+the Curves tab — per-unit voltage across, per-unit power down, negative var
+absorbing. The Curves tab adds the IEEE 1547 Category A and B default
+characteristics in one click. Units that share a function and curve are
+grouped into one control, as the engine wants. Imported `InvControl`s and
+their `XYCurve`s fold onto the units they list.
 
 ## Note — ++n++
 

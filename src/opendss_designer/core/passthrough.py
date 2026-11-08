@@ -154,12 +154,15 @@ def _comment_text(lines: list[str]) -> str:
 
 
 def collect(files: list[dict[str, str]], main: str,
-            unsupported: set[str]) -> tuple[list[PassthroughSpec], dict[str, str]]:
+            unsupported: set[str],
+            skip: set[str] | None = None) -> tuple[list[PassthroughSpec], dict[str, str]]:
     """The passthrough entries and comments of a set of (sanitized) files.
 
     `unsupported` is the lowercase `class.name` of every circuit element the
     importer could not model; general objects of the classes in
-    GENERAL_CLASSES are kept too."""
+    GENERAL_CLASSES are kept too, except those in `skip` -- the controls and
+    curves the importer folded onto modelled elements, which the compiler
+    emits itself."""
     texts = {f["name"].lower(): f["text"] for f in files}
     entries: dict[str, list[str]] = {}
     order: list[str] = []
@@ -178,7 +181,7 @@ def collect(files: list[dict[str, str]], main: str,
         key = f"{cls}.{name.lower()}"
         if new and st.comments and cls != "circuit" and (text := _comment_text(st.comments)):
             comments[key] = text
-        keep = key in unsupported or cls in GENERAL_CLASSES
+        keep = (key in unsupported or cls in GENERAL_CLASSES) and key not in (skip or ())
         if not keep:
             continue
         if new:

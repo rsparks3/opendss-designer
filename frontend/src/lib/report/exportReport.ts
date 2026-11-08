@@ -36,6 +36,9 @@ export function sectionAvailability(): Record<SectionKey, string | null> {
     protection: nodes.some((n) => PROTECTIVE.has(n.type ?? '')) ? null : 'The circuit has no breakers, fuses, reclosers or relays.',
     reliability: null,
     timeseries: rs.timeseries ? null : 'Run a daily or yearly time series first.',
+    comparison: rs.baseline ? null : 'Pin a solve as the baseline first (Scenarios tab).',
+    batch: rs.batch ? null : 'Run the batch first (Scenarios tab → Run all).',
+    hosting: rs.hosting?.converged ? null : 'Run a hosting-capacity study first (Hosting tab).',
   }
 }
 
@@ -115,6 +118,9 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
     tcc,
     reliability,
     timeseries: rs.timeseries,
+    baseline: rs.baseline ? { label: rs.baseline.label, result: rs.baseline.result } : null,
+    batch: rs.batch?.result ?? null,
+    hosting: rs.hosting,
     figures,
     sections,
     date: new Date(),
