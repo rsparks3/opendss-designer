@@ -73,6 +73,9 @@ export const LABELS: Record<StudyKey, string> = {
   capacity: 'Capacity',
   qa: 'Model QA',
   tlm: 'Service transformers',
+  reach: 'Reach',
+  fusesaving: 'Fuse saving',
+  recplacement: 'Recloser placement',
 }
 
 export const fmtKw = (kw: number | null | undefined) =>

@@ -46,6 +46,7 @@ nav:
   - Hosting capacity: hosting-capacity.md
   - Planning studies: studies.md
   - Model quality and libraries: model.md
+  - Protection and reliability depth: protection.md
   - Importing models: importing-dss.md
   - The map: map.md
   - Validation: validation.md

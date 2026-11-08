@@ -114,6 +114,10 @@ def _fault_on_line(circuit: Circuit, edge_id: str, fraction: float, kind: str, r
         dss.Text.Command("set mode=snapshot")
         dss.Text.Command("set controlmode=off")
         mid = _split_line(full, fraction)
+        if mid is not None:
+            # The new bus exists only once the bus list is rebuilt.
+            dss.Text.Command("makebuslist")
+            dss.Text.Command("calcvoltagebases")
         if mid is None or _place_fault(mid, kind, r_ohm) is None:
             issues.append(Issue(severity="error", code="fault-phases", message="The line has too few phases for that fault."))
             return {"converged": False, "issues": [i.model_dump() for i in issues]}
@@ -317,8 +321,10 @@ def _fuse_saving(circuit: Circuit, r_ohm: float) -> dict[str, Any]:
             delayed_min = t_of(delayed, imin)
             saving_ok = fast_max is not None and melt_max is not None and fast_max < melt_max
             blowing_ok = clear_min is not None and delayed_min is not None and clear_min < delayed_min
+            drawn = {n.id: str(n.params.get("name") or n.id) for n in circuit.nodes}
             pairs.append({
-                "fuse": fuse["name"], "fuseId": fuse["nodeId"], "recloser": recloser["name"], "recloserId": recloser["nodeId"],
+                "fuse": drawn.get(fuse["nodeId"], fuse["name"]), "fuseId": fuse["nodeId"],
+                "recloser": drawn.get(recloser["nodeId"], recloser["name"]), "recloserId": recloser["nodeId"],
                 "maxFaultA": round(imax, 1) if imax else None, "minFaultA": round(imin, 1) if imin else None,
                 "recloserFastS": round(fast_max, 4) if fast_max is not None else None,
                 "fuseMeltS": round(melt_max, 4) if melt_max is not None else None,

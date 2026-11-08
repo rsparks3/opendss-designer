@@ -37,6 +37,7 @@ from ..studies import contingency as contingency_study
 from ..studies import voltvar as voltvar_study
 from ..studies import allocation as allocation_study
 from ..studies import secondary as secondary_study
+from ..studies import protection_depth as protection_depth_study
 from ..core import catalog, qa
 from ..core.compiler import export_dss
 from ..core.model import Circuit
@@ -786,3 +787,62 @@ def allocate_loads(req: AllocateRequest) -> dict:
         return allocation_study.allocate(req.circuit, req.rows[:20000], req.options)
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
+
+
+# --- M16: protection and reliability depth ----------------------------------------
+
+class FaultLineRequest(BaseModel):
+    circuit: Circuit
+    line: str
+    fraction: float = 0.5
+    kind: Literal["3ph", "lg", "ll", "llg"] = "3ph"
+    rOhm: float = 0.0
+
+
+@router.post("/faultline")
+def fault_on_line(req: FaultLineRequest) -> dict:
+    """A fault part way along a line: the line is split at the fraction."""
+    try:
+        return protection_depth_study.fault_on_line(req.circuit, req.line, req.fraction, req.kind, req.rOhm)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+class ReachRequest(BaseModel):
+    circuit: Circuit
+    rOhm: float = 20.0
+    derType: Literal["inverter", "synchronous"] = "inverter"
+
+
+@router.post("/jobs/reach")
+def start_reach(req: ReachRequest) -> dict:
+    _study_cap(2 * len(req.circuit.nodes) + 1)
+    return _submit_study(
+        "reach",
+        lambda progress, cancel: protection_depth_study.reach_study(req.circuit, req.rOhm, req.derType, progress, cancel))
+
+
+class FuseSavingRequest(BaseModel):
+    circuit: Circuit
+    rOhm: float = 20.0
+
+
+@router.post("/fusesaving")
+def fuse_saving(req: FuseSavingRequest) -> dict:
+    try:
+        return protection_depth_study.fuse_saving(req.circuit, req.rOhm)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+class RecloserPlacementRequest(BaseModel):
+    circuit: Circuit
+    maxCandidates: int = 40
+
+
+@router.post("/jobs/recloser-placement")
+def start_recloser_placement(req: RecloserPlacementRequest) -> dict:
+    _study_cap(1 + max(1, req.maxCandidates))
+    return _submit_study(
+        "recloser-placement",
+        lambda progress, cancel: protection_depth_study.recloser_placement(req.circuit, req.maxCandidates, progress, cancel))

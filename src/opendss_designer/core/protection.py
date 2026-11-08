@@ -199,6 +199,11 @@ def _read_devices(element_map: dict[str, str]) -> list[dict[str, Any]]:
         name = dss.Relays.Name()
         full = f"relay.{name}"
         dev = _device("relay", name, _switch_of(dss.Relays.SwitchedObj()), element_map)
+        # A sectionalizer compiles as a relay with a pickup nothing reaches
+        # (see the compiler); it has no curve to plot or grade.
+        if dev and _prop_float(full, "phasetrip") >= 1e8:
+            i = dss.Relays.Next()
+            continue
         if dev and _prop(full, "type").lower().startswith("current"):
             delay = _prop_float(full, "delay")
             for label, curve_prop, trip_prop in (

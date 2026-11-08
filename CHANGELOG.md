@@ -123,6 +123,18 @@ This project follows [Semantic Versioning](https://semver.org/).
 - GIS import: a line layer's distributed load (kW, kvar columns) is split
   the exact way, two thirds a quarter of the way along and one third at
   the end.
+- **Protection depth** (Studies → Protection): a fault anywhere on a line
+  (the line split at a chosen fraction, any fault kind, through a
+  resistance), every device's **reach** (the minimum fault at the end of
+  its zone against its pickup, with DER infeed taken off), **fuse saving
+  and fuse blowing** for every recloser–fuse pair from the curves, and
+  **where a recloser helps most** (one tried mid-way on each line, the
+  reliability study rerun, ranked by the fall in SAIDI). Breakers can be
+  **sectionalizers**, reclosers carry **reclose intervals**, fuses a
+  **total-clear curve**, and the report's protection section gained a
+  **settings sheet**.
+- **Reliability indices**: MAIFI, ASAI, CEMI₁/₂/₃/₅, ASIFI and the customer
+  interruption cost by class, in the Reliability tab and the report.
 - A `studies` package (`opendss_designer.studies`) and background jobs
   (`core/jobs.py`) for the planning studies to come; the demo and hosted
   plans gain a `maxStudySolves` limit.

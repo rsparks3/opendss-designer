@@ -20,8 +20,11 @@ import type {
   HostingCapacityResult,
   LossResult,
   N1Result,
+  FuseSavingResult,
   PlacementResult,
   QaResult,
+  ReachResult,
+  RecloserPlacementResult,
   ScreenResult,
   TlmResult,
   SweepResult,
@@ -311,10 +314,36 @@ export function buildReport(input: ReportInput): Report {
     out.push(faultSection(input.fault, new Names(circuit, input.fault.nodeBuses)))
   }
   if (sections.has('protection') && input.tcc) {
-    out.push(protectionSection(input.tcc, names, input.figures?.tcc))
+    const prot = protectionSection(input.tcc, names, input.figures?.tcc)
+    prot.tables.push(settingsSheet(circuit, names))
+    out.push(prot)
   }
   if (sections.has('reliability') && input.reliability?.converged) {
-    out.push(reliabilitySection(input.reliability, names))
+    const rel = reliabilitySection(input.reliability, names)
+    const r = input.reliability
+    if (r.maifi != null || r.asai != null) {
+      rel.tables.splice(1, 0, {
+        id: 'reliability-more',
+        title: 'Further indices',
+        keyValue: true,
+        columns: KV_COLUMNS,
+        rows: [
+          kv('MAIFI (momentary interruptions per customer per year)', r.maifi ?? null),
+          kv('ASAI (availability)', r.asai != null ? r.asai * 100 : null, '%'),
+          kv('CEMI₁ (customers with more than one interruption a year)', r.cemi ? r.cemi['1'] * 100 : null, '%'),
+          kv('CEMI₃', r.cemi ? r.cemi['3'] * 100 : null, '%'),
+          kv('CEMI₅', r.cemi ? r.cemi['5'] * 100 : null, '%'),
+          kv('ASIFI (load-weighted SAIFI)', r.asifi ?? null),
+          kv('Customer interruption cost', r.outageCost ?? null, '$/yr'),
+        ],
+        note: r.outageCostRates
+          ? 'Cost per sustained interruption and per customer-hour by class: ' +
+            Object.entries(r.outageCostRates).map(([c, v]) => `${c} $${v.perInterruption} / $${v.perHour}`).join(', ') +
+            '. Order-of-magnitude defaults; replace with the utility\'s own.'
+          : undefined,
+      })
+    }
+    out.push(rel)
   }
   if (sections.has('timeseries') && input.timeseries) {
     out.push(timeSeriesSection(input.timeseries, names, input.figures?.timeseries))
@@ -490,6 +519,44 @@ function studiesSection(studies: Partial<Record<string, unknown>>, names: Names)
         note: 'ANSI C84.1 Range A at the meter is 114 to 126 V.',
       })
     }
+  }
+  const reach = studies.reach as ReachResult | undefined
+  if (reach?.converged) {
+    tables.push({
+      id: 'reach', title: `Reach (minimum faults through ${reach.rOhm} Ω)`,
+      columns: [
+        { key: 'device', label: 'Device' }, { key: 'pickup', label: 'Pickup', unit: 'A', digits: 0 },
+        { key: 'min', label: 'Minimum fault at end of zone', unit: 'A', digits: 0 }, { key: 'kind', label: 'Kind' },
+        { key: 'der', label: 'DER infeed', unit: 'A', digits: 0 }, { key: 'seen', label: 'Seen by device', unit: 'A', digits: 0 },
+        { key: 'ratio', label: 'Reach ratio', digits: 2 }, { key: 'ground', label: 'Ground ratio', digits: 2 },
+      ],
+      rows: reach.devices.map((d) => ({ device: d.name, pickup: d.phasePickupA, min: d.minFaultA, kind: d.minFaultKind === 'lg' ? 'line-to-ground' : d.minFaultKind === 'll' ? 'line-to-line' : null, der: d.derInfeedA, seen: d.seenByDeviceA, ratio: d.reachRatio, ground: d.groundReachRatio })),
+      flags: reach.devices.map((d) => (d.ok ? null : 'violation')),
+      note: `A device should see at least ${reach.margin} × its pickup at the end of its zone.`,
+    })
+  }
+  const fs = studies.fusesaving as FuseSavingResult | undefined
+  if (fs?.converged && fs.pairs.length) {
+    tables.push({
+      id: 'fuse-saving', title: 'Recloser–fuse coordination',
+      columns: [
+        { key: 'recloser', label: 'Recloser' }, { key: 'fuse', label: 'Fuse' }, { key: 'imax', label: 'Max fault at fuse', unit: 'A', digits: 0 },
+        { key: 'fast', label: 'Fast operates', unit: 's', digits: 3 }, { key: 'melt', label: 'Fuse melts', unit: 's', digits: 3 }, { key: 'saving', label: 'Fuse saving' },
+        { key: 'imin', label: 'Min fault in zone', unit: 'A', digits: 0 }, { key: 'clear', label: 'Fuse clears', unit: 's', digits: 3 }, { key: 'delayed', label: 'Delayed operates', unit: 's', digits: 3 }, { key: 'blowing', label: 'Fuse blowing' },
+      ],
+      rows: fs.pairs.map((p) => ({ recloser: p.recloser, fuse: p.fuse, imax: p.maxFaultA, fast: p.recloserFastS, melt: p.fuseMeltS, saving: p.fuseSaving ? 'yes' : 'no', imin: p.minFaultA, clear: p.fuseClearS, delayed: p.recloserDelayedS, blowing: p.fuseBlowing ? 'yes' : 'no' })),
+      flags: fs.pairs.map((p) => (p.fuseSaving && p.fuseBlowing ? null : 'warning')),
+      note: `Total clearing time from the fuse's own total-clear curve where given, else melting time × ${fs.clearOverMelt}.`,
+    })
+  }
+  const rp = studies.recplacement as RecloserPlacementResult | undefined
+  if (rp?.converged) {
+    tables.push({
+      id: 'recloser-placement', title: 'Recloser placement',
+      columns: [{ key: 'line', label: 'Line' }, { key: 'km', label: 'Length', unit: 'km', digits: 2 }, { key: 'saifi', label: 'SAIFI', digits: 3 }, { key: 'saidi', label: 'SAIDI', unit: 'h', digits: 3 }, { key: 'd', label: 'Change in SAIDI', unit: 'h', digits: 3 }, { key: 'saved', label: 'Customer-hours saved', digits: 1 }],
+      rows: rp.candidates.slice(0, 25).map((c) => ({ line: c.name, km: c.lengthKm, saifi: c.saifi, saidi: c.saidi, d: c.saidiChange, saved: c.custHoursSaved })),
+      note: `Today SAIFI ${rp.base.saifi}, SAIDI ${rp.base.saidi} h; a recloser mid-way on each line in turn.`,
+    })
   }
   const ca = studies.capacity as CapacityResult | undefined
   if (ca?.converged) {
@@ -1241,6 +1308,49 @@ function faultSection(fault: FaultResult, names: Names): ReportSection {
       },
     ],
     figures: [],
+  }
+}
+
+/** Every protective device's settings as a relay technician reads them. */
+function settingsSheet(circuit: CircuitJSON, names: Names): Table {
+  const rows: Record<string, Cell>[] = []
+  for (const n of circuit.nodes) {
+    if (!['fuse', 'recloser', 'relay', 'breaker'].includes(n.type)) continue
+    const p = n.params
+    const num = (k: string) => (typeof p[k] === 'number' ? (p[k] as number) : p[k] != null && p[k] !== '' && Number.isFinite(Number(p[k])) ? Number(p[k]) : null)
+    const cont = num('normamps')
+    const pickup = n.type === 'fuse' ? num('ratedcurrent') : num('phasetrip')
+    rows.push({
+      device: names.element(n.id, String(p.name ?? n.id)).name,
+      type: p.sectionalizer === true ? 'sectionalizer' : n.type,
+      pickup,
+      multiple: pickup != null && cont ? pickup / cont : null,
+      ground: n.type === 'fuse' ? null : num('groundtrip'),
+      curves: [p.fusecurve, p.clearcurve && `clear ${p.clearcurve}`, p.phasefast && `fast ${p.phasefast}`, p.phasedelayed && `delayed ${p.phasedelayed}`, p.phasecurve, p.groundcurve && p.groundcurve !== 'none' && `ground ${p.groundcurve}`]
+        .filter(Boolean)
+        .join(', ') || '—',
+      delay: num('delay'),
+      shots: n.type === 'recloser' ? `${num('numfast') ?? 1} fast of ${num('shots') ?? 4}` : null,
+      intervals: n.type === 'recloser' ? (Array.isArray(p.recloseintervals) ? (p.recloseintervals as number[]).join(', ') : (p.recloseintervals as string | undefined) ?? null) : null,
+      interrupting: num('interruptingka'),
+    })
+  }
+  return {
+    id: 'settings-sheet',
+    title: 'Settings sheet',
+    columns: [
+      { key: 'device', label: 'Device' },
+      { key: 'type', label: 'Type' },
+      { key: 'pickup', label: 'Pickup', unit: 'A', digits: 0 },
+      { key: 'multiple', label: '× continuous', digits: 2 },
+      { key: 'ground', label: 'Ground pickup', unit: 'A', digits: 0 },
+      { key: 'curves', label: 'Curves' },
+      { key: 'delay', label: 'Time dial / delay', unit: 's', digits: 2 },
+      { key: 'shots', label: 'Operations' },
+      { key: 'intervals', label: 'Reclose intervals', unit: 's' },
+      { key: 'interrupting', label: 'Interrupting', unit: 'kA', digits: 1 },
+    ],
+    rows,
   }
 }
 

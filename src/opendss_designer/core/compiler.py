@@ -891,6 +891,18 @@ def compile_circuit(circuit: Circuit,
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
             f"switch=yes{_switch_impedance(p)} normamps={normamps:g}{_reliability(p)}"
             f"{_emergency(p, 'line')}")
+        if p.get("sectionalizer") is True and p.get("closed", True):
+            # A sectionalizer opens during the upstream recloser's dead time
+            # after a count of fault interruptions; it carries no curve and
+            # never interrupts fault current itself. OpenDSS has no class for
+            # it, so for the reliability sections it heads it is a relay that
+            # never trips on current (a pickup nothing reaches), which the
+            # coordination study leaves out and the EnergyMeter counts.
+            cmds.append(
+                f"new relay.{name} monitoredobj=line.{name} monitoredterm=1 "
+                f"switchedobj=line.{name} switchedterm=1 type=current "
+                f"phasecurve=definite phasetrip=1e9 delay=0")
+            res.element_map[f"relay.{name}"] = n.id
         if not p.get("closed", True):
             cmds.append(f"open line.{name} term=1")
 
@@ -953,6 +965,14 @@ def compile_circuit(circuit: Circuit,
                f"numfast={int(_num(p, 'numfast', 1.0) or 1)} "
                f"shots={int(_num(p, 'shots', 4.0) or 4)} "
                f"delay={_num(p, 'delay', 0.0):g}")
+        intervals = p.get("recloseintervals")
+        if isinstance(intervals, str):
+            intervals = [t for t in re.split(r"[,\s]+", intervals.strip()) if t]
+        if isinstance(intervals, list) and intervals:
+            try:
+                cmd += " recloseintervals=(" + ", ".join(f"{float(v):g}" for v in intervals[:8]) + ")"
+            except (TypeError, ValueError):
+                pass
         # A recloser only has a ground unit if it is given curves for one, the
         # same as a relay; the trip setting alone does nothing.
         gfast = curve_ref(p, "groundfast", RECLOSER_CURVES | {"none"}, "none", n.id)

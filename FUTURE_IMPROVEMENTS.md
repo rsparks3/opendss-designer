@@ -656,29 +656,29 @@ Runs alongside M13–M14 because it is mostly schema and import work.
 - ~~**Audit trail**~~ — done 2026-11-08: who changed what and when at element level, saved
   with the project and printable, built on M12's scenario deltas
 
-## M16 — Protection and reliability depth
+## M16 — Protection and reliability depth — ✅ DONE (2026-11-08)
 
 What the protection engineer and the reliability analyst ask for after M6
 and M10 (`PLANNING_AUDIT.md` §2.9, §2.10).
 
-- **Fault anywhere on a line** — a sliding fault at a chosen distance
+- ~~**Fault anywhere on a line**~~ — done 2026-11-08: a sliding fault at a chosen distance
   (the line split in the compiled model only) with the current seen by
   every upstream device
-- **Reach and fuse-saving** — minimum fault at the end of each device's
+- ~~**Reach and fuse-saving**~~ — done 2026-11-08 (DER infeed taken off analytically; total clear from a fuse's own curve or melt × 1.15): minimum fault at the end of each device's
   zone against its pickup, with and without DER; fuse-saving versus
   fuse-blowing evaluation for recloser–fuse pairs (fast curve clears before
   the fuse's minimum melt at maximum fault, delayed curve after total clear
   at minimum fault)
-- **Sectionalizers, sequences and ratings** — `Sectionalizer`, recloser
+- ~~**Sectionalizers, sequences and ratings**~~ — done 2026-11-08 (OpenDSS has no sectionalizer class; it compiles as a relay nothing trips, which heads a reliability section and stays off the TCC plot): `Sectionalizer`, recloser
   shots and reclose intervals, continuous and interrupting ratings on
   fuses and reclosers, not only breakers
-- **Settings sheet** — per-device settings in the report as a relay
+- ~~**Settings sheet**~~ — done 2026-11-08: per-device settings in the report as a relay
   technician reads them: pickup in primary amps and multiples, curve, time
   dial, instantaneous
-- **Reliability indices** — MAIFI from recloser fast operations and
+- ~~**Reliability indices**~~ — done 2026-11-08 (CEMI as the expectation over the sections above each load, not a Monte Carlo draw; outage cost at order-of-magnitude default rates): MAIFI from recloser fast operations and
   `pctperm`, ASAI, CEMI/CELID, load-weighted ASIFI, and outage cost by
   customer class
-- **Device placement what-if** — a loop over candidate recloser or
+- ~~**Device placement what-if**~~ — done 2026-11-08 (reclosers on lines; automated switches are the same loop with a `tie`/`sectionalizer` flag and wait for a request): a loop over candidate recloser or
   automated-switch locations ranked by ΔSAIDI per device, through the
   scenario manager; the number that justifies the spend
 

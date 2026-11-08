@@ -58,6 +58,31 @@ export function ReliabilityPanel() {
           <b>{r.totalCustomers}</b> customers · {f(r.custInterrupts, 2)} interruptions and {f(r.custHours, 1)}{' '}
           customer-hours a year
         </span>
+        {r.maifi != null && (
+          <span className="reliability-index" title="Momentary interruptions per customer per year, from the temporary faults below reclosers">
+            <b>MAIFI</b> {f(r.maifi, 3)} /yr
+          </span>
+        )}
+        {r.asai != null && (
+          <span className="reliability-index" title="Availability: 1 − SAIDI / 8760">
+            <b>ASAI</b> {(r.asai * 100).toFixed(4)} %
+          </span>
+        )}
+        {r.cemi && (
+          <span className="reliability-index" title="Share of customers whose expected sustained interruptions a year exceed 1, 3 and 5">
+            <b>CEMI₁/₃/₅</b> {(r.cemi['1'] * 100).toFixed(0)} / {(r.cemi['3'] * 100).toFixed(0)} / {(r.cemi['5'] * 100).toFixed(0)} %
+          </span>
+        )}
+        {r.asifi != null && (
+          <span className="reliability-index" title="SAIFI weighted by load kW">
+            <b>ASIFI</b> {f(r.asifi, 3)} /yr
+          </span>
+        )}
+        {r.outageCost != null && (
+          <span className="reliability-index" title="Customer interruption cost at the default class rates (replace them with the utility's own)">
+            <b>Outage cost</b> ${r.outageCost.toLocaleString()} /yr
+          </span>
+        )}
         {overlay !== 'reliability' && (
           <button type="button" onClick={() => chooseOverlay('reliability')} title="Colour the drawing by protection section">
             Show on the drawing

@@ -54,3 +54,14 @@ test('Model QA checks the model from the Studies tab', async ({ page }) => {
   await expect(page.locator('.study .reliability-index').first()).toContainText('Completeness', { timeout: 20_000 })
   await expect(page.locator('.study table tbody tr').first()).toBeVisible()
 })
+
+test('the Protection study checks reach and grades the fuse pair', async ({ page }) => {
+  await open(page)
+  await page.locator('.bp-header').getByRole('button', { name: 'Studies', exact: true }).click()
+  await page.locator('.studies-side').getByRole('button', { name: 'Protection' }).click()
+  await page.getByRole('button', { name: "Check every device's reach" }).click()
+  await expect(page.locator('.study table tbody tr').first()).toBeVisible({ timeout: 60_000 })
+  await expect(page.locator('.study table')).toContainText('FU1')
+  await page.getByRole('button', { name: 'Grade every recloser–fuse pair' }).click()
+  await expect(page.locator('.study')).toContainText('Fuse saving', { timeout: 30_000 })
+})

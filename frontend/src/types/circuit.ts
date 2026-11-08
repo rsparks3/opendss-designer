@@ -767,6 +767,76 @@ export interface CapacityResult {
   issues: Issue[]
 }
 
+export interface FaultLineResult {
+  converged: boolean
+  line: string
+  fraction: number
+  kind: string
+  rOhm: number
+  faultA: number | null
+  faultPhaseA: number[]
+  devices: Record<string, { id: string; amps: number }>
+  issues: Issue[]
+}
+
+export interface ReachResult {
+  converged: boolean
+  cancelled: boolean
+  rOhm: number
+  margin: number
+  devices: {
+    id: string
+    name: string
+    kind: string
+    phasePickupA: number | null
+    groundPickupA: number | null
+    sectionBuses: number
+    endBus: string | null
+    minFaultKind: string | null
+    minFaultA: number | null
+    minLLA: number | null
+    minLGrA: number | null
+    derInfeedA: number
+    seenByDeviceA: number | null
+    reachRatio: number | null
+    groundReachRatio: number | null
+    ok: boolean
+  }[]
+  loadLevel: LoadLevelJSON
+  issues: Issue[]
+}
+
+export interface FuseSavingResult {
+  converged: boolean
+  rOhm: number
+  clearOverMelt: number
+  pairs: {
+    fuse: string
+    fuseId: string
+    recloser: string
+    recloserId: string
+    maxFaultA: number | null
+    minFaultA: number | null
+    recloserFastS: number | null
+    fuseMeltS: number | null
+    fuseClearS: number | null
+    recloserDelayedS: number | null
+    fuseSaving: boolean
+    fuseBlowing: boolean
+    clearFrom: string
+    note: string
+  }[]
+  issues: Issue[]
+}
+
+export interface RecloserPlacementResult {
+  converged: boolean
+  cancelled: boolean
+  base: { saifi: number | null; saidi: number | null; caidi: number | null; custHours: number }
+  candidates: { line: string; name: string; lengthKm: number; saifi: number | null; saidi: number | null; saifiChange: number | null; saidiChange: number; custHoursSaved: number }[]
+  issues: Issue[]
+}
+
 /** One protection section of the reliability study: the branches from a
  *  fuse, recloser or relay down to the next one. A fault anywhere in it
  *  interrupts every customer downstream of its head. */
@@ -840,6 +910,14 @@ export interface ReliabilityResult {
   /** Branches between a meter and the first protective device, which the
    *  engine counts for nothing. */
   unsectioned: { count: number; lambda: number }
+  /** The further indices (core/reliability.py extra_indices); absent from
+   *  older results. */
+  maifi?: number | null
+  asai?: number | null
+  cemi?: Record<string, number>
+  asifi?: number | null
+  outageCost?: number | null
+  outageCostRates?: Record<string, { perInterruption: number; perHour: number }>
   nodeBuses: Record<string, string[]>
   lineBuses: Record<string, string[]>
 }
