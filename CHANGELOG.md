@@ -5,6 +5,12 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Fixed
+
+- Scrolling a panel over a focused number box or dropdown no longer changes
+  its value: the control drops focus when the wheel reaches it and the panel
+  keeps scrolling.
+
 ### Added
 
 - **Load levels.** A project can define load conditions — a multiplier on
