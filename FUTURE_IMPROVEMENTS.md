@@ -705,6 +705,28 @@ and M10 (`PLANNING_AUDIT.md` §2.9, §2.10).
   starting and PV transients against IEEE 1453 / 1547 §4.7, reusing M13's
   trip test
 
+## Before M12–M17 go to the hosted instance (found 2026-11-15)
+
+The hosted deploy of the help hints was done from a cherry-pick onto `main`
+(commit a4df225 + lockfile fix aa356b5, workers `sha-aa356b5`) because this
+branch is not safe behind the gateway yet:
+
+- **Background jobs need worker affinity.** `JobManager` is in-process and
+  the gateway round-robins every unknown `/api` path over two workers, so a
+  `GET /api/jobs/{id}` lands on the wrong worker half the time. Either the
+  gateway pins `/api/jobs/*` (worker index in the job id, or a sticky cookie)
+  or job state moves to a shared store.
+- **~30 new engine endpoints are unmetered.** Everything the branch added
+  (`/api/jobs/*`, `/faultpoint`, `/switching`, `/transfer`, `/cvr`,
+  `/capacity`, `/qa`, `/allocate`, `/faultline`, `/fusesaving`, `/rvc`,
+  `/screen`, `/import/cim`, `/import/multispeak`, `/export/cim`) bypasses the
+  gateway's slot and plan metering (`ENGINE_PATHS` in the cloud repo lists
+  four paths). Jobs also need their engine seconds reported at completion,
+  not on submit.
+- **EPRI ckt5 and ckt24 round-trips fail on this branch** (58 pu at bus
+  8086.1 on ckt5; `tests/test_large_feeders.py`, 4 failures) and pass on
+  `main`. The samples live outside the repo, so CI does not see it.
+
 ## M18 — Team-scale modeling
 
 Where a utility could standardise on it — and where support and liability become
