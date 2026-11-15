@@ -200,7 +200,6 @@ This project follows [Semantic Versioning](https://semver.org/).
   symbols after a zoom or an undo: StrictMode runs mount effects twice, and
   every symbol re-measured itself on the second run. The production build
   was unaffected.
-=======
 ### Changed
 
 - **CYME and Synergi import on a hosted instance.** The published container
