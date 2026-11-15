@@ -184,3 +184,28 @@ def test_catalogues_load_and_routes_serve_them():
     assert res.status_code == 200
     res = client.post("/api/allocate", json={"circuit": c.model_dump(mode="json"), "rows": [{"key": "LA", "kw": 3}], "options": {}})
     assert res.status_code == 200 and res.json()["overrides"]["la"]["kw"] == 3
+
+
+def test_pinned_two_phase_line_on_a_geometry_keeps_its_nodes():
+    """EPRI ckt5's laterals are `bus1=x.1.3` lines on two-phase geometries. The
+    geometry branch of the importer skipped the node pins, so the export put
+    them on phases 1 and 2 and bus 8086 came back at 58 pu."""
+    text = """
+clear
+new circuit.two basekv=12.47 phases=3 bus1=src
+new wiredata.acsr rac=1.12 runits=mi gmrac=0.00446 gmrunits=ft radius=0.199 radunits=in normamps=230
+new linegeometry.g2 nconds=2 nphases=2 reduce=no units=ft
+~ cond=1 wire=acsr x=-3 h=28
+~ cond=2 wire=acsr x=3 h=28
+new line.lat bus1=src.1.3 bus2=end.1.3 phases=2 geometry=g2 length=0.5 units=mi
+new load.ld bus1=end.1.3 phases=1 conn=delta kv=12.47 kw=50 pf=0.95
+set voltagebases=[12.47]
+calcvoltagebases
+"""
+    back = Circuit.model_validate(import_dss_files([{"name": "two.dss", "text": text}])["circuit"])
+    line = next(e for e in back.edges if e.type == "line")
+    assert line.params["geometry"].lower() == "g2"
+    exported, _ = export_dss(back)
+    lat = next(l for l in exported.lower().splitlines() if l.startswith("new line.lat"))
+    assert ".1.3" in lat, lat
+    assert engine.solve(back)["converged"]

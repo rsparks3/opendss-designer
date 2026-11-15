@@ -911,6 +911,12 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                 amps = dss.Lines.NormAmps()
                 if amps:
                     params["normamps"] = float(amps)
+                # The node pins travel with the line whichever way its
+                # impedance is defined: a two-phase lateral on a geometry
+                # is `bus1=x.1.3`, and without the pins the export put it
+                # on phases 1 and 2 (EPRI ckt5, bus 8086, 58 pu).
+                _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
+                                ["nodes1", "nodes2"])
                 edges.append(CircuitEdge(
                     id=edge_id(), type="line",
                     source=busbar_for(b1), sourceHandle="b0",
