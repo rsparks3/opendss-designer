@@ -200,3 +200,24 @@ def test_api_endpoint(tmp_path, monkeypatch):
     assert res.status_code == 200
     body = res.json()
     assert body["converged"] and body["saifi"] > 0
+
+
+def test_a_circuit_without_protection_is_a_finding_not_a_crash():
+    """The engine aborts its reliability calculation when no relay, recloser
+    or fuse exists; that came back as a 500 on the hosted instance."""
+    import json
+    from pathlib import Path
+
+    from fastapi.testclient import TestClient
+
+    from opendss_designer import server
+    from opendss_designer.core.reliability import reliability_study
+
+    sample = Path("src/opendss_designer/samples/demo-substation.oneline.json")
+    c = Circuit.model_validate(json.loads(sample.read_text(encoding="utf-8")))
+    r = reliability_study(c)
+    assert r["converged"] is False
+    assert [i["code"] for i in r["issues"]] == ["no-protection"]
+    assert "relay, recloser or fuse" in r["issues"][0]["message"]
+    res = TestClient(server.app, base_url="http://127.0.0.1").post("/api/reliability", json=c.model_dump(mode="json"))
+    assert res.status_code == 200 and res.json()["converged"] is False

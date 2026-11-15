@@ -317,3 +317,18 @@ def test_m14_routes():
         ("/api/jobs/loss-evaluation", {"circuit": reg, "mode": "daily"}),
     ):
         assert _finished(client, client.post(path, json=body))["status"] == "done", path
+
+
+def test_n_minus_1_survives_a_bus_the_engine_drops():
+    """A dead-end bus behind an opened line leaves the engine's bus list when
+    it rebuilds for the next solve, so node indices taken at the base case
+    ran over the end of the list (a Pro user's N-1 died with IndexError).
+    The bus comes back as dark instead."""
+    c = two_feeders()
+    c.nodes.append(CircuitNode(id="stub", type="busbar", width=240, params={"name": "STUB", "basekv": 12.47}))
+    c.edges.append(CircuitEdge(id="lnstub", type="line", source="end1", sourceHandle="b5", target="stub", targetHandle="b1",
+                               params={"name": "LNSTUB", "length": 1, **LINE}))
+    r = contingency.n_minus_1(c, {"candidates": "all"}, lambda d, t, m: None, None)
+    assert r["converged"], r["issues"]
+    stub = next(case for case in r["cases"] if case["id"] == "lnstub")
+    assert stub["converged"] and stub["darkBuses"] == 1 and stub["unservedKw"] == 0

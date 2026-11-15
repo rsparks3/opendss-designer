@@ -20,6 +20,7 @@ a few hundred solves.
 
 from __future__ import annotations
 
+import math
 import threading
 from collections.abc import Callable
 from typing import Any
@@ -81,11 +82,20 @@ class _Net:
         return bool(dss.Solution.Converged())
 
     def voltages(self) -> dict[str, tuple[float, float]]:
+        # Read by node name every time: taking an element out of service
+        # makes the engine rebuild its bus list on the next solve, and a bus
+        # nothing live reaches any more leaves the list altogether. The
+        # base-case node indices went stale that way (a dead-end bus behind
+        # an opened line put an N-1 run over the end of the list), and a bus
+        # that is gone is a dark bus.
+        names = dss.Circuit.AllNodeNames()
         mags = dss.Circuit.AllBusMagPu()
-        return {
-            b: (min(mags[i] for i in idxs), max(mags[i] for i in idxs))
-            for b, idxs in self.slices.items()
-        }
+        seen: dict[str, tuple[float, float]] = {}
+        for node, mag in zip(names, mags, strict=False):
+            b = node.split(".", 1)[0]
+            lo, hi = seen.get(b, (math.inf, -math.inf))
+            seen[b] = (min(lo, mag), max(hi, mag))
+        return {b: seen.get(b, (0.0, 0.0)) for b in self.slices}
 
     def loading(self) -> dict[str, float]:
         pct = (

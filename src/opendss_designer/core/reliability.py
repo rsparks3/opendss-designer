@@ -359,7 +359,23 @@ def reliability_study(circuit: Circuit) -> dict[str, Any]:
                 dss.Meters.Name(name)
                 if dss.Meters.Name().lower() != name:
                     continue
-                dss.Meters.DoReliabilityCalc(False)
+                try:
+                    dss.Meters.DoReliabilityCalc(False)
+                except Exception as exc:
+                    # The engine refuses without a relay, recloser or fuse
+                    # somewhere in the circuit: that is a finding, not a crash.
+                    issues.append(
+                        Issue(
+                            severity="error",
+                            code="no-protection",
+                            message="Reliability needs at least one protective device "
+                            "(relay, recloser or fuse) in service: "
+                            + str(exc).split("Error:", 1)[-1].strip(),
+                        )
+                    )
+                    converged = False
+                    raw = []
+                    break
                 raw.append(
                     {
                         "name": name,
