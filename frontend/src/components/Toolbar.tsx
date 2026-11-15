@@ -1,6 +1,7 @@
 import { chooseOverlay, save } from '../lib/fileActions'
 import { OVERLAY_CHOICES, solveNow, toggleAutoSolve } from '../lib/menus'
 import { redo, undo, useCircuitStore } from '../store/circuitStore'
+import { signalStruggle } from '../store/hintStore'
 import { useResultsStore } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
 
@@ -66,22 +67,33 @@ export function Toolbar() {
         <button onClick={() => redo()} title="Redo (Ctrl+Y)">↪ Redo</button>
       </div>
       <div className="tb-group">
-        <button
-          className="solve-btn"
-          onClick={solveNow}
-          disabled={solving || hasErrors || tsRunning || tsMode}
-          title={
-            tsMode
-              ? 'Individual runs disabled in time series mode'
-              : hasErrors
-                ? 'Fix the errors in the problems list first'
-                : 'Run a snapshot power flow of the base case (F5): loads at rated kW, ' +
-                  'PV at its irradiance parameter, storage idle. Loadshapes only ' +
-                  'apply to time-series runs.'
-          }
-        >
-          {solving ? 'Solving…' : '▶ Solve'}
-        </button>
+        <span className="solve-wrap">
+          <button
+            className="solve-btn"
+            onClick={solveNow}
+            disabled={solving || hasErrors || tsRunning || tsMode}
+            title={
+              tsMode
+                ? 'Individual runs disabled in time series mode'
+                : hasErrors
+                  ? 'Fix the errors in the problems list first'
+                  : 'Run a snapshot power flow of the base case (F5): loads at rated kW, ' +
+                    'PV at its irradiance parameter, storage idle. Loadshapes only ' +
+                    'apply to time-series runs.'
+            }
+          >
+            {solving ? 'Solving…' : '▶ Solve'}
+          </button>
+          {hasErrors && !tsMode && (
+            // A disabled button swallows its clicks; this catches them so a
+            // second press can say where the errors are (lib/struggles).
+            <span
+              className="solve-blocked"
+              title="Fix the errors in the problems list first"
+              onClick={() => signalStruggle('solve-blocked')}
+            />
+          )}
+        </span>
         <button
           className={autoSolve && !tsMode ? 'active' : ''}
           disabled={tsMode}
@@ -149,7 +161,11 @@ export function Toolbar() {
           <button
             key={o.mode}
             className={overlay === o.mode ? 'active' : ''}
-            onClick={() => chooseOverlay(o.mode)}
+            onClick={() => {
+              const rs = useResultsStore.getState()
+              if (rs.result && rs.stale && rs.analysisMode !== 'timeseries') signalStruggle('overlay-stale')
+              chooseOverlay(o.mode)
+            }}
             title={o.title}
           >
             {o.label}

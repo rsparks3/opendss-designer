@@ -1746,3 +1746,62 @@ kbd {
 .alloc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 12px; margin: 8px 0; }
 .alloc-grid label { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; }
 .alloc-grid input, .alloc-grid select { font: inherit; font-size: 12px; }
+
+/* ---------- help hints (components/HintCard.tsx, lib/struggles.ts) ----------
+   A card at the top of the drawing when the editor notices someone is stuck.
+   It sits below the placement hint when both are up, and above the flash
+   toast's end of the canvas; only its buttons take the pointer. */
+.struggle-hint {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(460px, calc(100% - 32px));
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 10px 12px 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  z-index: 11;
+  animation: struggle-hint-in 0.18s ease-out;
+}
+.canvas-wrap.placing .struggle-hint { top: 44px; }
+@keyframes struggle-hint-in {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.struggle-hint-icon { font-size: 18px; line-height: 1.2; }
+.struggle-hint-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.struggle-hint-title { font-weight: 600; font-size: 13px; }
+.struggle-hint-actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.struggle-hint-actions button {
+  padding: 3px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+.struggle-hint-note { font-size: 11px; color: var(--muted); }
+.struggle-hint-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.struggle-hint-close:hover { color: var(--ink); }
+/* The disabled Solve button cannot hear clicks; a clear span over it can,
+   so pressing it while errors block the solve can earn a hint. */
+.solve-wrap { position: relative; display: inline-flex; }
+.solve-blocked { position: absolute; inset: 0; cursor: not-allowed; }

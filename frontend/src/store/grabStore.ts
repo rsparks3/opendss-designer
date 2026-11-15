@@ -15,6 +15,7 @@ import { create } from 'zustand'
 import { collectHandles, nearestHandle, type HandleCandidate } from '../lib/grabTarget'
 import { useCircuitStore, validateConnection, type EdgeEnd, type XY } from './circuitStore'
 import { useResultsStore } from './resultsStore'
+import { signalStruggle } from './hintStore'
 
 /** Pointer travel (px) before a press on a terminal becomes a grab: below it
  *  the gesture is still a plain click (select, or finish a click-connection). */
@@ -131,13 +132,20 @@ export function createGrabSession(start: GrabStart): GrabSession {
             .reconnectEdgeEnd(start.edgeId, start.end, target.nodeId, target.handleId)
         } else if (refusal) {
           useResultsStore.getState().setFlash(refusal)
+        } else {
+          // Picked the wire up and let it go on nothing: more often than
+          // not, a second wire from that dot was wanted (Alt-drag).
+          signalStruggle('grab-abandoned')
         }
       }
       clear()
       return wasDrag
     },
 
-    cancel: clear,
+    cancel() {
+      if (live && moved) signalStruggle('grab-abandoned')
+      clear()
+    },
 
     invalidate() {
       handles = []

@@ -27,6 +27,7 @@ import { exportResultsToGis } from './resultsGis'
 import { DEFAULT_HC_OPTIONS, runHostingCapacity } from './hostingCapacity'
 import { levelNamed } from './scenarios'
 import { redo, undo, useCircuitStore } from '../store/circuitStore'
+import { signalStruggle } from '../store/hintStore'
 import { useResultsStore, type OverlayMode } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
 
@@ -114,7 +115,10 @@ export function copySelection() {
 export function solveNow() {
   const rs = useResultsStore.getState()
   if (rs.solving || rs.tsRunning || rs.analysisMode === 'timeseries') return
-  if (rs.issues.some((i) => i.severity === 'error')) return
+  if (rs.issues.some((i) => i.severity === 'error')) {
+    signalStruggle('solve-blocked')
+    return
+  }
   void runSolve()
 }
 

@@ -9,6 +9,7 @@ import {
   SelectionMode,
   useReactFlow,
   useStore,
+  useStoreApi,
   ViewportPortal,
   type FinalConnectionState,
   type IsValidConnection,
@@ -53,6 +54,8 @@ import { ZoneNode } from './nodes/ZoneNode'
 import { LineEdge } from './edges/LineEdge'
 import { WireEdge } from './edges/WireEdge'
 import { useGrabStore } from '../store/grabStore'
+import { circuitCounts, signalStruggle } from '../store/hintStore'
+import { HintCard } from './HintCard'
 
 const nodeTypes = {
   vsource: VsourceNode,
@@ -251,6 +254,13 @@ export function EditorCanvas() {
   // Surface WHY a dropped connection was refused.
   const onConnectEnd = useCallback(
     (_event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+      // Dragged a good way and let go over nothing: a wire with no home.
+      if (!state.toHandle && state.from && state.to) {
+        const dx = state.to.x - state.from.x
+        const dy = state.to.y - state.from.y
+        if (dx * dx + dy * dy > 20 * 20) signalStruggle('drop-missed')
+        return
+      }
       if (state.isValid !== false || !state.toHandle || !state.fromNode || !state.toNode) return
       const reason = validateConnection({
         source: state.fromNode.id,
@@ -300,6 +310,7 @@ export function EditorCanvas() {
         (e.target as HTMLElement)?.tagName,
       )
       if (e.key === 'Escape') {
+        if (useCircuitStore.getState().placementType) signalStruggle('placement-escaped')
         setPlacement(null)
         setBusbarDraft(null)
         setMenu(null)
@@ -369,6 +380,33 @@ export function EditorCanvas() {
     setHover(null)
     beginGesture()
   }, [])
+  const onNodeDragStop = useCallback(() => {
+    endGesture()
+    signalStruggle('node-drag', circuitCounts())
+  }, [])
+  const onNodeDoubleClick = useCallback(() => {
+    if (!useUiStore.getState().panelOpen.properties) signalStruggle('props-closed-dblclick')
+  }, [])
+
+  // Struggle signals the view gives off (lib/struggles): a selection box
+  // drawn on the pane, a pan by any means other than left-drag, and where
+  // the viewport comes to rest -- on the circuit, or on nothing.
+  const onSelectionEnd = useCallback(() => signalStruggle('marquee'), [])
+  const onMoveStart = useCallback((event: MouseEvent | TouchEvent | null) => {
+    const type = event?.type ?? ''
+    if (/^(mouse|pointer|touch)/.test(type)) signalStruggle('pan')
+  }, [])
+  const storeApi = useStoreApi()
+  const onMoveEnd = useCallback(() => {
+    const all = useCircuitStore.getState().nodes
+    if (!all.length) return
+    const { transform, width, height } = storeApi.getState()
+    signalStruggle(nodesInView(all, transform, width, height, 1) > 0 ? 'view-ok' : 'empty-view')
+  }, [storeApi])
+  const propertiesOpen = useUiStore((s) => s.panelOpen.properties)
+  useEffect(() => {
+    if (propertiesOpen) signalStruggle('props-opened')
+  }, [propertiesOpen])
 
   // Every symbol's attach points are hidden until a wire is looking for a
   // home: a new connection being dragged, or an existing end being moved.
@@ -403,9 +441,13 @@ export function EditorCanvas() {
         onEdgeMouseEnter={onEdgeMouseEnter}
         onEdgeMouseLeave={clearHover}
         onNodeDragStart={onDragStart}
-        onNodeDragStop={endGesture}
+        onNodeDragStop={onNodeDragStop}
+        onNodeDoubleClick={onNodeDoubleClick}
         onSelectionDragStart={onDragStart}
-        onSelectionDragStop={endGesture}
+        onSelectionDragStop={onNodeDragStop}
+        onSelectionEnd={onSelectionEnd}
+        onMoveStart={onMoveStart}
+        onMoveEnd={onMoveEnd}
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
         connectionRadius={30}
@@ -491,6 +533,7 @@ export function EditorCanvas() {
       <PhaseLegend />
       <ViewToggle />
       {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
+      <HintCard />
       {menu && <ContextMenu target={menu} onClose={() => setMenu(null)} />}
       {hover && !menu && !busbarDraft && <ResultTooltip target={hover} />}
     </div>

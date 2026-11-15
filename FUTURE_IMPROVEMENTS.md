@@ -760,6 +760,13 @@ Recorded so they stop being reconsidered:
   branch is ever wanted, an edge-level "out of service" flag (still attached at
   both ends, omitted from the compile) is the cheaper answer.
 
+- **More help hints.** `lib/struggles.ts` (added 2026-11-14) is a table of
+  rules over signals the components report; a new struggle is one hint, one
+  rule and one `signalStruggle` call. Candidates not yet detected: a drawing
+  key (R, Delete, a placement letter) pressed while a text field has focus;
+  busbar end grips never used (elements wired to a bar's middle); the Elements
+  spreadsheet never found for bulk edits; a scenario left active while editing
+  what was meant for the base case. The map view reports nothing yet.
 ## Done since v1
 
 - Project autosave to browser storage (debounced localStorage save + restore in `App.tsx`)

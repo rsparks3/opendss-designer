@@ -8,6 +8,7 @@ import { effectivePhasing, PHASE_LETTERS, phaseColor, weakestPhase } from '../..
 import { rotatePoint } from '../../lib/rotatePoint'
 import { edgesAtTerminal, useCircuitStore, useLimits, type EdgeEnd } from '../../store/circuitStore'
 import { beginGrab, useGrabStore } from '../../store/grabStore'
+import { signalStruggle } from '../../store/hintStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import { deltaColor } from '../../lib/compare'
 import { formatKw, hostingColor } from '../../lib/hostingCapacity'
@@ -46,7 +47,12 @@ export function Terminal({ nodeId, ...props }: { nodeId: string } & HandleProps)
   )
 
   const onMouseDown = (event: React.MouseEvent) => {
-    if (event.button !== 0 || event.altKey || !grabEdgeId) return
+    if (event.button !== 0 || !grabEdgeId) return
+    if (event.altKey) {
+      // Alt on an occupied dot starts a second wire: the person knows the trick.
+      signalStruggle('alt-wire')
+      return
+    }
     const edge = useCircuitStore.getState().edges.find((e) => e.id === grabEdgeId)
     if (!edge) return
     const end: EdgeEnd =
@@ -70,7 +76,7 @@ export function Terminal({ nodeId, ...props }: { nodeId: string } & HandleProps)
   return (
     <Handle
       {...props}
-      {...(grabbable ? { onMouseDown } : {})}
+      {...(grabEdgeId !== null ? { onMouseDown } : {})}
       isConnectableStart={!grabbable}
       className={`${props.className ?? ''}${grabbable ? ' grabbable' : ''}${drop}`}
     />
