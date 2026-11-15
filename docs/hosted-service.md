@@ -138,7 +138,11 @@ The converter is in the worker image for everyone; the gateway withholds it
 per request through the same header that carries the limits (`features:
 {convert: false}`, or a sentence naming the plan that has it), so the app
 never knows what a plan is. The menu still lists the formats, marked locked,
-which is the upgrade prompt.
+which is the upgrade prompt. The planning studies (0.9.0) are withheld the same
+way (`features: {studies: ...}`); the study panels stay visible with the
+sentence at the top. A background study holds its worker for the whole run
+(the gateway follows the job and meters it when it ends), so a plan's run
+timeout bounds how long one study can occupy a worker.
 
 For scale: on the current image a cost-1 M run is a 107-element feeder for a
 year at hourly steps and takes about 6 s and 69 MiB. Cost 3 M is the app's own

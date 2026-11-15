@@ -3,7 +3,13 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 0.9.0 — 2026-11-15
+
+Distribution planning. Load levels and scenarios, Volt/VAR and contingency
+studies, hosting capacity and interconnection screening, the secondary,
+protection and reliability depth, CIM and MultiSpeak interchange, harmonics,
+and help hints when someone seems stuck. The studies are a feature a hosted
+instance may withhold per plan.
 
 ### Fixed
 

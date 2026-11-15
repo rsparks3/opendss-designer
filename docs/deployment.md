@@ -73,7 +73,11 @@ withhold the feature per request: a `features` object in the limits header,
 `{"features": {"convert": false}}`, or a sentence in place of `false` to say
 which plan includes it. The menu still lists the formats, marked locked, and
 a conversion is refused with that sentence. This is how the hosted instance
-keeps the import for its Pro plan.
+keeps the import for its Pro plan. The planning, protection and power-quality
+studies are a second key, `studies`: withheld the same way, every study call
+(the background jobs under `/api/jobs` and the direct ones) answers 403 with
+the sentence, `/api/health` lists the withheld features under `features`, and
+the panels that launch studies show the sentence at the top.
 
 **The map's tiles** come from the visitor's browser straight to the tile
 server (OpenStreetMap by default), so the app's Content-Security-Policy
