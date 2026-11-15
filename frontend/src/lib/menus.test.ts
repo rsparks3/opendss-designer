@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildMenus, type MenuEntry } from './menus'
 import { SHORTCUTS } from './shortcuts'
+import { useResultsStore } from '../store/resultsStore'
 
 const ops = { zoomIn: () => {}, zoomOut: () => {}, deleteSelection: () => {} }
 
@@ -47,5 +48,21 @@ describe('menus', () => {
       entries.forEach((e) => e.kind === 'sub' && check(e.items))
     }
     menus.forEach((m) => check(m.items))
+  })
+
+  it('list a withheld converter format but explain instead of opening a picker', () => {
+    const fmt = { key: 'cyme', label: 'CYME', help: 'Network and equipment.', extensions: ['.txt'], maxFiles: 3 }
+    const reason = 'CYME and Synergi import is part of the Pro plan.'
+    const locked = buildMenus(ops, [], { available: true, formats: [fmt], locked: true, reason })
+    const entry = walk(locked.flatMap((m) => m.items)).find((i) => i.label === 'CYME…')
+    expect(entry?.hint).toBe('Locked')
+    expect(entry?.title).toBe(reason)
+    entry?.run()
+    expect(useResultsStore.getState().flash).toBe(reason)
+
+    const open = buildMenus(ops, [], { available: true, formats: [fmt] })
+    const usable = walk(open.flatMap((m) => m.items)).find((i) => i.label === 'CYME…')
+    expect(usable?.hint).toBeUndefined()
+    expect(usable?.title).toBe(fmt.help)
   })
 })

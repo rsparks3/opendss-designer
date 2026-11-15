@@ -133,7 +133,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t opendss-designer:ci .
+      # The same converter pin as image.yml, so a plugin that no longer
+      # installs fails here, on the pull request, rather than on main.
+      - run: |
+          CONVERTER=$(grep -oE '^\s*CONVERTER:\s*\S+' .github/workflows/image.yml | awk '{print $2}')
+          test -n "$CONVERTER"
+          docker build --build-arg "CONVERTER=$CONVERTER" -t opendss-designer:ci .
       - name: Container serves a hardened, demo-limited app
         run: |
           docker run -d --name ci -p 8721:8721 opendss-designer:ci
@@ -141,6 +146,8 @@ jobs:
             curl -sf http://127.0.0.1:8721/api/health >/dev/null && break || sleep 2
           done
           curl -sf http://127.0.0.1:8721/api/health | grep -q '"mode":"demo"'
+          # The converter plugin is in and lists its formats.
+          curl -sf http://127.0.0.1:8721/api/convert/formats | grep -q '"available":true'
           # The conductor presets must ship inside the wheel.
           test "$(curl -sf http://127.0.0.1:8721/api/linecodes | grep -o '"code"' | wc -l)" -gt 0
           # Path traversal must not resurface on Linux.

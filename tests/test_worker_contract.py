@@ -105,6 +105,28 @@ def test_plan_is_validated_and_bounded():
             {"label": "x", "url": "javascript:alert(1)"}]}})
 
 
+def test_features_can_only_be_withheld_never_granted():
+    base = Settings.from_env({})
+    assert base.allow_convert is True
+    off = base.tightened({"features": {"convert": False}})
+    assert off.allow_convert is False
+    assert off.feature_reason("convert", "CYME and Synergi import") == \
+        "CYME and Synergi import is not included in the public demo."
+    # The proxy's own sentence, bounded like the plan message.
+    worded = base.tightened({"plan": {"name": "Free"},
+                             "features": {"convert": "Part of the Pro plan. " + "x" * 300}})
+    assert worded.allow_convert is False
+    assert worded.feature_reason("convert", "whatever").startswith("Part of the Pro plan. x")
+    assert len(worded.feature_reason("convert", "whatever")) == 200
+    # True and absent are "no opinion"; a withheld feature cannot be re-granted.
+    assert base.tightened({"features": {"convert": True}}).allow_convert is True
+    assert off.tightened({"features": {"convert": True}}).allow_convert is False
+    assert base.tightened({"features": {"teleport": False}}) == base
+    for bad in ({"features": [1]}, {"features": {"convert": 1}}, {"features": {"convert": ""}}):
+        with pytest.raises(BadLimitsHeader):
+            base.tightened(bad)
+
+
 # --- The header is honoured only when the operator names it ----------------
 
 def test_header_is_ignored_unless_trusted(untrusting, substation_circuit):

@@ -18,6 +18,14 @@ concurrency:
   group: image-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # The CYME/Synergi converter plugin, built into the published image so the
+  # hosted service can offer the import (its gateway decides which plan gets
+  # it). Pinned to a commit of its repository until it is on PyPI; then
+  # `opendss-designer-convert==x.y.z`. The same value is used by ci.yml so a
+  # broken install is caught on the pull request, not after the merge.
+  CONVERTER: https://github.com/rsparks3/opendss-designer-convert/archive/b6882d456d69031c5f669f6ac60367f8412b8533.tar.gz
+
 jobs:
   push:
     name: Build and push to GHCR
@@ -55,6 +63,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            CONVERTER=${{ env.CONVERTER }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -69,6 +79,9 @@ jobs:
             curl -sf http://127.0.0.1:8721/api/health >/dev/null && break || sleep 2
           done
           curl -sf http://127.0.0.1:8721/api/health | grep -q '"mode":"demo"'
+          # The converter plugin must be in and importable: the File menu
+          # lists its formats only then.
+          curl -sf http://127.0.0.1:8721/api/convert/formats | grep -q '"available":true'
           # The container must report healthy, not merely be running: the
           # HEALTHCHECK requests Host 127.0.0.1, which the Host allowlist
           # rejects unless loopback is included.

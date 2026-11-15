@@ -107,6 +107,10 @@ export interface ConvertFormats {
   install?: string
   version?: string
   formats: ConvertFormat[]
+  /** Installed, but withheld from this caller by the instance's plan. */
+  locked?: boolean
+  /** Why, in the instance's words (which plan includes it). */
+  reason?: string
 }
 
 export interface SampleMeta {
