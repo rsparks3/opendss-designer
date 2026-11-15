@@ -1,4 +1,5 @@
 """Console entry point: start the server and (locally) open the browser."""
+
 from __future__ import annotations
 
 import argparse
@@ -37,19 +38,27 @@ def _open_when_ready(url: str) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="opendss-designer",
-        description="One-line diagram designer for OpenDSS (also: opendss-designer run --list)")
-    parser.add_argument("--port", type=int, default=None,
-                        help=f"port to bind (default {DEFAULT_PORT}, or $PORT)")
-    parser.add_argument("--host", default=None,
-                        help="address to bind (default 127.0.0.1; use 0.0.0.0 "
-                             "in a container)")
-    parser.add_argument("--no-browser", action="store_true",
-                        help="don't open a browser window")
-    parser.add_argument("--demo", action="store_true",
-                        help="run with public-demo limits (see docs/deployment.md)")
-    parser.add_argument("--idle-timeout", type=float, default=None,
-                        metavar="SECONDS",
-                        help="exit after this long with no activity (0 = never)")
+        description="One-line diagram designer for OpenDSS (also: opendss-designer run --list)",
+    )
+    parser.add_argument(
+        "--port", type=int, default=None, help=f"port to bind (default {DEFAULT_PORT}, or $PORT)"
+    )
+    parser.add_argument(
+        "--host",
+        default=None,
+        help="address to bind (default 127.0.0.1; use 0.0.0.0 in a container)",
+    )
+    parser.add_argument("--no-browser", action="store_true", help="don't open a browser window")
+    parser.add_argument(
+        "--demo", action="store_true", help="run with public-demo limits (see docs/deployment.md)"
+    )
+    parser.add_argument(
+        "--idle-timeout",
+        type=float,
+        default=None,
+        metavar="SECONDS",
+        help="exit after this long with no activity (0 = never)",
+    )
     return parser
 
 
@@ -84,16 +93,31 @@ def run_main(argv: list[str]) -> int:
     import sys
     from pathlib import Path
 
-    parser = argparse.ArgumentParser(prog="opendss-designer run",
-                                     description="Run planning studies on a saved project without the browser")
+    parser = argparse.ArgumentParser(
+        prog="opendss-designer run",
+        description="Run planning studies on a saved project without the browser",
+    )
     parser.add_argument("project", nargs="?", help="a .oneline.json project, or a .dss file")
-    parser.add_argument("--study", action="append", default=[], metavar="NAME",
-                        help="a study to run (repeatable); see --list")
-    parser.add_argument("--options", default=None, metavar="JSON",
-                        help="options as JSON, keyed by study name (or flat for one study)")
-    parser.add_argument("--scenario", default=None, help="run the named scenario id instead of the open one")
+    parser.add_argument(
+        "--study",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="a study to run (repeatable); see --list",
+    )
+    parser.add_argument(
+        "--options",
+        default=None,
+        metavar="JSON",
+        help="options as JSON, keyed by study name (or flat for one study)",
+    )
+    parser.add_argument(
+        "--scenario", default=None, help="run the named scenario id instead of the open one"
+    )
     parser.add_argument("--level", default=None, help="run at the named load level")
-    parser.add_argument("--out", default=None, metavar="FILE", help="write the JSON here (default: stdout)")
+    parser.add_argument(
+        "--out", default=None, metavar="FILE", help="write the JSON here (default: stdout)"
+    )
     parser.add_argument("--list", action="store_true", help="list the studies and exit")
     args = parser.parse_args(argv)
 
@@ -112,7 +136,10 @@ def run_main(argv: list[str]) -> int:
     text = path.read_text(encoding="utf-8")
     if path.suffix.lower() == ".dss":
         from .core.importer import import_dss_files
-        circuit = Circuit.model_validate(import_dss_files([{"name": path.name, "text": text}])["circuit"])
+
+        circuit = Circuit.model_validate(
+            import_dss_files([{"name": path.name, "text": text}])["circuit"]
+        )
     else:
         circuit = Circuit.model_validate(json.loads(text))
     if args.scenario is not None:
@@ -125,7 +152,9 @@ def run_main(argv: list[str]) -> int:
         if name not in STUDIES:
             print(f"unknown study {name!r}; see --list", file=sys.stderr)
             return 2
-        opts = options.get(name, options if len(args.study) == 1 and not any(k in STUDIES for k in options) else {})
+        opts = options.get(
+            name, options if len(args.study) == 1 and not any(k in STUDIES for k in options) else {}
+        )
         results[name] = run_study(name, circuit, opts if isinstance(opts, dict) else {})
     out = json.dumps(results, indent=1, default=str)
     if args.out:
@@ -167,8 +196,9 @@ def main() -> None:
     # something else entirely, is only consulted there.
     deployment = cfg.demo or host not in LOOPBACK
     env_port = os.environ.get("PORT", "").strip() if deployment else ""
-    requested = args.port if args.port is not None else (
-        int(env_port) if env_port.isdigit() else None)
+    requested = (
+        args.port if args.port is not None else (int(env_port) if env_port.isdigit() else None)
+    )
     if deployment:
         port = requested if requested is not None else DEFAULT_PORT
     else:
@@ -193,9 +223,14 @@ def main() -> None:
     # clean shutdown (server.should_exit), which is portable in a way that
     # signalling the process is not.
     # Single worker: the OpenDSS engine is a process-wide singleton.
-    config = uvicorn.Config(app, host=host, port=port, workers=1,
-                            log_level="info" if cfg.demo else "warning",
-                            access_log=cfg.demo)
+    config = uvicorn.Config(
+        app,
+        host=host,
+        port=port,
+        workers=1,
+        log_level="info" if cfg.demo else "warning",
+        access_log=cfg.demo,
+    )
     server = uvicorn.Server(config)
     app.state.server = server
     server.run()

@@ -69,3 +69,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Tests reach into private helpers on purpose: that is what is being pinned.
 "tests/*" = ["E501"]
+# The interchange writers build one DSS command or XML element per line;
+# wrapping them would hide what each line produces.
+"src/opendss_designer/core/cim.py" = ["E501"]
+"src/opendss_designer/core/multispeak.py" = ["E501"]

@@ -14,6 +14,7 @@ move with the loads). The result is a set of parameter overrides -- a
 scenario, or the base case, as the user chooses -- and a report of what
 matched, what did not, and the head before and after.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -34,18 +35,29 @@ def _key_of(node, key_by: str, conn_buses: dict[str, list[str]]) -> list[str]:
     return [str(p.get("name") or node.id).strip().lower(), node.id.lower()]
 
 
-def allocate(circuit: Circuit, rows: list[dict[str, Any]], options: dict[str, Any] | None = None) -> dict[str, Any]:
+def allocate(
+    circuit: Circuit, rows: list[dict[str, Any]], options: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """`rows`: [{"key": "...", "kwh": 123}] or [{"key": "...", "kw": 45}] or
     [{"key": "...", "values": [kw, kw, ...]}]. `options`: keyBy
     ('name'|'bus'|'class'), hours (period length for kWh), loadFactor
     (number, or {class: LF}), targetHeadKw, intervalMin, shapePrefix."""
-    opts = {"keyBy": "name", "hours": 730.0, "loadFactor": DEFAULT_LOAD_FACTOR, "targetHeadKw": None,
-            "intervalMin": 60, "shapePrefix": "ami"}
+    opts = {
+        "keyBy": "name",
+        "hours": 730.0,
+        "loadFactor": DEFAULT_LOAD_FACTOR,
+        "targetHeadKw": None,
+        "intervalMin": 60,
+        "shapePrefix": "ami",
+    }
     opts.update({k: v for k, v in (options or {}).items() if k in opts})
     circuit = effective_circuit(circuit)
     from ..core.connectivity import synthesize
+
     conn = synthesize(circuit)
-    loads = [n for n in circuit.nodes if n.type == "load" and n.params.get("enabled", True) is not False]
+    loads = [
+        n for n in circuit.nodes if n.type == "load" and n.params.get("enabled", True) is not False
+    ]
     by_key: dict[str, list] = {}
     for n in loads:
         for k in set(_key_of(n, str(opts["keyBy"]), conn.node_buses)):
@@ -81,7 +93,11 @@ def allocate(circuit: Circuit, rows: list[dict[str, Any]], options: dict[str, An
             continue
         share = 1.0 / len(targets)  # a key matching several loads (a bus, a class) splits evenly
         for n in targets:
-            entry: dict[str, Any] = {"id": n.id, "name": str(n.params.get("name") or n.id), "key": row.get("key")}
+            entry: dict[str, Any] = {
+                "id": n.id,
+                "name": str(n.params.get("name") or n.id),
+                "key": row.get("key"),
+            }
             values = row.get("values")
             if isinstance(values, list) and len(values) >= 2:
                 vals = [float(v) for v in values if isinstance(v, (int, float))]
@@ -90,8 +106,11 @@ def allocate(circuit: Circuit, rows: list[dict[str, Any]], options: dict[str, An
                     unmatched.append(str(row.get("key", "")))
                     continue
                 shape_name = f"{opts['shapePrefix']}_{entry['name']}".replace(" ", "_")[:60]
-                shapes[shape_name] = LoadShapeSpec(intervalMin=float(opts["intervalMin"]),
-                                                   points=[round(v / peak, 5) for v in vals], source="ami")
+                shapes[shape_name] = LoadShapeSpec(
+                    intervalMin=float(opts["intervalMin"]),
+                    points=[round(v / peak, 5) for v in vals],
+                    source="ami",
+                )
                 kw = peak * share
                 overrides[n.id] = {"kw": round(kw, 3), "loadshape": shape_name}
                 entry.update({"kw": round(kw, 3), "from": "intervals", "points": len(vals)})
@@ -115,18 +134,25 @@ def allocate(circuit: Circuit, rows: list[dict[str, Any]], options: dict[str, An
     no_data = [str(n.params.get("name") or n.id) for n in loads if n.id not in overrides]
 
     def apply(c: Circuit, ovr: dict[str, dict[str, Any]]) -> Circuit:
-        nodes = [nn.model_copy(update={"params": {**nn.params, **ovr[nn.id]}}) if nn.id in ovr else nn for nn in c.nodes]
+        nodes = [
+            nn.model_copy(update={"params": {**nn.params, **ovr[nn.id]}}) if nn.id in ovr else nn
+            for nn in c.nodes
+        ]
         return c.model_copy(update={"nodes": nodes, "loadShapes": {**c.loadShapes, **shapes}})
 
     head_before = head_after = None
     scale = None
     base = engine.solve(circuit)
     if base.get("converged"):
-        head_before = round(-sum(e["kw"] for f, e in base["elements"].items() if f.startswith("vsource.")), 1)
+        head_before = round(
+            -sum(e["kw"] for f, e in base["elements"].items() if f.startswith("vsource.")), 1
+        )
     allocated = apply(circuit, overrides)
     solved = engine.solve(allocated)
     if solved.get("converged"):
-        head_after = round(-sum(e["kw"] for f, e in solved["elements"].items() if f.startswith("vsource.")), 1)
+        head_after = round(
+            -sum(e["kw"] for f, e in solved["elements"].items() if f.startswith("vsource.")), 1
+        )
     target = opts["targetHeadKw"]
     if target is not None and head_after and float(target) > 0:
         # Two secant passes: losses move with the loads, so one ratio is not exact.
@@ -134,12 +160,23 @@ def allocate(circuit: Circuit, rows: list[dict[str, Any]], options: dict[str, An
         current = head_after
         for _ in range(2):
             scale *= float(target) / current
-            scaled = {n.id: {**overrides.get(n.id, {}), "kw": round(float(overrides.get(n.id, {}).get("kw", n.params.get("kw", 0)) or 0) * scale, 3)}
-                      for n in loads}
+            scaled = {
+                n.id: {
+                    **overrides.get(n.id, {}),
+                    "kw": round(
+                        float(overrides.get(n.id, {}).get("kw", n.params.get("kw", 0)) or 0)
+                        * scale,
+                        3,
+                    ),
+                }
+                for n in loads
+            }
             trial = engine.solve(apply(circuit, scaled))
             if not trial.get("converged"):
                 break
-            current = -sum(e["kw"] for f, e in trial["elements"].items() if f.startswith("vsource."))
+            current = -sum(
+                e["kw"] for f, e in trial["elements"].items() if f.startswith("vsource.")
+            )
         overrides = scaled
         head_after = round(current, 1)
         for m in matched:

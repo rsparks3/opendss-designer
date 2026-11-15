@@ -16,6 +16,7 @@ capacity study and the interconnection screens do, rather than from the
 power-flow model of a generator at a collapsed voltage, which OpenDSS does
 not intend as a fault model.
 """
+
 from __future__ import annotations
 
 import math
@@ -78,8 +79,10 @@ def _place_fault(bus: str, kind: str, r_ohm: float, phase: int | None = None) ->
     # The element persists once defined (disabling keeps it), and the engine
     # objects to a second `new` of the same name, so later faults are edits.
     verb = "edit" if dss.Circuit.SetActiveElement(f"fault.{FAULT_NAME}") >= 0 else "new"
-    dss.Text.Command(f"{verb} fault.{FAULT_NAME} bus1={bus}{bus1} bus2={bus}{bus2} phases={phases} "
-                     f"r={r:.6g} ontime=0 temporary=no enabled=yes")
+    dss.Text.Command(
+        f"{verb} fault.{FAULT_NAME} bus1={bus}{bus1} bus2={bus}{bus2} phases={phases} "
+        f"r={r:.6g} ontime=0 temporary=no enabled=yes"
+    )
     return spec["label"]
 
 
@@ -94,7 +97,7 @@ def _fault_amps() -> list[float]:
     dss.Circuit.SetActiveElement(f"fault.{FAULT_NAME}")
     mags = dss.CktElement.CurrentsMagAng()
     nph = dss.CktElement.NumPhases()
-    return [float(v) for v in mags[0:2 * nph:2]]
+    return [float(v) for v in mags[0 : 2 * nph : 2]]
 
 
 def der_contribution_amps(kva: float, kv_ll: float, phases: int, der_type: str) -> float:
@@ -116,14 +119,18 @@ def _device_currents(element_map: dict[str, str]) -> dict[str, dict[str, Any]]:
             continue
         nph = dss.CktElement.NumPhases()
         mags = dss.CktElement.CurrentsMagAng()
-        amps = [float(v) for v in mags[0:2 * nph:2]]
-        out[full] = {"id": diagram_id, "amps": round(max(amps), 1) if amps else 0.0,
-                     "phaseAmps": [round(a, 1) for a in amps]}
+        amps = [float(v) for v in mags[0 : 2 * nph : 2]]
+        out[full] = {
+            "id": diagram_id,
+            "amps": round(max(amps), 1) if amps else 0.0,
+            "phaseAmps": [round(a, 1) for a in amps],
+        }
     return out
 
 
-def fault_point(circuit: Circuit, bus: str, kind: str = "3ph", r_ohm: float = 0.0,
-                phase: int | None = None) -> dict[str, Any]:
+def fault_point(
+    circuit: Circuit, bus: str, kind: str = "3ph", r_ohm: float = 0.0, phase: int | None = None
+) -> dict[str, Any]:
     """One fault at one bus: current in the fault, the current every series
     element carries, and the bus voltages while it is on."""
     if kind not in FAULT_KINDS:
@@ -133,7 +140,9 @@ def fault_point(circuit: Circuit, bus: str, kind: str = "3ph", r_ohm: float = 0.
 
 
 @engine.on_engine_thread
-def _fault_point(circuit: Circuit, bus: str, kind: str, r_ohm: float, phase: int | None) -> dict[str, Any]:
+def _fault_point(
+    circuit: Circuit, bus: str, kind: str, r_ohm: float, phase: int | None
+) -> dict[str, Any]:
     compiled = compile_circuit(circuit, shape_dir=engine.SHAPE_DIR)
     issues = limit_issues(circuit) + list(compiled.issues)
     if any(i.severity == "error" for i in issues):
@@ -141,17 +150,26 @@ def _fault_point(circuit: Circuit, bus: str, kind: str, r_ohm: float, phase: int
     with engine.dss_guard():
         engine._ensure_init()
         engine._write_aux_files(compiled)
-        if not engine._run_commands(compiled.commands, compiled.element_map, issues,
-                                    compiled.optional_commands):
+        if not engine._run_commands(
+            compiled.commands, compiled.element_map, issues, compiled.optional_commands
+        ):
             return {"converged": False, "issues": [i.model_dump() for i in issues]}
         if bus not in {b.lower() for b in dss.Circuit.AllBusNames()}:
-            issues.append(Issue(severity="error", code="no-such-bus", message=f"No bus named '{bus}'."))
+            issues.append(
+                Issue(severity="error", code="no-such-bus", message=f"No bus named '{bus}'.")
+            )
             return {"converged": False, "issues": [i.model_dump() for i in issues]}
         engine.quiet_for_fault_study(compiled.element_map, compiled.passthrough_names)
         label = _place_fault(bus, kind, r_ohm, phase)
         if label is None:
-            issues.append(Issue(severity="error", code="fault-phases",
-                                message=f"Bus '{bus}' has too few phases for a {FAULT_KINDS[kind]['label']} fault."))
+            issues.append(
+                Issue(
+                    severity="error",
+                    code="fault-phases",
+                    message=f"Bus '{bus}' has too few phases "
+                    f"for a {FAULT_KINDS[kind]['label']} fault.",
+                )
+            )
             return {"converged": False, "issues": [i.model_dump() for i in issues]}
         dss.Text.Command("set mode=snapshot")
         dss.Text.Command("set controlmode=off")
@@ -184,8 +202,12 @@ def _fault_point(circuit: Circuit, bus: str, kind: str, r_ohm: float, phase: int
     }
 
 
-def fault_sweep(circuit: Circuit, r_ohm: float = 0.0, progress: Progress | None = None,
-                cancel: threading.Event | None = None) -> dict[str, Any]:
+def fault_sweep(
+    circuit: Circuit,
+    r_ohm: float = 0.0,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+) -> dict[str, Any]:
     """Maximum and minimum fault currents at every bus: bolted three-phase
     and single-line-to-ground from a fault study (the maximum cases), and
     line-to-line bolted and line-to-ground through `r_ohm` from Fault
@@ -195,8 +217,9 @@ def fault_sweep(circuit: Circuit, r_ohm: float = 0.0, progress: Progress | None 
 
 
 @engine.on_engine_thread
-def _fault_sweep(circuit: Circuit, r_ohm: float, progress: Progress | None,
-                 cancel: threading.Event | None) -> dict[str, Any]:
+def _fault_sweep(
+    circuit: Circuit, r_ohm: float, progress: Progress | None, cancel: threading.Event | None
+) -> dict[str, Any]:
     compiled = compile_circuit(circuit, shape_dir=engine.SHAPE_DIR)
     issues = limit_issues(circuit) + list(compiled.issues)
     if any(i.severity == "error" for i in issues):
@@ -206,8 +229,9 @@ def _fault_sweep(circuit: Circuit, r_ohm: float, progress: Progress | None,
     with engine.dss_guard():
         engine._ensure_init()
         engine._write_aux_files(compiled)
-        if not engine._run_commands(compiled.commands, compiled.element_map, issues,
-                                    compiled.optional_commands):
+        if not engine._run_commands(
+            compiled.commands, compiled.element_map, issues, compiled.optional_commands
+        ):
             return {"converged": False, "issues": [i.model_dump() for i in issues], "buses": {}}
         engine.quiet_for_fault_study(compiled.element_map, compiled.passthrough_names)
         dss.Text.Command("set mode=faultstudy")
@@ -224,7 +248,8 @@ def _fault_sweep(circuit: Circuit, r_ohm: float, progress: Progress | None,
                 "kvBase": round(dss.Bus.kVBase(), 5),
                 "if3phA": round(v_ln / abs(z1), 1) if abs(z1) > 1e-9 else None,
                 "if1phA": round(3 * v_ln / abs(loop), 1) if abs(loop) > 1e-9 else None,
-                "ifLLA": None, "ifLGrA": None,
+                "ifLLA": None,
+                "ifLGrA": None,
             }
         dss.Text.Command("set mode=snapshot")
         dss.Text.Command("set controlmode=off")
@@ -243,7 +268,7 @@ def _fault_sweep(circuit: Circuit, r_ohm: float, progress: Progress | None,
                 _remove_fault()
             if progress is not None and (i % max(1, total // 100) == 0 or i == total - 1):
                 progress(i + 1, total, b)
-        for b, rec in buses_out.items():
+        for _b, rec in buses_out.items():
             mins = [v for v in (rec["ifLLA"], rec["ifLGrA"]) if v]
             rec["ifMinA"] = round(min(mins), 1) if mins else None
     conn = compiled.connectivity

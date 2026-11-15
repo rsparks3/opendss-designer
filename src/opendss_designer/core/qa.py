@@ -10,6 +10,7 @@ severity (`warning` for something that changes answers, `info` for
 something that limits a study) and the element; a completeness table per
 element class says how much of the data is there.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -18,8 +19,16 @@ from .compiler import DEFAULT_LINE_NORMAMPS, compile_circuit
 from .connectivity import synthesize
 from .model import Circuit, conducts, in_service
 
-_KM = {"km": 1.0, "m": 0.001, "mi": 1.609344, "kft": 0.3048, "ft": 0.0003048, "in": 0.0000254,
-       "cm": 0.00001, "none": 0.0}
+_KM = {
+    "km": 1.0,
+    "m": 0.001,
+    "mi": 1.609344,
+    "kft": 0.3048,
+    "ft": 0.0003048,
+    "in": 0.0000254,
+    "cm": 0.00001,
+    "none": 0.0,
+}
 
 # Values the editor fills in for a freshly drawn element; left as they are,
 # they are placeholders, not data.
@@ -42,10 +51,22 @@ def qa_report(circuit: Circuit) -> dict[str, Any]:
     def miss(cls: str, field: str) -> None:
         missing.setdefault(cls, {})[field] = missing.setdefault(cls, {}).get(field, 0) + 1
 
-    def add(severity: str, code: str, message: str, node_id: str | None = None,
-            edge_id: str | None = None) -> None:
-        findings.append({"severity": severity, "code": code, "message": message,
-                         "nodeId": node_id, "edgeId": edge_id})
+    def add(
+        severity: str,
+        code: str,
+        message: str,
+        node_id: str | None = None,
+        edge_id: str | None = None,
+    ) -> None:
+        findings.append(
+            {
+                "severity": severity,
+                "code": code,
+                "message": message,
+                "nodeId": node_id,
+                "edgeId": edge_id,
+            }
+        )
 
     conn = synthesize(circuit)
     bases = set(circuit.voltageBases or [])
@@ -81,14 +102,26 @@ def qa_report(circuit: Circuit) -> dict[str, Any]:
             kv = _num(p, "kv")
             if kv is None:
                 miss("load", "kv")
-            elif bases and not any(abs(kv - b) / b < 0.05 or abs(kv * 3 ** 0.5 - b) / b < 0.05 for b in bases):
-                add("warning", "kv-no-base", f"Load {name} is rated {kv:g} kV, which matches no voltage base.", n.id)
+            elif bases and not any(
+                abs(kv - b) / b < 0.05 or abs(kv * 3**0.5 - b) / b < 0.05 for b in bases
+            ):
+                add(
+                    "warning",
+                    "kv-no-base",
+                    f"Load {name} is rated {kv:g} kV, which matches no voltage base.",
+                    n.id,
+                )
         elif n.type in ("breaker", "fuse", "recloser", "relay"):
             if _num(p, "interruptingka") is None:
                 miss(n.type, "interruptingka")
             if n.type == "breaker" and not p.get("closed", True) and not p.get("tie"):
                 buses = conn.node_buses.get(n.id, [])
-                add("info", "open-point", f"{name} is normally open and not marked as a tie switch.", n.id)
+                add(
+                    "info",
+                    "open-point",
+                    f"{name} is normally open and not marked as a tie switch.",
+                    n.id,
+                )
                 del buses
             if n.type == "recloser" and _num(p, "phasetrip") is None:
                 miss("recloser", "phasetrip")
@@ -98,7 +131,11 @@ def qa_report(circuit: Circuit) -> dict[str, Any]:
                 miss("fuse", "ratedcurrent")
         elif n.type in ("transformer", "regulator"):
             windings = p.get("windings") or []
-            kvas = [_num(w, "kva") for w in windings if isinstance(w, dict)] if n.type == "transformer" else [_num(p, "kva")]
+            kvas = (
+                [_num(w, "kva") for w in windings if isinstance(w, dict)]
+                if n.type == "transformer"
+                else [_num(p, "kva")]
+            )
             if not any(k and k > 0 for k in kvas):
                 miss(n.type, "kva")
                 add("warning", "no-rating", f"{name} has no kVA rating.", n.id)
@@ -107,13 +144,28 @@ def qa_report(circuit: Circuit) -> dict[str, Any]:
             if n.type == "transformer" and bases:
                 for w in windings:
                     kv = _num(w, "kv") if isinstance(w, dict) else None
-                    if kv and not any(abs(kv - b) / b < 0.05 or abs(kv * 3 ** 0.5 - b) / b < 0.05 or abs(kv * 2 - b) / b < 0.1 for b in bases):
-                        add("warning", "kv-no-base", f"{name}: winding at {kv:g} kV matches no voltage base.", n.id)
+                    if kv and not any(
+                        abs(kv - b) / b < 0.05
+                        or abs(kv * 3**0.5 - b) / b < 0.05
+                        or abs(kv * 2 - b) / b < 0.1
+                        for b in bases
+                    ):
+                        add(
+                            "warning",
+                            "kv-no-base",
+                            f"{name}: winding at {kv:g} kV matches no voltage base.",
+                            n.id,
+                        )
                         break
         elif n.type == "vsource":
             if _num(p, "mvasc3") is None:
                 miss("vsource", "mvasc3")
-                add("info", "default-source", f"Source {name} has no short-circuit strength; fault currents use the default.", n.id)
+                add(
+                    "info",
+                    "default-source",
+                    f"Source {name} has no short-circuit strength; fault currents use the default.",
+                    n.id,
+                )
         elif n.type in ("generator", "pvsystem", "storage"):
             if _num(p, "kva") is None and _num(p, "kwrated") is None:
                 miss(n.type, "kva")
@@ -135,24 +187,55 @@ def qa_report(circuit: Circuit) -> dict[str, Any]:
             miss("line", "length")
             add("warning", "no-length", f"Line {name} has no length.", edge_id=e.id)
         elif km > 50:
-            add("warning", "long-line", f"Line {name} is {km:.1f} km long; check its length or units.", edge_id=e.id)
+            add(
+                "warning",
+                "long-line",
+                f"Line {name} is {km:.1f} km long; check its length or units.",
+                edge_id=e.id,
+            )
         elif km < 0.001 and primary_kv >= 1:
-            add("info", "short-line", f"Line {name} is under a metre; a wire would do.", edge_id=e.id)
+            add(
+                "info",
+                "short-line",
+                f"Line {name} is under a metre; a wire would do.",
+                edge_id=e.id,
+            )
         has_code = bool(p.get("linecode")) and str(p.get("linecode")) in circuit.lineCodes
         has_geom = bool(p.get("geometry")) and str(p.get("geometry")) in circuit.lineGeometries
         if not has_code and not has_geom:
             own = {k: _num(p, k) for k in _PLACEHOLDER_LINE}
             if all(own[k] is None for k in own):
                 miss("line", "impedance")
-                add("warning", "no-impedance", f"Line {name} has no impedance; the editor's placeholder is used.", edge_id=e.id)
-            elif all(own[k] is not None and abs(own[k] - v) < 1e-9 for k, v in _PLACEHOLDER_LINE.items()):
+                add(
+                    "warning",
+                    "no-impedance",
+                    f"Line {name} has no impedance; the editor's placeholder is used.",
+                    edge_id=e.id,
+                )
+            elif all(
+                own[k] is not None and abs(own[k] - v) < 1e-9 for k, v in _PLACEHOLDER_LINE.items()
+            ):
                 miss("line", "impedance")
-                add("warning", "placeholder-impedance", f"Line {name} still carries the editor's placeholder impedance.", edge_id=e.id)
-        if _num(p, "normamps") is None and not (has_code and circuit.lineCodes[str(p["linecode"])].normamps) and not has_geom:
+                add(
+                    "warning",
+                    "placeholder-impedance",
+                    f"Line {name} still carries the editor's placeholder impedance.",
+                    edge_id=e.id,
+                )
+        if (
+            _num(p, "normamps") is None
+            and not (has_code and circuit.lineCodes[str(p["linecode"])].normamps)
+            and not has_geom
+        ):
             miss("line", "normamps")
         amps = _num(p, "normamps")
         if amps is not None and abs(amps - DEFAULT_LINE_NORMAMPS) < 1e-9:
-            add("info", "default-rating", f"Line {name} carries the default {DEFAULT_LINE_NORMAMPS:g} A rating.", edge_id=e.id)
+            add(
+                "info",
+                "default-rating",
+                f"Line {name} carries the default {DEFAULT_LINE_NORMAMPS:g} A rating.",
+                edge_id=e.id,
+            )
         if not e.geometry and not any(n.geo for n in circuit.nodes if n.id in (e.source, e.target)):
             miss("line", "coordinates")
     counts["line"] = line_count
@@ -168,13 +251,25 @@ def qa_report(circuit: Circuit) -> dict[str, Any]:
 
     loops = 0
     for n in circuit.nodes:
-        if n.type in ("transformer", "regulator", "breaker", "fuse", "recloser", "relay") and conducts(n):
+        if n.type in (
+            "transformer",
+            "regulator",
+            "breaker",
+            "fuse",
+            "recloser",
+            "relay",
+        ) and conducts(n):
             buses = conn.node_buses.get(n.id, [])
             for b in buses[1:]:
                 a, c = find(buses[0]), find(b)
                 if a == c:
                     loops += 1
-                    add("info", "loop", f"{n.params.get('name') or n.id} closes a loop; the feeder is meshed here.", n.id)
+                    add(
+                        "info",
+                        "loop",
+                        f"{n.params.get('name') or n.id} closes a loop; the feeder is meshed here.",
+                        n.id,
+                    )
                 else:
                     parent[a] = c
     edge_by = {e.id: e for e in circuit.edges}
@@ -185,22 +280,39 @@ def qa_report(circuit: Circuit) -> dict[str, Any]:
         a, c = find(b1), find(b2)
         if a == c:
             loops += 1
-            add("info", "loop", f"Line {e.params.get('name') or eid} closes a loop; the feeder is meshed here.", edge_id=eid)
+            add(
+                "info",
+                "loop",
+                f"Line {e.params.get('name') or eid} closes a loop; the feeder is meshed here.",
+                edge_id=eid,
+            )
         else:
             parent[a] = c
 
-    compile_issues = [i for i in compile_circuit(circuit).issues if i.code in ("duplicate-name", "unknown-curve", "bad-linecode", "bad-geometry")]
+    compile_issues = [
+        i
+        for i in compile_circuit(circuit).issues
+        if i.code in ("duplicate-name", "unknown-curve", "bad-linecode", "bad-geometry")
+    ]
     for i in compile_issues:
         add(i.severity, i.code, i.message, i.nodeId, i.edgeId)
 
     # Completeness: share of the fields a class should carry that are present.
-    weights = {"load": ("kw", "kv", "customers", "class", "coordinates"),
-               "line": ("length", "impedance", "normamps", "coordinates"),
-               "transformer": ("kva", "xhl", "coordinates"), "regulator": ("kva", "coordinates"),
-               "breaker": ("interruptingka", "coordinates"), "fuse": ("ratedcurrent", "interruptingka", "coordinates"),
-               "recloser": ("phasetrip", "interruptingka", "coordinates"), "relay": ("phasetrip", "interruptingka", "coordinates"),
-               "vsource": ("mvasc3",), "generator": ("kva", "coordinates"), "pvsystem": ("kva", "coordinates"),
-               "storage": ("kva", "coordinates"), "capacitor": ("coordinates",)}
+    weights = {
+        "load": ("kw", "kv", "customers", "class", "coordinates"),
+        "line": ("length", "impedance", "normamps", "coordinates"),
+        "transformer": ("kva", "xhl", "coordinates"),
+        "regulator": ("kva", "coordinates"),
+        "breaker": ("interruptingka", "coordinates"),
+        "fuse": ("ratedcurrent", "interruptingka", "coordinates"),
+        "recloser": ("phasetrip", "interruptingka", "coordinates"),
+        "relay": ("phasetrip", "interruptingka", "coordinates"),
+        "vsource": ("mvasc3",),
+        "generator": ("kva", "coordinates"),
+        "pvsystem": ("kva", "coordinates"),
+        "storage": ("kva", "coordinates"),
+        "capacitor": ("coordinates",),
+    }
     completeness = []
     total_cells = present_cells = 0
     for cls, fields in weights.items():
@@ -211,9 +323,19 @@ def qa_report(circuit: Circuit) -> dict[str, Any]:
         gone = sum(missing.get(cls, {}).get(f, 0) for f in fields)
         total_cells += cells
         present_cells += cells - gone
-        completeness.append({"class": cls, "count": n, "fields": len(fields),
-                             "missing": {f: missing.get(cls, {}).get(f, 0) for f in fields if missing.get(cls, {}).get(f, 0)},
-                             "pct": round(100.0 * (cells - gone) / cells, 1)})
+        completeness.append(
+            {
+                "class": cls,
+                "count": n,
+                "fields": len(fields),
+                "missing": {
+                    f: missing.get(cls, {}).get(f, 0)
+                    for f in fields
+                    if missing.get(cls, {}).get(f, 0)
+                },
+                "pct": round(100.0 * (cells - gone) / cells, 1),
+            }
+        )
     score = round(100.0 * present_cells / total_cells, 1) if total_cells else 100.0
     warnings = sum(1 for f in findings if f["severity"] == "warning")
     return {

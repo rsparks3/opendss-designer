@@ -193,6 +193,17 @@ def test_registry_and_cli_run(tmp_path):
     assert listing.returncode == 0 and "hosting-capacity" in listing.stdout
 
 
+def _finished(client, res):
+    """Follow a job to its end, so the study thread is done with the engine
+    before the next test clears it (a race that only ever lost on Linux)."""
+    assert res.status_code == 200, res.text
+    job_id = res.json()["job"]["id"]
+    with client.stream("GET", f"/api/jobs/{job_id}/events") as stream:
+        for _ in stream.iter_lines():
+            pass
+    return client.get(f"/api/jobs/{job_id}").json()
+
+
 def test_m17_routes():
     client = TestClient(server.app, base_url="http://127.0.0.1")
     res = client.post("/api/import/cim", json={"files": [{"name": "a.xml", "text": CIM_SAMPLE}]})
@@ -206,5 +217,5 @@ def test_m17_routes():
     res = client.post("/api/rvc", json={"circuit": c, "bus": "bus-lat", "kind": "motorStart", "kva": 500})
     assert res.status_code == 200 and res.json()["converged"]
     res = client.post("/api/jobs/harmonics", json={"circuit": c, "orders": [5, 7]})
-    assert res.status_code == 200
+    assert _finished(client, res)["status"] == "done"
     assert client.get("/api/studies").json()["studies"]

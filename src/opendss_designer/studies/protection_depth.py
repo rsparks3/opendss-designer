@@ -21,6 +21,7 @@ the most good.
 * `recloser_placement` -- a recloser tried on each candidate line in turn,
   the reliability study rerun, candidates ranked by the fall in SAIDI.
 """
+
 from __future__ import annotations
 
 import math
@@ -56,18 +57,24 @@ def _build(circuit: Circuit):
         return compiled, issues, False
     engine._ensure_init()
     engine._write_aux_files(compiled)
-    ok = engine._run_commands(compiled.commands, compiled.element_map, issues, compiled.optional_commands)
+    ok = engine._run_commands(
+        compiled.commands, compiled.element_map, issues, compiled.optional_commands
+    )
     return compiled, issues, ok
 
 
 # --- a fault part way along a line --------------------------------------------------
 
-def fault_on_line(circuit: Circuit, edge_id: str, fraction: float = 0.5, kind: str = "3ph",
-                  r_ohm: float = 0.0) -> dict[str, Any]:
+
+def fault_on_line(
+    circuit: Circuit, edge_id: str, fraction: float = 0.5, kind: str = "3ph", r_ohm: float = 0.0
+) -> dict[str, Any]:
     if kind not in FAULT_KINDS:
         raise ValueError(f"Unknown fault kind {kind!r}.")
     circuit = effective_circuit(circuit)
-    return _fault_on_line(circuit, edge_id, min(max(float(fraction), 0.01), 0.99), kind, float(r_ohm))
+    return _fault_on_line(
+        circuit, edge_id, min(max(float(fraction), 0.01), 0.99), kind, float(r_ohm)
+    )
 
 
 def _split_line(full: str, fraction: float) -> str | None:
@@ -81,34 +88,69 @@ def _split_line(full: str, fraction: float) -> str | None:
         return None
     name = full.split(".", 1)[1]
     props = {}
-    for prop in ("length", "units", "phases", "linecode", "geometry", "r1", "x1", "r0", "x0", "c1", "c0", "normamps", "emergamps"):
+    for prop in (
+        "length",
+        "units",
+        "phases",
+        "linecode",
+        "geometry",
+        "r1",
+        "x1",
+        "r0",
+        "x0",
+        "c1",
+        "c0",
+        "normamps",
+        "emergamps",
+    ):
         props[prop] = dss.Properties.Value(prop).strip()
     try:
         length = float(props["length"] or 1.0)
     except ValueError:
         length = 1.0
     mid = f"{name}_fault_pt"
-    b1, b2 = str(buses[0]), str(buses[1])
+    _b1, b2 = str(buses[0]), str(buses[1])
     sfx = "." + b2.split(".", 1)[1] if "." in b2 else ""
     dss.Text.Command(f"edit line.{name} bus2={mid}{sfx} length={length * fraction:.6g}")
-    impedance = (f"linecode={props['linecode']}" if props["linecode"] else
-                 f"geometry={props['geometry']}" if props["geometry"] else
-                 f"r1={props['r1']} x1={props['x1']} r0={props['r0']} x0={props['x0']}")
+    impedance = (
+        f"linecode={props['linecode']}"
+        if props["linecode"]
+        else f"geometry={props['geometry']}"
+        if props["geometry"]
+        else f"r1={props['r1']} x1={props['x1']} r0={props['r0']} x0={props['x0']}"
+    )
     rating = f" normamps={props['normamps']}" if props["normamps"] else ""
-    dss.Text.Command(f"new line.{name}_b bus1={mid}{sfx} bus2={b2} phases={props['phases']} {impedance} "
-                     f"length={length * (1 - fraction):.6g} units={props['units'] or 'km'}{rating}")
+    dss.Text.Command(
+        f"new line.{name}_b bus1={mid}{sfx} bus2={b2} phases={props['phases']} {impedance} "
+        f"length={length * (1 - fraction):.6g} units={props['units'] or 'km'}{rating}"
+    )
     return mid
 
 
 @engine.on_engine_thread
-def _fault_on_line(circuit: Circuit, edge_id: str, fraction: float, kind: str, r_ohm: float) -> dict[str, Any]:
+def _fault_on_line(
+    circuit: Circuit, edge_id: str, fraction: float, kind: str, r_ohm: float
+) -> dict[str, Any]:
     with engine.dss_guard():
         compiled, issues, ok = _build(circuit)
         if not ok:
             return {"converged": False, "issues": [i.model_dump() for i in issues]}
-        full = next((f for f, ref in compiled.element_map.items() if ref == edge_id and f.startswith("line.")), None)
+        full = next(
+            (
+                f
+                for f, ref in compiled.element_map.items()
+                if ref == edge_id and f.startswith("line.")
+            ),
+            None,
+        )
         if full is None:
-            issues.append(Issue(severity="error", code="no-such-line", message="That element is not a line on the drawing."))
+            issues.append(
+                Issue(
+                    severity="error",
+                    code="no-such-line",
+                    message="That element is not a line on the drawing.",
+                )
+            )
             return {"converged": False, "issues": [i.model_dump() for i in issues]}
         engine.quiet_for_fault_study(compiled.element_map, compiled.passthrough_names)
         dss.Text.Command("set mode=snapshot")
@@ -119,7 +161,13 @@ def _fault_on_line(circuit: Circuit, edge_id: str, fraction: float, kind: str, r
             dss.Text.Command("makebuslist")
             dss.Text.Command("calcvoltagebases")
         if mid is None or _place_fault(mid, kind, r_ohm) is None:
-            issues.append(Issue(severity="error", code="fault-phases", message="The line has too few phases for that fault."))
+            issues.append(
+                Issue(
+                    severity="error",
+                    code="fault-phases",
+                    message="The line has too few phases for that fault.",
+                )
+            )
             return {"converged": False, "issues": [i.model_dump() for i in issues]}
         dss.Solution.Solve()
         converged = bool(dss.Solution.Converged())
@@ -127,52 +175,94 @@ def _fault_on_line(circuit: Circuit, edge_id: str, fraction: float, kind: str, r
         devices: dict[str, dict[str, Any]] = {}
         if converged:
             for f, ref in compiled.element_map.items():
-                if not f.startswith(("line.", "transformer.")) or dss.Circuit.SetActiveElement(f) < 0 or not dss.CktElement.Enabled():
+                if (
+                    not f.startswith(("line.", "transformer."))
+                    or dss.Circuit.SetActiveElement(f) < 0
+                    or not dss.CktElement.Enabled()
+                ):
                     continue
                 nph = dss.CktElement.NumPhases()
                 mags = dss.CktElement.CurrentsMagAng()
-                cur = [float(v) for v in mags[0:2 * nph:2]]
+                cur = [float(v) for v in mags[0 : 2 * nph : 2]]
                 devices[f] = {"id": ref, "amps": round(max(cur), 1) if cur else 0.0}
         _remove_fault()
     return {
-        "converged": converged, "line": edge_id, "fraction": fraction, "kind": kind, "rOhm": r_ohm,
-        "faultA": round(max(amps), 1) if amps else None, "faultPhaseA": [round(a, 1) for a in amps],
-        "devices": devices, "issues": [i.model_dump() for i in issues],
+        "converged": converged,
+        "line": edge_id,
+        "fraction": fraction,
+        "kind": kind,
+        "rOhm": r_ohm,
+        "faultA": round(max(amps), 1) if amps else None,
+        "faultPhaseA": [round(a, 1) for a in amps],
+        "devices": devices,
+        "issues": [i.model_dump() for i in issues],
     }
 
 
 # --- reach -----------------------------------------------------------------------------
 
+
 def _device_params(circuit: Circuit) -> list[dict[str, Any]]:
     out = []
     for n in circuit.nodes:
-        if n.type in ("fuse", "recloser", "relay") and in_service(n.params) and n.params.get("closed", True):
+        if (
+            n.type in ("fuse", "recloser", "relay")
+            and in_service(n.params)
+            and n.params.get("closed", True)
+        ):
             p = n.params
-            def num(k: str, d: float | None = None) -> float | None:
+
+            def num(k: str, d: float | None = None, p=p) -> float | None:
                 try:
                     return float(p.get(k)) if p.get(k) is not None else d
                 except (TypeError, ValueError):
                     return d
-            phase = num("ratedcurrent") if n.type == "fuse" else num("phasetrip", 100.0 if n.type == "recloser" else 200.0)
+
+            phase = (
+                num("ratedcurrent")
+                if n.type == "fuse"
+                else num("phasetrip", 100.0 if n.type == "recloser" else 200.0)
+            )
             ground = None if n.type == "fuse" else num("groundtrip")
             if n.type == "relay" and str(p.get("groundcurve") or "none") == "none":
                 ground = None
-            if n.type == "recloser" and str(p.get("groundfast") or "none") == "none" and str(p.get("grounddelayed") or "none") == "none":
+            if (
+                n.type == "recloser"
+                and str(p.get("groundfast") or "none") == "none"
+                and str(p.get("grounddelayed") or "none") == "none"
+            ):
                 ground = None
-            out.append({"id": n.id, "name": str(p.get("name") or n.id), "kind": n.type,
-                        "phasePickupA": phase, "groundPickupA": ground})
+            out.append(
+                {
+                    "id": n.id,
+                    "name": str(p.get("name") or n.id),
+                    "kind": n.type,
+                    "phasePickupA": phase,
+                    "groundPickupA": ground,
+                }
+            )
     return out
 
 
-def reach_study(circuit: Circuit, r_ohm: float = 20.0, der_type: str = "inverter",
-                progress: Progress | None = None, cancel: threading.Event | None = None) -> dict[str, Any]:
+def reach_study(
+    circuit: Circuit,
+    r_ohm: float = 20.0,
+    der_type: str = "inverter",
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+) -> dict[str, Any]:
     circuit = effective_circuit(circuit)
     return _reach_study(circuit, float(r_ohm), der_type, progress, cancel)
 
 
 @engine.on_engine_thread
-def _reach_study(circuit: Circuit, r_ohm: float, der_type: str, progress: Progress | None,
-                 cancel: threading.Event | None) -> dict[str, Any]:
+def _reach_study(
+    circuit: Circuit,
+    r_ohm: float,
+    der_type: str,
+    progress: Progress | None,
+    cancel: threading.Event | None,
+) -> dict[str, Any]:
     with engine.dss_guard():
         compiled, issues, ok = _build(circuit)
         if not ok:
@@ -188,16 +278,24 @@ def _reach_study(circuit: Circuit, r_ohm: float, der_type: str, progress: Progre
         der_amps: dict[str, float] = {}
         if conn is not None:
             for n in circuit.nodes:
-                if n.type in ("generator", "pvsystem", "storage") and in_service(n.params) and n.id in conn.node_buses:
+                if (
+                    n.type in ("generator", "pvsystem", "storage")
+                    and in_service(n.params)
+                    and n.id in conn.node_buses
+                ):
                     p = n.params
                     try:
-                        kva = float(p.get("kva") or p.get("kwrated") or p.get("kw") or p.get("pmpp") or 0)
+                        kva = float(
+                            p.get("kva") or p.get("kwrated") or p.get("kw") or p.get("pmpp") or 0
+                        )
                         kv = float(p.get("kv") or 12.47)
                         ph = int(float(p.get("phases") or 3))
                     except (TypeError, ValueError):
                         continue
                     sec = sections.get(conn.node_buses[n.id][0].lower(), {}).get("section", "")
-                    der_amps[sec] = der_amps.get(sec, 0.0) + der_contribution_amps(kva, kv, ph, "synchronous" if n.type == "generator" else der_type)
+                    der_amps[sec] = der_amps.get(sec, 0.0) + der_contribution_amps(
+                        kva, kv, ph, "synchronous" if n.type == "generator" else der_type
+                    )
         engine.quiet_for_fault_study(compiled.element_map, compiled.passthrough_names)
         dss.Text.Command("set mode=snapshot")
         dss.Text.Command("set controlmode=off")
@@ -210,7 +308,13 @@ def _reach_study(circuit: Circuit, r_ohm: float, der_type: str, progress: Progre
             if cancel is not None and cancel.is_set():
                 cancelled = True
                 break
-            worst: dict[str, Any] = {"bus": None, "minA": None, "kind": None, "lgA": None, "llA": None}
+            worst: dict[str, Any] = {
+                "bus": None,
+                "minA": None,
+                "kind": None,
+                "lgA": None,
+                "llA": None,
+            }
             for b in buses:
                 for kind, r, key in (("ll", 0.0, "llA"), ("lg", r_ohm, "lgA")):
                     if _place_fault(b, kind, r) is None:
@@ -232,22 +336,43 @@ def _reach_study(circuit: Circuit, r_ohm: float, der_type: str, progress: Progre
             seen = max(0.0, (min_a or 0.0) - infeed) if min_a is not None else None
             pickup = d["phasePickupA"] or 0.0
             ratio = (seen / pickup) if seen is not None and pickup > 0 else None
-            ground_ratio = (worst["lgA"] / d["groundPickupA"]) if worst["lgA"] and d["groundPickupA"] else None
-            out.append({
-                **d, "sectionBuses": len(buses), "endBus": worst["bus"], "minFaultKind": worst["kind"],
-                "minFaultA": min_a, "minLLA": worst["llA"], "minLGrA": worst["lgA"],
-                "derInfeedA": round(infeed, 1), "seenByDeviceA": round(seen, 1) if seen is not None else None,
-                "reachRatio": round(ratio, 2) if ratio is not None else None,
-                "groundReachRatio": round(ground_ratio, 2) if ground_ratio is not None else None,
-                "ok": (ratio is None or ratio >= REACH_MARGIN) and (ground_ratio is None or ground_ratio >= REACH_MARGIN),
-            })
-    out.sort(key=lambda d: (d["reachRatio"] if d["reachRatio"] is not None else math.inf))
-    return {"converged": True, "cancelled": cancelled, "rOhm": r_ohm, "margin": REACH_MARGIN,
-            "devices": out, "loadLevel": circuit.level.model_dump(), "scenario": circuit.activeScenario,
-            "issues": [i.model_dump() for i in issues]}
+            ground_ratio = (
+                (worst["lgA"] / d["groundPickupA"]) if worst["lgA"] and d["groundPickupA"] else None
+            )
+            out.append(
+                {
+                    **d,
+                    "sectionBuses": len(buses),
+                    "endBus": worst["bus"],
+                    "minFaultKind": worst["kind"],
+                    "minFaultA": min_a,
+                    "minLLA": worst["llA"],
+                    "minLGrA": worst["lgA"],
+                    "derInfeedA": round(infeed, 1),
+                    "seenByDeviceA": round(seen, 1) if seen is not None else None,
+                    "reachRatio": round(ratio, 2) if ratio is not None else None,
+                    "groundReachRatio": round(ground_ratio, 2)
+                    if ground_ratio is not None
+                    else None,
+                    "ok": (ratio is None or ratio >= REACH_MARGIN)
+                    and (ground_ratio is None or ground_ratio >= REACH_MARGIN),
+                }
+            )
+    out.sort(key=lambda d: d["reachRatio"] if d["reachRatio"] is not None else math.inf)
+    return {
+        "converged": True,
+        "cancelled": cancelled,
+        "rOhm": r_ohm,
+        "margin": REACH_MARGIN,
+        "devices": out,
+        "loadLevel": circuit.level.model_dump(),
+        "scenario": circuit.activeScenario,
+        "issues": [i.model_dump() for i in issues],
+    }
 
 
 # --- fuse saving ---------------------------------------------------------------------
+
 
 def fuse_saving(circuit: Circuit, r_ohm: float = 20.0) -> dict[str, Any]:
     circuit = effective_circuit(circuit)
@@ -298,14 +423,26 @@ def _fuse_saving(circuit: Circuit, r_ohm: float) -> dict[str, Any]:
                             a = max(amps)
                             imin = a if imin is None else min(imin, a)
                     _remove_fault()
-            fast = [t for t in recloser["traces"] if "fast" in t["label"] and t.get("fault", "phase") == "phase"]
-            delayed = [t for t in recloser["traces"] if "delayed" in t["label"] and t.get("fault", "phase") == "phase"]
+            fast = [
+                t
+                for t in recloser["traces"]
+                if "fast" in t["label"] and t.get("fault", "phase") == "phase"
+            ]
+            delayed = [
+                t
+                for t in recloser["traces"]
+                if "delayed" in t["label"] and t.get("fault", "phase") == "phase"
+            ]
             melt = fuse["traces"][0] if fuse["traces"] else None
             clear_curve = None
             node = next((n for n in circuit.nodes if n.id == fuse["nodeId"]), None)
             if node is not None and node.params.get("clearcurve"):
-                clear_curve = protection._curve_trace(f"{fuse['name']} clear", str(node.params["clearcurve"]).lower(),
-                                                      float(node.params.get("ratedcurrent") or 65), float(node.params.get("delay") or 0))
+                clear_curve = protection._curve_trace(
+                    f"{fuse['name']} clear",
+                    str(node.params["clearcurve"]).lower(),
+                    float(node.params.get("ratedcurrent") or 65),
+                    float(node.params.get("delay") or 0),
+                )
 
             def t_of(traces: list[dict[str, Any]], amps: float | None) -> float | None:
                 if amps is None:
@@ -316,51 +453,90 @@ def _fuse_saving(circuit: Circuit, r_ohm: float) -> dict[str, Any]:
 
             melt_max = t_of([melt], imax) if melt else None
             fast_max = t_of(fast, imax)
-            clear_min = (t_of([clear_curve], imin) if clear_curve else
-                         (t_of([melt], imin) * CLEAR_OVER_MELT if melt and t_of([melt], imin) is not None else None))
+            clear_min = (
+                t_of([clear_curve], imin)
+                if clear_curve
+                else (
+                    t_of([melt], imin) * CLEAR_OVER_MELT
+                    if melt and t_of([melt], imin) is not None
+                    else None
+                )
+            )
             delayed_min = t_of(delayed, imin)
             saving_ok = fast_max is not None and melt_max is not None and fast_max < melt_max
-            blowing_ok = clear_min is not None and delayed_min is not None and clear_min < delayed_min
+            blowing_ok = (
+                clear_min is not None and delayed_min is not None and clear_min < delayed_min
+            )
             drawn = {n.id: str(n.params.get("name") or n.id) for n in circuit.nodes}
-            pairs.append({
-                "fuse": drawn.get(fuse["nodeId"], fuse["name"]), "fuseId": fuse["nodeId"],
-                "recloser": drawn.get(recloser["nodeId"], recloser["name"]), "recloserId": recloser["nodeId"],
-                "maxFaultA": round(imax, 1) if imax else None, "minFaultA": round(imin, 1) if imin else None,
-                "recloserFastS": round(fast_max, 4) if fast_max is not None else None,
-                "fuseMeltS": round(melt_max, 4) if melt_max is not None else None,
-                "fuseClearS": round(clear_min, 4) if clear_min is not None else None,
-                "recloserDelayedS": round(delayed_min, 4) if delayed_min is not None else None,
-                "fuseSaving": saving_ok, "fuseBlowing": blowing_ok,
-                "clearFrom": "clearcurve" if clear_curve else f"melt x {CLEAR_OVER_MELT}",
-                "note": ("fast curve clears before the fuse melts at the maximum fault, and the fuse clears before the "
-                         "delayed curve at the minimum: the scheme works both ways"
-                         if saving_ok and blowing_ok else
-                         "the recloser's fast curve is slower than the fuse at the maximum fault: the fuse blows first"
-                         if not saving_ok else
-                         "at the minimum fault the recloser's delayed curve beats the fuse: the recloser locks out for a fuse-zone fault"),
-            })
-    return {"converged": True, "rOhm": r_ohm, "clearOverMelt": CLEAR_OVER_MELT, "pairs": pairs,
-            "loadLevel": circuit.level.model_dump(), "scenario": circuit.activeScenario,
-            "issues": [i.model_dump() for i in issues]}
+            pairs.append(
+                {
+                    "fuse": drawn.get(fuse["nodeId"], fuse["name"]),
+                    "fuseId": fuse["nodeId"],
+                    "recloser": drawn.get(recloser["nodeId"], recloser["name"]),
+                    "recloserId": recloser["nodeId"],
+                    "maxFaultA": round(imax, 1) if imax else None,
+                    "minFaultA": round(imin, 1) if imin else None,
+                    "recloserFastS": round(fast_max, 4) if fast_max is not None else None,
+                    "fuseMeltS": round(melt_max, 4) if melt_max is not None else None,
+                    "fuseClearS": round(clear_min, 4) if clear_min is not None else None,
+                    "recloserDelayedS": round(delayed_min, 4) if delayed_min is not None else None,
+                    "fuseSaving": saving_ok,
+                    "fuseBlowing": blowing_ok,
+                    "clearFrom": "clearcurve" if clear_curve else f"melt x {CLEAR_OVER_MELT}",
+                    "note": (
+                        "fast curve clears before the fuse melts at the maximum fault, and the fuse clears before the "  # noqa: E501
+                        "delayed curve at the minimum: the scheme works both ways"
+                        if saving_ok and blowing_ok
+                        else "the recloser's fast curve is slower than the fuse at the maximum fault: the fuse blows first"  # noqa: E501
+                        if not saving_ok
+                        else "at the minimum fault the recloser's delayed curve beats the fuse: the recloser locks out for a fuse-zone fault"  # noqa: E501
+                    ),
+                }
+            )
+    return {
+        "converged": True,
+        "rOhm": r_ohm,
+        "clearOverMelt": CLEAR_OVER_MELT,
+        "pairs": pairs,
+        "loadLevel": circuit.level.model_dump(),
+        "scenario": circuit.activeScenario,
+        "issues": [i.model_dump() for i in issues],
+    }
 
 
 # --- recloser placement -----------------------------------------------------------------
 
-def recloser_placement(circuit: Circuit, max_candidates: int = 40,
-                       progress: Progress | None = None, cancel: threading.Event | None = None) -> dict[str, Any]:
+
+def recloser_placement(
+    circuit: Circuit,
+    max_candidates: int = 40,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+) -> dict[str, Any]:
     """A recloser tried mid-way on each candidate line (lines not already
     switched, longest first), the reliability study rerun each time."""
     circuit = effective_circuit(circuit)
     base = reliability.reliability_study(circuit)
     if not base.get("converged") or base.get("saidi") is None:
         return {"converged": False, "issues": base.get("issues", []), "candidates": []}
-    lines = [e for e in circuit.edges if e.type == "line" and in_service(e.params) and not e.params.get("reactor")]
+    lines = [
+        e
+        for e in circuit.edges
+        if e.type == "line" and in_service(e.params) and not e.params.get("reactor")
+    ]
 
     def km(e: CircuitEdge) -> float:
         try:
-            return float(e.params.get("length") or 0) * {"km": 1, "m": 0.001, "mi": 1.609, "kft": 0.3048, "ft": 0.0003048}.get(str(e.params.get("units", "km")), 1)
+            return float(e.params.get("length") or 0) * {
+                "km": 1,
+                "m": 0.001,
+                "mi": 1.609,
+                "kft": 0.3048,
+                "ft": 0.0003048,
+            }.get(str(e.params.get("units", "km")), 1)
         except (TypeError, ValueError):
             return 0.0
+
     lines.sort(key=lambda e: -km(e))
     lines = lines[: max(1, int(max_candidates))]
     rows = []
@@ -372,19 +548,35 @@ def recloser_placement(circuit: Circuit, max_candidates: int = 40,
         trial = _with_recloser(circuit, e)
         r = reliability.reliability_study(trial)
         if r.get("converged") and r.get("saidi") is not None:
-            rows.append({
-                "line": e.id, "name": str(e.params.get("name") or e.id), "lengthKm": round(km(e), 3),
-                "saifi": r["saifi"], "saidi": r["saidi"],
-                "saifiChange": round(r["saifi"] - base["saifi"], 4) if r["saifi"] is not None and base["saifi"] is not None else None,
-                "saidiChange": round(r["saidi"] - base["saidi"], 4),
-                "custHoursSaved": round(base["custHours"] - r["custHours"], 2),
-            })
+            rows.append(
+                {
+                    "line": e.id,
+                    "name": str(e.params.get("name") or e.id),
+                    "lengthKm": round(km(e), 3),
+                    "saifi": r["saifi"],
+                    "saidi": r["saidi"],
+                    "saifiChange": round(r["saifi"] - base["saifi"], 4)
+                    if r["saifi"] is not None and base["saifi"] is not None
+                    else None,
+                    "saidiChange": round(r["saidi"] - base["saidi"], 4),
+                    "custHoursSaved": round(base["custHours"] - r["custHours"], 2),
+                }
+            )
         if progress is not None:
             progress(i + 1, len(lines), str(e.params.get("name") or e.id))
     rows.sort(key=lambda r: r["saidiChange"])
-    return {"converged": True, "cancelled": cancelled,
-            "base": {"saifi": base["saifi"], "saidi": base["saidi"], "caidi": base["caidi"], "custHours": base["custHours"]},
-            "candidates": rows, "issues": base.get("issues", [])}
+    return {
+        "converged": True,
+        "cancelled": cancelled,
+        "base": {
+            "saifi": base["saifi"],
+            "saidi": base["saidi"],
+            "caidi": base["caidi"],
+            "custHours": base["custHours"],
+        },
+        "candidates": rows,
+        "issues": base.get("issues", []),
+    }
 
 
 def _with_recloser(circuit: Circuit, e: CircuitEdge) -> Circuit:
@@ -395,13 +587,38 @@ def _with_recloser(circuit: Circuit, e: CircuitEdge) -> Circuit:
         half["length"] = float(e.params.get("length") or 1.0) / 2
     except (TypeError, ValueError):
         half["length"] = 0.5
-    first = e.model_copy(update={"target": rid, "targetHandle": "t1", "params": {**half, "name": f"{e.params.get('name') or e.id}_a"}})
-    second = e.model_copy(update={"id": f"{e.id}_b", "source": rid, "sourceHandle": "t2",
-                                  "params": {**half, "name": f"{e.params.get('name') or e.id}_b"}, "waypoints": None, "geometry": None})
+    first = e.model_copy(
+        update={
+            "target": rid,
+            "targetHandle": "t1",
+            "params": {**half, "name": f"{e.params.get('name') or e.id}_a"},
+        }
+    )
+    second = e.model_copy(
+        update={
+            "id": f"{e.id}_b",
+            "source": rid,
+            "sourceHandle": "t2",
+            "params": {**half, "name": f"{e.params.get('name') or e.id}_b"},
+            "waypoints": None,
+            "geometry": None,
+        }
+    )
     phases = e.params.get("phases", 3)
-    rec = CircuitNode(id=rid, type="recloser", position=None,
-                      params={"name": f"REC_{e.params.get('name') or e.id}", "closed": True, "phases": phases,
-                              "phasetrip": 100, "groundtrip": 50, "phasefast": "a", "phasedelayed": "d",
-                              **({"phasing": e.params["phasing"]} if e.params.get("phasing") else {})})
+    rec = CircuitNode(
+        id=rid,
+        type="recloser",
+        position=None,
+        params={
+            "name": f"REC_{e.params.get('name') or e.id}",
+            "closed": True,
+            "phases": phases,
+            "phasetrip": 100,
+            "groundtrip": 50,
+            "phasefast": "a",
+            "phasedelayed": "d",
+            **({"phasing": e.params["phasing"]} if e.params.get("phasing") else {}),
+        },
+    )
     edges = [x for x in circuit.edges if x.id != e.id] + [first, second]
     return circuit.model_copy(update={"nodes": [*circuit.nodes, rec], "edges": edges})

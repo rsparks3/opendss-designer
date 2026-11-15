@@ -10,6 +10,7 @@ Layout: if the model carries bus coordinates (BusCoords), busbars get real
 positions (normalized to a drawing-sized canvas); otherwise positions are
 left unset and the frontend auto-layouts.
 """
+
 from __future__ import annotations
 
 import re
@@ -23,15 +24,37 @@ import opendssdirect as dss
 
 from . import engine, passthrough
 from .connectivity import sanitize_name
-from .model import GeometryConductor, LineGeometrySpec, WireDataSpec, XYCurveSpec, Circuit, CircuitEdge, CircuitNode, LineCodeSpec, LoadShapeSpec, Position
+from .model import (
+    Circuit,
+    CircuitEdge,
+    CircuitNode,
+    GeometryConductor,
+    LineCodeSpec,
+    LineGeometrySpec,
+    LoadShapeSpec,
+    Position,
+    WireDataSpec,
+    XYCurveSpec,
+)
 from .phasing import phasing_from_suffix
 
 _UNIT_CODES = {0: "none", 1: "mi", 2: "kft", 3: "km", 4: "m", 5: "ft", 6: "in", 7: "cm"}
 
-SUPPORTED_PREFIXES = ("vsource.", "transformer.", "line.", "load.",
-                      "capacitor.", "generator.", "pvsystem.", "storage.",
-                      "regcontrol.", "fuse.", "recloser.", "relay.",
-                      "tcc_curve.")
+SUPPORTED_PREFIXES = (
+    "vsource.",
+    "transformer.",
+    "line.",
+    "load.",
+    "capacitor.",
+    "generator.",
+    "pvsystem.",
+    "storage.",
+    "regcontrol.",
+    "fuse.",
+    "recloser.",
+    "relay.",
+    "tcc_curve.",
+)
 
 # Drawing-canvas size that geographic bus coordinates are normalized into.
 _LAYOUT_W, _LAYOUT_H = 1800.0, 1200.0
@@ -55,8 +78,13 @@ def _node_suffix(name: str) -> str | None:
     return suffix if suffix and _NODE_SUFFIX_RE.match(suffix) else None
 
 
-def _record_phasing(params: dict[str, Any], suffixes: Sequence[str | None],
-                    raw_keys: Sequence[str], *, carry: bool = True) -> None:
+def _record_phasing(
+    params: dict[str, Any],
+    suffixes: Sequence[str | None],
+    raw_keys: Sequence[str],
+    *,
+    carry: bool = True,
+) -> None:
     """Record how an imported element connects to its phases.
 
     Node suffixes become a `phasing` pin -- letters, the thing the editor's
@@ -86,7 +114,8 @@ def _record_phasing(params: dict[str, Any], suffixes: Sequence[str | None],
 
 _CIRCUIT_RE = re.compile(r"^\s*new\s+(object\s*=\s*)?circuit", re.IGNORECASE | re.MULTILINE)
 _REDIRECT_RE = re.compile(
-    r'^\s*(redirect|compile)\s+["(\[]?([^"()\[\]\s]+)', re.IGNORECASE | re.MULTILINE)
+    r'^\s*(redirect|compile)\s+["(\[]?([^"()\[\]\s]+)', re.IGNORECASE | re.MULTILINE
+)
 
 
 def _find_main(files: list[dict[str, str]]) -> tuple[dict[str, str], set[str], list[str]]:
@@ -131,24 +160,46 @@ def _find_main(files: list[dict[str, str]]) -> tuple[dict[str, str], set[str], l
         name = f["name"].lower()
         reach = tree(name)
         if any(_CIRCUIT_RE.search(by_name[n].get("text", "")) for n in reach):
-            candidates.append((name in redirected, name.startswith("run"),
-                               "master" not in name, -len(reach), name, f, reach))
+            candidates.append(
+                (
+                    name in redirected,
+                    name.startswith("run"),
+                    "master" not in name,
+                    -len(reach),
+                    name,
+                    f,
+                    reach,
+                )
+            )
     if candidates:
         best = min(candidates, key=lambda c: c[:5])
         # Rivals: other tops of a tree that the chosen one does not contain.
-        rivals = [c[5]["name"] for c in candidates
-                  if c is not best and not c[0] and not c[1] and c[4] not in best[6]]
+        rivals = [
+            c[5]["name"]
+            for c in candidates
+            if c is not best and not c[0] and not c[1] and c[4] not in best[6]
+        ]
         return best[5], best[6], rivals
     raise ImportFailure(
         "None of the selected files defines a circuit (no 'New Circuit.' statement). "
-        "Select the feeder's main .dss file (plus any files it references).")
+        "Select the feeder's main .dss file (plus any files it references)."
+    )
 
 
 # Commands that write files, spawn processes, or repoint the engine. An import
 # describes a circuit; it is data, not a program, so none of these are needed.
 _FORBIDDEN = {
-    "save", "export", "dump", "show", "plot", "visualize", "fileedit",
-    "docmd", "dosimplecmd", "doscmd", "cd",
+    "save",
+    "export",
+    "dump",
+    "show",
+    "plot",
+    "visualize",
+    "fileedit",
+    "docmd",
+    "dosimplecmd",
+    "doscmd",
+    "cd",
 }
 
 # Leading commands that name a companion file. buscoords/latloncoords are
@@ -158,21 +209,23 @@ _COSMETIC_REFS = {"buscoords", "latloncoords"}
 # IEEE 123-bus run file writes `Compile (IEEE123Master.dss)`.
 _REF_LINE_RE = re.compile(
     r'^(\s*)(redirect|compile|buscoords|latloncoords)(\s+)["(\[]?([^"()\[\]\s]+)["\])]?(.*)$',
-    re.IGNORECASE)
+    re.IGNORECASE,
+)
 
 # Property forms that name a data file: `mult=(file=shape.csv)`, `(file=x)`,
 # `csvfile=x`, `sngfile=`, `dblfile=`. `\bfile` does not match inside
 # "csvfile" (the preceding 'v' is a word character), so both are needed.
 _FILE_PARAM_RE = re.compile(r'\bfile\s*=\s*"?([^"\s,\)\]]+)', re.IGNORECASE)
 _CSVFILE_PARAM_RE = re.compile(
-    r'\b(?:csvfile|sngfile|dblfile)\s*=\s*"?([^"\s,\)\]]+)', re.IGNORECASE)
+    r'\b(?:csvfile|sngfile|dblfile)\s*=\s*"?([^"\s,\)\]]+)', re.IGNORECASE
+)
 
-_LEADING_RE = re.compile(r'^\s*([A-Za-z_]+)')
-_SET_BAD_RE = re.compile(r'^\s*set\b.*\b(datapath|editor)\s*=', re.IGNORECASE)
-_DLL_RE = re.compile(r'\bdll\s*=', re.IGNORECASE)
+_LEADING_RE = re.compile(r"^\s*([A-Za-z_]+)")
+_SET_BAD_RE = re.compile(r"^\s*set\b.*\b(datapath|editor)\s*=", re.IGNORECASE)
+_DLL_RE = re.compile(r"\bdll\s*=", re.IGNORECASE)
 
 # Uploaded filenames land in a temp dir; keep them boring.
-_SAFE_NAME_RE = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}')
+_SAFE_NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
 
 
 def _is_comment(line: str) -> bool:
@@ -192,10 +245,12 @@ def _sanitize_dss_text(text: str, provided: set[str]) -> tuple[str, list[str]]:
 
 
 def _missing_message(missing: list[str]) -> str:
-    return ("This file references other files that were not selected: "
-            + ", ".join(sorted(set(missing)))
-            + ". Select the main .dss file AND those files together "
-            "(Ctrl+click in the file dialog).")
+    return (
+        "This file references other files that were not selected: "
+        + ", ".join(sorted(set(missing)))
+        + ". Select the main .dss file AND those files together "
+        "(Ctrl+click in the file dialog)."
+    )
 
 
 def _sanitize(text: str, provided: set[str]) -> tuple[str, list[str], list[str]]:
@@ -236,7 +291,8 @@ def _sanitize(text: str, provided: set[str]) -> tuple[str, list[str], list[str]]
             # reaches the engine either way.
             warnings.append(
                 f"Ignored '{verb}' — an import reads the circuit "
-                "definition only, it does not run scripts.")
+                "definition only, it does not run scripts."
+            )
             out_lines.append("! " + line)
             continue
         if _SET_BAD_RE.match(line) or _DLL_RE.search(line):
@@ -254,8 +310,8 @@ def _sanitize(text: str, provided: set[str]) -> tuple[str, list[str], list[str]]
             elif kind.lower() in _COSMETIC_REFS:
                 label = "BusCoords" if kind.lower() == "buscoords" else kind
                 warnings.append(
-                    f"Skipped '{label} {ref}' — file not provided, "
-                    "so no geographic layout.")
+                    f"Skipped '{label} {ref}' — file not provided, so no geographic layout."
+                )
                 out_lines.append("! " + line)
             else:
                 missing.append(ref)
@@ -285,7 +341,8 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
         if not _SAFE_NAME_RE.fullmatch(name):
             raise ImportFailure(
                 f"'{raw}' is not a usable file name. Rename the file to plain "
-                "letters, digits, dots, dashes or underscores and try again.")
+                "letters, digits, dots, dashes or underscores and try again."
+            )
         cleaned.append({"name": name, "text": str(f.get("text", ""))})
     files = cleaned
     if not files:
@@ -305,15 +362,18 @@ def import_dss_files(files: list[dict[str, Any]]) -> dict[str, Any]:
             f"Imported {main['name']}; {', '.join(rivals)} also define"
             f"{'s' if len(rivals) == 1 else ''} a circuit. To import "
             f"{'that one' if len(rivals) == 1 else 'another'}, select it "
-            "without the others.")
+            "without the others."
+        )
     kept: list[dict[str, str]] = []
     for f in files:
         f["text"], warns, missing = _sanitize(f["text"], provided)
         if missing and f["name"].lower() in tree:
             raise ImportFailure(_missing_message(missing))
         if missing:
-            warnings.append(f"Left out {f['name']}: the main file does not use it, "
-                            "and it names files that were not selected.")
+            warnings.append(
+                f"Left out {f['name']}: the main file does not use it, "
+                "and it names files that were not selected."
+            )
             continue
         warnings.extend(warns)
         kept.append(f)
@@ -359,8 +419,11 @@ def _replay_coordinates(files: list[dict[str, str]], tmpdir: Path) -> None:
     call it first; a file that does not loses every coordinate silently.
     Replaying is harmless when they did take: the same values land again.
     """
-    commands = [(m.group(1), m.group(2).strip('"()[]'))
-                for f in files for m in _COORDS_CMD_RE.finditer(f["text"])]
+    commands = [
+        (m.group(1), m.group(2).strip('"()[]'))
+        for f in files
+        for m in _COORDS_CMD_RE.finditer(f["text"])
+    ]
     if not commands:
         return
     try:
@@ -381,7 +444,8 @@ def _coordinate_system(result: dict[str, Any], files: list[dict[str, str]]) -> N
     as x and y). BusCoords can be anything -- State Plane feet, UTM metres,
     or a drawing's own numbers -- so it gets no system until the user says."""
     if any(_LATLONG_RE.search(f["text"]) for f in files) and any(
-            n.get("geo") for n in result["circuit"]["nodes"]):
+        n.get("geo") for n in result["circuit"]["nodes"]
+    ):
         result["circuit"]["crs"] = "EPSG:4326"
 
 
@@ -389,8 +453,9 @@ def _keep_passthrough(result: dict[str, Any], files: list[dict[str, str]], main:
     """Keep what the diagram cannot show -- unmodelled elements and the
     file's comments -- on the imported circuit (see core/passthrough.py)."""
     unsupported = {u.split(" ")[0].lower() for u in result["unsupported"]}
-    entries, comments = passthrough.collect(files, main, unsupported,
-                                            skip=set(result.pop("folded", [])))
+    entries, comments = passthrough.collect(
+        files, main, unsupported, skip=set(result.pop("folded", []))
+    )
     result["circuit"]["passthrough"] = [e.model_dump() for e in entries]
     result["circuit"]["comments"] = comments
     kept = {e.name.lower() for e in entries}
@@ -398,7 +463,8 @@ def _keep_passthrough(result: dict[str, Any], files: list[dict[str, str]], main:
     # Whatever could not be found in the text (defined by some construct the
     # scan does not follow) is still reported as dropped.
     result["unsupported"] = [
-        u for u in result["unsupported"] if u.split(" ")[0].lower() not in kept]
+        u for u in result["unsupported"] if u.split(" ")[0].lower() not in kept
+    ]
 
 
 def _prop(full_name: str, prop: str) -> str:
@@ -426,8 +492,7 @@ def _read_tcc_curves() -> dict[str, dict[str, Any]]:
         secs = _num_array(f"tcc_curve.{name}.t_array")
         n = min(len(mult), len(secs))
         if n >= 2:
-            out[name] = {"multiples": mult[:n], "seconds": secs[:n],
-                         "source": "imported"}
+            out[name] = {"multiples": mult[:n], "seconds": secs[:n], "source": "imported"}
     return out
 
 
@@ -476,45 +541,55 @@ def _read_protection(warnings: list[str]) -> dict[str, tuple[str, dict[str, Any]
         full = f"fuse.{name}"
         line = _switched_line(_prop(full, "switchedobj"))
         if line:
-            devices[line] = ("fuse", {
-                "fusecurve": _prop(full, "fusecurve").lower(),
-                "ratedcurrent": _to_float(_prop(full, "ratedcurrent"), 65.0),
-                "delay": _to_float(_prop(full, "delay")),
-            })
+            devices[line] = (
+                "fuse",
+                {
+                    "fusecurve": _prop(full, "fusecurve").lower(),
+                    "ratedcurrent": _to_float(_prop(full, "ratedcurrent"), 65.0),
+                    "delay": _to_float(_prop(full, "delay")),
+                },
+            )
 
     for name in _all_of_class("recloser"):
         full = f"recloser.{name}"
         line = _switched_line(_prop(full, "switchedobj"))
         if line:
-            devices[line] = ("recloser", {
-                "phasefast": _prop(full, "phasefast").lower(),
-                "phasedelayed": _prop(full, "phasedelayed").lower(),
-                # No curve means no ground unit, as on a relay.
-                "groundfast": _prop(full, "groundfast").lower() or "none",
-                "grounddelayed": _prop(full, "grounddelayed").lower() or "none",
-                "phasetrip": _to_float(_prop(full, "phasetrip"), 100.0),
-                "groundtrip": _to_float(_prop(full, "groundtrip"), 50.0),
-                "numfast": int(_to_float(_prop(full, "numfast"), 1.0)),
-                "shots": int(_to_float(_prop(full, "shots"), 4.0)),
-                "delay": _to_float(_prop(full, "delay")),
-            })
+            devices[line] = (
+                "recloser",
+                {
+                    "phasefast": _prop(full, "phasefast").lower(),
+                    "phasedelayed": _prop(full, "phasedelayed").lower(),
+                    # No curve means no ground unit, as on a relay.
+                    "groundfast": _prop(full, "groundfast").lower() or "none",
+                    "grounddelayed": _prop(full, "grounddelayed").lower() or "none",
+                    "phasetrip": _to_float(_prop(full, "phasetrip"), 100.0),
+                    "groundtrip": _to_float(_prop(full, "groundtrip"), 50.0),
+                    "numfast": int(_to_float(_prop(full, "numfast"), 1.0)),
+                    "shots": int(_to_float(_prop(full, "shots"), 4.0)),
+                    "delay": _to_float(_prop(full, "delay")),
+                },
+            )
 
     for name in _all_of_class("relay"):
         full = f"relay.{name}"
         line = _switched_line(_prop(full, "switchedobj"))
         kind = _prop(full, "type").lower()
         if line and kind.startswith("current"):
-            devices[line] = ("relay", {
-                "phasecurve": _prop(full, "phasecurve").lower(),
-                "phasetrip": _to_float(_prop(full, "phasetrip"), 200.0),
-                "groundcurve": _prop(full, "groundcurve").lower() or "none",
-                "groundtrip": _to_float(_prop(full, "groundtrip"), 50.0),
-                "delay": _to_float(_prop(full, "delay")),
-            })
+            devices[line] = (
+                "relay",
+                {
+                    "phasecurve": _prop(full, "phasecurve").lower(),
+                    "phasetrip": _to_float(_prop(full, "phasetrip"), 200.0),
+                    "groundcurve": _prop(full, "groundcurve").lower() or "none",
+                    "groundtrip": _to_float(_prop(full, "groundtrip"), 50.0),
+                    "delay": _to_float(_prop(full, "delay")),
+                },
+            )
         elif line:
             warnings.append(
                 f"Relay.{name} is a '{kind}' relay; only overcurrent relays are "
-                "modelled, so it was imported as a plain switch.")
+                "modelled, so it was imported as a plain switch."
+            )
 
     return devices
 
@@ -536,7 +611,7 @@ def _unflatten(values: list[float], n: int) -> list[list[float]] | None:
     vals = [float(v) for v in values]
     if n < 1 or len(vals) != n * n:
         return None
-    return [[round(v, 9) for v in vals[i * n:(i + 1) * n]] for i in range(n)]
+    return [[round(v, 9) for v in vals[i * n : (i + 1) * n]] for i in range(n)]
 
 
 def _read_line_codes() -> dict[str, LineCodeSpec]:
@@ -554,9 +629,14 @@ def _read_line_codes() -> dict[str, LineCodeSpec]:
         if r is not None and x is not None:
             amps = dss.LineCodes.NormAmps()
             out[name] = LineCodeSpec(
-                nphases=n, units=_UNIT_CODES.get(dss.LineCodes.Units(), "none"),
-                rmatrix=r, xmatrix=x, cmatrix=_unflatten(dss.LineCodes.Cmatrix(), n),
-                normamps=float(amps) if amps else None, source="imported")
+                nphases=n,
+                units=_UNIT_CODES.get(dss.LineCodes.Units(), "none"),
+                rmatrix=r,
+                xmatrix=x,
+                cmatrix=_unflatten(dss.LineCodes.Cmatrix(), n),
+                normamps=float(amps) if amps else None,
+                source="imported",
+            )
         i = dss.LineCodes.Next()
     return out
 
@@ -580,13 +660,30 @@ def _sequence_matches(matrix: list[list[float]] | None, z1: float, z0: float) ->
 # Classes the diagram models, as the engine names them and as the kinds the
 # compiler emits them under (a regulator and every switch are a Transformer
 # or a Line underneath).
-_MODELLED_CLASSES = ("Vsource", "Transformer", "Line", "Load", "Capacitor",
-                     "Generator", "PVSystem", "Storage")
-_NODE_CLASS = {"vsource": "vsource", "transformer": "transformer",
-               "regulator": "transformer", "breaker": "line", "fuse": "line",
-               "recloser": "line", "relay": "line", "load": "load",
-               "capacitor": "capacitor", "generator": "generator",
-               "pvsystem": "pvsystem", "storage": "storage"}
+_MODELLED_CLASSES = (
+    "Vsource",
+    "Transformer",
+    "Line",
+    "Load",
+    "Capacitor",
+    "Generator",
+    "PVSystem",
+    "Storage",
+)
+_NODE_CLASS = {
+    "vsource": "vsource",
+    "transformer": "transformer",
+    "regulator": "transformer",
+    "breaker": "line",
+    "fuse": "line",
+    "recloser": "line",
+    "relay": "line",
+    "load": "load",
+    "capacitor": "capacitor",
+    "generator": "generator",
+    "pvsystem": "pvsystem",
+    "storage": "storage",
+}
 
 
 def _enable_disabled() -> set[str]:
@@ -654,15 +751,20 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         if bus not in bus_node_ids:
             nid = node_id()
             bus_node_ids[bus] = nid
-            nodes.append(CircuitNode(id=nid, type="busbar", width=200,
-                                     params={"name": bus}))
+            nodes.append(CircuitNode(id=nid, type="busbar", width=200, params={"name": bus}))
         return bus_node_ids[bus]
 
     def wire(a_id: str, a_handle: str, b_id: str, b_handle: str) -> None:
-        edges.append(CircuitEdge(
-            id=edge_id(), type="wire",
-            source=a_id, sourceHandle=a_handle,
-            target=b_id, targetHandle=b_handle))
+        edges.append(
+            CircuitEdge(
+                id=edge_id(),
+                type="wire",
+                source=a_id,
+                sourceHandle=a_handle,
+                target=b_id,
+                targetHandle=b_handle,
+            )
+        )
 
     unsupported: list[str] = []
 
@@ -676,7 +778,8 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             interval = dss.LoadShape.MinInterval() or dss.LoadShape.HrInterval() * 60
             load_shapes[shape_name] = LoadShapeSpec(
                 intervalMin=round(interval or 60.0, 4),
-                points=[round(v, 6) for v in dss.LoadShape.PMult()])
+                points=[round(v, 6) for v in dss.LoadShape.PMult()],
+            )
         i = dss.LoadShape.Next()
     shapes_lower = {k.lower(): k for k in load_shapes}
 
@@ -701,14 +804,22 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         # written as R1/X1/R0/X0 reads back as the MVAsc the engine derived
         # from them, which re-emits to the same impedance (to the X/R ratio
         # the engine assumes, 4, which is negligible next to the value).
-        nodes.append(CircuitNode(
-            id=nid, type="vsource",
-            params={"name": name, "basekv": dss.Vsources.BasekV(),
-                    "pu": dss.Vsources.PU(), "phases": dss.Vsources.Phases(),
+        nodes.append(
+            CircuitNode(
+                id=nid,
+                type="vsource",
+                params={
+                    "name": name,
+                    "basekv": dss.Vsources.BasekV(),
+                    "pu": dss.Vsources.PU(),
+                    "phases": dss.Vsources.Phases(),
                     "angle": dss.Vsources.AngleDeg(),
                     "mvasc3": _to_float(dss.Properties.Value("mvasc3"), 2000.0),
                     "mvasc1": _to_float(dss.Properties.Value("mvasc1"), 2100.0),
-                    **_source_ratios()}))
+                    **_source_ratios(),
+                },
+            )
+        )
         if buses:
             wire(nid, "t1", busbar_for(buses[0]), "b0")
         i = dss.Vsources.Next()
@@ -730,10 +841,13 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             "maxtapchange": dss.RegControls.MaxTapChange(),
         }
         if dss.RegControls.IsReversible():
-            reg_controls[xfmr].update({
-                "reversible": True,
-                "revvreg": dss.RegControls.ReverseVreg(),
-                "revband": dss.RegControls.ReverseBand()})
+            reg_controls[xfmr].update(
+                {
+                    "reversible": True,
+                    "revvreg": dss.RegControls.ReverseVreg(),
+                    "revband": dss.RegControls.ReverseBand(),
+                }
+            )
         dss.Circuit.SetActiveElement(f"regcontrol.{dss.RegControls.Name()}")
         if dss.Properties.Value("cogen").strip().lower() in ("yes", "true", "y", "t"):
             reg_controls[xfmr]["cogen"] = True
@@ -753,9 +867,11 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         windings = []
         for w in range(1, nwdg + 1):
             dss.Transformers.Wdg(w)
-            winding = {"kv": dss.Transformers.kV(),
-                       "kva": dss.Transformers.kVA(),
-                       "conn": "delta" if dss.Transformers.IsDelta() else "wye"}
+            winding = {
+                "kv": dss.Transformers.kV(),
+                "kva": dss.Transformers.kVA(),
+                "conn": "delta" if dss.Transformers.IsDelta() else "wye",
+            }
             tap = float(dss.Transformers.Tap())
             if abs(tap - 1.0) > 1e-9:
                 winding["tap"] = round(tap, 6)
@@ -771,9 +887,12 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         # %loadloss reads back as the sum of the winding %r values, which is
         # what the compiler emits (the engine splits it equally again).
         params: dict[str, Any] = {
-            "name": name, "phases": dss.CktElement.NumPhases(),
-            "windings": windings, "xhl": dss.Transformers.Xhl(),
-            "pctloadloss": _to_float(dss.Properties.Value("%loadloss"), 0.5)}
+            "name": name,
+            "phases": dss.CktElement.NumPhases(),
+            "windings": windings,
+            "xhl": dss.Transformers.Xhl(),
+            "pctloadloss": _to_float(dss.Properties.Value("%loadloss"), 0.5),
+        }
         for key, prop in (("pctnoloadloss", "%noloadloss"), ("pctimag", "%imag")):
             v = _to_float(dss.Properties.Value(prop))
             if v > 0:
@@ -799,8 +918,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         # while a transformer's pin names its primary only and the secondary
         # must therefore be bare.
         pin = phasing_from_suffix(bus_nodes[0])
-        agrees = (bus_nodes[0] == bus_nodes[1] if reg is not None
-                  else not any(bus_nodes[1:]))
+        agrees = bus_nodes[0] == bus_nodes[1] if reg is not None else not any(bus_nodes[1:])
         if pin and agrees:
             params["phasing"] = pin
         elif any(bus_nodes):
@@ -864,30 +982,41 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             kind, device = protection.get(name.lower(), ("breaker", {}))
             # A switch's impedance is tiny but a trunk has several in series;
             # the file's values ride along so the export says what the file said.
-            params = {"name": name, "closed": closed,
-                      "normamps": dss.Lines.NormAmps(),
-                      **_emergamps(dss.Lines.NormAmps(), dss.Lines.EmergAmps()),
-                      "phases": dss.Lines.Phases(),
-                      "r1": dss.Lines.R1(), "x1": dss.Lines.X1(),
-                      "r0": dss.Lines.R0(), "x0": dss.Lines.X0(),
-                      "c1": dss.Lines.C1(), "c0": dss.Lines.C0(),
-                      "length": dss.Lines.Length(),
-                      "units": _UNIT_CODES.get(dss.Lines.Units(), "none"),
-                      **reliability(f"line.{name}"), **device}
+            params = {
+                "name": name,
+                "closed": closed,
+                "normamps": dss.Lines.NormAmps(),
+                **_emergamps(dss.Lines.NormAmps(), dss.Lines.EmergAmps()),
+                "phases": dss.Lines.Phases(),
+                "r1": dss.Lines.R1(),
+                "x1": dss.Lines.X1(),
+                "r0": dss.Lines.R0(),
+                "x0": dss.Lines.X0(),
+                "c1": dss.Lines.C1(),
+                "c0": dss.Lines.C0(),
+                "length": dss.Lines.Length(),
+                "units": _UNIT_CODES.get(dss.Lines.Units(), "none"),
+                **reliability(f"line.{name}"),
+                **device,
+            }
             # A switch takes one node list for both of its ends -- it sits
             # inside a single lateral -- so only the first raw key is offered.
-            _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
-                            ["busNodes"])
+            _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)], ["busNodes"])
             nodes.append(CircuitNode(id=nid, type=kind, params=params))
             wire(nid, "t1", busbar_for(b1), "b0")
             wire(nid, "t2", busbar_for(b2), "b0")
         else:
             units = _UNIT_CODES.get(dss.Lines.Units(), "none")
             nph = int(dss.Lines.Phases())
-            params = {"name": name, "length": dss.Lines.Length(),
-                      "units": units, "normamps": dss.Lines.NormAmps(),
-                      **_emergamps(dss.Lines.NormAmps(), dss.Lines.EmergAmps()),
-                      "phases": nph, **reliability(f"line.{name}")}
+            params = {
+                "name": name,
+                "length": dss.Lines.Length(),
+                "units": units,
+                "normamps": dss.Lines.NormAmps(),
+                **_emergamps(dss.Lines.NormAmps(), dss.Lines.EmergAmps()),
+                "phases": nph,
+                **reliability(f"line.{name}"),
+            }
             # Where the impedance lives. A line naming a code takes it from
             # the circuit's copy of that code; one built from a LineGeometry
             # gets a code named after the geometry, shared with every line on
@@ -915,19 +1044,26 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                 # impedance is defined: a two-phase lateral on a geometry
                 # is `bus1=x.1.3`, and without the pins the export put it
                 # on phases 1 and 2 (EPRI ckt5, bus 8086, 58 pu).
-                _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
-                                ["nodes1", "nodes2"])
-                edges.append(CircuitEdge(
-                    id=edge_id(), type="line",
-                    source=busbar_for(b1), sourceHandle="b0",
-                    target=busbar_for(b2), targetHandle="b0", params=params))
+                _record_phasing(
+                    params, [_node_suffix(raw1), _node_suffix(raw2)], ["nodes1", "nodes2"]
+                )
+                edges.append(
+                    CircuitEdge(
+                        id=edge_id(),
+                        type="line",
+                        source=busbar_for(b1),
+                        sourceHandle="b0",
+                        target=busbar_for(b2),
+                        targetHandle="b0",
+                        params=params,
+                    )
+                )
                 i = dss.Lines.Next()
                 continue
             geometry = dss.Lines.Geometry() or dss.Lines.Spacing()
             rm = _unflatten(dss.Lines.RMatrix(), nph)
             xm = _unflatten(dss.Lines.XMatrix(), nph)
-            r1, x1, r0, x0 = (dss.Lines.R1(), dss.Lines.X1(),
-                              dss.Lines.R0(), dss.Lines.X0())
+            r1, x1, r0, x0 = (dss.Lines.R1(), dss.Lines.X1(), dss.Lines.R0(), dss.Lines.X0())
             # A code is shared only when it fits the line. EPRI's ckt24 has
             # two-phase lines naming a one-phase code, which the engine
             # reshapes because `phases=` came after `linecode=`; the compiler
@@ -940,32 +1076,55 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
                 code_name = known
                 params["linecode"] = code_name
                 used_codes[code_name] = all_codes[code_name]
-            elif rm is not None and xm is not None and (
-                    geometry or misfit or not (_sequence_matches(rm, r1, r0)
-                                     and _sequence_matches(xm, x1, x0))):
+            elif (
+                rm is not None
+                and xm is not None
+                and (
+                    geometry
+                    or misfit
+                    or not (_sequence_matches(rm, r1, r0) and _sequence_matches(xm, x1, x0))
+                )
+            ):
                 code_name = f"geom_{geometry}" if geometry else name
                 if code_name not in used_codes:
                     amps = dss.Lines.NormAmps()
                     used_codes[code_name] = LineCodeSpec(
-                        nphases=nph, units=units, rmatrix=rm, xmatrix=xm,
+                        nphases=nph,
+                        units=units,
+                        rmatrix=rm,
+                        xmatrix=xm,
                         cmatrix=_unflatten(dss.Lines.CMatrix(), nph),
                         normamps=float(amps) if amps else None,
-                        source=f"geometry:{geometry}" if geometry else "line matrix")
+                        source=f"geometry:{geometry}" if geometry else "line matrix",
+                    )
                 params["linecode"] = code_name
             else:
-                params.update({"r1": r1, "x1": x1, "r0": r0, "x0": x0,
-                               "c1": dss.Lines.C1(), "c0": dss.Lines.C0()})
+                params.update(
+                    {
+                        "r1": r1,
+                        "x1": x1,
+                        "r0": r0,
+                        "x0": x0,
+                        "c1": dss.Lines.C1(),
+                        "c0": dss.Lines.C0(),
+                    }
+                )
                 if linecode:
                     # A code the file named but the engine no longer holds;
                     # keep the tag so the export still says where it came from.
                     params["linecode"] = linecode
-            _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
-                            ["nodes1", "nodes2"])
-            edges.append(CircuitEdge(
-                id=edge_id(), type="line",
-                source=busbar_for(b1), sourceHandle="b0",
-                target=busbar_for(b2), targetHandle="b0",
-                params=params))
+            _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)], ["nodes1", "nodes2"])
+            edges.append(
+                CircuitEdge(
+                    id=edge_id(),
+                    type="line",
+                    source=busbar_for(b1),
+                    sourceHandle="b0",
+                    target=busbar_for(b2),
+                    targetHandle="b0",
+                    params=params,
+                )
+            )
         i = dss.Lines.Next()
 
     # Loads (exact node connections like '.1.2' preserved via busNodes)
@@ -975,14 +1134,18 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         dss.Circuit.SetActiveElement(f"load.{name}")
         buses = dss.CktElement.BusNames()
         nid = node_id()
-        params = {"name": name, "kv": dss.Loads.kV(), "kw": dss.Loads.kW(),
-                  "pf": dss.Loads.PF(),
-                  "conn": "delta" if dss.Loads.IsDelta() else "wye",
-                  "phases": dss.CktElement.NumPhases(),
-                  "model": dss.Loads.Model(),
-                  # Below this the engine swaps the load model for constant
-                  # impedance; the file's value decides where that happens.
-                  "vminpu": dss.Loads.Vminpu()}
+        params = {
+            "name": name,
+            "kv": dss.Loads.kV(),
+            "kw": dss.Loads.kW(),
+            "pf": dss.Loads.PF(),
+            "conn": "delta" if dss.Loads.IsDelta() else "wye",
+            "phases": dss.CktElement.NumPhases(),
+            "model": dss.Loads.Model(),
+            # Below this the engine swaps the load model for constant
+            # impedance; the file's value decides where that happens.
+            "vminpu": dss.Loads.Vminpu(),
+        }
         if int(dss.Loads.NumCust()) != 1:
             params["numcust"] = int(dss.Loads.NumCust())
         if params["model"] == 4:
@@ -1009,11 +1172,14 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         dss.Circuit.SetActiveElement(f"capacitor.{name}")
         buses = dss.CktElement.BusNames()
         nid = node_id()
-        params = {"name": name, "kv": dss.Capacitors.kV(),
-                  "kvar": dss.Capacitors.kvar(),
-                  "conn": "delta" if dss.Capacitors.IsDelta() else "wye",
-                  "phases": dss.CktElement.NumPhases(),
-                  "numsteps": dss.Capacitors.NumSteps()}
+        params = {
+            "name": name,
+            "kv": dss.Capacitors.kV(),
+            "kvar": dss.Capacitors.kvar(),
+            "conn": "delta" if dss.Capacitors.IsDelta() else "wye",
+            "phases": dss.CktElement.NumPhases(),
+            "numsteps": dss.Capacitors.NumSteps(),
+        }
         if buses:
             _record_phasing(params, [_node_suffix(buses[0])], ["busNodes"])
         nodes.append(CircuitNode(id=nid, type="capacitor", params=params))
@@ -1028,11 +1194,15 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         dss.Circuit.SetActiveElement(f"generator.{name}")
         buses = dss.CktElement.BusNames()
         nid = node_id()
-        params = {"name": name, "kv": dss.Generators.kV(),
-                  "kw": dss.Generators.kW(), "pf": dss.Generators.PF(),
-                  "kva": dss.Generators.kVARated(),
-                  "phases": dss.CktElement.NumPhases(),
-                  "model": dss.Generators.Model()}
+        params = {
+            "name": name,
+            "kv": dss.Generators.kV(),
+            "kw": dss.Generators.kW(),
+            "pf": dss.Generators.PF(),
+            "kva": dss.Generators.kVARated(),
+            "phases": dss.CktElement.NumPhases(),
+            "model": dss.Generators.Model(),
+        }
         if buses:
             _record_phasing(params, [_node_suffix(buses[0])], ["busNodes"])
         nodes.append(CircuitNode(id=nid, type="generator", params=params))
@@ -1048,11 +1218,15 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         buses = dss.CktElement.BusNames()
         nid = node_id()
         params: dict[str, Any] = {
-            "name": name, "kv": float(dss.Properties.Value("kv") or 12.47),
-            "kva": dss.PVsystems.kVARated(), "pmpp": dss.PVsystems.Pmpp(),
-            "pf": dss.PVsystems.pf(), "irradiance": dss.PVsystems.Irradiance(),
+            "name": name,
+            "kv": float(dss.Properties.Value("kv") or 12.47),
+            "kva": dss.PVsystems.kVARated(),
+            "pmpp": dss.PVsystems.Pmpp(),
+            "pf": dss.PVsystems.pf(),
+            "irradiance": dss.PVsystems.Irradiance(),
             "conn": "delta" if dss.Properties.Value("conn").lower().startswith("d") else "wye",
-            "phases": dss.CktElement.NumPhases()}
+            "phases": dss.CktElement.NumPhases(),
+        }
         shape = daily_shape()
         if shape:
             params["loadshape"] = shape
@@ -1074,7 +1248,8 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         nid = node_id()
         dispatch = dss.Properties.Value("dispmode").lower()
         params = {
-            "name": name, "kv": float(dss.Properties.Value("kv") or 12.47),
+            "name": name,
+            "kv": float(dss.Properties.Value("kv") or 12.47),
             "kwrated": float(dss.Properties.Value("kwrated") or 0),
             "kwhrated": float(dss.Properties.Value("kwhrated") or 0),
             "effcharge": float(dss.Properties.Value("%effcharge") or 0),
@@ -1083,13 +1258,17 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
             "soc": float(dss.Properties.Value("%stored") or 0),
             "conn": "delta" if dss.Properties.Value("conn").lower().startswith("d") else "wye",
             "phases": dss.CktElement.NumPhases(),
-            "dispatch": "follow" if dispatch == "follow" else "default"}
+            "dispatch": "follow" if dispatch == "follow" else "default",
+        }
         if params["dispatch"] == "default":
-            params.update({
-                "pctdischarge": float(dss.Properties.Value("%discharge") or 100),
-                "pctcharge": float(dss.Properties.Value("%charge") or 100),
-                "dischargetrigger": float(dss.Properties.Value("dischargetrigger") or 0),
-                "chargetrigger": float(dss.Properties.Value("chargetrigger") or 0)})
+            params.update(
+                {
+                    "pctdischarge": float(dss.Properties.Value("%discharge") or 100),
+                    "pctcharge": float(dss.Properties.Value("%charge") or 100),
+                    "dischargetrigger": float(dss.Properties.Value("dischargetrigger") or 0),
+                    "chargetrigger": float(dss.Properties.Value("chargetrigger") or 0),
+                }
+            )
         shape = daily_shape()
         if shape:
             params["loadshape"] = shape
@@ -1111,20 +1290,36 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         name = dss.Reactors.Name()
         raw1, raw2 = dss.Reactors.Bus1(), dss.Reactors.Bus2()
         b1, b2 = _base_bus(raw1), _base_bus(raw2)
-        if (b2 and b1 != b2 and b1 in bus_node_ids and b2 in bus_node_ids
-                and not dss.Reactors.Parallel()):
+        if (
+            b2
+            and b1 != b2
+            and b1 in bus_node_ids
+            and b2 in bus_node_ids
+            and not dss.Reactors.Parallel()
+        ):
             series_reactors.add(f"reactor.{name.lower()}")
-            params = {"name": name, "reactor": True, "r": dss.Reactors.R(),
-                      "x": dss.Reactors.X(), "phases": int(dss.Reactors.Phases())}
+            params = {
+                "name": name,
+                "reactor": True,
+                "r": dss.Reactors.R(),
+                "x": dss.Reactors.X(),
+                "phases": int(dss.Reactors.Phases()),
+            }
             amps = _to_float(dss.Properties.Value("normamps"))
             if amps > 0:
                 params["normamps"] = amps
-            _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)],
-                            ["nodes1", "nodes2"])
-            edges.append(CircuitEdge(
-                id=edge_id(), type="line",
-                source=busbar_for(b1), sourceHandle="b0",
-                target=busbar_for(b2), targetHandle="b0", params=params))
+            _record_phasing(params, [_node_suffix(raw1), _node_suffix(raw2)], ["nodes1", "nodes2"])
+            edges.append(
+                CircuitEdge(
+                    id=edge_id(),
+                    type="line",
+                    source=busbar_for(b1),
+                    sourceHandle="b0",
+                    target=busbar_for(b2),
+                    targetHandle="b0",
+                    params=params,
+                )
+            )
         i = dss.Reactors.Next()
 
     # Capacitor and inverter controls become settings on the elements they
@@ -1145,8 +1340,7 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
     if unused:
         shown = ", ".join(unused[:8]) + (", ..." if len(unused) > 8 else "")
         plural = "s" if len(unused) != 1 else ""
-        warnings.append(
-            f"{len(unused)} line code{plural} no line uses were left out ({shown}).")
+        warnings.append(f"{len(unused)} line code{plural} no line uses were left out ({shown}).")
 
     for n in nodes:
         cls = _NODE_CLASS.get(n.type)
@@ -1160,21 +1354,36 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         warnings.append(
             f"{n_off} element{'s' if n_off != 1 else ''} the file disabled "
             f"{'are' if n_off != 1 else 'is'} drawn out of service (dashed); "
-            "switch one back on in its properties.")
+            "switch one back on in its properties."
+        )
 
     circuit_name = sanitize_name(dss.Circuit.Name()) or "imported"
     # The bases the file reported its voltages against: rebuilding them from
     # element ratings gets a 120/240 V secondary wrong by a factor of root 3.
     bases = [round(float(b), 6) for b in dss.Settings.VoltageBases() if b and b > 0]
-    circuit = Circuit(name=circuit_name, nodes=nodes, edges=edges,
-                      loadShapes=load_shapes, tccCurves=_read_tcc_curves(),
-                      lineCodes=used_codes, voltageBases=bases or None,
-                      xyCurves=xy_curves, wireData=used_wires, lineGeometries=used_geoms)
+    circuit = Circuit(
+        name=circuit_name,
+        nodes=nodes,
+        edges=edges,
+        loadShapes=load_shapes,
+        tccCurves=_read_tcc_curves(),
+        lineCodes=used_codes,
+        voltageBases=bases or None,
+        xyCurves=xy_curves,
+        wireData=used_wires,
+        lineGeometries=used_geoms,
+    )
     folded.update(f"linegeometry.{g.lower()}" for g in used_geoms)
-    folded.update(f"{ {'wire': 'wiredata', 'cn': 'cndata', 'ts': 'tsdata'}[w.kind] }.{k.lower()}"
-                  for k, w in used_wires.items())
-    return {"circuit": circuit.model_dump(), "unsupported": unsupported,
-            "warnings": warnings, "folded": sorted(folded)}
+    folded.update(
+        f"{ {'wire': 'wiredata', 'cn': 'cndata', 'ts': 'tsdata'}[w.kind] }.{k.lower()}"
+        for k, w in used_wires.items()
+    )
+    return {
+        "circuit": circuit.model_dump(),
+        "unsupported": unsupported,
+        "warnings": warnings,
+        "folded": sorted(folded),
+    }
 
 
 def _apply_bus_coords(nodes: list[CircuitNode], bus_node_ids: dict[str, str]) -> None:
@@ -1200,8 +1409,8 @@ def _apply_bus_coords(nodes: list[CircuitNode], bus_node_ids: dict[str, str]) ->
     for bus, (x, y) in placed.items():
         node = by_id[bus_node_ids[bus]]
         node.position = Position(
-            x=round((x - min(xs)) * scale / 10) * 10,
-            y=round((max(ys) - y) * scale / 10) * 10)
+            x=round((x - min(xs)) * scale / 10) * 10, y=round((max(ys) - y) * scale / 10) * 10
+        )
 
 
 def _emergamps(norm: float, emerg: float) -> dict[str, float]:
@@ -1216,15 +1425,25 @@ def _emergamps(norm: float, emerg: float) -> dict[str, float]:
     return {"emergamps": emerg}
 
 
-_CAPCONTROL_TYPES = {"current": "current", "voltage": "voltage", "kvar": "kvar",
-                     "time": "time", "pf": "pf"}
-_INV_MODES = {"voltvar": "voltvar", "voltwatt": "voltwatt", "wattpf": "wattpf",
-              "wattvar": "wattvar"}
+_CAPCONTROL_TYPES = {
+    "current": "current",
+    "voltage": "voltage",
+    "kvar": "kvar",
+    "time": "time",
+    "pf": "pf",
+}
+_INV_MODES = {
+    "voltvar": "voltvar",
+    "voltwatt": "voltwatt",
+    "wattpf": "wattpf",
+    "wattvar": "wattvar",
+}
 _INV_COMBI = {"vv_vw": "voltvar_voltwatt"}
 
 
-def _fold_controls(nodes: list[CircuitNode], edges: list[CircuitEdge],
-                   warnings: list[str]) -> tuple[set[str], dict[str, XYCurveSpec]]:
+def _fold_controls(
+    nodes: list[CircuitNode], edges: list[CircuitEdge], warnings: list[str]
+) -> tuple[set[str], dict[str, XYCurveSpec]]:
     """CapControls onto their capacitors, InvControls onto the PV systems and
     storage units they list, with the XY curves those name. Returns the
     lowercase `class.name` of everything folded (so it is neither reported
@@ -1301,8 +1520,11 @@ def _fold_controls(nodes: list[CircuitNode], edges: list[CircuitEdge],
         combi = dss.Properties.Value("combimode").strip().lower()
         mode = _INV_COMBI.get(combi) or _INV_MODES.get(dss.Properties.Value("mode").strip().lower())
         raw_list = dss.Properties.Value("derlist") or dss.Properties.Value("pvsystemlist")
-        members = [m.strip().lower() for m in raw_list.strip("[]() ").replace(",", " ").split()
-                   if m.strip()]
+        members = [
+            m.strip().lower()
+            for m in raw_list.strip("[]() ").replace(",", " ").split()
+            if m.strip()
+        ]
         if not members:
             # An InvControl with no list controls every PV system.
             members = [f"pvsystem.{k[1]}" for k in by_name if k[0] == "pvsystem"]
@@ -1316,8 +1538,10 @@ def _fold_controls(nodes: list[CircuitNode], edges: list[CircuitEdge],
         if mode == "wattvar":
             settings["wvcurve"] = curve("wattvar_curve")
         if mode is None or any(v is None for v in settings.values()):
-            warnings.append(f"InvControl.{name} uses a mode or curve the editor cannot "
-                            "show; it is kept as a passthrough control.")
+            warnings.append(
+                f"InvControl.{name} uses a mode or curve the editor cannot "
+                "show; it is kept as a passthrough control."
+            )
             i = dss.ActiveClass.Next()
             continue
         hit = False
@@ -1347,8 +1571,11 @@ def _unit_name(code: object, default: str) -> str:
 def _read_geometries() -> tuple[dict[str, WireDataSpec], dict[str, LineGeometrySpec]]:
     """Every WireData, CNData, TSData and LineGeometry the file defined."""
     wires: dict[str, WireDataSpec] = {}
-    for cls, kind, iface in (("wiredata", "wire", dss.WireData), ("cndata", "cn", getattr(dss, "CNData", None)),
-                             ("tsdata", "ts", getattr(dss, "TSData", None))):
+    for cls, kind, iface in (
+        ("wiredata", "wire", dss.WireData),
+        ("cndata", "cn", getattr(dss, "CNData", None)),
+        ("tsdata", "ts", getattr(dss, "TSData", None)),
+    ):
         if iface is None:
             continue
         try:
@@ -1363,18 +1590,42 @@ def _read_geometries() -> tuple[dict[str, WireDataSpec], dict[str, LineGeometryS
             except Exception:
                 pass
             spec = WireDataSpec(
-                kind=kind, rdc=_pos(iface.Rdc()), rac=_pos(iface.Rac()),
+                kind=kind,
+                rdc=_pos(iface.Rdc()),
+                rac=_pos(iface.Rac()),
                 runits=_unit_name(iface.ResistanceUnits(), "mi"),
-                gmr=_pos(iface.GMRac()), gmrunits=_unit_name(iface.GMRUnits(), "ft"),
-                radius=_pos(iface.Radius()), radunits=_unit_name(iface.RadiusUnits(), "in"),
-                normamps=_pos(iface.NormAmps()), emergamps=_pos(iface.EmergAmps()), source="imported")
+                gmr=_pos(iface.GMRac()),
+                gmrunits=_unit_name(iface.GMRUnits(), "ft"),
+                radius=_pos(iface.Radius()),
+                radunits=_unit_name(iface.RadiusUnits(), "in"),
+                normamps=_pos(iface.NormAmps()),
+                emergamps=_pos(iface.EmergAmps()),
+                source="imported",
+            )
             if kind == "cn":
-                for prop in ("k", "diastrand", "gmrstrand", "rstrand", "epsr", "inslayer", "diains", "diacable"):
+                for prop in (
+                    "k",
+                    "diastrand",
+                    "gmrstrand",
+                    "rstrand",
+                    "epsr",
+                    "inslayer",
+                    "diains",
+                    "diacable",
+                ):
                     v = _to_float(dss.Properties.Value(prop))
                     if v:
                         spec.extra[prop] = v
             elif kind == "ts":
-                for prop in ("diashield", "tapelayer", "tapelap", "epsr", "inslayer", "diains", "diacable"):
+                for prop in (
+                    "diashield",
+                    "tapelayer",
+                    "tapelap",
+                    "epsr",
+                    "inslayer",
+                    "diains",
+                    "diacable",
+                ):
                     v = _to_float(dss.Properties.Value(prop))
                     if v:
                         spec.extra[prop] = v
@@ -1393,12 +1644,17 @@ def _read_geometries() -> tuple[dict[str, WireDataSpec], dict[str, LineGeometryS
         units = dss.LineGeometries.Units()
         unit = _unit_name(units[0] if isinstance(units, (list, tuple)) and units else units, "ft")
         geoms[name] = LineGeometrySpec(
-            nconds=int(dss.LineGeometries.Nconds()), nphases=int(dss.LineGeometries.Phases()),
-            reduce=bool(dss.LineGeometries.Reduce()), units=unit,
+            nconds=int(dss.LineGeometries.Nconds()),
+            nphases=int(dss.LineGeometries.Phases()),
+            reduce=bool(dss.LineGeometries.Reduce()),
+            units=unit,
             rhoEarth=_pos(dss.LineGeometries.RhoEarth()),
-            conductors=[GeometryConductor(wire=c, x=round(x, 6), h=round(h, 6))
-                        for c, x, h in zip(conds, xs, ys)],
-            source="imported")
+            conductors=[
+                GeometryConductor(wire=c, x=round(x, 6), h=round(h, 6))
+                for c, x, h in zip(conds, xs, ys, strict=False)
+            ],
+            source="imported",
+        )
         i = dss.LineGeometries.Next()
     return wires, geoms
 

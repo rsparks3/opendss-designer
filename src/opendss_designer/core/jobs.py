@@ -11,6 +11,7 @@ a `threading.Event` to poll for cancellation, and returns a plain dict. It
 must do its engine work through `core.engine`'s entry points (or be one
 itself), which keep the single-engine-thread discipline.
 """
+
 from __future__ import annotations
 
 import contextvars
@@ -56,8 +57,12 @@ class Job:
 
     def snapshot(self, with_result: bool = False) -> dict[str, Any]:
         out: dict[str, Any] = {
-            "id": self.id, "kind": self.kind, "status": self.status,
-            "created": self.created, "started": self.started, "finished": self.finished,
+            "id": self.id,
+            "kind": self.kind,
+            "status": self.status,
+            "created": self.created,
+            "started": self.started,
+            "finished": self.finished,
             "progress": {"done": self.done, "total": self.total, "message": self.message},
             "engineSeconds": round(self.engine_seconds, 3),
         }
@@ -125,8 +130,7 @@ class JobManager:
     # --- internals -------------------------------------------------------------
 
     def _prune(self) -> None:
-        finished = [j for j in self._jobs.values()
-                    if j.status in ("done", "failed", "cancelled")]
+        finished = [j for j in self._jobs.values() if j.status in ("done", "failed", "cancelled")]
         for j in finished[:-KEEP_FINISHED] if len(finished) > KEEP_FINISHED else []:
             self._jobs.pop(j.id, None)
 
@@ -134,8 +138,9 @@ class JobManager:
         with job.changed:
             job.changed.notify_all()
 
-    def _finish(self, job: Job, status: str, result: dict[str, Any] | None = None,
-                error: str | None = None) -> None:
+    def _finish(
+        self, job: Job, status: str, result: dict[str, Any] | None = None, error: str | None = None
+    ) -> None:
         job.status = status
         job.result = result
         job.error = error
@@ -161,7 +166,11 @@ class JobManager:
             # limits overlay reaches the engine thread, and bill the engine
             # time to the job rather than to a request that has long since
             # been answered.
-            req = context.current_context() if job.ctx is None else job.ctx.run(context.current_context)
+            req = (
+                context.current_context()
+                if job.ctx is None
+                else job.ctx.run(context.current_context)
+            )
             result = job.ctx.run(work) if job.ctx is not None else work()
             if req is not None:
                 job.engine_seconds = req.engine_seconds
@@ -172,8 +181,12 @@ class JobManager:
         except Exception as exc:  # noqa: BLE001 -- reported to the client
             logger.exception("Study job %s (%s) failed", job.id, job.kind)
             from .engine import EngineBusy  # local: engine imports are heavy
-            message = (str(exc) if isinstance(exc, (EngineBusy, ValueError))
-                       else "The study failed unexpectedly. Check the server log for details.")
+
+            message = (
+                str(exc)
+                if isinstance(exc, (EngineBusy, ValueError))
+                else "The study failed unexpectedly. Check the server log for details."
+            )
             self._finish(job, "failed", error=message)
 
 

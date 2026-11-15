@@ -14,6 +14,7 @@ unit), loss ratio R = 5, exponents n = m = 0.8, ambient 30 °C unless told.
 For every load under 1 kV the lowest voltage over the run, in volts on the
 120 V base, against ANSI C84.1 Range A at the meter (114 V).
 """
+
 from __future__ import annotations
 
 import math
@@ -45,16 +46,34 @@ def aging_factor(loading_pu: float, ambient_c: float) -> tuple[float, float]:
     return theta, faa
 
 
-def transformer_loading(circuit: Circuit, mode: str = "daily", step_min: int = 60, ambient_c: float = 30.0,
-                        progress: Progress | None = None, cancel: threading.Event | None = None) -> dict[str, Any]:
+def transformer_loading(
+    circuit: Circuit,
+    mode: str = "daily",
+    step_min: int = 60,
+    ambient_c: float = 30.0,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+) -> dict[str, Any]:
     circuit = effective_circuit(circuit)
-    return _transformer_loading(circuit, mode if mode in ("daily", "yearly") else "daily", int(step_min),
-                                float(ambient_c), progress, cancel)
+    return _transformer_loading(
+        circuit,
+        mode if mode in ("daily", "yearly") else "daily",
+        int(step_min),
+        float(ambient_c),
+        progress,
+        cancel,
+    )
 
 
 @engine.on_engine_thread
-def _transformer_loading(circuit: Circuit, mode: str, step_min: int, ambient: float,
-                         progress: Progress | None, cancel: threading.Event | None) -> dict[str, Any]:
+def _transformer_loading(
+    circuit: Circuit,
+    mode: str,
+    step_min: int,
+    ambient: float,
+    progress: Progress | None,
+    cancel: threading.Event | None,
+) -> dict[str, Any]:
     compiled = compile_circuit(circuit, shape_dir=engine.SHAPE_DIR)
     issues = limit_issues(circuit) + list(compiled.issues)
     if any(i.severity == "error" for i in issues):
@@ -62,23 +81,55 @@ def _transformer_loading(circuit: Circuit, mode: str, step_min: int, ambient: fl
     with engine.dss_guard():
         engine._ensure_init()
         engine._write_aux_files(compiled)
-        if not engine._run_commands(compiled.commands, compiled.element_map, issues, compiled.optional_commands):
-            return {"converged": False, "issues": [i.model_dump() for i in issues], "transformers": []}
+        if not engine._run_commands(
+            compiled.commands, compiled.element_map, issues, compiled.optional_commands
+        ):
+            return {
+                "converged": False,
+                "issues": [i.model_dump() for i in issues],
+                "transformers": [],
+            }
         # Service transformers and their ratings.
         units: list[dict[str, Any]] = []
         for n in circuit.nodes:
             if n.type != "transformer" or n.params.get("enabled", True) is False:
                 continue
             windings = n.params.get("windings") or []
-            lv = min((float(w.get("kv", 99)) for w in windings[1:] if isinstance(w, dict)), default=99.0)
+            lv = min(
+                (float(w.get("kv", 99)) for w in windings[1:] if isinstance(w, dict)), default=99.0
+            )
             if n.params.get("splitphase") is True or lv < 1.0:
-                full = next((f for f, ref in compiled.element_map.items() if ref == n.id and f.startswith("transformer.")), None)
+                full = next(
+                    (
+                        f
+                        for f, ref in compiled.element_map.items()
+                        if ref == n.id and f.startswith("transformer.")
+                    ),
+                    None,
+                )
                 if full is None:
                     continue
-                kva = float(windings[0].get("kva", 25)) if windings and isinstance(windings[0], dict) else 25.0
-                units.append({"id": n.id, "full": full, "name": str(n.params.get("name") or n.id), "kva": kva,
-                              "peakPct": 0.0, "peakHour": 0.0, "hoursOver100": 0.0, "hoursOver150": 0.0,
-                              "lossOfLife": 0.0, "faaSum": 0.0, "steps": 0, "maxHotSpotC": 0.0})
+                kva = (
+                    float(windings[0].get("kva", 25))
+                    if windings and isinstance(windings[0], dict)
+                    else 25.0
+                )
+                units.append(
+                    {
+                        "id": n.id,
+                        "full": full,
+                        "name": str(n.params.get("name") or n.id),
+                        "kva": kva,
+                        "peakPct": 0.0,
+                        "peakHour": 0.0,
+                        "hoursOver100": 0.0,
+                        "hoursOver150": 0.0,
+                        "lossOfLife": 0.0,
+                        "faaSum": 0.0,
+                        "steps": 0,
+                        "maxHotSpotC": 0.0,
+                    }
+                )
         # Loads below 1 kV: the customer's voltage.
         services: list[dict[str, Any]] = []
         for n in circuit.nodes:
@@ -88,17 +139,35 @@ def _transformer_loading(circuit: Circuit, mode: str, step_min: int, ambient: fl
                 except (TypeError, ValueError):
                     kv = 12.47
                 if kv < 1.0 and compiled.connectivity and n.id in compiled.connectivity.node_buses:
-                    services.append({"id": n.id, "name": str(n.params.get("name") or n.id), "kv": kv,
-                                     "bus": compiled.connectivity.node_buses[n.id][0].lower(),
-                                     "minVpu": math.inf, "maxVpu": -math.inf, "minHour": 0.0})
+                    services.append(
+                        {
+                            "id": n.id,
+                            "name": str(n.params.get("name") or n.id),
+                            "kv": kv,
+                            "bus": compiled.connectivity.node_buses[n.id][0].lower(),
+                            "minVpu": math.inf,
+                            "maxVpu": -math.inf,
+                            "minHour": 0.0,
+                        }
+                    )
         if not units and not services:
-            issues.append(Issue(severity="warning", code="no-secondary",
-                                message="No service transformers (secondary under 1 kV or split-phase) and no "
-                                        "loads under 1 kV: nothing to judge."))
+            issues.append(
+                Issue(
+                    severity="warning",
+                    code="no-secondary",
+                    message="No service transformers (secondary under 1 kV or split-phase) and no "
+                    "loads under 1 kV: nothing to judge.",
+                )
+            )
         has_shapes = any(n.params.get("loadshape") for n in circuit.nodes)
         if not has_shapes:
-            issues.append(Issue(severity="warning", code="no-shapes",
-                                message="No loadshapes: every hour of the run carries the rated load."))
+            issues.append(
+                Issue(
+                    severity="warning",
+                    code="no-shapes",
+                    message="No loadshapes: every hour of the run carries the rated load.",
+                )
+            )
         dss.Text.Command(f"set mode={mode}")
         dss.Text.Command(f"set stepsize={step_min}m")
         dss.Text.Command("set number=1")
@@ -125,8 +194,8 @@ def _transformer_loading(circuit: Circuit, mode: str, step_min: int, ambient: fl
                     continue
                 powers = dss.CktElement.Powers()
                 ncond = dss.CktElement.NumConductors()
-                kw = sum(powers[0:2 * ncond:2])
-                kvar = sum(powers[1:2 * ncond:2])
+                kw = sum(powers[0 : 2 * ncond : 2])
+                kvar = sum(powers[1 : 2 * ncond : 2])
                 pct = 100.0 * math.hypot(kw, kvar) / u["kva"] if u["kva"] > 0 else 0.0
                 u["steps"] += 1
                 if pct > u["peakPct"]:
@@ -159,35 +228,64 @@ def _transformer_loading(circuit: Circuit, mode: str, step_min: int, ambient: fl
     out_units = []
     for u in units:
         loss_pct = 100.0 * u["faaSum"] / NORMAL_LIFE_H
-        out_units.append({
-            "id": u["id"], "name": u["name"], "kva": u["kva"],
-            "peakPct": round(u["peakPct"], 1), "peakHour": round(u["peakHour"], 2),
-            "hoursOver100": round(u["hoursOver100"], 2), "hoursOver150": round(u["hoursOver150"], 2),
-            "equivalentAging": round(u["faaSum"] / (u["steps"] * dt), 3) if u["steps"] else None,
-            "maxHotSpotC": round(u["maxHotSpotC"], 1),
-            "lossOfLifePctPerYear": round(loss_pct * per_year, 4),
-            "flag": "overloaded" if u["hoursOver100"] > 0 else ("aging" if u["faaSum"] / max(u["steps"] * dt, 1e-9) > 1.0 else None),
-        })
+        out_units.append(
+            {
+                "id": u["id"],
+                "name": u["name"],
+                "kva": u["kva"],
+                "peakPct": round(u["peakPct"], 1),
+                "peakHour": round(u["peakHour"], 2),
+                "hoursOver100": round(u["hoursOver100"], 2),
+                "hoursOver150": round(u["hoursOver150"], 2),
+                "equivalentAging": round(u["faaSum"] / (u["steps"] * dt), 3)
+                if u["steps"]
+                else None,
+                "maxHotSpotC": round(u["maxHotSpotC"], 1),
+                "lossOfLifePctPerYear": round(loss_pct * per_year, 4),
+                "flag": "overloaded"
+                if u["hoursOver100"] > 0
+                else ("aging" if u["faaSum"] / max(u["steps"] * dt, 1e-9) > 1.0 else None),
+            }
+        )
     out_units.sort(key=lambda u: -u["peakPct"])
     out_services = []
     for s in services:
         if s["minVpu"] == math.inf:
             continue
         v120 = s["minVpu"] * 120.0
-        out_services.append({"id": s["id"], "name": s["name"], "kv": s["kv"], "bus": s["bus"],
-                             "minVpu": round(s["minVpu"], 4), "minV120": round(v120, 1), "minHour": round(s["minHour"], 2),
-                             "maxVpu": round(s["maxVpu"], 4), "maxV120": round(s["maxVpu"] * 120.0, 1),
-                             "flag": "low" if v120 < 114 else ("high" if s["maxVpu"] * 120 > 126 else None)})
+        out_services.append(
+            {
+                "id": s["id"],
+                "name": s["name"],
+                "kv": s["kv"],
+                "bus": s["bus"],
+                "minVpu": round(s["minVpu"], 4),
+                "minV120": round(v120, 1),
+                "minHour": round(s["minHour"], 2),
+                "maxVpu": round(s["maxVpu"], 4),
+                "maxV120": round(s["maxVpu"] * 120.0, 1),
+                "flag": "low" if v120 < 114 else ("high" if s["maxVpu"] * 120 > 126 else None),
+            }
+        )
     out_services.sort(key=lambda s: s["minV120"])
     return {
         "converged": not cancelled and non_conv == 0,
-        "cancelled": cancelled, "mode": mode, "stepMin": step_min, "ambientC": ambient,
-        "transformers": out_units, "services": out_services,
-        "summary": {"transformers": len(out_units), "overloaded": sum(1 for u in out_units if u["hoursOver100"] > 0),
-                    "aging": sum(1 for u in out_units if (u["equivalentAging"] or 0) > 1.0),
-                    "services": len(out_services), "lowVoltage": sum(1 for s in out_services if s["flag"] == "low"),
-                    "highVoltage": sum(1 for s in out_services if s["flag"] == "high")},
+        "cancelled": cancelled,
+        "mode": mode,
+        "stepMin": step_min,
+        "ambientC": ambient,
+        "transformers": out_units,
+        "services": out_services,
+        "summary": {
+            "transformers": len(out_units),
+            "overloaded": sum(1 for u in out_units if u["hoursOver100"] > 0),
+            "aging": sum(1 for u in out_units if (u["equivalentAging"] or 0) > 1.0),
+            "services": len(out_services),
+            "lowVoltage": sum(1 for s in out_services if s["flag"] == "low"),
+            "highVoltage": sum(1 for s in out_services if s["flag"] == "high"),
+        },
         "nonConverged": non_conv,
-        "loadLevel": circuit.level.model_dump(), "scenario": circuit.activeScenario,
+        "loadLevel": circuit.level.model_dump(),
+        "scenario": circuit.activeScenario,
         "issues": [i.model_dump() for i in issues],
     }

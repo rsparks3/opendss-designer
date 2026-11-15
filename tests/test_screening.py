@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
+from test_hosting_capacity import feeder as _feeder
 
 from opendss_designer import server
 from opendss_designer.core import engine
 from opendss_designer.core.model import LoadLevel
 from opendss_designer.studies.faults import fault_point, fault_sweep
 from opendss_designer.studies.screening import screen
-from test_hosting_capacity import feeder as _feeder
 
 
 def feeder():

@@ -18,6 +18,7 @@ faults on them count for nothing: a feeder with no protective device at
 its head reports zero interruptions, which this module warns about rather
 than hides.
 """
+
 from __future__ import annotations
 
 import math
@@ -37,8 +38,9 @@ _METERABLE = ("transformer", "regulator", "breaker", "fuse", "recloser", "relay"
 _PROTECTIVE = ("fuse", "recloser", "relay")
 
 
-def _meter_sites(circuit: Circuit, compiled: CompileResult,
-                 issues: list[Issue]) -> list[tuple[str, str, int]]:
+def _meter_sites(
+    circuit: Circuit, compiled: CompileResult, issues: list[Issue]
+) -> list[tuple[str, str, int]]:
     """Where the energy meters go: (meter name, element full name, terminal).
 
     Elements flagged `meter` in the drawing come first; with none flagged,
@@ -61,8 +63,11 @@ def _meter_sites(circuit: Circuit, compiled: CompileResult,
     # Hand-placed meters.
     flagged = [n for n in circuit.nodes if n.type in _METERABLE and n.params.get("meter")]
     flagged_edges = [e for e in circuit.edges if e.type == "line" and e.params.get("meter")]
-    source_buses = {conn.node_buses[n.id][0] for n in circuit.nodes
-                    if n.type == "vsource" and n.id in conn.node_buses}
+    source_buses = {
+        conn.node_buses[n.id][0]
+        for n in circuit.nodes
+        if n.type == "vsource" and n.id in conn.node_buses
+    }
     dist = engine._bus_distances(circuit, conn)
 
     def upstream_terminal(buses: list[str]) -> int:
@@ -98,9 +103,13 @@ def _meter_sites(circuit: Circuit, compiled: CompileResult,
                 add(full, t + 1)
                 break
     if not sites:
-        issues.append(Issue(
-            severity="error", code="no-meter",
-            message="Nothing to meter: no line, switch or transformer leaves the source bus."))
+        issues.append(
+            Issue(
+                severity="error",
+                code="no-meter",
+                message="Nothing to meter: no line, switch or transformer leaves the source bus.",
+            )
+        )
     return sites
 
 
@@ -134,8 +143,9 @@ DEFAULT_OUTAGE_COST: dict[str, dict[str, float]] = {
 }
 
 
-def extra_indices(circuit: Circuit, result: dict[str, Any],
-                  outage_cost: dict[str, dict[str, float]] | None = None) -> dict[str, Any]:
+def extra_indices(
+    circuit: Circuit, result: dict[str, Any], outage_cost: dict[str, dict[str, float]] | None = None
+) -> dict[str, Any]:
     """MAIFI, ASAI, CEMI and ASIFI, and the customers' interruption cost,
     from the sections the study found and the loads below each.
 
@@ -157,13 +167,21 @@ def extra_indices(circuit: Circuit, result: dict[str, Any],
         return {"maifi": None, "asai": None, "cemi": {}, "asifi": None, "outageCost": None}
     from .connectivity import synthesize
     from .model import conducts, in_service
+
     conn = synthesize(circuit)
     # Downstream buses of each section head, by a walk from the head's far
     # terminal that stops at other heads.
     heads = {s["headId"]: s for s in sections if s.get("headId")}
     adjacency: dict[str, list[tuple[str, str | None]]] = {}
     for n in circuit.nodes:
-        if n.type in ("transformer", "regulator", "breaker", "fuse", "recloser", "relay") and conducts(n):
+        if n.type in (
+            "transformer",
+            "regulator",
+            "breaker",
+            "fuse",
+            "recloser",
+            "relay",
+        ) and conducts(n):
             buses = [b.lower() for b in conn.node_buses.get(n.id, [])]
             for a in buses:
                 for b in buses:
@@ -175,7 +193,11 @@ def extra_indices(circuit: Circuit, result: dict[str, Any],
             continue
         adjacency.setdefault(b1.lower(), []).append((b2.lower(), eid))
         adjacency.setdefault(b2.lower(), []).append((b1.lower(), eid))
-    source_buses = {conn.node_buses[n.id][0].lower() for n in circuit.nodes if n.type == "vsource" and n.id in conn.node_buses}
+    source_buses = {
+        conn.node_buses[n.id][0].lower()
+        for n in circuit.nodes
+        if n.type == "vsource" and n.id in conn.node_buses
+    }
     # Parent of every bus from the source, so "below a head" is well defined.
     parent: dict[str, tuple[str | None, str | None]] = {}
     queue = list(source_buses)
@@ -207,8 +229,15 @@ def extra_indices(circuit: Circuit, result: dict[str, Any],
                 path_heads.append(via)
             b = pb
             guard += 1
-        loads.append({"id": n.id, "cust": cust, "kw": kw, "cls": str(n.params.get("class") or "").strip().lower(),
-                      "heads": path_heads})
+        loads.append(
+            {
+                "id": n.id,
+                "cust": cust,
+                "kw": kw,
+                "cls": str(n.params.get("class") or "").strip().lower(),
+                "heads": path_heads,
+            }
+        )
     lam = {s["headId"]: s["lambda"] for s in sections if s.get("headId")}
     repair = {s["headId"]: (s.get("avgRepairHrs") or 0.0) for s in sections if s.get("headId")}
     total_kw = sum(ld["kw"] for ld in loads) or 1.0
@@ -231,7 +260,7 @@ def extra_indices(circuit: Circuit, result: dict[str, Any],
     # Momentary interruptions below reclosers: the temporary faults of each
     # recloser-headed section, times the customers below the recloser.
     temp_rate: dict[str, float] = {}
-    for full, el in elements.items():
+    for _full, el in elements.items():
         sec = el.get("sectionId")
         if not sec:
             continue
@@ -267,12 +296,21 @@ def reliability_study(circuit: Circuit) -> dict[str, Any]:
     compiled: CompileResult = compile_circuit(circuit, shape_dir=engine.SHAPE_DIR)
     issues = limit_issues(circuit) + list(compiled.issues)
     empty: dict[str, Any] = {
-        "converged": False, "issues": [], "totalCustomers": 0,
-        "saifi": None, "saidi": None, "caidi": None, "saifiKw": None,
-        "custInterrupts": 0.0, "custHours": 0.0,
-        "meters": [], "sections": [], "elements": {},
+        "converged": False,
+        "issues": [],
+        "totalCustomers": 0,
+        "saifi": None,
+        "saidi": None,
+        "caidi": None,
+        "saifiKw": None,
+        "custInterrupts": 0.0,
+        "custHours": 0.0,
+        "meters": [],
+        "sections": [],
+        "elements": {},
         "unsectioned": {"count": 0, "lambda": 0.0},
-        "nodeBuses": {}, "lineBuses": {},
+        "nodeBuses": {},
+        "lineBuses": {},
     }
     if any(i.severity == "error" for i in issues):
         return {**empty, "issues": [i.model_dump() for i in issues]}
@@ -295,19 +333,24 @@ def reliability_study(circuit: Circuit) -> dict[str, Any]:
     with engine.dss_guard():
         engine._ensure_init()
         engine._write_aux_files(compiled)
-        built = engine._run_commands(compiled.commands, element_map, issues,
-                                     compiled.optional_commands)
+        built = engine._run_commands(
+            compiled.commands, element_map, issues, compiled.optional_commands
+        )
         if built:
             try:
                 for name, full, terminal in sites:
-                    dss.Text.Command(
-                        f"new energymeter.{name} element={full} terminal={terminal}")
+                    dss.Text.Command(f"new energymeter.{name} element={full} terminal={terminal}")
                 dss.Text.Command("set mode=snapshot")
                 dss.Text.Command("solve")
                 converged = bool(dss.Solution.Converged())
             except Exception as exc:
-                issues.append(Issue(severity="error", code="solve-failed",
-                                    message=f"Reliability study failed: {exc}"))
+                issues.append(
+                    Issue(
+                        severity="error",
+                        code="solve-failed",
+                        message=f"Reliability study failed: {exc}",
+                    )
+                )
         if converged:
             # The calculation fills in every branch's accumulated rates and
             # customers, so it runs for every zone before any is read.
@@ -317,32 +360,37 @@ def reliability_study(circuit: Circuit) -> dict[str, Any]:
                 if dss.Meters.Name().lower() != name:
                     continue
                 dss.Meters.DoReliabilityCalc(False)
-                raw.append({
-                    "name": name, "full": full,
-                    "zone": [b.lower() for b in dss.Meters.AllBranchesInZone()],
-                    "customers": int(dss.Meters.TotalCustomers()),
-                    "saifi": _fnum(dss.Meters.SAIFI(), 6),
-                    "saidi": _fnum(dss.Meters.SAIDI(), 6),
-                    "saifiKw": _fnum(dss.Meters.SAIFIkW(), 6),
-                    "custInterrupts": _fnum(dss.Meters.CustInterrupts(), 4),
-                })
+                raw.append(
+                    {
+                        "name": name,
+                        "full": full,
+                        "zone": [b.lower() for b in dss.Meters.AllBranchesInZone()],
+                        "customers": int(dss.Meters.TotalCustomers()),
+                        "saifi": _fnum(dss.Meters.SAIFI(), 6),
+                        "saidi": _fnum(dss.Meters.SAIDI(), 6),
+                        "saifiKw": _fnum(dss.Meters.SAIFIkW(), 6),
+                        "custInterrupts": _fnum(dss.Meters.CustInterrupts(), 4),
+                    }
+                )
             # Every power-delivery element, in the engine's own order, which
             # is what ParentPDElement indexes into.
             pd: list[dict[str, Any]] = []
             i = dss.PDElements.First()
             while i:
-                pd.append({
-                    "name": dss.PDElements.Name().lower(),
-                    "lambda": _fnum(dss.PDElements.Lambda()),
-                    "accumulatedLambda": _fnum(dss.PDElements.AccumulatedL()),
-                    "customers": int(dss.PDElements.NumCustomers()),
-                    "totalCustomers": int(dss.PDElements.TotalCustomers()),
-                    "section": int(dss.PDElements.SectionID()),
-                    "repairHrs": _fnum(dss.PDElements.RepairTime(), 3),
-                    "faultRate": _fnum(dss.PDElements.FaultRate()),
-                    "pctPerm": _fnum(dss.PDElements.PctPermanent(), 2),
-                    "parent": int(dss.PDElements.ParentPDElement()),
-                })
+                pd.append(
+                    {
+                        "name": dss.PDElements.Name().lower(),
+                        "lambda": _fnum(dss.PDElements.Lambda()),
+                        "accumulatedLambda": _fnum(dss.PDElements.AccumulatedL()),
+                        "customers": int(dss.PDElements.NumCustomers()),
+                        "totalCustomers": int(dss.PDElements.TotalCustomers()),
+                        "section": int(dss.PDElements.SectionID()),
+                        "repairHrs": _fnum(dss.PDElements.RepairTime(), 3),
+                        "faultRate": _fnum(dss.PDElements.FaultRate()),
+                        "pctPerm": _fnum(dss.PDElements.PctPermanent(), 2),
+                        "parent": int(dss.PDElements.ParentPDElement()),
+                    }
+                )
                 i = dss.PDElements.Next()
             by_name = {p["name"]: p for p in pd}
 
@@ -376,9 +424,13 @@ def reliability_study(circuit: Circuit) -> dict[str, Any]:
                         unsectioned_lambda += sum(m["lambda"] for m in members)
                         continue
                     head = next(
-                        (m for m in members
-                         if m["parent"] == 0 or pd[m["parent"] - 1]["section"] != sect),
-                        members[0])
+                        (
+                            m
+                            for m in members
+                            if m["parent"] == 0 or pd[m["parent"] - 1]["section"] != sect
+                        ),
+                        members[0],
+                    )
                     lam = sum(m["lambda"] for m in members)
                     lam_hours = sum(m["lambda"] * m["repairHrs"] for m in members)
                     head_id = element_map.get(head["name"])
@@ -393,8 +445,9 @@ def reliability_study(circuit: Circuit) -> dict[str, Any]:
                         "customers": sum(m["customers"] for m in members),
                         "totalCustomers": total,
                         "branches": len(members),
-                        "lengthKm": round(sum(
-                            _km(circuit, element_map.get(m["name"], "")) for m in members), 4),
+                        "lengthKm": round(
+                            sum(_km(circuit, element_map.get(m["name"], "")) for m in members), 4
+                        ),
                         "lambda": round(lam, 6),
                         "avgRepairHrs": round(lam_hours / lam, 3) if lam > 0 else None,
                         "custInterrupts": round(lam * total, 4),
@@ -404,8 +457,9 @@ def reliability_study(circuit: Circuit) -> dict[str, Any]:
                     meter["sections"].append(section_id)
                     for m in members:
                         m["sectionId"] = section_id
-                meter["custHours"] = round(sum(
-                    s["custHours"] for s in sections_out if s["meter"] == name), 4)
+                meter["custHours"] = round(
+                    sum(s["custHours"] for s in sections_out if s["meter"] == name), 4
+                )
                 meters_out.append(meter)
 
             for p in pd:
@@ -425,26 +479,38 @@ def reliability_study(circuit: Circuit) -> dict[str, Any]:
                     "pctPerm": p["pctPerm"],
                 }
         elif built:
-            issues.append(Issue(
-                severity="error", code="not-converged",
-                message="The power flow behind the reliability study did not converge."))
+            issues.append(
+                Issue(
+                    severity="error",
+                    code="not-converged",
+                    message="The power flow behind the reliability study did not converge.",
+                )
+            )
 
     total_customers = sum(m["customers"] for m in meters_out)
     cust_int = sum(m["custInterrupts"] for m in meters_out)
     cust_hours = sum(m["custHours"] for m in meters_out)
     if converged and not total_customers:
-        issues.append(Issue(
-            severity="warning", code="no-customers",
-            message="No load in a metered zone has customers, so there is nobody to "
-                    "interrupt: give the loads a customer count."))
+        issues.append(
+            Issue(
+                severity="warning",
+                code="no-customers",
+                message="No load in a metered zone has customers, so there is nobody to "
+                "interrupt: give the loads a customer count.",
+            )
+        )
     if unsectioned_count:
-        issues.append(Issue(
-            severity="warning", code="unsectioned",
-            message=f"{unsectioned_count} element{'s' if unsectioned_count != 1 else ''} "
-                    f"between a meter and the first fuse, recloser or relay "
-                    f"(fault rate {unsectioned_lambda:.3g} /yr in all) belong to no "
-                    "protection section, so OpenDSS counts no interruptions for faults "
-                    "there. Put a relay or recloser at the feeder head to count them."))
+        issues.append(
+            Issue(
+                severity="warning",
+                code="unsectioned",
+                message=f"{unsectioned_count} element{'s' if unsectioned_count != 1 else ''} "
+                f"between a meter and the first fuse, recloser or relay "
+                f"(fault rate {unsectioned_lambda:.3g} /yr in all) belong to no "
+                "protection section, so OpenDSS counts no interruptions for faults "
+                "there. Put a relay or recloser at the feeder head to count them.",
+            )
+        )
     saifi = cust_int / total_customers if total_customers else None
     saidi = cust_hours / total_customers if total_customers else None
     conn = compiled.connectivity
@@ -471,8 +537,12 @@ def reliability_study(circuit: Circuit) -> dict[str, Any]:
         try:
             out.update(extra_indices(circuit, out))
         except Exception as exc:  # the extras must never sink the study
-            issues.append(Issue(severity="warning", code="reliability-extras",
-                                message=f"MAIFI/ASAI/CEMI could not be computed: {exc}"))
+            issues.append(
+                Issue(
+                    severity="warning",
+                    code="reliability-extras",
+                    message=f"MAIFI/ASAI/CEMI could not be computed: {exc}",
+                )
+            )
             out["issues"] = [i.model_dump() for i in issues]
     return out
-

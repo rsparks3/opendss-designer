@@ -27,6 +27,7 @@ Each screen reports its value, its limit and pass / fail; the outcome is
 *pass* (every screen), *supplemental* (only the aggregate screen failed,
 and the minimum-load test passed) or *fail*.
 """
+
 from __future__ import annotations
 
 import math
@@ -45,12 +46,12 @@ from .scenarios import effective_circuit
 DEFAULT_SCREEN_OPTIONS: dict[str, Any] = {
     "kw": 500.0,
     "pf": 1.0,
-    "kva": None,                  # inverter rating; blank = kW / pf
-    "derType": "inverter",        # or "synchronous"
-    "export": True,               # exporting systems face the minimum-load test
-    "aggregatePct": 15.0,         # of the line section's peak load
-    "minLoadPct": 100.0,          # of the section's minimum daytime load (supplemental)
-    "minLoadMult": None,          # None: the project's level named like "minimum", else 0.3
+    "kva": None,  # inverter rating; blank = kW / pf
+    "derType": "inverter",  # or "synchronous"
+    "export": True,  # exporting systems face the minimum-load test
+    "aggregatePct": 15.0,  # of the line section's peak load
+    "minLoadPct": 100.0,  # of the section's minimum daytime load (supplemental)
+    "minLoadMult": None,  # None: the project's level named like "minimum", else 0.3
     "faultIncreasePct": 10.0,
     "interruptingPct": 87.5,
     "deviationPct": 3.0,
@@ -98,12 +99,15 @@ def _screen(circuit: Circuit, bus: str, opts: dict[str, Any]) -> dict[str, Any]:
     with engine.dss_guard():
         engine._ensure_init()
         engine._write_aux_files(compiled)
-        if not engine._run_commands(compiled.commands, compiled.element_map, issues,
-                                    compiled.optional_commands):
+        if not engine._run_commands(
+            compiled.commands, compiled.element_map, issues, compiled.optional_commands
+        ):
             return {"converged": False, "issues": [i.model_dump() for i in issues], "screens": []}
         all_buses = {b.lower() for b in dss.Circuit.AllBusNames()}
         if bus not in all_buses:
-            issues.append(Issue(severity="error", code="no-such-bus", message=f"No bus named '{bus}'."))
+            issues.append(
+                Issue(severity="error", code="no-such-bus", message=f"No bus named '{bus}'.")
+            )
             return {"converged": False, "issues": [i.model_dump() for i in issues], "screens": []}
         dss.Circuit.SetActiveBus(bus)
         kv_ln = float(dss.Bus.kVBase())
@@ -137,8 +141,13 @@ def _screen(circuit: Circuit, bus: str, opts: dict[str, Any]) -> dict[str, Any]:
         # --- base power flow -------------------------------------------------------------
         dss.Text.Command("solve")
         if not dss.Solution.Converged():
-            issues.append(Issue(severity="error", code="not-converged",
-                                message="The base case does not converge."))
+            issues.append(
+                Issue(
+                    severity="error",
+                    code="not-converged",
+                    message="The base case does not converge.",
+                )
+            )
             return {"converged": False, "issues": [i.model_dump() for i in issues], "screens": []}
         node_names = [n.lower() for n in dss.Circuit.AllNodeNames()]
         slices: dict[str, list[int]] = {}
@@ -147,20 +156,29 @@ def _screen(circuit: Circuit, bus: str, opts: dict[str, Any]) -> dict[str, Any]:
 
         def voltages() -> dict[str, tuple[float, float]]:
             mags = dss.Circuit.AllBusMagPu()
-            return {b: (min(mags[i] for i in idxs), max(mags[i] for i in idxs)) for b, idxs in slices.items()}
+            return {
+                b: (min(mags[i] for i in idxs), max(mags[i] for i in idxs))
+                for b, idxs in slices.items()
+            }
 
         base_v = voltages()
         pd_names = [n.lower() for n in dss.PDElements.AllNames()]
-        base_loading = dict(zip(pd_names, (float(v) for v in dss.PDElements.AllPctNorm(False))))
+        base_loading = dict(zip(pd_names, (float(v) for v in dss.PDElements.AllPctNorm(False)), strict=False))  # noqa: E501
 
         # --- the unit at the PCC ---------------------------------------------------------
         suffix = "." + ".".join(str(n) for n in nodes)
-        dss.Text.Command(f"new generator.screen_unit bus1={bus}{suffix} phases={phases} kv={kv_ll:.6g} "
-                         f"kw={kw:.6g} pf={pf:g} kva={kva:.6g} model=1 enabled=yes")
+        dss.Text.Command(
+            f"new generator.screen_unit bus1={bus}{suffix} phases={phases} kv={kv_ll:.6g} "
+            f"kw={kw:.6g} pf={pf:g} kva={kva:.6g} model=1 enabled=yes"
+        )
         dss.Text.Command("solve")
         with_unit_ok = bool(dss.Solution.Converged())
         with_v = voltages() if with_unit_ok else {}
-        with_loading = dict(zip(pd_names, (float(v) for v in dss.PDElements.AllPctNorm(False)))) if with_unit_ok else {}
+        with_loading = (
+            dict(zip(pd_names, (float(v) for v in dss.PDElements.AllPctNorm(False)), strict=False))
+            if with_unit_ok
+            else {}
+        )
         dss.Text.Command("generator.screen_unit.enabled=no")
         dss.Text.Command("solve")
         tripped_v = voltages() if dss.Solution.Converged() else {}
@@ -171,11 +189,16 @@ def _screen(circuit: Circuit, bus: str, opts: dict[str, Any]) -> dict[str, Any]:
     conn = compiled.connectivity
     existing_kw = 0.0
     for n in circuit.nodes:
-        if n.type in ("generator", "pvsystem", "storage") and n.params.get("enabled", True) is not False:
+        if (
+            n.type in ("generator", "pvsystem", "storage")
+            and n.params.get("enabled", True) is not False
+        ):
             nb = conn.node_buses.get(n.id, [None])[0] if conn else None
             if nb and sections.get(nb.lower(), {}).get("section") == sec["section"]:
                 try:
-                    existing_kw += float(n.params.get("kw") or n.params.get("pmpp") or n.params.get("kwrated") or 0)
+                    existing_kw += float(
+                        n.params.get("kw") or n.params.get("pmpp") or n.params.get("kwrated") or 0
+                    )
                 except (TypeError, ValueError):
                     pass
     aggregate = existing_kw + kw
@@ -184,33 +207,48 @@ def _screen(circuit: Circuit, bus: str, opts: dict[str, Any]) -> dict[str, Any]:
     min_load = peak * min_mult
     agg_limit = peak * float(opts["aggregatePct"]) / 100.0
     agg_pass = aggregate <= agg_limit if peak > 0 else None
-    screens.append({
-        "key": "aggregate", "label": "Aggregate generation on the line section",
-        "value": round(aggregate, 1), "limit": round(agg_limit, 1), "unit": "kW",
-        "pass": agg_pass,
-        "note": f"{round(existing_kw)} kW already on the section plus this unit, against "
-                f"{opts['aggregatePct']:g} % of the section's {round(peak)} kW peak load"
-                + ("" if peak > 0 else "; the section has no load, so the screen cannot be applied"),
-    })
+    screens.append(
+        {
+            "key": "aggregate",
+            "label": "Aggregate generation on the line section",
+            "value": round(aggregate, 1),
+            "limit": round(agg_limit, 1),
+            "unit": "kW",
+            "pass": agg_pass,
+            "note": f"{round(existing_kw)} kW already on the section plus this unit, against "
+            f"{opts['aggregatePct']:g} % of the section's {round(peak)} kW peak load"
+            + ("" if peak > 0 else "; the section has no load, so the screen cannot be applied"),
+        }
+    )
     if agg_pass is False and opts["export"]:
         supp_limit = min_load * float(opts["minLoadPct"]) / 100.0
-        screens.append({
-            "key": "minimumLoad", "label": "Aggregate generation against minimum daytime load",
-            "value": round(aggregate, 1), "limit": round(supp_limit, 1), "unit": "kW",
-            "pass": aggregate <= supp_limit,
-            "note": f"supplemental review: {opts['minLoadPct']:g} % of the section's minimum load "
-                    f"({round(min_load)} kW at x{min_mult:g})",
-        })
+        screens.append(
+            {
+                "key": "minimumLoad",
+                "label": "Aggregate generation against minimum daytime load",
+                "value": round(aggregate, 1),
+                "limit": round(supp_limit, 1),
+                "unit": "kW",
+                "pass": aggregate <= supp_limit,
+                "note": f"supplemental review: {opts['minLoadPct']:g} % of the section's minimum load "  # noqa: E501
+                f"({round(min_load)} kW at x{min_mult:g})",
+            }
+        )
     contribution = der_contribution_amps(kva, kv_ll, phases, str(opts["derType"]))
     base_at_pcc = fault.get(bus)
     inc_pct = 100.0 * contribution / base_at_pcc if base_at_pcc else None
-    screens.append({
-        "key": "faultCurrent", "label": "Fault-current contribution at the PCC",
-        "value": round(inc_pct, 2) if inc_pct is not None else None, "limit": float(opts["faultIncreasePct"]),
-        "unit": "%", "pass": inc_pct <= float(opts["faultIncreasePct"]) if inc_pct is not None else None,
-        "note": f"{round(contribution)} A ({'1.2' if opts['derType'] != 'synchronous' else '5'} x rated) "
-                f"against {round(base_at_pcc) if base_at_pcc else '?'} A three-phase at the PCC",
-    })
+    screens.append(
+        {
+            "key": "faultCurrent",
+            "label": "Fault-current contribution at the PCC",
+            "value": round(inc_pct, 2) if inc_pct is not None else None,
+            "limit": float(opts["faultIncreasePct"]),
+            "unit": "%",
+            "pass": inc_pct <= float(opts["faultIncreasePct"]) if inc_pct is not None else None,
+            "note": f"{round(contribution)} A ({'1.2' if opts['derType'] != 'synchronous' else '5'} x rated) "  # noqa: E501
+            f"against {round(base_at_pcc) if base_at_pcc else '?'} A three-phase at the PCC",
+        }
+    )
     worst_duty = None
     worst_dev = None
     for n in circuit.nodes:
@@ -224,13 +262,21 @@ def _screen(circuit: Circuit, bus: str, opts: dict[str, Any]) -> dict[str, Any]:
                 duty = 100.0 * (fault[nb.lower()] + contribution) / (ka * 1000.0)
                 if worst_duty is None or duty > worst_duty:
                     worst_duty, worst_dev = duty, str(n.params.get("name") or n.id)
-    screens.append({
-        "key": "interrupting", "label": "Interrupting duty with the unit's contribution",
-        "value": round(worst_duty, 1) if worst_duty is not None else None,
-        "limit": float(opts["interruptingPct"]), "unit": "%",
-        "pass": worst_duty <= float(opts["interruptingPct"]) if worst_duty is not None else None,
-        "note": f"worst device {worst_dev}" if worst_dev else "no device carries an interrupting rating",
-    })
+    screens.append(
+        {
+            "key": "interrupting",
+            "label": "Interrupting duty with the unit's contribution",
+            "value": round(worst_duty, 1) if worst_duty is not None else None,
+            "limit": float(opts["interruptingPct"]),
+            "unit": "%",
+            "pass": worst_duty <= float(opts["interruptingPct"])
+            if worst_duty is not None
+            else None,
+            "note": f"worst device {worst_dev}"
+            if worst_dev
+            else "no device carries an interrupting rating",
+        }
+    )
     dev = None
     dev_bus = None
     if with_v and tripped_v:
@@ -239,53 +285,99 @@ def _screen(circuit: Circuit, bus: str, opts: dict[str, Any]) -> dict[str, Any]:
                 d = max(abs(hi - tripped_v[b][1]), abs(lo - tripped_v[b][0])) * 100.0
                 if dev is None or d > dev:
                     dev, dev_bus = d, b
-    screens.append({
-        "key": "deviation", "label": "Rapid voltage change when the unit trips",
-        "value": round(dev, 2) if dev is not None else None, "limit": float(opts["deviationPct"]), "unit": "%",
-        "pass": dev <= float(opts["deviationPct"]) if dev is not None else None,
-        "note": f"largest at bus {dev_bus}" if dev_bus else "the case with the unit did not converge",
-    })
+    screens.append(
+        {
+            "key": "deviation",
+            "label": "Rapid voltage change when the unit trips",
+            "value": round(dev, 2) if dev is not None else None,
+            "limit": float(opts["deviationPct"]),
+            "unit": "%",
+            "pass": dev <= float(opts["deviationPct"]) if dev is not None else None,
+            "note": f"largest at bus {dev_bus}"
+            if dev_bus
+            else "the case with the unit did not converge",
+        }
+    )
     vmax = max((hi for lo, hi in with_v.values()), default=None) if with_v else None
     vmin = min((lo for lo, hi in with_v.values() if lo > 0.05), default=None) if with_v else None
-    v_pass = (vmax is not None and vmin is not None and vmax <= limits.vmaxPu and vmin >= limits.vminPu)
+    v_pass = (
+        vmax is not None and vmin is not None and vmax <= limits.vmaxPu and vmin >= limits.vminPu
+    )
     base_vmax = max(hi for lo, hi in base_v.values())
-    screens.append({
-        "key": "voltage", "label": "Steady-state voltage with the unit running",
-        "value": round(vmax, 4) if vmax is not None else None, "limit": limits.vmaxPu, "unit": "pu",
-        "pass": v_pass if with_v else None,
-        "note": f"highest {vmax:.4f} pu (base {base_vmax:.4f}), lowest {vmin:.4f} pu" if with_v else "did not converge",
-    })
-    worst_load = max(with_loading.items(), key=lambda kv: kv[1], default=(None, None)) if with_loading else (None, None)
-    new_overloads = [n for n, pct in with_loading.items()
-                     if pct >= float(opts["thermalPct"]) and base_loading.get(n, 0.0) < float(opts["thermalPct"])]
-    screens.append({
-        "key": "thermal", "label": "Loading with the unit running",
-        "value": round(worst_load[1], 1) if worst_load[1] is not None else None,
-        "limit": float(opts["thermalPct"]), "unit": "%",
-        "pass": not new_overloads if with_loading else None,
-        "note": (f"most loaded {worst_load[0]}" if worst_load[0] else "")
-                + (f"; newly over the rating: {', '.join(new_overloads[:5])}" if new_overloads else ""),
-    })
+    screens.append(
+        {
+            "key": "voltage",
+            "label": "Steady-state voltage with the unit running",
+            "value": round(vmax, 4) if vmax is not None else None,
+            "limit": limits.vmaxPu,
+            "unit": "pu",
+            "pass": v_pass if with_v else None,
+            "note": f"highest {vmax:.4f} pu (base {base_vmax:.4f}), lowest {vmin:.4f} pu"
+            if with_v
+            else "did not converge",
+        }
+    )
+    worst_load = (
+        max(with_loading.items(), key=lambda kv: kv[1], default=(None, None))
+        if with_loading
+        else (None, None)
+    )
+    new_overloads = [
+        n
+        for n, pct in with_loading.items()
+        if pct >= float(opts["thermalPct"]) and base_loading.get(n, 0.0) < float(opts["thermalPct"])
+    ]
+    screens.append(
+        {
+            "key": "thermal",
+            "label": "Loading with the unit running",
+            "value": round(worst_load[1], 1) if worst_load[1] is not None else None,
+            "limit": float(opts["thermalPct"]),
+            "unit": "%",
+            "pass": not new_overloads if with_loading else None,
+            "note": (f"most loaded {worst_load[0]}" if worst_load[0] else "")
+            + (f"; newly over the rating: {', '.join(new_overloads[:5])}" if new_overloads else ""),
+        }
+    )
     x0x1 = r0x1 = None
     if z1_pcc is not None and z0_pcc is not None and abs(z1_pcc.imag) > 1e-9:
         x0x1 = z0_pcc.imag / z1_pcc.imag
         r0x1 = z0_pcc.real / z1_pcc.imag
-    grounded = (x0x1 is not None and 0 <= x0x1 <= float(opts["x0x1Max"])
-                and r0x1 is not None and 0 <= r0x1 <= float(opts["r0x1Max"]))
-    screens.append({
-        "key": "grounding", "label": "Effective grounding at the PCC",
-        "value": round(x0x1, 2) if x0x1 is not None else None, "limit": float(opts["x0x1Max"]), "unit": "X0/X1",
-        "pass": grounded if x0x1 is not None else None,
-        "note": f"X0/X1 = {x0x1:.2f}, R0/X1 = {r0x1:.2f} (limits {opts['x0x1Max']:g} and {opts['r0x1Max']:g})"
-                if x0x1 is not None else "no Thevenin impedance at the PCC",
-    })
+    grounded = (
+        x0x1 is not None
+        and 0 <= x0x1 <= float(opts["x0x1Max"])
+        and r0x1 is not None
+        and 0 <= r0x1 <= float(opts["r0x1Max"])
+    )
+    screens.append(
+        {
+            "key": "grounding",
+            "label": "Effective grounding at the PCC",
+            "value": round(x0x1, 2) if x0x1 is not None else None,
+            "limit": float(opts["x0x1Max"]),
+            "unit": "X0/X1",
+            "pass": grounded if x0x1 is not None else None,
+            "note": f"X0/X1 = {x0x1:.2f}, R0/X1 = {r0x1:.2f} (limits {opts['x0x1Max']:g} and {opts['r0x1Max']:g})"  # noqa: E501
+            if x0x1 is not None
+            else "no Thevenin impedance at the PCC",
+        }
+    )
     cat = str(opts["inverterCategory"]).upper()
-    screens.append({
-        "key": "inverter", "label": f"Smart inverter settings required (IEEE 1547-2018 Category {cat})",
-        "value": None, "limit": None, "unit": "", "pass": None,
-        "note": ("volt-var 0.92/0.98/1.02/1.08 pu at ±44 % var, volt-watt from 1.06 to 1.10 pu"
-                 if cat == "B" else "volt-var 0.9/1.0/1.1 pu at ±25 % var"),
-    })
+    screens.append(
+        {
+            "key": "inverter",
+            "label": f"Smart inverter settings required (IEEE 1547-2018 Category {cat})",
+            "value": None,
+            "limit": None,
+            "unit": "",
+            "pass": None,
+            "note": (
+                "volt-var 0.92/0.98/1.02/1.08 pu at ±44 % var, volt-watt from 1.06 to 1.10 pu"
+                if cat == "B"
+                else "volt-var 0.9/1.0/1.1 pu at ±25 % var"
+            ),
+        }
+    )
     judged = [s for s in screens if s["pass"] is not None]
     failed = [s["key"] for s in judged if s["pass"] is False]
     if not failed:
@@ -300,9 +392,20 @@ def _screen(circuit: Circuit, bus: str, opts: dict[str, Any]) -> dict[str, Any]:
         "busName": (conn.bus_names.get(bus) if conn else None) or bus,
         "kvBase": round(kv_ll, 4),
         "phases": phases,
-        "unit": {"kw": kw, "pf": pf, "kva": round(kva, 1), "derType": opts["derType"], "export": bool(opts["export"])},
-        "section": {"head": sec["section"], "peakLoadKw": round(peak, 1), "minLoadKw": round(min_load, 1),
-                    "existingDerKw": round(existing_kw, 1), "minLoadMult": min_mult},
+        "unit": {
+            "kw": kw,
+            "pf": pf,
+            "kva": round(kva, 1),
+            "derType": opts["derType"],
+            "export": bool(opts["export"]),
+        },
+        "section": {
+            "head": sec["section"],
+            "peakLoadKw": round(peak, 1),
+            "minLoadKw": round(min_load, 1),
+            "existingDerKw": round(existing_kw, 1),
+            "minLoadMult": min_mult,
+        },
         "screens": screens,
         "failed": failed,
         "outcome": outcome,

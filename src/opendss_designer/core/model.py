@@ -5,6 +5,7 @@ full circuit. Element parameters are kept as open dicts (validated for the
 fields the compiler needs) so the frontend can add fields without a lockstep
 schema change.
 """
+
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal
@@ -27,9 +28,23 @@ MAX_COMMENT_TEXT = 4_000
 MAX_GEOMETRY_POINTS = 10_000
 MAX_CRS_TEXT = 4_000
 
-NodeType = Literal["vsource", "busbar", "transformer", "load", "breaker",
-                   "capacitor", "generator", "pvsystem", "storage", "regulator",
-                   "fuse", "recloser", "relay", "note", "zone"]
+NodeType = Literal[
+    "vsource",
+    "busbar",
+    "transformer",
+    "load",
+    "breaker",
+    "capacitor",
+    "generator",
+    "pvsystem",
+    "storage",
+    "regulator",
+    "fuse",
+    "recloser",
+    "relay",
+    "note",
+    "zone",
+]
 # Drawing, not circuit: no terminals, never compiled, never counted.
 ANNOTATION_TYPES = frozenset({"note", "zone"})
 EdgeType = Literal["wire", "line"]
@@ -74,10 +89,10 @@ class LoadShapeSpec(BaseModel):
     All kinds compile to OpenDSS `loadshape` objects; `kind` only drives the
     UI (library tabs, per-element dropdown filtering) and validation warnings.
     """
+
     kind: Literal["load", "irradiance"] = "load"
     intervalMin: float = 60.0  # minutes per point (60 or 15)
-    points: Annotated[list[float],
-                      Field(max_length=MAX_SHAPE_POINTS)] = Field(default_factory=list)
+    points: Annotated[list[float], Field(max_length=MAX_SHAPE_POINTS)] = Field(default_factory=list)
     # Provenance tag, e.g. "csv", "nrel:resstock/3a/single-family_detached",
     # or "nsrdb:39.74,-104.99/2018".
     source: str | None = None
@@ -87,10 +102,13 @@ class TccCurveSpec(BaseModel):
     """A user-defined time-current curve: multiples of the device's pickup
     against seconds to operate, the same shape the engine's built-in curves
     have. Points are plotted and interpolated in the order given."""
-    multiples: Annotated[list[float],
-                         Field(max_length=MAX_CURVE_POINTS)] = Field(default_factory=list)
-    seconds: Annotated[list[float],
-                       Field(max_length=MAX_CURVE_POINTS)] = Field(default_factory=list)
+
+    multiples: Annotated[list[float], Field(max_length=MAX_CURVE_POINTS)] = Field(
+        default_factory=list
+    )
+    seconds: Annotated[list[float], Field(max_length=MAX_CURVE_POINTS)] = Field(
+        default_factory=list
+    )
     # Where it came from, e.g. a manufacturer and link size.
     source: str | None = None
 
@@ -108,6 +126,7 @@ class LineCodeSpec(BaseModel):
     kind, and the matrix is the whole point: it carries the mutual coupling
     between phases that four sequence numbers cannot.
     """
+
     nphases: int = 3
     units: str = "km"
     rmatrix: Matrix | None = None
@@ -135,6 +154,7 @@ class WireDataSpec(BaseModel):
     ampacity, in the units named. `extra` holds the cable classes' own
     properties (k, diastrand, gmrstrand, rstrand, epsr, inslayer, diains,
     diacable; or diashield, tapelayer, tapelap) by their engine names."""
+
     kind: Literal["wire", "cn", "ts"] = "wire"
     rdc: float | None = None
     rac: float | None = None
@@ -160,18 +180,22 @@ class LineGeometrySpec(BaseModel):
     """A pole or trench configuration (OpenDSS `LineGeometry`): which
     conductor hangs where. The engine builds the impedance matrix from it,
     with Carson's equations, so a line on a geometry needs no line code."""
+
     nconds: int = 4
     nphases: int = 3
     reduce: bool = True
     units: str = "ft"
     rhoEarth: float | None = None
-    conductors: Annotated[list[GeometryConductor], Field(max_length=16)] = Field(default_factory=list)
+    conductors: Annotated[list[GeometryConductor], Field(max_length=16)] = Field(
+        default_factory=list
+    )
     source: str | None = None
 
 
 class HistoryEntry(BaseModel):
     """One change to the model, for the audit trail: when, who (the study's
     engineer), what element, which parameter, from what to what."""
+
     t: float
     who: str = ""
     id: str
@@ -186,6 +210,7 @@ class PassthroughSpec(BaseModel):
     """An element from an imported .dss file the editor does not model,
     kept verbatim: its `New` line, then any `Edit`s of it. See
     core/passthrough.py for what is kept and when it runs."""
+
     # "Monitor.m1", as the file spelled it.
     name: Annotated[str, Field(max_length=256)]
     text: Annotated[str, Field(max_length=MAX_PASSTHROUGH_TEXT)]
@@ -195,6 +220,7 @@ class XYCurveSpec(BaseModel):
     """A general x-y curve (OpenDSS `XYCurve`): the volt-var and volt-watt
     characteristics of a smart inverter, in per-unit voltage against
     per-unit reactive or active power. Points are in x order."""
+
     x: Annotated[list[float], Field(max_length=MAX_CURVE_POINTS)] = Field(default_factory=list)
     y: Annotated[list[float], Field(max_length=MAX_CURVE_POINTS)] = Field(default_factory=list)
     # "ieee1547:catB:voltvar", "imported", "typed in".
@@ -208,13 +234,15 @@ class LoadLevel(BaseModel):
     1.0 on the normal rating is what every circuit solved before levels
     existed; "Minimum daytime load" at 0.3 is what a hosting-capacity
     study binds on."""
+
     name: Annotated[str, Field(min_length=1, max_length=80)]
     loadmult: Annotated[float, Field(gt=0, le=100)] = 1.0
     rating: Literal["normal", "emergency"] = "normal"
     # Multiplier per load class (the load's `class` param), applied to the
     # load's kW on top of `loadmult`. A class not listed is 1.
-    classMult: Annotated[dict[str, Annotated[float, Field(ge=0, le=100)]],
-                         Field(max_length=50)] = Field(default_factory=dict)
+    classMult: Annotated[dict[str, Annotated[float, Field(ge=0, le=100)]], Field(max_length=50)] = (
+        Field(default_factory=dict)
+    )
 
 
 class Scenario(BaseModel):
@@ -224,16 +252,20 @@ class Scenario(BaseModel):
     unit taken out of service), elements added (a new DER, a new tie), and
     elements removed. `studies.scenarios.apply_scenario` builds the
     effective circuit."""
+
     id: Annotated[str, Field(min_length=1, max_length=64)]
     name: Annotated[str, Field(min_length=1, max_length=120)]
     description: Annotated[str, Field(max_length=MAX_COMMENT_TEXT)] = ""
     # element id -> {param: value}; a value of None deletes the param.
     overrides: Annotated[dict[str, dict[str, Any]], Field(max_length=MAX_NODES)] = Field(
-        default_factory=dict)
+        default_factory=dict
+    )
     addedNodes: Annotated[list[CircuitNode], Field(max_length=MAX_NODES)] = Field(
-        default_factory=list)
+        default_factory=list
+    )
     addedEdges: Annotated[list[CircuitEdge], Field(max_length=MAX_EDGES)] = Field(
-        default_factory=list)
+        default_factory=list
+    )
     removed: Annotated[list[str], Field(max_length=MAX_NODES)] = Field(default_factory=list)
 
 
@@ -241,6 +273,7 @@ class Limits(BaseModel):
     """What counts as an abnormal condition: the planning criteria the
     overlays, the solve's violation flags and the study report all apply.
     The defaults are ANSI C84.1 Range A and a line at its rating."""
+
     vminPu: Annotated[float, Field(gt=0, lt=2)] = 0.95
     vmaxPu: Annotated[float, Field(gt=0, lt=2)] = 1.05
     # Loading at or above this is an overload...
@@ -252,6 +285,7 @@ class Limits(BaseModel):
 class StudyInfo(BaseModel):
     """The title block of a study report, and of the drawing when `sheet`
     asks for one. Nothing reads it but the report and the image export."""
+
     title: Annotated[str, Field(max_length=200)] = ""
     caseName: Annotated[str, Field(max_length=200)] = ""
     engineer: Annotated[str, Field(max_length=200)] = ""
@@ -267,39 +301,41 @@ class StudyInfo(BaseModel):
 class Circuit(BaseModel):
     version: int = 1
     name: str = "circuit"
-    nodes: Annotated[list[CircuitNode],
-                     Field(max_length=MAX_NODES)] = Field(default_factory=list)
-    edges: Annotated[list[CircuitEdge],
-                     Field(max_length=MAX_EDGES)] = Field(default_factory=list)
+    nodes: Annotated[list[CircuitNode], Field(max_length=MAX_NODES)] = Field(default_factory=list)
+    edges: Annotated[list[CircuitEdge], Field(max_length=MAX_EDGES)] = Field(default_factory=list)
     # Persisted names for implicit junction buses, keyed by a stable group
     # fingerprint (lexicographically smallest terminal key in the group).
     busNames: dict[str, str] = Field(default_factory=dict)
     # Circuit-level loadshape library, keyed by shape name.
-    loadShapes: Annotated[dict[str, LoadShapeSpec],
-                          Field(max_length=MAX_SHAPES)] = Field(default_factory=dict)
+    loadShapes: Annotated[dict[str, LoadShapeSpec], Field(max_length=MAX_SHAPES)] = Field(
+        default_factory=dict
+    )
     # Circuit-level time-current curve library, keyed by curve name. The engine
     # ships ten curves of its own; these are the ones a user adds.
-    tccCurves: Annotated[dict[str, TccCurveSpec],
-                         Field(max_length=MAX_CURVES)] = Field(default_factory=dict)
+    tccCurves: Annotated[dict[str, TccCurveSpec], Field(max_length=MAX_CURVES)] = Field(
+        default_factory=dict
+    )
     # Circuit-level conductor library, keyed by line-code name. Lines with a
     # `linecode` param naming an entry take their impedance from it.
-    lineCodes: Annotated[dict[str, LineCodeSpec],
-                         Field(max_length=MAX_LINE_CODES)] = Field(default_factory=dict)
+    lineCodes: Annotated[dict[str, LineCodeSpec], Field(max_length=MAX_LINE_CODES)] = Field(
+        default_factory=dict
+    )
     # What an imported file said that the diagram does not show: elements
     # of classes the editor does not model, and comments. Written back on
     # export; passthrough elements also run in solves when safe.
-    passthrough: Annotated[list[PassthroughSpec],
-                           Field(max_length=MAX_PASSTHROUGH)] = Field(default_factory=list)
+    passthrough: Annotated[list[PassthroughSpec], Field(max_length=MAX_PASSTHROUGH)] = Field(
+        default_factory=list
+    )
     # Comment lines, keyed by lowercase "class.name" ("circuit" for the
     # file's header), written above that element on export.
-    comments: Annotated[dict[str, Annotated[str, Field(max_length=MAX_COMMENT_TEXT)]],
-                        Field(max_length=MAX_NODES)] = Field(default_factory=dict)
+    comments: Annotated[
+        dict[str, Annotated[str, Field(max_length=MAX_COMMENT_TEXT)]], Field(max_length=MAX_NODES)
+    ] = Field(default_factory=dict)
     # The line-to-line kV bases bus voltages are reported against, as an
     # imported file's `set voltagebases=[...]` gave them. Absent means the
     # compiler derives them from the elements' ratings, which misreads a
     # 240 V single-phase secondary as 240 V line-to-line (1.73 pu).
-    voltageBases: Annotated[list[Annotated[float, Field(gt=0)]],
-                            Field(max_length=50)] | None = None
+    voltageBases: Annotated[list[Annotated[float, Field(gt=0)]], Field(max_length=50)] | None = None
     # The coordinate system `geo` and `geometry` are in: "EPSG:4326" (what
     # an imported LatLongCoords file means), another EPSG code, or a
     # proj4/WKT definition. Absent: coordinates with no known place on Earth,
@@ -311,15 +347,18 @@ class Circuit(BaseModel):
     # Conductors and pole configurations, keyed by name (OpenDSS WireData,
     # CNData, TSData and LineGeometry). A line with a `geometry` param
     # takes its impedance from the geometry instead of a line code.
-    wireData: Annotated[dict[str, WireDataSpec],
-                        Field(max_length=MAX_LINE_CODES)] = Field(default_factory=dict)
-    lineGeometries: Annotated[dict[str, LineGeometrySpec],
-                              Field(max_length=MAX_LINE_CODES)] = Field(default_factory=dict)
+    wireData: Annotated[dict[str, WireDataSpec], Field(max_length=MAX_LINE_CODES)] = Field(
+        default_factory=dict
+    )
+    lineGeometries: Annotated[dict[str, LineGeometrySpec], Field(max_length=MAX_LINE_CODES)] = (
+        Field(default_factory=dict)
+    )
     # The audit trail: parameter changes, newest last, capped by the client.
     history: Annotated[list[HistoryEntry], Field(max_length=5000)] = Field(default_factory=list)
     # Inverter volt-var / volt-watt curves, keyed by name (OpenDSS XYCurve).
-    xyCurves: Annotated[dict[str, XYCurveSpec],
-                        Field(max_length=MAX_CURVES)] = Field(default_factory=dict)
+    xyCurves: Annotated[dict[str, XYCurveSpec], Field(max_length=MAX_CURVES)] = Field(
+        default_factory=dict
+    )
     # The load conditions studies are run at. Absent means the one implicit
     # level: every load at rated kW on the normal rating.
     loadLevels: Annotated[list[LoadLevel], Field(max_length=50)] | None = None
@@ -435,7 +474,10 @@ def node_terminals(node: CircuitNode) -> list[str]:
     which grows a third terminal (t3) for a tertiary winding. Busbars are
     dynamic and return an empty list, as in NODE_TERMINALS."""
     base = NODE_TERMINALS.get(node.type, [])
-    if node.type == "transformer" and winding_count(node.params) == 3 \
-            and node.params.get("splitphase") is not True:
+    if (
+        node.type == "transformer"
+        and winding_count(node.params) == 3
+        and node.params.get("splitphase") is not True
+    ):
         return [*base, "t3"]
     return base

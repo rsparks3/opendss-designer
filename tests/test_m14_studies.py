@@ -286,11 +286,21 @@ def test_capacity_search_finds_the_binding_multiplier():
     assert broke
 
 
+def _finished(client, res):
+    """Follow a job to its end, so the study thread is done with the engine
+    before the next test clears it (a race that only ever lost on Linux)."""
+    assert res.status_code == 200, res.text
+    job_id = res.json()["job"]["id"]
+    with client.stream("GET", f"/api/jobs/{job_id}/events") as stream:
+        for _ in stream.iter_lines():
+            pass
+    return client.get(f"/api/jobs/{job_id}").json()
+
+
 def test_m14_routes():
     client = TestClient(server.app, base_url="http://127.0.0.1")
     c = two_feeders().model_dump(mode="json")
-    res = client.post("/api/jobs/n-minus-1", json={"circuit": c})
-    assert res.status_code == 200, res.text
+    assert _finished(client, client.post("/api/jobs/n-minus-1", json={"circuit": c}))["status"] == "done"
     res = client.post("/api/transfer", json={"circuit": c, "tie": "tie"})
     assert res.status_code == 200 and res.json()["converged"]
     res = client.post("/api/switching", json={"circuit": c, "steps": [{"id": "brk1", "closed": False}]})
@@ -300,11 +310,10 @@ def test_m14_routes():
     assert res.status_code == 200 and res.json()["converged"]
     res = client.post("/api/capacity", json={"circuit": reg})
     assert res.status_code == 200 and res.json()["capacityMult"] > 1
-    res = client.post("/api/jobs/phase-balance", json={"circuit": unbalanced().model_dump(mode="json")})
-    assert res.status_code == 200
-    res = client.post("/api/jobs/sweep", json={"circuit": reg, "sweeps": [{"id": "reg", "property": "vreg", "values": [120, 124]}]})
-    assert res.status_code == 200
-    res = client.post("/api/jobs/capacitor-placement", json={"circuit": reg, "kvar": 300, "banks": 1})
-    assert res.status_code == 200
-    res = client.post("/api/jobs/loss-evaluation", json={"circuit": reg, "mode": "daily"})
-    assert res.status_code == 200
+    for path, body in (
+        ("/api/jobs/phase-balance", {"circuit": unbalanced().model_dump(mode="json")}),
+        ("/api/jobs/sweep", {"circuit": reg, "sweeps": [{"id": "reg", "property": "vreg", "values": [120, 124]}]}),
+        ("/api/jobs/capacitor-placement", {"circuit": reg, "kvar": 300, "banks": 1}),
+        ("/api/jobs/loss-evaluation", {"circuit": reg, "mode": "daily"}),
+    ):
+        assert _finished(client, client.post(path, json=body))["status"] == "done", path

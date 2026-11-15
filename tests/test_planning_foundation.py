@@ -14,7 +14,13 @@ from opendss_designer.core.compiler import compile_circuit, export_dss
 from opendss_designer.core.importer import import_dss_files
 from opendss_designer.core.jobs import JobManager
 from opendss_designer.core.model import (
-    Circuit, CircuitEdge, CircuitNode, LoadLevel, LoadShapeSpec, Scenario, XYCurveSpec,
+    Circuit,
+    CircuitEdge,
+    CircuitNode,
+    LoadLevel,
+    LoadShapeSpec,
+    Scenario,
+    XYCurveSpec,
 )
 from opendss_designer.core.scenarios import apply_scenario, effective_circuit
 from opendss_designer.studies.batch import run_batch

@@ -10,7 +10,13 @@ from opendss_designer.core import catalog, engine, qa
 from opendss_designer.core.compiler import compile_circuit, export_dss
 from opendss_designer.core.importer import import_dss_files
 from opendss_designer.core.model import (
-    Circuit, CircuitEdge, CircuitNode, GeometryConductor, LineGeometrySpec, LoadShapeSpec, WireDataSpec,
+    Circuit,
+    CircuitEdge,
+    CircuitNode,
+    GeometryConductor,
+    LineGeometrySpec,
+    LoadShapeSpec,
+    WireDataSpec,
 )
 from opendss_designer.core.validate import validate
 from opendss_designer.studies import allocation, secondary
@@ -169,6 +175,17 @@ def test_allocation_from_kwh_kw_and_intervals():
     assert all(o["kw"] == 10 for o in r3["overrides"].values()) and len(r3["overrides"]) == 3
 
 
+def _finished(client, res):
+    """Follow a job to its end, so the study thread is done with the engine
+    before the next test clears it (a race that only ever lost on Linux)."""
+    assert res.status_code == 200, res.text
+    job_id = res.json()["job"]["id"]
+    with client.stream("GET", f"/api/jobs/{job_id}/events") as stream:
+        for _ in stream.iter_lines():
+            pass
+    return client.get(f"/api/jobs/{job_id}").json()
+
+
 def test_catalogues_load_and_routes_serve_them():
     w = catalog.load_wires()
     assert not w["errors"] and len(w["wires"]) >= 15
@@ -181,7 +198,7 @@ def test_catalogues_load_and_routes_serve_them():
     assert client.get("/api/catalog/transformers").json()["transformers"]
     c = split_phase_feeder()
     res = client.post("/api/jobs/transformer-loading", json={"circuit": c.model_dump(mode="json"), "mode": "daily"})
-    assert res.status_code == 200
+    assert _finished(client, res)["status"] == "done"
     res = client.post("/api/allocate", json={"circuit": c.model_dump(mode="json"), "rows": [{"key": "LA", "kw": 3}], "options": {}})
     assert res.status_code == 200 and res.json()["overrides"]["la"]["kw"] == 3
 

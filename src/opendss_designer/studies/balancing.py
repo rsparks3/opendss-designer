@@ -14,6 +14,7 @@ three-phase bus; moving it means re-pinning every element in it to the
 new phase, which changes the bus nodes the compiler writes, so each
 candidate is a rebuild and a solve (the move cannot be an `edit`).
 """
+
 from __future__ import annotations
 
 import threading
@@ -22,7 +23,7 @@ from typing import Any
 
 from ..core import engine
 from ..core.connectivity import synthesize
-from ..core.model import Circuit, conducts, in_service
+from ..core.model import Circuit, in_service
 from ..core.phasing import parse_phasing
 from .scenarios import effective_circuit
 
@@ -50,16 +51,29 @@ def laterals(circuit: Circuit) -> list[dict[str, Any]]:
     """Connected groups of single-phase elements, each hanging off a
     three-phase bus, with the elements (node and edge ids) in them."""
     conn = synthesize(circuit)
-    single_nodes = {n.id: n for n in circuit.nodes
-                    if n.type not in ("busbar", "vsource", "note", "zone")
-                    and int(float(n.params.get("phases", 3) or 3)) == 1 and in_service(n.params)}
-    single_edges = {e.id: e for e in circuit.edges
-                    if e.type == "line" and int(float(e.params.get("phases", 3) or 3)) == 1 and in_service(e.params)}
+    single_nodes = {
+        n.id: n
+        for n in circuit.nodes
+        if n.type not in ("busbar", "vsource", "note", "zone")
+        and int(float(n.params.get("phases", 3) or 3)) == 1
+        and in_service(n.params)
+    }
+    single_edges = {
+        e.id: e
+        for e in circuit.edges
+        if e.type == "line"
+        and int(float(e.params.get("phases", 3) or 3)) == 1
+        and in_service(e.params)
+    }
     # Which buses the single-phase elements touch; a bus touched by any
     # three-phase element is a "root" (where the lateral taps off).
     three_phase_buses: set[str] = set()
     for n in circuit.nodes:
-        if n.id in conn.node_buses and n.id not in single_nodes and n.type not in ("busbar", "note", "zone"):
+        if (
+            n.id in conn.node_buses
+            and n.id not in single_nodes
+            and n.type not in ("busbar", "note", "zone")
+        ):
             if int(float(n.params.get("phases", 3) or 3)) >= 2:
                 three_phase_buses.update(b.lower() for b in conn.node_buses[n.id])
     for e in circuit.edges:
@@ -110,10 +124,25 @@ def laterals(circuit: Circuit) -> list[dict[str, Any]]:
                 except (TypeError, ValueError):
                     load_kw += 100.0
         phase = _letters((single_nodes.get(members[0]) or single_edges.get(members[0])).params)
-        name = next((str((single_nodes.get(m) or single_edges.get(m)).params.get("name") or m) for m in members
-                     if m in single_edges), None) or str((single_nodes.get(members[0])).params.get("name") or members[0])
-        out.append({"id": members[0], "name": name, "members": sorted(members), "rootBuses": roots,
-                    "phase": phase, "loadKw": round(load_kw, 1), "elements": len(members)})
+        name = next(
+            (
+                str((single_nodes.get(m) or single_edges.get(m)).params.get("name") or m)
+                for m in members
+                if m in single_edges
+            ),
+            None,
+        ) or str((single_nodes.get(members[0])).params.get("name") or members[0])
+        out.append(
+            {
+                "id": members[0],
+                "name": name,
+                "members": sorted(members),
+                "rootBuses": roots,
+                "phase": phase,
+                "loadKw": round(load_kw, 1),
+                "elements": len(members),
+            }
+        )
     out.sort(key=lambda g: -g["loadKw"])
     return out
 
@@ -144,8 +173,12 @@ def _measure(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def phase_balance(circuit: Circuit, max_candidates: int = 40,
-                  progress: Progress | None = None, cancel: threading.Event | None = None) -> dict[str, Any]:
+def phase_balance(
+    circuit: Circuit,
+    max_candidates: int = 40,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+) -> dict[str, Any]:
     """The feeder's unbalance, and every single-phase lateral tried on each
     other phase: resulting head unbalance, losses and worst voltage
     unbalance, ranked by the improvement."""
@@ -173,28 +206,46 @@ def phase_balance(circuit: Circuit, max_candidates: int = 40,
             done += 1
             if r.get("converged"):
                 m = _measure(r)
-                rows.append({
-                    "lateral": g["id"], "name": g["name"], "loadKw": g["loadKw"], "elements": g["elements"],
-                    "fromPhase": g["phase"], "toPhase": target,
-                    **m,
-                    "currentImprovementPct": (round(measured["currentUnbalancePct"] - m["currentUnbalancePct"], 2)
-                                              if measured["currentUnbalancePct"] is not None and m["currentUnbalancePct"] is not None else None),
-                    "lossChangeKw": (round(m["lossKw"] - measured["lossKw"], 3)
-                                     if m["lossKw"] is not None and measured["lossKw"] is not None else None),
-                    "overrides": {mid: {"phasing": target} for mid in g["members"]},
-                })
+                rows.append(
+                    {
+                        "lateral": g["id"],
+                        "name": g["name"],
+                        "loadKw": g["loadKw"],
+                        "elements": g["elements"],
+                        "fromPhase": g["phase"],
+                        "toPhase": target,
+                        **m,
+                        "currentImprovementPct": (
+                            round(measured["currentUnbalancePct"] - m["currentUnbalancePct"], 2)
+                            if measured["currentUnbalancePct"] is not None
+                            and m["currentUnbalancePct"] is not None
+                            else None
+                        ),
+                        "lossChangeKw": (
+                            round(m["lossKw"] - measured["lossKw"], 3)
+                            if m["lossKw"] is not None and measured["lossKw"] is not None
+                            else None
+                        ),
+                        "overrides": {mid: {"phasing": target} for mid in g["members"]},
+                    }
+                )
             if progress is not None:
                 progress(done, total, f"{g['name']} to {target}")
         if cancelled:
             break
     rows.sort(key=lambda r: -(r["currentImprovementPct"] or -1e9))
     return {
-        "converged": True, "cancelled": cancelled,
+        "converged": True,
+        "cancelled": cancelled,
         "base": measured,
-        "laterals": [{k: v for k, v in g.items() if k != "members"} | {"members": len(g["members"])} for g in groups],
+        "laterals": [
+            {k: v for k, v in g.items() if k != "members"} | {"members": len(g["members"])}
+            for g in groups
+        ],
         "candidates": rows,
         "solves": solves,
-        "loadLevel": circuit.level.model_dump(), "scenario": circuit.activeScenario,
+        "loadLevel": circuit.level.model_dump(),
+        "scenario": circuit.activeScenario,
         "issues": base.get("issues", []),
         "nodeBuses": base.get("nodeBuses", {}),
     }
@@ -202,8 +253,12 @@ def phase_balance(circuit: Circuit, max_candidates: int = 40,
 
 def _repinned(circuit: Circuit, members: list[str], phase: str) -> Circuit:
     ids = set(members)
-    nodes = [n.model_copy(update={"params": {**n.params, "phasing": phase}}) if n.id in ids else n
-             for n in circuit.nodes]
-    edges = [e.model_copy(update={"params": {**e.params, "phasing": phase}}) if e.id in ids else e
-             for e in circuit.edges]
+    nodes = [
+        n.model_copy(update={"params": {**n.params, "phasing": phase}}) if n.id in ids else n
+        for n in circuit.nodes
+    ]
+    edges = [
+        e.model_copy(update={"params": {**e.params, "phasing": phase}}) if e.id in ids else e
+        for e in circuit.edges
+    ]
     return circuit.model_copy(update={"nodes": nodes, "edges": edges})

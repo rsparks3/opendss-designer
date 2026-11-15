@@ -3,6 +3,7 @@
 The same command list backs both /api/solve and /api/export/dss, so what you
 export is exactly what was solved.
 """
+
 from __future__ import annotations
 
 import math
@@ -18,7 +19,7 @@ from .connectivity import (
     synthesize,
     terminal_key,
 )
-from .model import ANNOTATION_TYPES, Circuit, Issue, LineCodeSpec, LineGeometrySpec, in_service
+from .model import ANNOTATION_TYPES, Circuit, Issue, LineCodeSpec, in_service
 from .phasing import nodes_for, phase_count
 from .scenarios import apply_scenario
 
@@ -65,8 +66,7 @@ FUSE_CURVES = frozenset({"tlink", "klink"})
 RECLOSER_CURVES = frozenset({"a", "d", "tlink", "klink"})
 RELAY_CURVES = frozenset({"mod_inv", "very_inv", "ext_inv", "definite"})
 # Everything the engine defines for itself, so a user curve cannot shadow one.
-ALL_BUILTIN_CURVES = frozenset(
-    FUSE_CURVES | RECLOSER_CURVES | RELAY_CURVES | {"uv1547", "ov1547"})
+ALL_BUILTIN_CURVES = frozenset(FUSE_CURVES | RECLOSER_CURVES | RELAY_CURVES | {"uv1547", "ov1547"})
 
 
 @dataclass
@@ -131,8 +131,11 @@ def _lower_triangle(matrix: list[list[float]]) -> str:
 
 
 def _square(matrix, n: int) -> bool:
-    return (isinstance(matrix, list) and len(matrix) == n
-            and all(isinstance(r, list) and len(r) == n for r in matrix))
+    return (
+        isinstance(matrix, list)
+        and len(matrix) == n
+        and all(isinstance(r, list) and len(r) == n for r in matrix)
+    )
 
 
 def _reliability(p: dict) -> str:
@@ -196,8 +199,10 @@ def _series_reactor(e, conn: ConnectivityResult, element_name, cmds: list[str]) 
     x = _num(p, "x", 0.001) or 0.0
     normamps = _num(p, "normamps")
     rating = f" normamps={normamps:g}" if normamps else ""
-    cmds.append(f"new reactor.{name} bus1={b1}{sfx1} bus2={b2}{sfx2} phases={phases} "
-                f"r={r:.10g} x={x:.10g}{rating}")
+    cmds.append(
+        f"new reactor.{name} bus1={b1}{sfx1} bus2={b2}{sfx2} phases={phases} "
+        f"r={r:.10g} x={x:.10g}{rating}"
+    )
 
 
 def _winding_resistance(windings: list, loadloss: float) -> str:
@@ -214,8 +219,9 @@ def _winding_resistance(windings: list, loadloss: float) -> str:
     return "%rs=(" + ", ".join(f"{r:g}" for r in rs) + ")"
 
 
-def _split_phase_transformer(n, name: str, windings: list, buses: list[str], p: dict,
-                             kv_bases: set[float], cmds: list[str]) -> None:
+def _split_phase_transformer(
+    n, name: str, windings: list, buses: list[str], p: dict, kv_bases: set[float], cmds: list[str]
+) -> None:
     """A 120/240 V centre-tapped service transformer: the engine's
     single-phase three-winding form, primary on one phase, the two
     secondary half-windings between leg 1 and the centre tap and the
@@ -235,10 +241,15 @@ def _split_phase_transformer(n, name: str, windings: list, buses: list[str], p: 
         kv_lv = kv_lv / 2
     x = _num(p, "xhl", 2.0)
     r_total = _num(p, "pctloadloss", 1.2)
-    hv_sfx = _bus_suffix(p.get("busNodes", [None])[0] if isinstance(p.get("busNodes"), list) and p.get("busNodes") else None,
-                         1, p.get("phasing"))
+    hv_sfx = _bus_suffix(
+        p.get("busNodes", [None])[0]
+        if isinstance(p.get("busNodes"), list) and p.get("busNodes")
+        else None,
+        1,
+        p.get("phasing"),
+    )
     hv_conn = _enum(hv if isinstance(hv, dict) else {}, "conn", CONN_TYPES, "wye")
-    kv_bases.add(kv_hv if hv_conn == "delta" else round(kv_hv * 3 ** 0.5, 6))
+    kv_bases.add(kv_hv if hv_conn == "delta" else round(kv_hv * 3**0.5, 6))
     kv_bases.add(0.208)  # 120 V line-to-neutral on the engine's base scale
     cmds.append(
         f"new transformer.{name} phases=1 windings=3 "
@@ -247,7 +258,8 @@ def _split_phase_transformer(n, name: str, windings: list, buses: list[str], p: 
         f"kvas=({kva:g}, {kva:g}, {kva:g}) "
         f"xhl={1.2 * x:.6g} xht={1.2 * x:.6g} xlt={0.8 * x:.6g} "
         f"%rs=({0.5 * r_total:.6g}, {r_total:.6g}, {r_total:.6g})"
-        f"{_core_losses(p)}{_reliability(p)}{_emergency(p, 'transformer')}")
+        f"{_core_losses(p)}{_reliability(p)}{_emergency(p, 'transformer')}"
+    )
 
 
 def _regulator_reverse(p: dict) -> str:
@@ -268,7 +280,7 @@ def _regulator_reverse(p: dict) -> str:
     return out
 
 
-def _cap_control(n, name: str, res: "CompileResult", cmds: list[str]) -> None:
+def _cap_control(n, name: str, res: CompileResult, cmds: list[str]) -> None:
     """The CapControl of a switched bank, emitted under the capacitor's own
     name. It watches `ctrlElement` -- a line, transformer or switch on the
     drawing (by diagram id), or the capacitor itself -- and switches on the
@@ -282,28 +294,43 @@ def _cap_control(n, name: str, res: "CompileResult", cmds: list[str]) -> None:
     target = p.get("ctrlElement")
     element = f"capacitor.{name}"
     if target and target != "self":
-        full = next((f for f, ref in res.element_map.items()
-                     if ref == target and f.split(".", 1)[0] in ("line", "transformer")), None)
+        full = next(
+            (
+                f
+                for f, ref in res.element_map.items()
+                if ref == target and f.split(".", 1)[0] in ("line", "transformer")
+            ),
+            None,
+        )
         if full is None:
-            res.issues.append(Issue(
-                severity="warning", code="capcontrol-element",
-                message=f"Capacitor '{name}': the element its control watches is not "
-                        "on the drawing; it watches its own terminal instead.",
-                nodeId=n.id))
+            res.issues.append(
+                Issue(
+                    severity="warning",
+                    code="capcontrol-element",
+                    message=f"Capacitor '{name}': the element its control watches is not "
+                    "on the drawing; it watches its own terminal instead.",
+                    nodeId=n.id,
+                )
+            )
         else:
             element = full
     defaults = {
-        "voltage": (118.0, 126.0), "current": (300.0, 200.0),
-        "kvar": (600.0, 300.0), "pf": (0.95, 1.05), "time": (10.0, 18.0),
+        "voltage": (118.0, 126.0),
+        "current": (300.0, 200.0),
+        "kvar": (600.0, 300.0),
+        "pf": (0.95, 1.05),
+        "time": (10.0, 18.0),
     }
     on_default, off_default = defaults[ctype]
     terminal = int(_num(p, "ctrlTerminal", 1.0) or 1)
-    cmd = (f"new capcontrol.{name} capacitor={name} element={element} "
-           f"terminal={min(max(terminal, 1), 2)} type={ctype} "
-           f"onsetting={_num(p, 'onsetting', on_default):g} "
-           f"offsetting={_num(p, 'offsetting', off_default):g} "
-           f"delay={_num(p, 'delay', 15.0):g} delayoff={_num(p, 'delayoff', 15.0):g} "
-           f"deadtime={_num(p, 'deadtime', 300.0):g}")
+    cmd = (
+        f"new capcontrol.{name} capacitor={name} element={element} "
+        f"terminal={min(max(terminal, 1), 2)} type={ctype} "
+        f"onsetting={_num(p, 'onsetting', on_default):g} "
+        f"offsetting={_num(p, 'offsetting', off_default):g} "
+        f"delay={_num(p, 'delay', 15.0):g} delayoff={_num(p, 'delayoff', 15.0):g} "
+        f"deadtime={_num(p, 'deadtime', 300.0):g}"
+    )
     for key, prop in (("ptratio", "ptratio"), ("ctratio", "ctratio")):
         v = _num(p, key)
         if v is not None and v > 0:
@@ -311,8 +338,9 @@ def _cap_control(n, name: str, res: "CompileResult", cmds: list[str]) -> None:
     cmds.append(cmd)
 
 
-def _inv_controls(units: list[tuple[str, str, dict, str]], xy_names: set[str],
-                  res: "CompileResult", cmds: list[str]) -> None:
+def _inv_controls(
+    units: list[tuple[str, str, dict, str]], xy_names: set[str], res: CompileResult, cmds: list[str]
+) -> None:
     """One InvControl per distinct smart-inverter setting, listing every PV
     system and storage unit that shares it (the engine wants groups, not a
     control per unit). `units` holds (class, name, params, diagram id)."""
@@ -327,12 +355,16 @@ def _inv_controls(units: list[tuple[str, str, dict, str]], xy_names: set[str],
         for key in curve_keys:
             curve = sanitize_name(str(p.get(key) or ""))
             if curve not in xy_names:
-                res.issues.append(Issue(
-                    severity="warning", code="unknown-curve",
-                    message=f"{cls.capitalize()} '{name}': its {mode.replace('_', ' + ')} "
-                            f"control needs an XY curve for '{key}' that this circuit "
-                            "does not define; the control is left out.",
-                    nodeId=ref))
+                res.issues.append(
+                    Issue(
+                        severity="warning",
+                        code="unknown-curve",
+                        message=f"{cls.capitalize()} '{name}': its {mode.replace('_', ' + ')} "
+                        f"control needs an XY curve for '{key}' that this circuit "
+                        "does not define; the control is left out.",
+                        nodeId=ref,
+                    )
+                )
                 ok = False
                 break
             curves.append(curve)
@@ -346,8 +378,10 @@ def _inv_controls(units: list[tuple[str, str, dict, str]], xy_names: set[str],
         elif mode == "voltwatt":
             cmd += f" mode=voltwatt voltwatt_curve={curves[0]} voltwattyaxis=pmpppu"
         elif mode == "voltvar_voltwatt":
-            cmd += (f" combimode=vv_vw vvc_curve1={curves[0]} voltwatt_curve={curves[1]} "
-                    "voltage_curvex_ref=rated voltwattyaxis=pmpppu")
+            cmd += (
+                f" combimode=vv_vw vvc_curve1={curves[0]} voltwatt_curve={curves[1]} "
+                "voltage_curvex_ref=rated voltwattyaxis=pmpppu"
+            )
         elif mode == "wattpf":
             cmd += f" mode=wattpf wattpf_curve={curves[0]}"
         elif mode == "wattvar":
@@ -438,9 +472,9 @@ def _bus_suffix(explicit, phases: int, phasing=None) -> str:
     return _phase_suffix(phases)
 
 
-def compile_circuit(circuit: Circuit,
-                    shape_dir: Path | None = None,
-                    export: bool = False) -> CompileResult:
+def compile_circuit(
+    circuit: Circuit, shape_dir: Path | None = None, export: bool = False
+) -> CompileResult:
     """Compile to Text commands. With `shape_dir` (the solve path), large
     loadshapes become `mult=(file=...)` references plus aux_files entries;
     without it (the .dss export path), everything stays inline so exports
@@ -463,10 +497,14 @@ def compile_circuit(circuit: Circuit,
             name = sanitize_name(fallback) or "el"
         full = f"{kind}.{name}"
         if full in used_names:
-            res.issues.append(Issue(
-                severity="error", code="duplicate-name",
-                message=f"Two elements share the OpenDSS name '{full}' after sanitization.",
-                nodeId=ref_id))
+            res.issues.append(
+                Issue(
+                    severity="error",
+                    code="duplicate-name",
+                    message=f"Two elements share the OpenDSS name '{full}' after sanitization.",
+                    nodeId=ref_id,
+                )
+            )
         used_names[full] = ref_id
         res.element_map[full] = ref_id
         return name
@@ -489,8 +527,13 @@ def compile_circuit(circuit: Circuit,
     line_edges = [e for e in circuit.edges if e.type == "line"]
 
     if not vsources:
-        res.issues.append(Issue(severity="error", code="no-source",
-                                message="The circuit needs a source (Vsource) element."))
+        res.issues.append(
+            Issue(
+                severity="error",
+                code="no-source",
+                message="The circuit needs a source (Vsource) element.",
+            )
+        )
         return res
 
     cmds.append("clear")
@@ -505,27 +548,28 @@ def compile_circuit(circuit: Circuit,
         mvasc3 = _num(p, "mvasc3", 2000.0)
         mvasc1 = _num(p, "mvasc1", 2100.0)
         angle = _num(p, "angle", 0.0)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(
-            p.get("busNodes"), phases, p.get("phasing"))
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
         kv_bases.add(basekv)
         # The source's X/R, when the file said: strength alone leaves the
         # engine to assume 4, and EPRI's ckt7 source is 12 -- a 115 kV
         # source three times too resistive drops the feeder 0.027 pu.
         # Written first: the short-circuit values then build the impedance.
         ratios = "".join(
-            f" {key}={v:g}" for key in ("x1r1", "x0r0")
-            if (v := _num(p, key)) is not None and v > 0)
+            f" {key}={v:g}" for key in ("x1r1", "x0r0") if (v := _num(p, key)) is not None and v > 0
+        )
         if i == 0:
             circuit_name = sanitize_name(circuit.name) or "circuit1"
             cmds.append(
                 f"new circuit.{circuit_name} basekv={basekv:g} pu={pu:g} angle={angle:g} "
-                f"phases={phases} bus1={bus}{ratios} mvasc3={mvasc3:g} mvasc1={mvasc1:g}")
+                f"phases={phases} bus1={bus}{ratios} mvasc3={mvasc3:g} mvasc1={mvasc1:g}"
+            )
             res.element_map["vsource.source"] = n.id
         else:
             name = element_name("vsource", p.get("name"), n.id, n.id)
             cmds.append(
                 f"new vsource.{name} basekv={basekv:g} pu={pu:g} angle={angle:g} "
-                f"phases={phases} bus1={bus}{ratios} mvasc3={mvasc3:g} mvasc1={mvasc1:g}")
+                f"phases={phases} bus1={bus}{ratios} mvasc3={mvasc3:g} mvasc1={mvasc1:g}"
+            )
 
     # Loadshape library — after `new circuit` (OpenDSS needs an active circuit)
     # and before any element that references a shape.
@@ -533,22 +577,29 @@ def compile_circuit(circuit: Circuit,
     for key, spec in circuit.loadShapes.items():
         shape = sanitize_name(key) or "shape"
         if shape in shape_names.values():
-            res.issues.append(Issue(
-                severity="error", code="duplicate-name",
-                message=f"Two loadshapes share the OpenDSS name '{shape}' "
-                        "after sanitization."))
+            res.issues.append(
+                Issue(
+                    severity="error",
+                    code="duplicate-name",
+                    message=f"Two loadshapes share the OpenDSS name '{shape}' after sanitization.",
+                )
+            )
             continue
         shape_names[key] = shape
         if shape_dir is not None and len(spec.points) > MAX_INLINE_SHAPE_PTS:
             fname = f"shape_{shape}.csv"
             res.aux_files[fname] = "\n".join(f"{float(v):.5g}" for v in spec.points) + "\n"
-            cmds.append(f"new loadshape.{shape} npts={len(spec.points)} "
-                        f"minterval={spec.intervalMin:g} "
-                        f'mult=(file="{shape_dir / fname}")')
+            cmds.append(
+                f"new loadshape.{shape} npts={len(spec.points)} "
+                f"minterval={spec.intervalMin:g} "
+                f'mult=(file="{shape_dir / fname}")'
+            )
         else:
             mult = " ".join(f"{float(v):.5g}" for v in spec.points)
-            cmds.append(f"new loadshape.{shape} npts={len(spec.points)} "
-                        f"minterval={spec.intervalMin:g} mult=({mult})")
+            cmds.append(
+                f"new loadshape.{shape} npts={len(spec.points)} "
+                f"minterval={spec.intervalMin:g} mult=({mult})"
+            )
 
     # User-defined time-current curves. Emitted before any protective device
     # so a device can name one, and validated here rather than trusted: a curve
@@ -559,22 +610,29 @@ def compile_circuit(circuit: Circuit,
         if not curve:
             continue
         if curve in curve_names or curve in ALL_BUILTIN_CURVES:
-            res.issues.append(Issue(
-                severity="error", code="duplicate-name",
-                message=f"Curve '{curve}' collides with another curve "
-                        "(the engine ships ten of its own)."))
+            res.issues.append(
+                Issue(
+                    severity="error",
+                    code="duplicate-name",
+                    message=f"Curve '{curve}' collides with another curve "
+                    "(the engine ships ten of its own).",
+                )
+            )
             continue
         n = min(len(spec.multiples), len(spec.seconds))
         if n < 2:
-            res.issues.append(Issue(
-                severity="warning", code="empty-curve",
-                message=f"Curve '{curve}' has fewer than 2 points and is ignored."))
+            res.issues.append(
+                Issue(
+                    severity="warning",
+                    code="empty-curve",
+                    message=f"Curve '{curve}' has fewer than 2 points and is ignored.",
+                )
+            )
             continue
         mult = " ".join(f"{float(v):.5g}" for v in spec.multiples[:n])
         secs = " ".join(f"{float(v):.5g}" for v in spec.seconds[:n])
         curve_names.add(curve)
-        cmds.append(f"new tcc_curve.{curve} npts={n} "
-                    f"c_array=({mult}) t_array=({secs})")
+        cmds.append(f"new tcc_curve.{curve} npts={n} c_array=({mult}) t_array=({secs})")
 
     # Inverter volt-var / volt-watt curves (XYCurve), before the PV and
     # storage units whose InvControl names them. A reference to a curve not
@@ -586,15 +644,23 @@ def compile_circuit(circuit: Circuit,
         if not curve:
             continue
         if curve in xy_names or curve in ("pv_pt_default", "pv_eff_default"):
-            res.issues.append(Issue(
-                severity="error", code="duplicate-name",
-                message=f"XY curve '{curve}' collides with another curve."))
+            res.issues.append(
+                Issue(
+                    severity="error",
+                    code="duplicate-name",
+                    message=f"XY curve '{curve}' collides with another curve.",
+                )
+            )
             continue
         n = min(len(spec.x), len(spec.y))
         if n < 2:
-            res.issues.append(Issue(
-                severity="warning", code="empty-curve",
-                message=f"XY curve '{curve}' has fewer than 2 points and is ignored."))
+            res.issues.append(
+                Issue(
+                    severity="warning",
+                    code="empty-curve",
+                    message=f"XY curve '{curve}' has fewer than 2 points and is ignored.",
+                )
+            )
             continue
         xs = " ".join(f"{float(v):.6g}" for v in spec.x[:n])
         ys = " ".join(f"{float(v):.6g}" for v in spec.y[:n])
@@ -612,37 +678,53 @@ def compile_circuit(circuit: Circuit,
         if not code:
             continue
         if code in line_codes:
-            res.issues.append(Issue(
-                severity="error", code="duplicate-name",
-                message=f"Two line codes share the OpenDSS name '{code}' "
-                        "after sanitization."))
+            res.issues.append(
+                Issue(
+                    severity="error",
+                    code="duplicate-name",
+                    message=f"Two line codes share the OpenDSS name '{code}' after sanitization.",
+                )
+            )
             continue
         n = int(spec.nphases) if spec.nphases in (1, 2, 3) else 3
         units = spec.units if spec.units in LINE_UNITS else "km"
         cmd = f"new linecode.{code} nphases={n} units={units}"
         if spec.is_matrix:
             if not (_square(spec.rmatrix, n) and _square(spec.xmatrix, n)):
-                res.issues.append(Issue(
-                    severity="error", code="bad-linecode",
-                    message=f"Line code '{key}' is {n}-phase but its R or X "
-                            f"matrix is not {n}x{n}."))
+                res.issues.append(
+                    Issue(
+                        severity="error",
+                        code="bad-linecode",
+                        message=f"Line code '{key}' is {n}-phase but its R or X "
+                        f"matrix is not {n}x{n}.",
+                    )
+                )
                 continue
-            cmd += (f" rmatrix={_lower_triangle(spec.rmatrix)}"
-                    f" xmatrix={_lower_triangle(spec.xmatrix)}")
+            cmd += (
+                f" rmatrix={_lower_triangle(spec.rmatrix)} xmatrix={_lower_triangle(spec.xmatrix)}"
+            )
             if spec.cmatrix is not None:
                 if not _square(spec.cmatrix, n):
-                    res.issues.append(Issue(
-                        severity="error", code="bad-linecode",
-                        message=f"Line code '{key}' has a C matrix that is not {n}x{n}."))
+                    res.issues.append(
+                        Issue(
+                            severity="error",
+                            code="bad-linecode",
+                            message=f"Line code '{key}' has a C matrix that is not {n}x{n}.",
+                        )
+                    )
                     continue
                 cmd += f" cmatrix={_lower_triangle(spec.cmatrix)}"
         else:
             seq = {k: getattr(spec, k) for k in ("r1", "x1", "r0", "x0")}
             if any(v is None for v in seq.values()):
-                res.issues.append(Issue(
-                    severity="error", code="bad-linecode",
-                    message=f"Line code '{key}' needs either R and X matrices or "
-                            "all of r1, x1, r0, x0."))
+                res.issues.append(
+                    Issue(
+                        severity="error",
+                        code="bad-linecode",
+                        message=f"Line code '{key}' needs either R and X matrices or "
+                        "all of r1, x1, r0, x0.",
+                    )
+                )
                 continue
             cmd += " " + " ".join(f"{k}={float(v):g}" for k, v in seq.items())
             if spec.c1 is not None:
@@ -661,19 +743,34 @@ def compile_circuit(circuit: Circuit,
         wname = sanitize_name(key)
         if not wname or wname in wire_kind:
             if wname:
-                res.issues.append(Issue(severity="error", code="duplicate-name",
-                                        message=f"Two conductors share the name '{wname}'."))
+                res.issues.append(
+                    Issue(
+                        severity="error",
+                        code="duplicate-name",
+                        message=f"Two conductors share the name '{wname}'.",
+                    )
+                )
             continue
         cls = {"wire": "wiredata", "cn": "cndata", "ts": "tsdata"}[spec.kind]
         parts = [f"new {cls}.{wname}"]
-        for prop, value in (("rdc", spec.rdc), ("rac", spec.rac), ("gmrac", spec.gmr),
-                            ("radius", spec.radius), ("normamps", spec.normamps),
-                            ("emergamps", spec.emergamps)):
+        for prop, value in (
+            ("rdc", spec.rdc),
+            ("rac", spec.rac),
+            ("gmrac", spec.gmr),
+            ("radius", spec.radius),
+            ("normamps", spec.normamps),
+            ("emergamps", spec.emergamps),
+        ):
             if value is not None and value > 0:
                 parts.append(f"{prop}={value:.6g}")
         if spec.rdc is None and spec.rac is None:
-            res.issues.append(Issue(severity="warning", code="bad-wire",
-                                    message=f"Conductor '{key}' has no resistance; the engine's default is used."))
+            res.issues.append(
+                Issue(
+                    severity="warning",
+                    code="bad-wire",
+                    message=f"Conductor '{key}' has no resistance; the engine's default is used.",
+                )
+            )
         parts.append(f"runits={_enum({'u': spec.runits}, 'u', LINE_UNITS, 'mi')}")
         parts.append(f"gmrunits={_enum({'u': spec.gmrunits}, 'u', LINE_UNITS, 'ft')}")
         parts.append(f"radunits={_enum({'u': spec.radunits}, 'u', LINE_UNITS, 'in')}")
@@ -688,14 +785,23 @@ def compile_circuit(circuit: Circuit,
         if not gname or gname in geometries:
             continue
         conds = spec.conductors[: max(1, int(spec.nconds))]
-        if len(conds) < int(spec.nconds) or any(sanitize_name(c.wire) not in wire_kind for c in conds):
-            res.issues.append(Issue(severity="error", code="bad-geometry",
-                                    message=f"Geometry '{key}' needs {spec.nconds} conductors, each naming a "
-                                            "conductor the circuit defines."))
+        if len(conds) < int(spec.nconds) or any(
+            sanitize_name(c.wire) not in wire_kind for c in conds
+        ):
+            res.issues.append(
+                Issue(
+                    severity="error",
+                    code="bad-geometry",
+                    message=f"Geometry '{key}' needs {spec.nconds} conductors, each naming a "
+                    "conductor the circuit defines.",
+                )
+            )
             continue
-        units = _enum({'u': spec.units}, 'u', LINE_UNITS, 'ft')
-        cmd = (f"new linegeometry.{gname} nconds={int(spec.nconds)} nphases={int(spec.nphases)} "
-               f"reduce={'yes' if spec.reduce else 'no'}")
+        units = _enum({"u": spec.units}, "u", LINE_UNITS, "ft")
+        cmd = (
+            f"new linegeometry.{gname} nconds={int(spec.nconds)} nphases={int(spec.nphases)} "
+            f"reduce={'yes' if spec.reduce else 'no'}"
+        )
         for i, c in enumerate(conds, start=1):
             w = sanitize_name(c.wire)
             keyword = {"wire": "wire", "cn": "cncable", "ts": "tscable"}[wire_kind[w]]
@@ -703,8 +809,7 @@ def compile_circuit(circuit: Circuit,
         geometries.add(gname)
         cmds.append(cmd)
 
-    def curve_ref(p: dict, key: str, allowed: frozenset[str], default: str,
-                  ref_id: str) -> str:
+    def curve_ref(p: dict, key: str, allowed: frozenset[str], default: str, ref_id: str) -> str:
         """A curve name the engine will certainly hold: one of its built-ins,
         or one this circuit defines above.
 
@@ -717,11 +822,15 @@ def compile_circuit(circuit: Circuit,
         if name in allowed or name in curve_names:
             return name
         if raw and raw != default:
-            res.issues.append(Issue(
-                severity="warning", code="unknown-curve",
-                message=f"Curve '{raw}' is not defined in this circuit; "
-                        f"using '{default}' instead.",
-                nodeId=ref_id))
+            res.issues.append(
+                Issue(
+                    severity="warning",
+                    code="unknown-curve",
+                    message=f"Curve '{raw}' is not defined in this circuit; "
+                    f"using '{default}' instead.",
+                    nodeId=ref_id,
+                )
+            )
         return default
 
     def shape_ref(p: dict, ref_id: str) -> str:
@@ -732,10 +841,14 @@ def compile_circuit(circuit: Circuit,
             return ""
         shape = shape_names.get(str(raw))
         if shape is None:
-            res.issues.append(Issue(
-                severity="error", code="missing-loadshape",
-                message=f"Loadshape '{raw}' is not defined in this circuit.",
-                nodeId=ref_id))
+            res.issues.append(
+                Issue(
+                    severity="error",
+                    code="missing-loadshape",
+                    message=f"Loadshape '{raw}' is not defined in this circuit.",
+                    nodeId=ref_id,
+                )
+            )
             return ""
         return f" daily={shape} yearly={shape}"
 
@@ -757,12 +870,17 @@ def compile_circuit(circuit: Circuit,
         # at A again. Carrying the pin through to the low side would strand
         # every default-phased element hanging off it.
         bus_list = ", ".join(
-            b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None,
-                            phases, p.get("phasing") if i == 0 else None)
-            for i, b in enumerate(buses[: len(windings)]))
+            b
+            + _bus_suffix(
+                bus_nodes[i] if i < len(bus_nodes) else None,
+                phases,
+                p.get("phasing") if i == 0 else None,
+            )
+            for i, b in enumerate(buses[: len(windings)])
+        )
         conns = ", ".join(
-            _enum(w if isinstance(w, dict) else {}, "conn", CONN_TYPES, "wye")
-            for w in windings)
+            _enum(w if isinstance(w, dict) else {}, "conn", CONN_TYPES, "wye") for w in windings
+        )
         kvs = ", ".join(f"{float(w.get('kv', 12.47)):g}" for w in windings)
         kvas = ", ".join(f"{float(w.get('kva', 10000)):g}" for w in windings)
         xhl = _num(p, "xhl", 8.0)
@@ -779,7 +897,8 @@ def compile_circuit(circuit: Circuit,
             f"new transformer.{name} phases={phases} windings={len(windings)} "
             f"buses=({bus_list}) conns=({conns}) kvs=({kvs}) kvas=({kvas}) "
             f"xhl={xhl:g} {_winding_resistance(windings, loadloss)}{tertiary}"
-            f"{_core_losses(p)}{_taps(windings)}{_reliability(p)}{_emergency(p, 'transformer')}")
+            f"{_core_losses(p)}{_taps(windings)}{_reliability(p)}{_emergency(p, 'transformer')}"
+        )
 
     # Regulators: an equal-ratio 2-winding transformer plus the RegControl that
     # moves its taps. They share one name — OpenDSS keeps classes in separate
@@ -798,9 +917,9 @@ def compile_circuit(circuit: Circuit,
         # Unlike a transformer, a regulator stays inside one feeder at one
         # voltage, so the pin carries straight through it.
         bus_list = ", ".join(
-            b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None,
-                            phases, p.get("phasing"))
-            for i, b in enumerate(buses[:2]))
+            b + _bus_suffix(bus_nodes[i] if i < len(bus_nodes) else None, phases, p.get("phasing"))
+            for i, b in enumerate(buses[:2])
+        )
         kv_bases.add(kv)
         # One connection for both windings: a regulator is an autotransformer
         # in one phase, wye (line-to-neutral) unless the file said delta.
@@ -809,20 +928,21 @@ def compile_circuit(circuit: Circuit,
             f"new transformer.{name} phases={phases} windings=2 "
             f"buses=({bus_list}) conns=({reg_conn}, {reg_conn}) kvs=({kv:g}, {kv:g}) "
             f"kvas=({kva:g}, {kva:g}) xhl={xhl:g} %loadloss={loadloss:g}{_reliability(p)}"
-            f"{_emergency(p, 'regulator')}")
+            f"{_emergency(p, 'regulator')}"
+        )
         # PT ratio defaults to whatever turns the regulated winding's nominal
         # voltage into the 120 V control base.
         ptratio = _num(p, "ptratio")
         if ptratio is None or ptratio <= 0:
-            ln_volts = kv * 1000.0 / (3 ** 0.5) if phases == 3 else kv * 1000.0
+            ln_volts = kv * 1000.0 / (3**0.5) if phases == 3 else kv * 1000.0
             ptratio = round(ln_volts / 120.0, 2)
         cmds.append(
             f"new regcontrol.{name} transformer={name} winding=2 "
             f"vreg={_num(p, 'vreg', 122.0):g} band={_num(p, 'band', 2.0):g} "
             f"ptratio={ptratio:g} ctprim={_num(p, 'ctprim', 300.0):g} "
             f"R={_num(p, 'r', 0.0):g} X={_num(p, 'x', 0.0):g} "
-            f"maxtapchange={int(_num(p, 'maxtapchange', 16.0) or 16)}"
-            + _regulator_reverse(p))
+            f"maxtapchange={int(_num(p, 'maxtapchange', 16.0) or 16)}" + _regulator_reverse(p)
+        )
 
     for e in line_edges:
         p = e.params
@@ -848,10 +968,15 @@ def compile_circuit(circuit: Circuit,
             impedance = f"geometry={geometry}"
             spec = None
         elif geometry:
-            res.issues.append(Issue(
-                severity="error", code="bad-geometry",
-                message=f"Line '{name}' is on geometry '{geometry}', which this circuit does not define.",
-                edgeId=e.id))
+            res.issues.append(
+                Issue(
+                    severity="error",
+                    code="bad-geometry",
+                    message=f"Line '{name}' is on geometry '{geometry}', "
+                    "which this circuit does not define.",
+                    edgeId=e.id,
+                )
+            )
             impedance = f"linecode={code}" if spec is not None else "r1=0.12 x1=0.38 r0=0.4 x0=1.2"
         elif spec is not None:
             impedance = f"linecode={code}"
@@ -860,8 +985,7 @@ def compile_circuit(circuit: Circuit,
             x1 = _num(p, "x1", 0.38)
             r0 = _num(p, "r0", 0.4)
             x0 = _num(p, "x0", 1.2)
-            impedance = " ".join(
-                [f"r1={r1:g} x1={x1:g} r0={r0:g} x0={x0:g}", *_capacitance(p)])
+            impedance = " ".join([f"r1={r1:g} x1={x1:g} r0={r0:g} x0={x0:g}", *_capacitance(p)])
         normamps = _num(p, "normamps")
         rating = ""
         if normamps is not None:
@@ -870,15 +994,20 @@ def compile_circuit(circuit: Circuit,
             pass  # the geometry's conductors carry their ampacity
         elif spec is None or not spec.normamps:
             rating = f" normamps={DEFAULT_LINE_NORMAMPS:g}"
-            res.issues.append(Issue(
-                severity="warning", code="default-rating",
-                message=f"Line '{name}' has no normamps; using default "
-                        f"{DEFAULT_LINE_NORMAMPS:g} A for loading %.",
-                edgeId=e.id))
+            res.issues.append(
+                Issue(
+                    severity="warning",
+                    code="default-rating",
+                    message=f"Line '{name}' has no normamps; using default "
+                    f"{DEFAULT_LINE_NORMAMPS:g} A for loading %.",
+                    edgeId=e.id,
+                )
+            )
         cmds.append(
             f"new line.{name} bus1={b1}{sfx1} bus2={b2}{sfx2} phases={phases} "
             f"{impedance} length={length:g} units={units}{rating}{_reliability(p)}"
-            f"{_emergency(p, 'line')}")
+            f"{_emergency(p, 'line')}"
+        )
 
     for n in breakers:
         p = n.params
@@ -890,7 +1019,8 @@ def compile_circuit(circuit: Circuit,
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
             f"switch=yes{_switch_impedance(p)} normamps={normamps:g}{_reliability(p)}"
-            f"{_emergency(p, 'line')}")
+            f"{_emergency(p, 'line')}"
+        )
         if p.get("sectionalizer") is True and p.get("closed", True):
             # A sectionalizer opens during the upstream recloser's dead time
             # after a count of fault interruptions; it carries no curve and
@@ -901,7 +1031,8 @@ def compile_circuit(circuit: Circuit,
             cmds.append(
                 f"new relay.{name} monitoredobj=line.{name} monitoredterm=1 "
                 f"switchedobj=line.{name} switchedterm=1 type=current "
-                f"phasecurve=definite phasetrip=1e9 delay=0")
+                f"phasecurve=definite phasetrip=1e9 delay=0"
+            )
             res.element_map[f"relay.{name}"] = n.id
         if not p.get("closed", True):
             cmds.append(f"open line.{name} term=1")
@@ -922,7 +1053,8 @@ def compile_circuit(circuit: Circuit,
         cmds.append(
             f"new line.{name} bus1={b1}{sfx} bus2={b2}{sfx} phases={phases} "
             f"switch=yes{_switch_impedance(p)} normamps={normamps:g}{_reliability(p)}"
-            f"{_emergency(p, 'line')}")
+            f"{_emergency(p, 'line')}"
+        )
         return name, p
 
     def out_of_service(kind: str, name: str, p: dict) -> None:
@@ -941,8 +1073,7 @@ def compile_circuit(circuit: Circuit,
         cmds.append(f"open line.{name} term=1")
 
     def monitors(name: str) -> str:
-        return (f"monitoredobj=line.{name} monitoredterm=1 "
-                f"switchedobj=line.{name} switchedterm=1")
+        return f"monitoredobj=line.{name} monitoredterm=1 switchedobj=line.{name} switchedterm=1"
 
     for n in fuses:
         name, p = protective_switch(n, DEFAULT_FUSE_AMPS)
@@ -950,27 +1081,32 @@ def compile_circuit(circuit: Circuit,
             f"new fuse.{name} {monitors(name)} "
             f"fusecurve={curve_ref(p, 'fusecurve', FUSE_CURVES, 'tlink', n.id)} "
             f"ratedcurrent={_num(p, 'ratedcurrent', DEFAULT_FUSE_AMPS):g} "
-            f"delay={_num(p, 'delay', 0.0):g}")
+            f"delay={_num(p, 'delay', 0.0):g}"
+        )
         out_of_service("fuse", name, p)
 
     for n in reclosers:
         name, p = protective_switch(n, DEFAULT_RECLOSER_AMPS)
-        cmd = (f"new recloser.{name} {monitors(name)} "
-               f"phasefast={curve_ref(p, 'phasefast', RECLOSER_CURVES, 'a', n.id)} "
-               f"phasedelayed={curve_ref(p, 'phasedelayed', RECLOSER_CURVES, 'd', n.id)} "
-               f"phasetrip={_num(p, 'phasetrip', 100.0):g} "
-               # Emitted whether or not a ground unit exists: it is the user's
-               # setting, and losing it on a round trip would be silent.
-               f"groundtrip={_num(p, 'groundtrip', 50.0):g} "
-               f"numfast={int(_num(p, 'numfast', 1.0) or 1)} "
-               f"shots={int(_num(p, 'shots', 4.0) or 4)} "
-               f"delay={_num(p, 'delay', 0.0):g}")
+        cmd = (
+            f"new recloser.{name} {monitors(name)} "
+            f"phasefast={curve_ref(p, 'phasefast', RECLOSER_CURVES, 'a', n.id)} "
+            f"phasedelayed={curve_ref(p, 'phasedelayed', RECLOSER_CURVES, 'd', n.id)} "
+            f"phasetrip={_num(p, 'phasetrip', 100.0):g} "
+            # Emitted whether or not a ground unit exists: it is the user's
+            # setting, and losing it on a round trip would be silent.
+            f"groundtrip={_num(p, 'groundtrip', 50.0):g} "
+            f"numfast={int(_num(p, 'numfast', 1.0) or 1)} "
+            f"shots={int(_num(p, 'shots', 4.0) or 4)} "
+            f"delay={_num(p, 'delay', 0.0):g}"
+        )
         intervals = p.get("recloseintervals")
         if isinstance(intervals, str):
             intervals = [t for t in re.split(r"[,\s]+", intervals.strip()) if t]
         if isinstance(intervals, list) and intervals:
             try:
-                cmd += " recloseintervals=(" + ", ".join(f"{float(v):g}" for v in intervals[:8]) + ")"
+                cmd += (
+                    " recloseintervals=(" + ", ".join(f"{float(v):g}" for v in intervals[:8]) + ")"
+                )
             except (TypeError, ValueError):
                 pass
         # A recloser only has a ground unit if it is given curves for one, the
@@ -978,23 +1114,26 @@ def compile_circuit(circuit: Circuit,
         gfast = curve_ref(p, "groundfast", RECLOSER_CURVES | {"none"}, "none", n.id)
         gdelayed = curve_ref(p, "grounddelayed", RECLOSER_CURVES | {"none"}, "none", n.id)
         if gfast != "none" or gdelayed != "none":
-            cmd += (f" groundfast={gfast if gfast != 'none' else gdelayed} "
-                    f"grounddelayed={gdelayed if gdelayed != 'none' else gfast}")
+            cmd += (
+                f" groundfast={gfast if gfast != 'none' else gdelayed} "
+                f"grounddelayed={gdelayed if gdelayed != 'none' else gfast}"
+            )
         cmds.append(cmd)
         out_of_service("recloser", name, p)
 
     for n in relays:
         name, p = protective_switch(n, DEFAULT_RELAY_AMPS)
-        cmd = (f"new relay.{name} {monitors(name)} type=current "
-               f"phasecurve={curve_ref(p, 'phasecurve', RELAY_CURVES, 'very_inv', n.id)} "
-               f"phasetrip={_num(p, 'phasetrip', 200.0):g} "
-               f"delay={_num(p, 'delay', 0.0):g}")
+        cmd = (
+            f"new relay.{name} {monitors(name)} type=current "
+            f"phasecurve={curve_ref(p, 'phasecurve', RELAY_CURVES, 'very_inv', n.id)} "
+            f"phasetrip={_num(p, 'phasetrip', 200.0):g} "
+            f"delay={_num(p, 'delay', 0.0):g}"
+        )
         # No ground curve means no ground unit at all, which is a different
         # relay from one with a ground unit picked up at some default.
         ground = curve_ref(p, "groundcurve", RELAY_CURVES | {"none"}, "none", n.id)
         if ground != "none":
-            cmd += (f" groundcurve={ground} "
-                    f"groundtrip={_num(p, 'groundtrip', 50.0):g}")
+            cmd += f" groundcurve={ground} groundtrip={_num(p, 'groundtrip', 50.0):g}"
         cmds.append(cmd)
         out_of_service("relay", name, p)
 
@@ -1003,15 +1142,15 @@ def compile_circuit(circuit: Circuit,
         p = n.params
         name = element_name("load", p.get("name"), n.id, n.id)
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(
-            p.get("busNodes"), phases, p.get("phasing"))
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kw = _num(p, "kw", 100.0)
         # A load level may scale one class of load (the load's `class`
         # param) on top of the global multiplier applied below.
         load_class = str(p.get("class") or "").strip().lower()
-        class_mult = next((m for c, m in level.classMult.items()
-                           if c.strip().lower() == load_class), None)
+        class_mult = next(
+            (m for c, m in level.classMult.items() if c.strip().lower() == load_class), None
+        )
         if load_class and class_mult is not None:
             kw = kw * class_mult
         pf = _num(p, "pf", 0.95)
@@ -1028,21 +1167,25 @@ def compile_circuit(circuit: Circuit,
         cmds.append(
             f"new load.{name} bus1={bus} phases={phases} conn={load_conn} "
             f"kv={kv:g} kw={kw:g} pf={pf:g} model={model} vminpu={vminpu:g}"
-            + customers + _load_model_extras(p, model) + shape_ref(p, n.id))
+            + customers
+            + _load_model_extras(p, model)
+            + shape_ref(p, n.id)
+        )
 
     for n in capacitors:
         p = n.params
         name = element_name("capacitor", p.get("name"), n.id, n.id)
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(
-            p.get("busNodes"), phases, p.get("phasing"))
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kvar = _num(p, "kvar", 600.0)
         cap_conn = _enum(p, "conn", CONN_TYPES, "wye")
         numsteps = min(max(int(_num(p, "numsteps", 1) or 1), 1), 100)
         kv_bases.add(kv)
-        cmd = (f"new capacitor.{name} bus1={bus} phases={phases} conn={cap_conn} "
-               f"kv={kv:g} kvar={kvar:g}")
+        cmd = (
+            f"new capacitor.{name} bus1={bus} phases={phases} conn={cap_conn} "
+            f"kv={kv:g} kvar={kvar:g}"
+        )
         if numsteps > 1:
             cmd += f" numsteps={numsteps}"
         cmds.append(cmd)
@@ -1052,16 +1195,17 @@ def compile_circuit(circuit: Circuit,
         p = n.params
         name = element_name("generator", p.get("name"), n.id, n.id)
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(
-            p.get("busNodes"), phases, p.get("phasing"))
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kw = _num(p, "kw", 1000.0)
         pf = _num(p, "pf", 1.0)
         gen_conn = _enum(p, "conn", CONN_TYPES, "wye")
         model = int(_num(p, "model", 1) or 1)
         kv_bases.add(kv)
-        cmd = (f"new generator.{name} bus1={bus} phases={phases} conn={gen_conn} "
-               f"kv={kv:g} kw={kw:g} pf={pf:g} model={model}")
+        cmd = (
+            f"new generator.{name} bus1={bus} phases={phases} conn={gen_conn} "
+            f"kv={kv:g} kw={kw:g} pf={pf:g} model={model}"
+        )
         # The machine's rating, which its loading is judged against. Left
         # blank the engine takes 1.2 x kW, as OpenDSS always has.
         kva = _num(p, "kva")
@@ -1075,18 +1219,19 @@ def compile_circuit(circuit: Circuit,
     if pvsystems:
         # Canned inverter curves shared by every PV system: power-temperature
         # derating (per °C above 25) and efficiency vs per-unit output.
-        cmds.append("new xycurve.pv_pt_default npts=4 xarray=[0 25 75 100] "
-                    "yarray=[1.2 1.0 0.8 0.6]")
-        cmds.append("new xycurve.pv_eff_default npts=4 xarray=[0.1 0.2 0.4 1.0] "
-                    "yarray=[0.86 0.9 0.93 0.97]")
+        cmds.append(
+            "new xycurve.pv_pt_default npts=4 xarray=[0 25 75 100] yarray=[1.2 1.0 0.8 0.6]"
+        )
+        cmds.append(
+            "new xycurve.pv_eff_default npts=4 xarray=[0.1 0.2 0.4 1.0] yarray=[0.86 0.9 0.93 0.97]"
+        )
     inverter_units: list[tuple[str, str, dict, str]] = []
     for n in pvsystems:
         p = n.params
         name = element_name("pvsystem", p.get("name"), n.id, n.id)
         inverter_units.append(("pvsystem", name, p, n.id))
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(
-            p.get("busNodes"), phases, p.get("phasing"))
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kva = _num(p, "kva", 500.0)
         pmpp = _num(p, "pmpp", 500.0)
@@ -1098,16 +1243,15 @@ def compile_circuit(circuit: Circuit,
             f"new pvsystem.{name} bus1={bus} phases={phases} conn={pv_conn} "
             f"kv={kv:g} kva={kva:g} pmpp={pmpp:g} pf={pf:g} "
             f"irradiance={irradiance:g} temperature=25 %cutin=0.1 %cutout=0.1 "
-            f"effcurve=pv_eff_default p-tcurve=pv_pt_default"
-            + shape_ref(p, n.id))  # shape scales irradiance over time
+            f"effcurve=pv_eff_default p-tcurve=pv_pt_default" + shape_ref(p, n.id)
+        )  # shape scales irradiance over time
 
     for n in storages:
         p = n.params
         name = element_name("storage", p.get("name"), n.id, n.id)
         inverter_units.append(("storage", name, p, n.id))
         phases = _phases(p)
-        bus = conn.node_buses[n.id][0] + _bus_suffix(
-            p.get("busNodes"), phases, p.get("phasing"))
+        bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
         kv = _num(p, "kv", 12.47) or 12.47
         kwrated = _num(p, "kwrated", 250.0)
         kwhrated = _num(p, "kwhrated", 1000.0)
@@ -1118,18 +1262,22 @@ def compile_circuit(circuit: Circuit,
         stg_conn = _enum(p, "conn", CONN_TYPES, "wye")
         dispatch = _enum(p, "dispatch", DISPATCH_MODES, "follow")
         kv_bases.add(kv)
-        cmd = (f"new storage.{name} bus1={bus} phases={phases} conn={stg_conn} "
-               f"kv={kv:g} kwrated={kwrated:g} kwhrated={kwhrated:g} "
-               f"%effcharge={effcharge:g} %effdischarge={effdischarge:g} "
-               f"%reserve={reserve:g} %stored={soc:g} dispmode={dispatch}")
+        cmd = (
+            f"new storage.{name} bus1={bus} phases={phases} conn={stg_conn} "
+            f"kv={kv:g} kwrated={kwrated:g} kwhrated={kwhrated:g} "
+            f"%effcharge={effcharge:g} %effdischarge={effdischarge:g} "
+            f"%reserve={reserve:g} %stored={soc:g} dispmode={dispatch}"
+        )
         if dispatch == "follow":
             # Shape drives dispatch: positive mult = discharge, negative = charge.
             cmd += shape_ref(p, n.id)
         else:  # "default" mode: triggers compare against the default loadshape
-            cmd += (f" %discharge={_num(p, 'pctdischarge', 100.0):g}"
-                    f" %charge={_num(p, 'pctcharge', 100.0):g}"
-                    f" dischargetrigger={_num(p, 'dischargetrigger', 0.0):g}"
-                    f" chargetrigger={_num(p, 'chargetrigger', 0.0):g}")
+            cmd += (
+                f" %discharge={_num(p, 'pctdischarge', 100.0):g}"
+                f" %charge={_num(p, 'pctcharge', 100.0):g}"
+                f" dischargetrigger={_num(p, 'dischargetrigger', 0.0):g}"
+                f" chargetrigger={_num(p, 'chargetrigger', 0.0):g}"
+            )
         cmds.append(cmd)
 
     _inv_controls(inverter_units, xy_names, res, cmds)
@@ -1163,7 +1311,8 @@ def compile_circuit(circuit: Circuit,
         cmds.extend(pt_cmds)
         res.optional_commands.update(pt_cmds)
         res.passthrough_names = [
-            f"{c.cls}.{c.entry.name.split('.', 1)[1].lower()}" for c in checked if c.solvable]
+            f"{c.cls}.{c.entry.name.split('.', 1)[1].lower()}" for c in checked if c.solvable
+        ]
 
     for n in circuit.nodes:
         if n.type == "busbar":
@@ -1259,17 +1408,27 @@ def _zone_comments(circuit: Circuit, dss_name: dict[str, str]) -> list[str]:
         label = " ".join(str(z.params.get("label") or "").split())
         if not label:
             continue
-        box = (z.position.x, z.position.y,
-               z.position.x + (z.width or 0), z.position.y + (z.height or 0))
+        box = (
+            z.position.x,
+            z.position.y,
+            z.position.x + (z.width or 0),
+            z.position.y + (z.height or 0),
+        )
 
         def inside(node_id: str, box=box) -> bool:
             p = pos.get(node_id)
             return p is not None and box[0] <= p.x <= box[2] and box[1] <= p.y <= box[3]
 
-        members = [dss_name[n.id] for n in circuit.nodes
-                   if n.id in dss_name and n.type not in ANNOTATION_TYPES and inside(n.id)]
-        members += [dss_name[e.id] for e in circuit.edges
-                    if e.id in dss_name and inside(e.source) and inside(e.target)]
+        members = [
+            dss_name[n.id]
+            for n in circuit.nodes
+            if n.id in dss_name and n.type not in ANNOTATION_TYPES and inside(n.id)
+        ]
+        members += [
+            dss_name[e.id]
+            for e in circuit.edges
+            if e.id in dss_name and inside(e.source) and inside(e.target)
+        ]
         out.append(f"! Zone: {label}" + (" - " + ", ".join(members) if members else ""))
     return out
 

@@ -12,6 +12,7 @@
 
 Each is one build of the circuit; a daily run is 24 (or 96) solves.
 """
+
 from __future__ import annotations
 
 import itertools
@@ -38,7 +39,9 @@ def _build(circuit: Circuit):
         return compiled, issues, False
     engine._ensure_init()
     engine._write_aux_files(compiled)
-    ok = engine._run_commands(compiled.commands, compiled.element_map, issues, compiled.optional_commands)
+    ok = engine._run_commands(
+        compiled.commands, compiled.element_map, issues, compiled.optional_commands
+    )
     return compiled, issues, ok
 
 
@@ -124,18 +127,24 @@ def _daily_run(step_min: int, limits, load_buses: set[str] | None = None) -> dic
                 i = dss.Capacitors.Next()
     dss.Text.Command("set mode=snapshot")
     return {
-        "energyKwh": round(energy, 1), "lossesKwh": round(losses, 2),
+        "energyKwh": round(energy, 1),
+        "lossesKwh": round(losses, 2),
         "lossPct": round(100.0 * losses / energy, 3) if energy > 0 else None,
         "minVpu": round(vmin, 4) if vmin < math.inf else None,
         "maxVpu": round(vmax, 4) if vmax > -math.inf else None,
         "minLoadVpu": round(vmin_load, 4) if vmin_load < math.inf else None,
         "meanVpu": round(v_sum / v_n, 4) if v_n else None,
-        "controlOps": ops, "undervoltageBusSteps": under, "overvoltageBusSteps": over,
-        "overloadSteps": overloads, "nonConverged": non_conv, "steps": steps,
+        "controlOps": ops,
+        "undervoltageBusSteps": under,
+        "overvoltageBusSteps": over,
+        "overloadSteps": overloads,
+        "nonConverged": non_conv,
+        "steps": steps,
     }
 
 
 # --- setting sweep -------------------------------------------------------------------
+
 
 def estimate_sweep_solves(sweeps: list[dict[str, Any]], step_min: int = 60) -> int:
     combos = 1
@@ -144,8 +153,13 @@ def estimate_sweep_solves(sweeps: list[dict[str, Any]], step_min: int = 60) -> i
     return combos * (24 * 60 // max(step_min, 1))
 
 
-def setting_sweep(circuit: Circuit, sweeps: list[dict[str, Any]], step_min: int = 60,
-                  progress: Progress | None = None, cancel: threading.Event | None = None) -> dict[str, Any]:
+def setting_sweep(
+    circuit: Circuit,
+    sweeps: list[dict[str, Any]],
+    step_min: int = 60,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+) -> dict[str, Any]:
     """`sweeps`: [{"id": <diagram id>, "property": "vreg", "values": [120, 122, 124]}, ...];
     the cartesian product is run. Properties go on the element's control:
     a regulator's RegControl (vreg, band, r, x), a capacitor's CapControl
@@ -155,7 +169,10 @@ def setting_sweep(circuit: Circuit, sweeps: list[dict[str, Any]], step_min: int 
 
 
 _CONTROL_PROPS = {
-    "regulator": ("regcontrol", {"vreg", "band", "r", "x", "ptratio", "ctprim", "delay", "revvreg", "revband"}),
+    "regulator": (
+        "regcontrol",
+        {"vreg", "band", "r", "x", "ptratio", "ctprim", "delay", "revvreg", "revband"},
+    ),
     "capacitor": ("capcontrol", {"onsetting", "offsetting", "delay", "delayoff", "deadtime"}),
     "vsource": ("vsource", {"pu"}),
 }
@@ -169,46 +186,92 @@ def _targets(circuit: Circuit, compiled, sweeps: list[dict[str, Any]], issues: l
         prop = str(s.get("property") or "").lower()
         values = [float(v) for v in (s.get("values") or []) if isinstance(v, (int, float))]
         if node is None or node.type not in _CONTROL_PROPS or not values:
-            issues.append(Issue(severity="warning", code="sweep-target",
-                                message=f"Sweep over {s.get('id')}.{prop} skipped: not a regulator, capacitor or source, or no values."))
+            issues.append(
+                Issue(
+                    severity="warning",
+                    code="sweep-target",
+                    message=f"Sweep over {s.get('id')}.{prop} skipped: "
+                    "not a regulator, capacitor or source, or no values.",
+                )
+            )
             continue
         cls, allowed = _CONTROL_PROPS[node.type]
         if prop not in allowed:
-            issues.append(Issue(severity="warning", code="sweep-target",
-                                message=f"Sweep over {node.params.get('name', node.id)}.{prop} skipped: not a swept property ({', '.join(sorted(allowed))})."))
+            issues.append(
+                Issue(
+                    severity="warning",
+                    code="sweep-target",
+                    message=f"Sweep over {node.params.get('name', node.id)}.{prop} skipped: "
+                    f"not a swept property ({', '.join(sorted(allowed))}).",
+                )
+            )
             continue
-        full = next((f for f, ref in compiled.element_map.items() if ref == node.id
-                     and f.startswith(("transformer.", "capacitor.", "vsource."))), None)
+        full = next(
+            (
+                f
+                for f, ref in compiled.element_map.items()
+                if ref == node.id and f.startswith(("transformer.", "capacitor.", "vsource."))
+            ),
+            None,
+        )
         if full is None:
             continue
         name = full.split(".", 1)[1]
         target = f"{cls}.{name}" if cls != "vsource" else full
         if cls == "capcontrol" and dss.Circuit.SetActiveElement(target) < 0:
-            issues.append(Issue(severity="warning", code="sweep-target",
-                                message=f"Capacitor {name} has no control to sweep; give it one in its properties."))
+            issues.append(
+                Issue(
+                    severity="warning",
+                    code="sweep-target",
+                    message=f"Capacitor {name} has no control to sweep; "
+                    "give it one in its properties.",
+                )
+            )
             continue
-        out.append({"id": node.id, "name": str(node.params.get("name") or node.id), "target": target,
-                    "property": prop, "values": values})
+        out.append(
+            {
+                "id": node.id,
+                "name": str(node.params.get("name") or node.id),
+                "target": target,
+                "property": prop,
+                "values": values,
+            }
+        )
     return out
 
 
 @engine.on_engine_thread
-def _setting_sweep(circuit: Circuit, sweeps: list[dict[str, Any]], step_min: int,
-                   progress: Progress | None, cancel: threading.Event | None) -> dict[str, Any]:
+def _setting_sweep(
+    circuit: Circuit,
+    sweeps: list[dict[str, Any]],
+    step_min: int,
+    progress: Progress | None,
+    cancel: threading.Event | None,
+) -> dict[str, Any]:
     with engine.dss_guard():
         compiled, issues, ok = _build(circuit)
         if not ok:
             return {"converged": False, "issues": [i.model_dump() for i in issues], "rows": []}
         if not _has_shapes(circuit):
-            issues.append(Issue(severity="warning", code="no-shapes",
-                                message="No loadshapes: every hour of the day is the same, so the sweep "
-                                        "measures the settings at one load only."))
+            issues.append(
+                Issue(
+                    severity="warning",
+                    code="no-shapes",
+                    message="No loadshapes: every hour of the day is the same, so the sweep "
+                    "measures the settings at one load only.",
+                )
+            )
         targets = _targets(circuit, compiled, sweeps, issues)
         if not targets:
             issues.append(Issue(severity="error", code="sweep-target", message="Nothing to sweep."))
             return {"converged": False, "issues": [i.model_dump() for i in issues], "rows": []}
-        load_buses = {compiled.connectivity.node_buses[n.id][0].lower() for n in circuit.nodes
-                      if n.type == "load" and compiled.connectivity and n.id in compiled.connectivity.node_buses}
+        load_buses = {
+            compiled.connectivity.node_buses[n.id][0].lower()
+            for n in circuit.nodes
+            if n.type == "load"
+            and compiled.connectivity
+            and n.id in compiled.connectivity.node_buses
+        }
         originals: dict[str, str] = {}
         for t in targets:
             dss.Circuit.SetActiveElement(t["target"])
@@ -220,24 +283,48 @@ def _setting_sweep(circuit: Circuit, sweeps: list[dict[str, Any]], step_min: int
             if cancel is not None and cancel.is_set():
                 cancelled = True
                 break
-            for t, value in zip(targets, combo):
+            for t, value in zip(targets, combo, strict=False):
                 dss.Text.Command(f"{t['target']}.{t['property']}={value:g}")
             run = _daily_run(step_min, circuit.criteria, load_buses)
-            rows.append({"settings": {f"{t['name']}.{t['property']}": v for t, v in zip(targets, combo)}, **run})
+            rows.append(
+                {
+                    "settings": {f"{t['name']}.{t['property']}": v for t, v in zip(targets, combo, strict=False)},  # noqa: E501
+                    **run,
+                }
+            )
             if progress is not None:
-                progress(i + 1, len(combos), ", ".join(f"{t['name']} {t['property']}={v:g}" for t, v in zip(targets, combo)))
+                progress(
+                    i + 1,
+                    len(combos),
+                    ", ".join(f"{t['name']} {t['property']}={v:g}" for t, v in zip(targets, combo, strict=False)),  # noqa: E501
+                )
         for key, raw in originals.items():
             if raw:
                 dss.Text.Command(f"{key}={raw}")
     # Rank: no violations first, then least losses.
-    rows.sort(key=lambda r: (r["undervoltageBusSteps"] + r["overvoltageBusSteps"] + r["overloadSteps"], r["lossesKwh"]))
-    return {"converged": True, "cancelled": cancelled, "stepMin": step_min,
-            "targets": [{"id": t["id"], "name": t["name"], "property": t["property"], "values": t["values"]} for t in targets],
-            "rows": rows, "loadLevel": circuit.level.model_dump(), "scenario": circuit.activeScenario,
-            "issues": [i.model_dump() for i in issues]}
+    rows.sort(
+        key=lambda r: (
+            r["undervoltageBusSteps"] + r["overvoltageBusSteps"] + r["overloadSteps"],
+            r["lossesKwh"],
+        )
+    )
+    return {
+        "converged": True,
+        "cancelled": cancelled,
+        "stepMin": step_min,
+        "targets": [
+            {"id": t["id"], "name": t["name"], "property": t["property"], "values": t["values"]}
+            for t in targets
+        ],
+        "rows": rows,
+        "loadLevel": circuit.level.model_dump(),
+        "scenario": circuit.activeScenario,
+        "issues": [i.model_dump() for i in issues],
+    }
 
 
 # --- CVR ---------------------------------------------------------------------------
+
 
 def cvr(circuit: Circuit, reduction_v: float = 2.0, step_min: int = 60) -> dict[str, Any]:
     """Paired daily runs at the present regulator setpoints and at
@@ -253,13 +340,27 @@ def _cvr(circuit: Circuit, reduction_v: float, step_min: int) -> dict[str, Any]:
         compiled, issues, ok = _build(circuit)
         if not ok:
             return {"converged": False, "issues": [i.model_dump() for i in issues]}
-        load_buses = {compiled.connectivity.node_buses[n.id][0].lower() for n in circuit.nodes
-                      if n.type == "load" and compiled.connectivity and n.id in compiled.connectivity.node_buses}
-        cvr_loads = sum(1 for n in circuit.nodes if n.type == "load" and int(float(n.params.get("model", 1) or 1)) in (2, 4, 8))
+        load_buses = {
+            compiled.connectivity.node_buses[n.id][0].lower()
+            for n in circuit.nodes
+            if n.type == "load"
+            and compiled.connectivity
+            and n.id in compiled.connectivity.node_buses
+        }
+        cvr_loads = sum(
+            1
+            for n in circuit.nodes
+            if n.type == "load" and int(float(n.params.get("model", 1) or 1)) in (2, 4, 8)
+        )
         if cvr_loads == 0:
-            issues.append(Issue(severity="warning", code="load-model",
-                                message="Every load is constant power (model 1), so lowering the voltage saves "
-                                        "nothing; give loads a CVR model (4) or a ZIP model (8) with their factors."))
+            issues.append(
+                Issue(
+                    severity="warning",
+                    code="load-model",
+                    message="Every load is constant power (model 1), so lowering the voltage saves "
+                    "nothing; give loads a CVR model (4) or a ZIP model (8) with their factors.",
+                )
+            )
         base = _daily_run(step_min, circuit.criteria, load_buses)
         regs: list[tuple[str, float]] = []
         i = dss.RegControls.First()
@@ -284,36 +385,65 @@ def _cvr(circuit: Circuit, reduction_v: float, step_min: int) -> dict[str, Any]:
             dss.Text.Command(f"vsource.source.pu={pu:.6g}")
     d_e = (base["energyKwh"] - reduced["energyKwh"]) if base["energyKwh"] else 0.0
     d_e_pct = 100.0 * d_e / base["energyKwh"] if base["energyKwh"] else None
-    d_v_pct = (100.0 * (base["meanVpu"] - reduced["meanVpu"]) / base["meanVpu"]
-               if base["meanVpu"] and reduced["meanVpu"] else None)
-    factor = (d_e_pct / d_v_pct) if d_e_pct is not None and d_v_pct and abs(d_v_pct) > 1e-6 else None
+    d_v_pct = (
+        100.0 * (base["meanVpu"] - reduced["meanVpu"]) / base["meanVpu"]
+        if base["meanVpu"] and reduced["meanVpu"]
+        else None
+    )
+    factor = (
+        (d_e_pct / d_v_pct) if d_e_pct is not None and d_v_pct and abs(d_v_pct) > 1e-6 else None
+    )
     return {
-        "converged": True, "how": how, "reductionV": reduction_v, "stepMin": step_min,
-        "base": base, "reduced": reduced,
-        "energySavedKwh": round(d_e, 1), "energySavedPct": round(d_e_pct, 3) if d_e_pct is not None else None,
+        "converged": True,
+        "how": how,
+        "reductionV": reduction_v,
+        "stepMin": step_min,
+        "base": base,
+        "reduced": reduced,
+        "energySavedKwh": round(d_e, 1),
+        "energySavedPct": round(d_e_pct, 3) if d_e_pct is not None else None,
         "voltageReducedPct": round(d_v_pct, 3) if d_v_pct is not None else None,
         "cvrFactor": round(factor, 3) if factor is not None else None,
         "lossesSavedKwh": round(base["lossesKwh"] - reduced["lossesKwh"], 2),
         "lowestLoadVpu": reduced["minLoadVpu"],
-        "lowestLoadV120": round(reduced["minLoadVpu"] * 120.0, 1) if reduced["minLoadVpu"] else None,
+        "lowestLoadV120": round(reduced["minLoadVpu"] * 120.0, 1)
+        if reduced["minLoadVpu"]
+        else None,
         "cvrLoads": cvr_loads,
-        "loadLevel": circuit.level.model_dump(), "scenario": circuit.activeScenario,
+        "loadLevel": circuit.level.model_dump(),
+        "scenario": circuit.activeScenario,
         "issues": [i.model_dump() for i in issues],
     }
 
 
 # --- capacitor placement ------------------------------------------------------------
 
-def capacitor_placement(circuit: Circuit, kvar: float = 600.0, banks: int = 1,
-                        buses: list[str] | None = None, min_kv: float = 1.0,
-                        progress: Progress | None = None, cancel: threading.Event | None = None) -> dict[str, Any]:
+
+def capacitor_placement(
+    circuit: Circuit,
+    kvar: float = 600.0,
+    banks: int = 1,
+    buses: list[str] | None = None,
+    min_kv: float = 1.0,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+) -> dict[str, Any]:
     circuit = effective_circuit(circuit)
-    return _capacitor_placement(circuit, float(kvar), max(1, int(banks)), buses, float(min_kv), progress, cancel)
+    return _capacitor_placement(
+        circuit, float(kvar), max(1, int(banks)), buses, float(min_kv), progress, cancel
+    )
 
 
 @engine.on_engine_thread
-def _capacitor_placement(circuit: Circuit, kvar: float, banks: int, buses: list[str] | None, min_kv: float,
-                         progress: Progress | None, cancel: threading.Event | None) -> dict[str, Any]:
+def _capacitor_placement(
+    circuit: Circuit,
+    kvar: float,
+    banks: int,
+    buses: list[str] | None,
+    min_kv: float,
+    progress: Progress | None,
+    cancel: threading.Event | None,
+) -> dict[str, Any]:
     with engine.dss_guard():
         compiled, issues, ok = _build(circuit)
         if not ok:
@@ -321,7 +451,13 @@ def _capacitor_placement(circuit: Circuit, kvar: float, banks: int, buses: list[
         dss.Text.Command("set mode=snapshot")
         dss.Solution.Solve()
         if not dss.Solution.Converged():
-            issues.append(Issue(severity="error", code="not-converged", message="The base case does not converge."))
+            issues.append(
+                Issue(
+                    severity="error",
+                    code="not-converged",
+                    message="The base case does not converge.",
+                )
+            )
             return {"converged": False, "issues": [i.model_dump() for i in issues], "rounds": []}
         node_names = [n.lower() for n in dss.Circuit.AllNodeNames()]
         slices: dict[str, list[int]] = {}
@@ -365,18 +501,30 @@ def _capacitor_placement(circuit: Circuit, kvar: float, banks: int, buses: list[
                     break
                 if any(p["bus"] == b for p in placed):
                     continue
-                verb = "edit" if dss.Circuit.SetActiveElement("capacitor.place_trial") >= 0 else "new"
-                dss.Text.Command(f"{verb} capacitor.place_trial bus1={b} phases=3 kv={kv_of[b]:.6g} kvar={kvar:g} enabled=yes")
+                verb = (
+                    "edit" if dss.Circuit.SetActiveElement("capacitor.place_trial") >= 0 else "new"
+                )
+                dss.Text.Command(
+                    f"{verb} capacitor.place_trial bus1={b} phases=3 kv={kv_of[b]:.6g} kvar={kvar:g} enabled=yes"  # noqa: E501
+                )
                 dss.Solution.Solve()
                 solves += 1
                 if dss.Solution.Converged():
                     loss, vmin, vmax = read()
-                    row = {"bus": b, "kvBase": round(kv_of[b], 3), "lossKw": round(loss, 3),
-                           "lossReductionKw": round(current_loss - loss, 3), "minVpu": round(vmin, 4),
-                           "voltageLiftPu": round(vmin - current_vmin, 4), "maxVpu": round(vmax, 4),
-                           "overvoltage": vmax > circuit.criteria.vmaxPu}
+                    row = {
+                        "bus": b,
+                        "kvBase": round(kv_of[b], 3),
+                        "lossKw": round(loss, 3),
+                        "lossReductionKw": round(current_loss - loss, 3),
+                        "minVpu": round(vmin, 4),
+                        "voltageLiftPu": round(vmin - current_vmin, 4),
+                        "maxVpu": round(vmax, 4),
+                        "overvoltage": vmax > circuit.criteria.vmaxPu,
+                    }
                     scores.append(row)
-                    if not row["overvoltage"] and (best is None or row["lossReductionKw"] > best["lossReductionKw"]):
+                    if not row["overvoltage"] and (
+                        best is None or row["lossReductionKw"] > best["lossReductionKw"]
+                    ):
                         best = row
                 dss.Text.Command("capacitor.place_trial.enabled=no")
                 done += 1
@@ -387,19 +535,27 @@ def _capacitor_placement(circuit: Circuit, kvar: float, banks: int, buses: list[
             scores.sort(key=lambda x: -x["lossReductionKw"])
             rounds.append({"bank": r + 1, "best": best, "candidates": scores[:25]})
             placed.append(best)
-            dss.Text.Command(f"new capacitor.placed_{r} bus1={best['bus']} phases=3 kv={kv_of[best['bus']]:.6g} kvar={kvar:g}")
+            dss.Text.Command(
+                f"new capacitor.placed_{r} bus1={best['bus']} phases=3 kv={kv_of[best['bus']]:.6g} kvar={kvar:g}"  # noqa: E501
+            )
             dss.Solution.Solve()
             solves += 1
             current_loss, current_vmin, _ = read()
         for r in range(len(placed)):
             dss.Text.Command(f"capacitor.placed_{r}.enabled=no")
     return {
-        "converged": True, "cancelled": cancelled, "kvar": kvar, "banks": banks,
+        "converged": True,
+        "cancelled": cancelled,
+        "kvar": kvar,
+        "banks": banks,
         "base": {"lossKw": round(base_loss, 3), "minVpu": round(base_vmin, 4)},
-        "placed": placed, "rounds": rounds,
+        "placed": placed,
+        "rounds": rounds,
         "totalLossReductionKw": round(base_loss - current_loss, 3),
-        "candidates": len(cands), "solves": solves,
-        "loadLevel": circuit.level.model_dump(), "scenario": circuit.activeScenario,
+        "candidates": len(cands),
+        "solves": solves,
+        "loadLevel": circuit.level.model_dump(),
+        "scenario": circuit.activeScenario,
         "issues": [i.model_dump() for i in issues],
         "nodeBuses": compiled.connectivity.node_buses if compiled.connectivity else {},
         "busNames": compiled.connectivity.bus_names if compiled.connectivity else {},

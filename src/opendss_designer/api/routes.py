@@ -1,4 +1,5 @@
 """REST API for the designer frontend."""
+
 from __future__ import annotations
 
 import base64
@@ -16,35 +17,38 @@ from pydantic import BaseModel
 
 from .. import __version__, context
 from ..core import (
+    catalog,
+    cim,
     convert,
     engine,
     importer,
     irradiance,
     linecodes,
+    multispeak,
     nrel,
     protection,
+    qa,
     reliability,
     samples,
 )
-from ..core.jobs import jobs
-from ..studies import batch as batch_study
-from ..studies import hosting_capacity as hc_study
-from ..studies import faults as fault_study_mod
-from ..studies import screening as screening_study
-from ..studies import balancing as balancing_study
-from ..studies import capacity as capacity_study
-from ..studies import contingency as contingency_study
-from ..studies import voltvar as voltvar_study
-from ..studies import allocation as allocation_study
-from ..studies import secondary as secondary_study
-from ..studies import protection_depth as protection_depth_study
-from ..core import catalog, cim, multispeak, qa
-from ..studies import harmonics as harmonics_study
 from ..core.compiler import export_dss
+from ..core.jobs import jobs
 from ..core.model import Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
 from ..core.validate import phase_map, validate
 from ..settings import settings
+from ..studies import allocation as allocation_study
+from ..studies import balancing as balancing_study
+from ..studies import batch as batch_study
+from ..studies import capacity as capacity_study
+from ..studies import contingency as contingency_study
+from ..studies import faults as fault_study_mod
+from ..studies import harmonics as harmonics_study
+from ..studies import hosting_capacity as hc_study
+from ..studies import protection_depth as protection_depth_study
+from ..studies import screening as screening_study
+from ..studies import secondary as secondary_study
+from ..studies import voltvar as voltvar_study
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +57,7 @@ router = APIRouter(prefix="/api")
 _geocode_bucket = TokenBucket(settings.geocode_per_minute, 60.0, "place searches")
 _fetch_bucket = TokenBucket(settings.fetch_per_hour, 3600.0, "data downloads")
 # Long runs hold the engine for minutes; only so many may be in flight.
-_timeseries_slots = threading.BoundedSemaphore(
-    settings.max_concurrent_timeseries or 10_000)
+_timeseries_slots = threading.BoundedSemaphore(settings.max_concurrent_timeseries or 10_000)
 
 
 @router.get("/health")
@@ -65,9 +68,11 @@ def health(request: Request) -> dict:
     so it still answers while a long solve is running.
     """
     cfg = context.current_settings()
-    out: dict = {"version": __version__,
-                 "opendssVersion": engine.opendss_version(),
-                 "mode": cfg.mode}
+    out: dict = {
+        "version": __version__,
+        "opendssVersion": engine.opendss_version(),
+        "mode": cfg.mode,
+    }
     if cfg.demo or cfg.plan is not None:
         # The effective limits for *this caller*: behind a gateway that is
         # the per-request overlay, so the banner describes the right plan.
@@ -83,8 +88,10 @@ def health(request: Request) -> dict:
         # Features a proxy withholds from this caller, with its reason, so
         # the panels can say so before a click gets a 403.
         features: dict = {}
-        for key, locked in (("convert", convert.locked_reason()),
-                            ("studies", studies_locked_reason())):
+        for key, locked in (
+            ("convert", convert.locked_reason()),
+            ("studies", studies_locked_reason()),
+        ):
             if locked:
                 features[key] = {"locked": True, "reason": locked}
         if features:
@@ -108,8 +115,7 @@ def line_codes() -> dict:
 
 
 def _busy(exc: engine.EngineBusy) -> HTTPException:
-    return HTTPException(status_code=503, detail=str(exc),
-                         headers={"Retry-After": "5"})
+    return HTTPException(status_code=503, detail=str(exc), headers={"Retry-After": "5"})
 
 
 @router.get("/samples")
@@ -177,8 +183,7 @@ def reliability_study(circuit: Circuit) -> dict:
 def validate_circuit(circuit: Circuit) -> dict:
     """Issues, plus which phases reach each element so the one-line can
     colour by phase before anything has been solved."""
-    return {"issues": [i.model_dump() for i in validate(circuit)],
-            "phases": phase_map(circuit)}
+    return {"issues": [i.model_dump() for i in validate(circuit)], "phases": phase_map(circuit)}
 
 
 @router.post("/export/dss", response_class=PlainTextResponse)
@@ -207,14 +212,16 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
         raise HTTPException(
             status_code=413,
             detail=f"This run is too large for {cfg.plan_label} "
-                   f"({req.mode} at {req.stepMin} min on a circuit this size). "
-                   "Try a daily run, an hourly step, or a smaller circuit — "
-                   "or run OpenDSS Designer locally for the full model.")
+            f"({req.mode} at {req.stepMin} min on a circuit this size). "
+            "Try a daily run, an hourly step, or a smaller circuit — "
+            "or run OpenDSS Designer locally for the full model.",
+        )
     if not _timeseries_slots.acquire(blocking=False):
         raise HTTPException(
-            status_code=503, headers={"Retry-After": "10"},
-            detail="Another time-series run is already using the solver. "
-                   "Try again in a moment.")
+            status_code=503,
+            headers={"Retry-After": "10"},
+            detail="Another time-series run is already using the solver. Try again in a moment.",
+        )
 
     # Bounded: a backgrounded or throttled browser tab stops reading, and an
     # unbounded queue would buffer every progress event for the whole run.
@@ -239,16 +246,17 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
     def used() -> dict:
         # The response headers left before the run started, so the engine
         # time a metering proxy needs rides on the final event instead.
-        return ({"engineSeconds": round(req_ctx.engine_seconds, 3)}
-                if req_ctx is not None else {})
+        return {"engineSeconds": round(req_ctx.engine_seconds, 3)} if req_ctx is not None else {}
 
     def worker() -> None:
         try:
             result = engine.solve_timeseries(
-                req.circuit, req.mode, req.stepMin,
-                progress_cb=lambda s, t: put(
-                    {"type": "progress", "step": s, "total": t}),
-                cancel=cancel)
+                req.circuit,
+                req.mode,
+                req.stepMin,
+                progress_cb=lambda s, t: put({"type": "progress", "step": s, "total": t}),
+                cancel=cancel,
+            )
             put({"type": "result", "result": result, **used()})
         except engine.EngineBusy as exc:
             put({"type": "error", "message": str(exc), **used()})
@@ -260,9 +268,14 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
             # and library internals, so it stays server-side; the traceback
             # still reaches stderr via the logging added for deployment.
             logger.exception("Time-series run failed")
-            put({"type": "error",
-                 "message": "The time-series run failed unexpectedly. "
-                            "Check the server log for details.", **used()})
+            put(
+                {
+                    "type": "error",
+                    "message": "The time-series run failed unexpectedly. "
+                    "Check the server log for details.",
+                    **used(),
+                }
+            )
         finally:
             # Released here, not in the response generator: the worker always
             # runs to completion, but a client that disconnects before reading
@@ -280,8 +293,7 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
     # A copy of the request context, so the limits overlay and request id
     # follow the run onto its own thread (and from there onto the engine
     # thread, which copies again).
-    threading.Thread(target=contextvars.copy_context().run, args=(worker,),
-                     daemon=True).start()
+    threading.Thread(target=contextvars.copy_context().run, args=(worker,), daemon=True).start()
 
     def gen():
         # Flush a comment immediately, then keep the stream warm. Nothing else
@@ -306,9 +318,11 @@ def timeseries(req: TimeSeriesRequest) -> StreamingResponse:
         finally:
             cancel.set()
 
-    return StreamingResponse(gen(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache",
-                                      "X-Accel-Buffering": "no"})
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/nrel/meta")
@@ -333,8 +347,13 @@ def nrel_fetch(req: NrelFetchRequest) -> dict:
     except RateLimited as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     try:
-        return nrel.fetch_profile(req.product, req.climateZone, req.buildingType,
-                                  step_min=req.stepMin, normalize=req.normalize)
+        return nrel.fetch_profile(
+            req.product,
+            req.climateZone,
+            req.buildingType,
+            step_min=req.stepMin,
+            normalize=req.normalize,
+        )
     except nrel.NrelError as exc:
         raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
 
@@ -371,8 +390,9 @@ def irradiance_fetch(req: IrradianceFetchRequest) -> dict:
     except RateLimited as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     try:
-        return irradiance.fetch_ghi(req.lat, req.lon, req.apiKey, req.email,
-                                    scaling=req.scaling, label=req.label)
+        return irradiance.fetch_ghi(
+            req.lat, req.lon, req.apiKey, req.email, scaling=req.scaling, label=req.label
+        )
     except irradiance.IrradianceError as exc:
         raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
 
@@ -384,6 +404,7 @@ class DssFile(BaseModel):
 
 class ImportRequest(BaseModel):
     """Typed so file count and size are bounded before anything is written."""
+
     files: list[DssFile] | None = None
     text: str | None = None
 
@@ -393,8 +414,8 @@ def _check_import_size(files: list[DssFile]) -> None:
     if cfg.max_import_files and len(files) > cfg.max_import_files:
         raise HTTPException(
             status_code=413,
-            detail=f"Select at most {cfg.max_import_files} files "
-                   f"({len(files)} given).")
+            detail=f"Select at most {cfg.max_import_files} files ({len(files)} given).",
+        )
     if cfg.max_import_bytes:
         for f in files:
             if len(f.text.encode("utf-8", "ignore")) > cfg.max_import_bytes:
@@ -402,8 +423,9 @@ def _check_import_size(files: list[DssFile]) -> None:
                 raise HTTPException(
                     status_code=413,
                     detail=f"'{f.name}' is larger than the {mb} MB per-file "
-                           f"limit for {cfg.plan_label}. Run OpenDSS Designer "
-                           "locally for full-size feeders.")
+                    f"limit for {cfg.plan_label}. Run OpenDSS Designer "
+                    "locally for full-size feeders.",
+                )
 
 
 @router.post("/import/dss")
@@ -449,20 +471,22 @@ def import_converted(req: ConvertRequest) -> dict:
         # Decided before any decoding: a withheld feature costs nothing.
         raise HTTPException(status_code=403, detail=locked)
     if cfg.max_import_files and len(req.files) > cfg.max_import_files:
-        raise HTTPException(status_code=413,
-                            detail=f"Select at most {cfg.max_import_files} files.")
+        raise HTTPException(status_code=413, detail=f"Select at most {cfg.max_import_files} files.")
     decoded: list[tuple[str, bytes]] = []
     for f in req.files:
         try:
             data = base64.b64decode(f.data, validate=True)
         except (binascii.Error, ValueError) as exc:
-            raise HTTPException(status_code=400,
-                                detail=f"'{f.name}' did not arrive intact.") from exc
+            raise HTTPException(
+                status_code=400, detail=f"'{f.name}' did not arrive intact."
+            ) from exc
         if cfg.max_import_bytes and len(data) > cfg.max_import_bytes:
             mb = cfg.max_import_bytes // (1024 * 1024)
-            raise HTTPException(status_code=413,
-                                detail=f"'{f.name}' is larger than the {mb} MB per-file "
-                                       f"limit for {cfg.plan_label}.")
+            raise HTTPException(
+                status_code=413,
+                detail=f"'{f.name}' is larger than the {mb} MB per-file "
+                f"limit for {cfg.plan_label}.",
+            )
         decoded.append((f.name, data))
     try:
         return convert.convert_and_import(req.format, decoded)
@@ -474,6 +498,7 @@ def import_converted(req: ConvertRequest) -> dict:
 
 # --- background studies -------------------------------------------------------
 
+
 def _study_cap(solves: int) -> None:
     """Refuse a study larger than the plan allows before it starts."""
     cfg = context.current_settings()
@@ -481,8 +506,9 @@ def _study_cap(solves: int) -> None:
         raise HTTPException(
             status_code=413,
             detail=f"This study needs about {solves:,} solves, more than {cfg.plan_label} "
-                   f"allows ({cfg.max_study_solves:,}). Fewer scenarios, levels or "
-                   "candidate buses, or run OpenDSS Designer locally.")
+            f"allows ({cfg.max_study_solves:,}). Fewer scenarios, levels or "
+            "candidate buses, or run OpenDSS Designer locally.",
+        )
 
 
 STUDIES_LABEL = "Planning studies"
@@ -534,7 +560,9 @@ def start_batch(req: BatchRequest) -> dict:
     return _submit_study(
         "batch",
         lambda progress, cancel: batch_study.run_batch(
-            req.circuit, req.scenarios, req.levels, progress, cancel))
+            req.circuit, req.scenarios, req.levels, progress, cancel
+        ),
+    )
 
 
 @router.get("/jobs")
@@ -573,9 +601,11 @@ def job_events(job_id: str) -> StreamingResponse:
                 continue
             yield f"data: {json.dumps(ev)}\n\n"
 
-    return StreamingResponse(gen(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache",
-                                      "X-Accel-Buffering": "no"})
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 class HostingCapacityRequest(BaseModel):
@@ -592,7 +622,9 @@ def start_hosting_capacity(req: HostingCapacityRequest) -> dict:
     return _submit_study(
         "hosting-capacity",
         lambda progress, cancel: hc_study.hosting_capacity(
-            req.circuit, req.options, progress, cancel))
+            req.circuit, req.options, progress, cancel
+        ),
+    )
 
 
 class FaultPointRequest(BaseModel):
@@ -625,7 +657,10 @@ def start_fault_sweep(req: FaultSweepRequest) -> dict:
     _study_cap(2 * len(req.circuit.nodes) + 1)
     return _submit_study(
         "fault-sweep",
-        lambda progress, cancel: fault_study_mod.fault_sweep(req.circuit, req.rOhm, progress, cancel))
+        lambda progress, cancel: fault_study_mod.fault_sweep(
+            req.circuit, req.rOhm, progress, cancel
+        ),
+    )
 
 
 class ScreenRequest(BaseModel):
@@ -645,6 +680,7 @@ def screen_der(req: ScreenRequest) -> dict:
 
 
 # --- M14: contingency, Volt/VAR, balancing, capacity ---------------------------
+
 
 class SwitchingRequest(BaseModel):
     circuit: Circuit
@@ -671,7 +707,10 @@ def start_n_minus_1(req: N1Request) -> dict:
     _study_cap(contingency_study.estimate_n1_solves(req.circuit, req.options))
     return _submit_study(
         "n-minus-1",
-        lambda progress, cancel: contingency_study.n_minus_1(req.circuit, req.options, progress, cancel))
+        lambda progress, cancel: contingency_study.n_minus_1(
+            req.circuit, req.options, progress, cancel
+        ),
+    )
 
 
 class TransferRequest(BaseModel):
@@ -700,7 +739,10 @@ def start_sweep(req: SweepRequest) -> dict:
     _study_cap(voltvar_study.estimate_sweep_solves(req.sweeps, req.stepMin))
     return _submit_study(
         "sweep",
-        lambda progress, cancel: voltvar_study.setting_sweep(req.circuit, req.sweeps, req.stepMin, progress, cancel))
+        lambda progress, cancel: voltvar_study.setting_sweep(
+            req.circuit, req.sweeps, req.stepMin, progress, cancel
+        ),
+    )
 
 
 class CvrRequest(BaseModel):
@@ -732,7 +774,9 @@ def start_placement(req: PlacementRequest) -> dict:
     return _submit_study(
         "capacitor-placement",
         lambda progress, cancel: voltvar_study.capacitor_placement(
-            req.circuit, req.kvar, req.banks, req.buses, req.minKv, progress, cancel))
+            req.circuit, req.kvar, req.banks, req.buses, req.minKv, progress, cancel
+        ),
+    )
 
 
 class BalanceRequest(BaseModel):
@@ -745,7 +789,10 @@ def start_phase_balance(req: BalanceRequest) -> dict:
     _study_cap(1 + 2 * max(1, req.maxCandidates))
     return _submit_study(
         "phase-balance",
-        lambda progress, cancel: balancing_study.phase_balance(req.circuit, req.maxCandidates, progress, cancel))
+        lambda progress, cancel: balancing_study.phase_balance(
+            req.circuit, req.maxCandidates, progress, cancel
+        ),
+    )
 
 
 class LossRequest(BaseModel):
@@ -761,7 +808,9 @@ def start_loss_evaluation(req: LossRequest) -> dict:
     return _submit_study(
         "loss-evaluation",
         lambda progress, cancel: capacity_study.loss_evaluation(
-            req.circuit, req.mode, req.stepMin, req.pricePerKwh, progress, cancel))
+            req.circuit, req.mode, req.stepMin, req.pricePerKwh, progress, cancel
+        ),
+    )
 
 
 class CapacityRequest(BaseModel):
@@ -779,6 +828,7 @@ def capacity_route(req: CapacityRequest) -> dict:
 
 
 # --- M15: model quality, catalogues, the secondary, allocation ------------------
+
 
 class QaRequest(BaseModel):
     circuit: Circuit
@@ -813,7 +863,9 @@ def start_transformer_loading(req: TlmRequest) -> dict:
     return _submit_study(
         "transformer-loading",
         lambda progress, cancel: secondary_study.transformer_loading(
-            req.circuit, req.mode, req.stepMin, req.ambientC, progress, cancel))
+            req.circuit, req.mode, req.stepMin, req.ambientC, progress, cancel
+        ),
+    )
 
 
 class AllocateRequest(BaseModel):
@@ -833,6 +885,7 @@ def allocate_loads(req: AllocateRequest) -> dict:
 
 # --- M16: protection and reliability depth ----------------------------------------
 
+
 class FaultLineRequest(BaseModel):
     circuit: Circuit
     line: str
@@ -846,7 +899,9 @@ def fault_on_line(req: FaultLineRequest) -> dict:
     """A fault part way along a line: the line is split at the fraction."""
     _refuse_locked_study()
     try:
-        return protection_depth_study.fault_on_line(req.circuit, req.line, req.fraction, req.kind, req.rOhm)
+        return protection_depth_study.fault_on_line(
+            req.circuit, req.line, req.fraction, req.kind, req.rOhm
+        )
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
 
@@ -862,7 +917,10 @@ def start_reach(req: ReachRequest) -> dict:
     _study_cap(2 * len(req.circuit.nodes) + 1)
     return _submit_study(
         "reach",
-        lambda progress, cancel: protection_depth_study.reach_study(req.circuit, req.rOhm, req.derType, progress, cancel))
+        lambda progress, cancel: protection_depth_study.reach_study(
+            req.circuit, req.rOhm, req.derType, progress, cancel
+        ),
+    )
 
 
 class FuseSavingRequest(BaseModel):
@@ -889,10 +947,14 @@ def start_recloser_placement(req: RecloserPlacementRequest) -> dict:
     _study_cap(1 + max(1, req.maxCandidates))
     return _submit_study(
         "recloser-placement",
-        lambda progress, cancel: protection_depth_study.recloser_placement(req.circuit, req.maxCandidates, progress, cancel))
+        lambda progress, cancel: protection_depth_study.recloser_placement(
+            req.circuit, req.maxCandidates, progress, cancel
+        ),
+    )
 
 
 # --- M17: interoperability and power quality ------------------------------------
+
 
 class TextImportRequest(BaseModel):
     files: list[DssFile]
@@ -925,7 +987,9 @@ def import_multispeak(req: TextImportRequest) -> dict:
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
     except (importer.ImportFailure, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=f"Could not read the MultiSpeak file: {exc}") from exc
+        raise HTTPException(
+            status_code=400, detail=f"Could not read the MultiSpeak file: {exc}"
+        ) from exc
     except Exception as exc:
         if exc.__class__.__name__ == "ParseError":
             raise HTTPException(status_code=400, detail=f"Not well-formed XML: {exc}") from exc
@@ -950,7 +1014,9 @@ def start_harmonics(req: HarmonicsRequest) -> dict:
     return _submit_study(
         "harmonics",
         lambda progress, cancel: harmonics_study.harmonics(
-            req.circuit, req.orders, req.thdLimit, req.individualLimit, progress, cancel))
+            req.circuit, req.orders, req.thdLimit, req.individualLimit, progress, cancel
+        ),
+    )
 
 
 class RvcRequest(BaseModel):
@@ -969,7 +1035,15 @@ def rvc(req: RvcRequest) -> dict:
     _refuse_locked_study()
     try:
         return harmonics_study.rapid_voltage_change(
-            req.circuit, req.bus, req.kind, req.kva, req.pf, req.lrcMultiple, req.limitPct, req.derId)
+            req.circuit,
+            req.bus,
+            req.kind,
+            req.kva,
+            req.pf,
+            req.lrcMultiple,
+            req.limitPct,
+            req.derId,
+        )
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
 
@@ -978,4 +1052,5 @@ def rvc(req: RvcRequest) -> dict:
 def list_studies() -> dict:
     """Every study by name, as `opendss-designer run` and scripts see them."""
     from ..studies.registry import STUDIES
+
     return {"studies": [{"name": k, "help": v[0]} for k, v in STUDIES.items()]}

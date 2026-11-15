@@ -26,6 +26,7 @@ run when the circuit has shapes.
 Pre-existing violations do not count: anything already over a limit in the
 base case is excluded from that criterion and listed.
 """
+
 from __future__ import annotations
 
 import math
@@ -44,32 +45,41 @@ from .scenarios import effective_circuit
 
 Progress = Callable[[int, int, str | None], None]
 
-CRITERIA = ("voltage", "thermal", "deviation", "regulatorReverse", "substationReverse",
-            "faultCurrent", "interrupting", "islanding", "controlOps")
+CRITERIA = (
+    "voltage",
+    "thermal",
+    "deviation",
+    "regulatorReverse",
+    "substationReverse",
+    "faultCurrent",
+    "interrupting",
+    "islanding",
+    "controlOps",
+)
 
 DEFAULT_OPTIONS: dict[str, Any] = {
     # "der" grows generation at each bus; "load" grows load (EV, electrification).
     "kind": "der",
-    "method": "iterative",          # or "sensitivity"
+    "method": "iterative",  # or "sensitivity"
     "criteria": {c: c not in ("controlOps",) for c in CRITERIA},
     # Which buses: all three-phase primary buses by default. Names override.
     "buses": None,
-    "minKv": 1.0,                   # line-to-line kV below which a bus is skipped (secondaries)
+    "minKv": 1.0,  # line-to-line kV below which a bus is skipped (secondaries)
     "threePhaseOnly": True,
     # Limits. None falls back to the project's abnormal-condition limits.
     "vmaxPu": None,
     "vminPu": None,
-    "deviationPct": 3.0,            # rapid voltage change on trip, IEEE 1547-2018 4.7
-    "thermalPct": 100.0,            # of the level's rating
-    "substationExportKw": 0.0,      # export at the feeder head above this is reverse power
-    "regulatorReverseKw": 10.0,     # reverse flow through a regulator above this
-    "faultIncreasePct": 10.0,       # SGIP screen: contribution to maximum fault current
-    "interruptingPct": 87.5,        # SGIP screen: duty against interrupting rating
-    "islandingRatio": 0.667,        # DER / minimum load in the protection section
-    "controlOpsPerDay": 20,         # tap changes + switchings a day, post-check
+    "deviationPct": 3.0,  # rapid voltage change on trip, IEEE 1547-2018 4.7
+    "thermalPct": 100.0,  # of the level's rating
+    "substationExportKw": 0.0,  # export at the feeder head above this is reverse power
+    "regulatorReverseKw": 10.0,  # reverse flow through a regulator above this
+    "faultIncreasePct": 10.0,  # SGIP screen: contribution to maximum fault current
+    "interruptingPct": 87.5,  # SGIP screen: duty against interrupting rating
+    "islandingRatio": 0.667,  # DER / minimum load in the protection section
+    "controlOpsPerDay": 20,  # tap changes + switchings a day, post-check
     # The unit. Inverter contribution 1.2 x rated current; a synchronous
     # machine about 5 x (xd'' = 0.2).
-    "derType": "inverter",          # or "synchronous"
+    "derType": "inverter",  # or "synchronous"
     "pf": 1.0,
     "loadPf": 0.95,
     # Search.
@@ -77,7 +87,7 @@ DEFAULT_OPTIONS: dict[str, Any] = {
     "toleranceKw": 10.0,
     # Time-granular: hours of the day to evaluate (needs loadshapes). None = the level.
     "hours": None,
-    "perturbKw": 100.0,             # sensitivity method's probe
+    "perturbKw": 100.0,  # sensitivity method's probe
 }
 
 
@@ -94,8 +104,11 @@ def options_from(raw: dict[str, Any] | None) -> dict[str, Any]:
 def estimate_solves(circuit: Circuit, raw: dict[str, Any] | None) -> int:
     """Roughly how many solves the study will take, for the plan cap."""
     opts = options_from(raw)
-    n_bus = len(opts["buses"]) if opts["buses"] else max(1, sum(
-        1 for n in circuit.nodes if n.type in ("busbar", "load", "transformer")))
+    n_bus = (
+        len(opts["buses"])
+        if opts["buses"]
+        else max(1, sum(1 for n in circuit.nodes if n.type in ("busbar", "load", "transformer")))
+    )
     hours = len(opts["hours"]) if opts["hours"] else 1
     if opts["method"] == "sensitivity":
         return hours * (1 + n_bus * 3)
@@ -104,6 +117,7 @@ def estimate_solves(circuit: Circuit, raw: dict[str, Any] | None) -> int:
 
 
 # --- the study ----------------------------------------------------------------------
+
 
 class _Session:
     """The built circuit and what the criteria need to know about it."""
@@ -147,9 +161,17 @@ class _Session:
                     ka = float(ka) if ka is not None else 0.0
                 except (TypeError, ValueError):
                     ka = 0.0
-                full = next((f for f, ref in compiled.element_map.items()
-                             if ref == n.id and f.startswith("line.")), None)
-                buses = compiled.connectivity.node_buses.get(n.id, []) if compiled.connectivity else []
+                full = next(
+                    (
+                        f
+                        for f, ref in compiled.element_map.items()
+                        if ref == n.id and f.startswith("line.")
+                    ),
+                    None,
+                )
+                buses = (
+                    compiled.connectivity.node_buses.get(n.id, []) if compiled.connectivity else []
+                )
                 if full and buses and ka > 0:
                     self.devices.append((full, buses[0].lower(), ka))
         self.sections = _protection_sections(circuit, compiled)
@@ -172,28 +194,39 @@ class _Session:
         phases = self.bus_phases.get(bus, 3)
         kv_ln = self.bus_kv.get(bus, 7.2)
         kv = kv_ln * math.sqrt(3) if phases == 3 else kv_ln
-        nodes = ".1.2.3" if phases == 3 else "." + ".".join(
-            str(n) for n in dss.Bus.Nodes()[:phases]) if False else ""
+        nodes = (
+            ".1.2.3"
+            if phases == 3
+            else "." + ".".join(str(n) for n in dss.Bus.Nodes()[:phases])
+            if False
+            else ""
+        )
         if phases != 3:
             dss.Circuit.SetActiveBus(bus)
             nodes = "." + ".".join(str(int(n)) for n in dss.Bus.Nodes() if 1 <= int(n) <= 3)
         if self.unit_class == "generator":
             dss.Text.Command(
                 f"edit generator.{self.unit_name} bus1={bus}{nodes} phases={phases} kv={kv:.6g} "
-                f"kw={kw:.6g} pf={float(self.opts['pf']):g} model=1 enabled=yes")
+                f"kw={kw:.6g} pf={float(self.opts['pf']):g} model=1 enabled=yes"
+            )
         else:
             dss.Text.Command(
                 f"edit load.{self.unit_name} bus1={bus}{nodes} phases={phases} kv={kv:.6g} "
-                f"kw={kw:.6g} pf={float(self.opts['loadPf']):g} model=1 vminpu=0.7 enabled=yes")
+                f"kw={kw:.6g} pf={float(self.opts['loadPf']):g} model=1 vminpu=0.7 enabled=yes"
+            )
 
     def define_unit(self) -> None:
         first = next(iter(self.bus_slices))
         if self.unit_class == "generator":
-            dss.Text.Command(f"new generator.{self.unit_name} bus1={first} phases=3 kv=12.47 kw=0 "
-                             f"pf=1 model=1 enabled=no")
+            dss.Text.Command(
+                f"new generator.{self.unit_name} bus1={first} phases=3 kv=12.47 kw=0 "
+                f"pf=1 model=1 enabled=no"
+            )
         else:
-            dss.Text.Command(f"new load.{self.unit_name} bus1={first} phases=3 kv=12.47 kw=0 "
-                             f"pf=0.95 model=1 enabled=no")
+            dss.Text.Command(
+                f"new load.{self.unit_name} bus1={first} phases=3 kv=12.47 kw=0 "
+                f"pf=0.95 model=1 enabled=no"
+            )
 
     # --- readings -------------------------------------------------------------
 
@@ -206,8 +239,12 @@ class _Session:
         return out
 
     def loading(self) -> dict[str, float]:
-        pct = dss.PDElements.AllPctEmerg(False) if self.emergency else dss.PDElements.AllPctNorm(False)
-        return {n: float(v) for n, v in zip(self.pd_names, pct)}
+        pct = (
+            dss.PDElements.AllPctEmerg(False)
+            if self.emergency
+            else dss.PDElements.AllPctNorm(False)
+        )
+        return {n: float(v) for n, v in zip(self.pd_names, pct, strict=False)}
 
     def regulator_flows(self) -> dict[str, float]:
         out = {}
@@ -216,7 +253,7 @@ class _Session:
                 continue
             powers = dss.CktElement.Powers()
             ncond = dss.CktElement.NumConductors()
-            out[full] = sum(powers[0:2 * ncond:2])  # kW into terminal 1 (source side)
+            out[full] = sum(powers[0 : 2 * ncond : 2])  # kW into terminal 1 (source side)
         return out
 
     def substation_export_kw(self) -> float:
@@ -234,7 +271,14 @@ def _protection_sections(circuit: Circuit, compiled: CompileResult) -> dict[str,
     protective = {"fuse", "recloser", "relay"}
     adjacency: dict[str, list[tuple[str, str | None]]] = {}
     for n in circuit.nodes:
-        if n.type in ("transformer", "regulator", "breaker", "fuse", "recloser", "relay") and conducts(n):
+        if n.type in (
+            "transformer",
+            "regulator",
+            "breaker",
+            "fuse",
+            "recloser",
+            "relay",
+        ) and conducts(n):
             buses = conn.node_buses.get(n.id, [])
             device = n.id if n.type in protective else None
             for a in buses:
@@ -249,8 +293,11 @@ def _protection_sections(circuit: Circuit, compiled: CompileResult) -> dict[str,
         adjacency.setdefault(b1.lower(), []).append((b2.lower(), None))
         adjacency.setdefault(b2.lower(), []).append((b1.lower(), None))
     head: dict[str, str] = {}
-    queue = [(conn.node_buses[n.id][0].lower(), "") for n in circuit.nodes
-             if n.type == "vsource" and n.id in conn.node_buses]
+    queue = [
+        (conn.node_buses[n.id][0].lower(), "")
+        for n in circuit.nodes
+        if n.type == "vsource" and n.id in conn.node_buses
+    ]
     for b, _ in queue:
         head[b] = ""
     while queue:
@@ -300,17 +347,24 @@ def _base_fault(session: _Session) -> dict[str, float]:
     return out
 
 
-def hosting_capacity(circuit: Circuit, raw_options: dict[str, Any] | None = None,
-                     progress: Progress | None = None,
-                     cancel: threading.Event | None = None) -> dict[str, Any]:
+def hosting_capacity(
+    circuit: Circuit,
+    raw_options: dict[str, Any] | None = None,
+    progress: Progress | None = None,
+    cancel: threading.Event | None = None,
+) -> dict[str, Any]:
     opts = options_from(raw_options)
     circuit = effective_circuit(circuit)
     return _hosting_capacity(circuit, opts, progress, cancel)
 
 
 @engine.on_engine_thread
-def _hosting_capacity(circuit: Circuit, opts: dict[str, Any],
-                      progress: Progress | None, cancel: threading.Event | None) -> dict[str, Any]:
+def _hosting_capacity(
+    circuit: Circuit,
+    opts: dict[str, Any],
+    progress: Progress | None,
+    cancel: threading.Event | None,
+) -> dict[str, Any]:
     started = time.perf_counter()
     compiled = compile_circuit(circuit, shape_dir=engine.SHAPE_DIR)
     issues = limit_issues(circuit) + list(compiled.issues)
@@ -320,25 +374,35 @@ def _hosting_capacity(circuit: Circuit, opts: dict[str, Any],
     with engine.dss_guard():
         engine._ensure_init()
         engine._write_aux_files(compiled)
-        if not engine._run_commands(compiled.commands, compiled.element_map, issues,
-                                    compiled.optional_commands):
+        if not engine._run_commands(
+            compiled.commands, compiled.element_map, issues, compiled.optional_commands
+        ):
             return {"converged": False, "issues": [i.model_dump() for i in issues], "buses": {}}
         dss.Text.Command("set mode=snapshot")
         dss.Text.Command("solve")
         if not dss.Solution.Converged():
-            issues.append(Issue(severity="error", code="not-converged",
-                                message="The base case does not converge, so no capacity can be found."))
+            issues.append(
+                Issue(
+                    severity="error",
+                    code="not-converged",
+                    message="The base case does not converge, so no capacity can be found.",
+                )
+            )
             return {"converged": False, "issues": [i.model_dump() for i in issues], "buses": {}}
         session = _Session(circuit, compiled, opts)
         session.solves = 1
-        base_fault = (_base_fault(session)
-                      if opts["kind"] == "der" and (crit.get("faultCurrent") or crit.get("interrupting"))
-                      else {})
+        base_fault = (
+            _base_fault(session)
+            if opts["kind"] == "der" and (crit.get("faultCurrent") or crit.get("interrupting"))
+            else {}
+        )
         dss.Text.Command("solve")
         session.define_unit()
 
         exclusions: dict[str, list[str]] = {}
-        hours: list[int | None] = list(opts["hours"]) if opts["hours"] and session.has_shapes else [None]
+        hours: list[int | None] = (
+            list(opts["hours"]) if opts["hours"] and session.has_shapes else [None]
+        )
         if hours != [None]:
             dss.Text.Command("set mode=daily stepsize=1h number=1")
         candidates = _candidates(session, opts)
@@ -350,8 +414,13 @@ def _hosting_capacity(circuit: Circuit, opts: dict[str, Any],
         for hour in hours:
             session.set_unit(None, 0.0)
             if not session.solve(hour):
-                issues.append(Issue(severity="warning", code="not-converged",
-                                    message=f"Hour {hour}: the base case did not converge; skipped."))
+                issues.append(
+                    Issue(
+                        severity="warning",
+                        code="not-converged",
+                        message=f"Hour {hour}: the base case did not converge; skipped.",
+                    )
+                )
                 continue
             base = _Base.read(session, base_fault)
             if hour is None or not exclusions:
@@ -367,7 +436,9 @@ def _hosting_capacity(circuit: Circuit, opts: dict[str, Any],
                     per_bus[bus] = _bisect(session, base, bus, hour)
                 done += 1
                 if progress is not None and (done % max(1, total // 200) == 0 or done == total):
-                    progress(done, total, f"bus {bus}" + (f" at hour {hour}" if hour is not None else ""))
+                    progress(
+                        done, total, f"bus {bus}" + (f" at hour {hour}" if hour is not None else "")
+                    )
             if hour is None:
                 results = per_bus
             else:
@@ -382,7 +453,10 @@ def _hosting_capacity(circuit: Circuit, opts: dict[str, Any],
                 if not cells:
                     continue
                 worst = min(cells, key=lambda c: c["kw"] if c["kw"] is not None else math.inf)
-                results[bus] = {**worst, "kwByHour": {h: c[bus]["kw"] for h, c in hourly.items() if bus in c}}
+                results[bus] = {
+                    **worst,
+                    "kwByHour": {h: c[bus]["kw"] for h, c in hourly.items() if bus in c},
+                }
 
     conn = compiled.connectivity
     kws = [r["kw"] for r in results.values() if r.get("kw") is not None]
@@ -458,7 +532,7 @@ class _Base:
         self.over_duty: set[str] = set()
 
     @classmethod
-    def read(cls, s: _Session, base_fault: dict[str, float]) -> "_Base":
+    def read(cls, s: _Session, base_fault: dict[str, float]) -> _Base:
         b = cls()
         b.voltages = s.voltages()
         b.loading = s.loading()
@@ -485,13 +559,17 @@ class _Base:
 
     def exclusions(self) -> dict[str, list[str]]:
         return {
-            "overvoltage": sorted(self.over_v), "undervoltage": sorted(self.under_v),
-            "overloaded": sorted(self.over_loaded), "reversed": sorted(self.reversed),
+            "overvoltage": sorted(self.over_v),
+            "undervoltage": sorted(self.under_v),
+            "overloaded": sorted(self.over_loaded),
+            "reversed": sorted(self.reversed),
             "overDuty": sorted(self.over_duty),
         }
 
 
-def _violations(s: _Session, base: _Base, bus: str, kw: float, hour: int | None) -> list[str] | None:
+def _violations(
+    s: _Session, base: _Base, bus: str, kw: float, hour: int | None
+) -> list[str] | None:
     """Which criteria the trial unit at `kw` violates (empty = feasible);
     None when the solve did not converge, which counts as infeasible."""
     crit = s.opts["criteria"]
@@ -516,13 +594,23 @@ def _violations(s: _Session, base: _Base, bus: str, kw: float, hour: int | None)
         if any(kw_ < thr for n, kw_ in s.regulator_flows().items() if n not in base.reversed):
             out.append("regulatorReverse")
     if crit.get("substationReverse") and s.opts["kind"] == "der":
-        if s.substation_export_kw() > float(s.opts["substationExportKw"]) and base.export_kw <= float(s.opts["substationExportKw"]):
+        if s.substation_export_kw() > float(
+            s.opts["substationExportKw"]
+        ) and base.export_kw <= float(s.opts["substationExportKw"]):
             out.append("substationReverse")
     if (crit.get("faultCurrent") or crit.get("interrupting")) and s.opts["kind"] == "der":
         inc = _fault_increase(s, base, bus, kw)
-        if crit.get("faultCurrent") and inc["pct"] is not None and inc["pct"] > float(s.opts["faultIncreasePct"]):
+        if (
+            crit.get("faultCurrent")
+            and inc["pct"] is not None
+            and inc["pct"] > float(s.opts["faultIncreasePct"])
+        ):
             out.append("faultCurrent")
-        if crit.get("interrupting") and inc["dutyPct"] is not None and inc["dutyPct"] > float(s.opts["interruptingPct"]):
+        if (
+            crit.get("interrupting")
+            and inc["dutyPct"] is not None
+            and inc["dutyPct"] > float(s.opts["interruptingPct"])
+        ):
             out.append("interrupting")
     if crit.get("islanding") and s.opts["kind"] == "der":
         sec = s.sections.get(bus)
@@ -536,8 +624,11 @@ def _violations(s: _Session, base: _Base, bus: str, kw: float, hour: int | None)
         if s.solve(hour):
             v2 = s.voltages()
             lim = float(s.opts["deviationPct"]) / 100.0
-            if any(abs(v[b][1] - v2[b][1]) > lim or abs(v[b][0] - v2[b][0]) > lim
-                   for b in v if b in v2 and v2[b][0] > 0.05):
+            if any(
+                abs(v[b][1] - v2[b][1]) > lim or abs(v[b][0] - v2[b][0]) > lim
+                for b in v
+                if b in v2 and v2[b][0] > 0.05
+            ):
                 out.append("deviation")
         s.set_unit(bus, kw)
     return out
@@ -554,7 +645,9 @@ def _fault_increase(s: _Session, base: _Base, bus: str, kw: float) -> dict[str, 
     kv_ln = s.bus_kv.get(bus, 7.2)
     pf = float(s.opts["pf"]) or 1.0
     kva = kw / abs(pf)
-    i_rated = kva * 1000.0 / (3 * kv_ln * 1000.0) if phases == 3 else kva * 1000.0 / (kv_ln * 1000.0)
+    i_rated = (
+        kva * 1000.0 / (3 * kv_ln * 1000.0) if phases == 3 else kva * 1000.0 / (kv_ln * 1000.0)
+    )
     k = 5.0 if s.opts["derType"] == "synchronous" else 1.2
     contribution = k * i_rated
     pct = 100.0 * contribution / i_base
@@ -671,7 +764,11 @@ def _sensitivity(s: _Session, base: _Base, bus: str, hour: int | None) -> dict[s
         slope = (exp1 - base.export_kw) / dp
         thr = float(s.opts["substationExportKw"])
         by["substationReverse"] = max(0.0, (thr - base.export_kw) / slope) if slope > 1e-9 else cap
-    if (crit.get("faultCurrent") or crit.get("interrupting")) and base.fault.get(bus) and s.opts["kind"] == "der":
+    if (
+        (crit.get("faultCurrent") or crit.get("interrupting"))
+        and base.fault.get(bus)
+        and s.opts["kind"] == "der"
+    ):
         # Linear in kW by construction.
         probe = _fault_increase(s, base, bus, dp)
         if crit.get("faultCurrent") and probe["pct"]:
@@ -680,11 +777,15 @@ def _sensitivity(s: _Session, base: _Base, bus: str, hour: int | None) -> dict[s
             base_duty = _fault_increase(s, base, bus, 1e-6)["dutyPct"] or 0.0
             per_kw = (probe["dutyPct"] - base_duty) / dp
             if per_kw > 1e-12:
-                by["interrupting"] = max(0.0, (float(s.opts["interruptingPct"]) - base_duty) / per_kw)
+                by["interrupting"] = max(
+                    0.0, (float(s.opts["interruptingPct"]) - base_duty) / per_kw
+                )
     if crit.get("islanding") and s.opts["kind"] == "der":
         sec = s.sections.get(bus)
         if sec is not None and sec["sectionLoadKw"] > 0:
-            by["islanding"] = sec["sectionLoadKw"] * s.level.loadmult * float(s.opts["islandingRatio"])
+            by["islanding"] = (
+                sec["sectionLoadKw"] * s.level.loadmult * float(s.opts["islandingRatio"])
+            )
     del sign
     by = {k: (min(v, cap) if v is not None else None) for k, v in by.items()}
     estimates = {k: v for k, v in by.items() if v is not None}
@@ -709,8 +810,15 @@ def _sensitivity(s: _Session, base: _Base, bus: str, hour: int | None) -> dict[s
     return _result(s, bus, est, [binding], by, base, capped=est >= cap)
 
 
-def _result(s: _Session, bus: str, kw: float, binding: list[str], by: dict[str, float | None],
-            base: _Base, capped: bool = False) -> dict[str, Any]:
+def _result(
+    s: _Session,
+    bus: str,
+    kw: float,
+    binding: list[str],
+    by: dict[str, float | None],
+    base: _Base,
+    capped: bool = False,
+) -> dict[str, Any]:
     phases = s.bus_phases.get(bus, 3)
     kv_ln = s.bus_kv.get(bus, 0.0)
     return {
