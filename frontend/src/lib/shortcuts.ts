@@ -54,6 +54,8 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: 'Mod+=', action: 'Zoom in' },
       { keys: 'Mod+-', action: 'Zoom out' },
       { keys: 'Mod+Shift+H', action: 'Fit the whole circuit' },
+      { keys: 'Right-drag', action: 'Pan the view (also middle-drag, or Space+drag)' },
+      { keys: 'Scroll', action: 'Zoom at the pointer' },
     ],
   },
   {

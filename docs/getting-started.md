@@ -75,6 +75,29 @@ NREL/NLR building profiles and NSRDB irradiance), switch the toolbar to
 results directly on the diagram. See [Shapes & profiles](shapes.md) and
 [Time-series analysis](timeseries.md).
 
+## If you get stuck
+
+The editor watches for the same thing not working several times over and
+puts up a short card saying what does. The ones it knows:
+
+| What it saw | What the card says |
+|---|---|
+| Selection boxes drawn again and again | Pan with the **right** or **middle** button, or ++space++ and drag; scroll to zoom |
+| A palette item dragged onto the drawing | Click the item, then click where it goes; ++esc++ stops placing |
+| An element placed and at once removed, twice | Placement is sticky until ++esc++ |
+| Elements shuffled about with nothing connected | Hover for the connection dots, drag dot to dot |
+| A wire dropped on nothing, twice | It has to end on another element's dot (it snaps on from 30 px) |
+| An existing wire's end picked up and put back, twice | ++alt++ and drag starts a second wire from an occupied dot |
+| Solve pressed while errors block it | The Problems tab lists them; click one to jump there |
+| Overlay buttons pressed on stale results | Solve (++f5++) or **Auto** refreshes them |
+| The view parked on empty canvas | **View → Fit** (++ctrl+shift+h++) |
+| An element double-clicked with the properties panel collapsed | The chevron on the right edge opens it |
+| A connection drawn and at once deleted, twice | ++w++ wire or ++e++ line is chosen before you draw |
+
+One card at a time. **Got it** retires that hint for good, and so does doing
+the thing it teaches (the pan card goes the moment you right-drag). Turn them
+off, or bring retired ones back, under **Preferences → Help hints**.
+
 ## The menus
 
 Commands live in a menu bar laid out like a desktop drawing tool's:

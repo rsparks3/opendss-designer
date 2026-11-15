@@ -1,4 +1,5 @@
 import { useCircuitStore } from '../store/circuitStore'
+import { signalStruggle } from '../store/hintStore'
 import type { NodeType } from '../types/circuit'
 
 const ITEMS: { type: NodeType; label: string; kbd: string; icon: React.ReactNode }[] = [
@@ -181,8 +182,24 @@ export function Palette() {
   const connectMode = useCircuitStore((s) => s.connectMode)
   const setConnectMode = useCircuitStore((s) => s.setConnectMode)
 
+  // Items are clicked, not dragged. A press on one that is let go well
+  // away from the palette is someone trying to drag it onto the drawing;
+  // nothing happens (no click), so say what does work.
+  const onPointerDown = (down: React.PointerEvent<HTMLDivElement>) => {
+    if (down.button !== 0 || !(down.target as HTMLElement).closest?.('.palette-item')) return
+    const palette = down.currentTarget
+    const up = (e: PointerEvent) => {
+      window.removeEventListener('pointerup', up)
+      const dx = e.clientX - down.clientX
+      const dy = e.clientY - down.clientY
+      const outside = !(e.target instanceof Node && palette.contains(e.target))
+      if (outside && dx * dx + dy * dy > 30 * 30) signalStruggle('palette-drag')
+    }
+    window.addEventListener('pointerup', up)
+  }
+
   return (
-    <div className="palette">
+    <div className="palette" onPointerDown={onPointerDown}>
       <div className="palette-group">
         <div className="palette-title">Components</div>
         {ITEMS.map((item) => (

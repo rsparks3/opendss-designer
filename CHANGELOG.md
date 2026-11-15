@@ -5,6 +5,17 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added
+
+- **Help hints when you seem stuck.** The editor notices the same thing not
+  working several times -- selection boxes drawn when a pan was wanted,
+  palette items dragged onto the drawing, wires dropped on nothing, an
+  element placed and at once removed, Solve pressed while errors block it --
+  and puts up a card saying what works (right or middle drag pans, click then
+  click places, drop on a dot, Esc ends placement, the Problems tab). One at a
+  time; *Got it* retires a hint, and so does doing the thing it teaches.
+  **Preferences → Help hints** turns them off or brings them all back.
+
 ### Changed
 
 - **CYME and Synergi import on a hosted instance.** The published container

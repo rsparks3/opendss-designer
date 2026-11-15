@@ -5,6 +5,7 @@ import { DOCS_URL, ISSUES_URL } from '../lib/menus'
 import { keyLabel, SHORTCUTS } from '../lib/shortcuts'
 import { DEFAULT_PHASES, PHASE_KEY_LABELS, PHASE_KEYS, type ThemePref } from '../lib/theme'
 import { useCircuitStore } from '../store/circuitStore'
+import { useHintStore } from '../store/hintStore'
 import { useUiStore } from '../store/uiStore'
 import { FindDialog } from './FindDialog'
 import { GisImportDialog } from './GisImportDialog'
@@ -145,6 +146,10 @@ function PrefsDialog({ onClose }: { onClose: () => void }) {
     ['system', 'Same as the system'],
   ]
   const custom = PHASE_KEYS.some((k) => palette[k])
+  const hintsOn = useHintStore((s) => s.enabled)
+  const setHintsOn = useHintStore((s) => s.setEnabled)
+  const hintsOff = useHintStore((s) => s.off)
+  const resetHints = useHintStore((s) => s.resetAll)
   return (
     <Modal label="Preferences" onClose={onClose}>
       <fieldset className="prefs-group">
@@ -184,6 +189,23 @@ function PrefsDialog({ onClose }: { onClose: () => void }) {
         <div>
           <button type="button" disabled={!custom} onClick={() => setPalette({})}>
             Use the default colours
+          </button>
+        </div>
+      </fieldset>
+      <fieldset className="prefs-group">
+        <legend>Help hints</legend>
+        <label className="prefs-radio">
+          <input type="checkbox" checked={hintsOn} onChange={(e) => setHintsOn(e.target.checked)} />
+          Offer a hint when I seem stuck
+        </label>
+        <div className="library-note">
+          A card appears when the editor sees the same thing not working several times: trying to pan
+          with the left button, dragging palette items, dropping wires on nothing. &ldquo;Got it&rdquo;
+          retires a hint, and so does doing the thing it teaches.
+        </div>
+        <div>
+          <button type="button" disabled={hintsOff.length === 0} onClick={resetHints}>
+            Show every hint again{hintsOff.length ? ` (${hintsOff.length} retired)` : ''}
           </button>
         </div>
       </fieldset>

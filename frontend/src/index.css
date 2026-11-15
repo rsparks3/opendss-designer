@@ -1623,3 +1623,163 @@ kbd {
 }
 .view-toggle button + button { border-left: 1px solid var(--border); }
 .view-toggle button.active { background: var(--accent); color: #fff; }
+
+/* The DSS view: the compiled OpenDSS script, read-only. LINE_PX and PAD_PX
+   in DssView.tsx must match the line-height and padding here. */
+.dss-view { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; background: var(--paper); }
+.dss-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  /* Room on the right for the view toggle, which floats over this bar. */
+  padding: 8px 200px 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel);
+  font-size: 12.5px;
+}
+.dss-find { width: 220px; }
+.dss-count, .dss-status { color: var(--muted); }
+.dss-status { margin-left: auto; }
+.dss-error, .dss-empty { margin: 10px; padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+.dss-error { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+.dss-empty { color: var(--muted); }
+.dss-scroll { flex: 1; min-height: 0; overflow: auto; }
+.dss-body { position: relative; display: flex; min-width: max-content; }
+.dss-gutter, .dss-code {
+  margin: 0; padding: 8px 10px; font-family: ui-monospace, Consolas, 'Cascadia Mono', monospace;
+  font-size: 12.5px; line-height: 18px; white-space: pre; tab-size: 4;
+}
+.dss-gutter {
+  position: sticky; left: 0; z-index: 1; text-align: right; user-select: none;
+  color: var(--faint); background: var(--subtle); border-right: 1px solid var(--rule);
+}
+.dss-code { color: var(--ink); flex: 1; position: relative; z-index: 1; }
+.dss-hit { position: absolute; left: 0; right: 0; height: 18px; background: var(--selected); z-index: 0; }
+
+/* --- Scenarios, compare and load levels (M12) ------------------------------ */
+.scenarios-panel { display: flex; gap: 16px; padding: 8px; align-items: flex-start; min-height: 100%; }
+.scenarios-side { flex: 0 0 300px; display: flex; flex-direction: column; gap: 8px; }
+.scenarios-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.scenarios-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12.5px; }
+.scenarios-head select, .scenarios-add input { font: inherit; font-size: 12px; }
+.scenarios-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.scenarios-list li { display: flex; align-items: center; gap: 2px; }
+.scenarios-list li.active .scenarios-pick { background: var(--accent); color: #fff; }
+.scenarios-pick { flex: 1 1 auto; text-align: left; display: flex; justify-content: space-between; gap: 8px; }
+.scenarios-count { opacity: 0.7; font-size: 11px; }
+.scenarios-list li.active .scenarios-count { opacity: 0.9; }
+.scenarios-mini { flex: 0 0 auto; padding: 2px 6px; }
+.scenarios-add { display: flex; gap: 4px; }
+.scenarios-add input { flex: 1 1 auto; }
+.scenarios-desc { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.scenarios-desc textarea { font: inherit; font-size: 12px; }
+.scenarios-compare { display: flex; gap: 8px; align-items: center; font-size: 12px; flex-wrap: wrap; }
+.scenarios-matrix td, .scenarios-matrix th { white-space: nowrap; }
+.scenarios-matrix tr.error td { color: var(--err, #c62828); }
+.scenarios-matrix tr.warning td { background: color-mix(in srgb, #ffb300 12%, transparent); }
+.compare-panel { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.compare-panel tr.violation td { color: var(--err, #c62828); }
+.tb-planning { gap: 4px; }
+.tb-level { font: inherit; font-size: 12px; max-width: 170px; height: 28px; padding: 0 4px; box-sizing: border-box; }
+.tb-scenario-on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.levels-table input, .levels-table select { width: 100%; box-sizing: border-box; font: inherit; font-size: 12px; }
+.levels-table td:nth-child(2) { width: 110px; }
+.curves-wrap { display: flex; flex-direction: column; }
+.curves-switch { padding: 6px 8px 0; }
+
+/* --- Hosting capacity (M13) ------------------------------------------------- */
+.hosting-panel { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.hosting-options { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.hosting-options select, .hosting-options input { font: inherit; font-size: 12px; }
+.hosting-criteria { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.hosting-num { width: 62px; margin-left: 4px; }
+.hosting-num.wide { width: 80px; }
+.hosting-hours { width: 220px; margin-left: 4px; }
+
+/* --- Interconnection screening (M13) ------------------------------------- */
+.screen-result { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.screen-outcome { font-weight: 600; padding: 6px 8px; border-radius: 4px; background: color-mix(in srgb, #2e7d32 14%, transparent); }
+.screen-outcome.supplemental { background: color-mix(in srgb, #ed6c02 16%, transparent); }
+.screen-outcome.fail { background: color-mix(in srgb, #d32f2f 14%, transparent); }
+.screen-result tr.violation td { color: var(--err, #c62828); }
+
+/* --- Studies tab (M14) --------------------------------------------------------- */
+.studies-panel { display: flex; gap: 12px; padding: 8px; align-items: flex-start; min-height: 100%; }
+.studies-side { flex: 0 0 170px; display: flex; flex-direction: column; gap: 4px; }
+.studies-main { flex: 1 1 auto; min-width: 0; }
+.studies-main .hosting-panel { padding: 0; }
+.study { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; }
+.study select, .study input { font: inherit; font-size: 12px; }
+.study tr.warning td { background: color-mix(in srgb, #ffb300 12%, transparent); }
+
+/* The level and scenario pickers need room; on a narrow window they live
+   in the Scenarios tab and the Analysis menu instead, and the toolbar
+   keeps its one row without a scrollbar. */
+@media (max-width: 1450px) {
+  .tb-planning { display: none; }
+}
+
+/* --- M15: geometries, change log, dialogs --------------------------------- */
+.geometry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 14px; margin-bottom: 8px; }
+.geometry-table input, .geometry-table select { font: inherit; font-size: 12px; width: 100%; box-sizing: border-box; }
+.history-list { list-style: none; margin: 4px 0; padding: 0; max-height: 200px; overflow: auto; font-size: 12px; }
+.history-list li { padding: 2px 0; border-bottom: 1px solid var(--border); }
+.alloc-text { width: 100%; min-height: 120px; font-family: ui-monospace, monospace; font-size: 12px; box-sizing: border-box; }
+.alloc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 12px; margin: 8px 0; }
+.alloc-grid label { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; }
+.alloc-grid input, .alloc-grid select { font: inherit; font-size: 12px; }
+
+/* ---------- help hints (components/HintCard.tsx, lib/struggles.ts) ----------
+   A card at the top of the drawing when the editor notices someone is stuck.
+   It sits below the placement hint when both are up, and above the flash
+   toast's end of the canvas; only its buttons take the pointer. */
+.struggle-hint {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(460px, calc(100% - 32px));
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 10px 12px 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  z-index: 11;
+  animation: struggle-hint-in 0.18s ease-out;
+}
+.canvas-wrap.placing .struggle-hint { top: 44px; }
+@keyframes struggle-hint-in {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.struggle-hint-icon { font-size: 18px; line-height: 1.2; }
+.struggle-hint-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.struggle-hint-title { font-weight: 600; font-size: 13px; }
+.struggle-hint-actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.struggle-hint-actions button {
+  padding: 3px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+.struggle-hint-note { font-size: 11px; color: var(--muted); }
+.struggle-hint-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.struggle-hint-close:hover { color: var(--ink); }
+/* The disabled Solve button cannot hear clicks; a clear span over it can,
+   so pressing it while errors block the solve can earn a hint. */
+.solve-wrap { position: relative; display: inline-flex; }
+.solve-blocked { position: absolute; inset: 0; cursor: not-allowed; }

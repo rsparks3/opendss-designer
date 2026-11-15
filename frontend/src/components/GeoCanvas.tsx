@@ -19,6 +19,7 @@ import { useUiStore } from '../store/uiStore'
 import type { GeoPoint } from '../types/circuit'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
 import { ViewToggle } from './ViewToggle'
+import { HintCard } from './HintCard'
 
 /** The view: world point at the centre of the canvas, and pixels per world
  *  unit. On a map the world is Web Mercator pixels at zoom 0, so `k` is
@@ -448,6 +449,7 @@ export function GeoCanvas() {
 
   return (
     <div className="geo-wrap" ref={wrap}>
+      <HintCard />
       <canvas
         ref={canvas}
         className="geo-canvas"
