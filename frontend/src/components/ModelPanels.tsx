@@ -4,6 +4,7 @@ import { fmtKw, fmtPu, runStudy } from '../lib/studies'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { QaResult, TlmResult } from '../types/circuit'
+import { LockedNote } from './LockedNote'
 
 function useLocate() {
   const edges = useCircuitStore((s) => s.edges)
@@ -100,6 +101,7 @@ export function TlmPanel() {
   const hasElements = nodes.some((n) => n.type !== 'note' && n.type !== 'zone')
   return (
     <div className="study">
+      <LockedNote feature="studies" />
       <div className="scenarios-head">
         <b>Service transformers</b>
         <select aria-label="Horizon" value={mode} onChange={(e) => setMode(e.target.value as 'daily' | 'yearly')}>

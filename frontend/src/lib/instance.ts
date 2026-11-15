@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type HealthInfo } from './api'
+import { api, type FeatureKey, type HealthInfo } from './api'
 
 /**
  * One shared fetch of `/api/health` for every component that needs to know
@@ -42,6 +42,14 @@ export function useInstanceHealth(): HealthInfo | null {
     }
   }, [])
   return health
+}
+
+/** Why `feature` is withheld from this caller, or null when it is not
+ *  (a local install withholds nothing). */
+export function useFeatureLock(feature: FeatureKey): string | null {
+  const health = useInstanceHealth()
+  const f = health?.features?.[feature]
+  return f?.locked ? f.reason ?? 'This feature is not included in your plan.' : null
 }
 
 /** Test seam: forget the cached answer. */

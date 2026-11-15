@@ -3,6 +3,7 @@ import { fmtPct, runStudy } from '../lib/studies'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { HarmonicsResult, RvcResult } from '../types/circuit'
+import { LockedNote } from './LockedNote'
 
 /** Studies → Power quality: harmonic distortion at every bus and the
  *  voltage step of a motor start or a DER trip. */
@@ -48,6 +49,7 @@ export function PowerQualityPanel() {
   const rows = useMemo(() => (harm ? Object.entries(harm.buses).sort((a, b) => b[1].thdPct - a[1].thdPct) : []), [harm])
   return (
     <div className="study">
+      <LockedNote feature="studies" />
       <div className="scenarios-head">
         <b>Harmonics</b>
         <label>

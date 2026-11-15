@@ -13,6 +13,7 @@ import {
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { HostingCapacityOptions } from '../types/circuit'
+import { LockedNote } from './LockedNote'
 
 /**
  * The Hosting tab: what to evaluate (DER or load, which criteria, which
@@ -62,6 +63,7 @@ export function HostingCapacityPanel() {
   return (
     <div className="hosting-panel">
       <div className="hosting-options">
+        <LockedNote feature="studies" />
         <div className="scenarios-head">
           <b>Hosting capacity</b>
           <label className="prefs-radio">

@@ -143,6 +143,10 @@ REQUEST_LIMITS: dict[str, str] = {
 # caller, e.g. which plan includes it).
 REQUEST_FEATURES: dict[str, str] = {
     "convert": "allow_convert",
+    # The planning, protection and power-quality studies: everything that
+    # runs the engine many times over (background jobs and the direct
+    # calls), as opposed to a solve, a fault study or a time series.
+    "studies": "allow_studies",
 }
 _FEATURE_REASON_MAX = 200
 
@@ -189,6 +193,7 @@ class Settings:
     # Features. True everywhere by default: what the install has, the caller
     # may use. Only a per-request overlay from a trusted proxy sets one False.
     allow_convert: bool = True
+    allow_studies: bool = True
     # Why a feature is withheld, per feature key, when the proxy said so in
     # its own words (otherwise the sentence is composed from `plan_label`).
     feature_reasons: tuple[tuple[str, str], ...] = ()

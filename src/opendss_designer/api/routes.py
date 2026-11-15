@@ -80,6 +80,15 @@ def health(request: Request) -> dict:
             "maxTimeseriesCost": cfg.max_timeseries_cost,
             "maxStudySolves": cfg.max_study_solves,
         }
+        # Features a proxy withholds from this caller, with its reason, so
+        # the panels can say so before a click gets a 403.
+        features: dict = {}
+        for key, locked in (("convert", convert.locked_reason()),
+                            ("studies", studies_locked_reason())):
+            if locked:
+                features[key] = {"locked": True, "reason": locked}
+        if features:
+            out["features"] = features
     if cfg.plan is not None:
         out["plan"] = cfg.plan.as_dict()
     if cfg.demo:
@@ -476,8 +485,29 @@ def _study_cap(solves: int) -> None:
                    "candidate buses, or run OpenDSS Designer locally.")
 
 
+STUDIES_LABEL = "Planning studies"
+
+
+def studies_locked_reason() -> str | None:
+    """Why this caller may not run a study, or None when they may. A proxy
+    withholds the studies per plan through the limits header (`features`);
+    a local install never does."""
+    cfg = context.current_settings()
+    if cfg.allow_studies:
+        return None
+    return cfg.feature_reason("studies", STUDIES_LABEL)
+
+
+def _refuse_locked_study() -> None:
+    locked = studies_locked_reason()
+    if locked:
+        # Decided before the circuit is looked at: a withheld study costs nothing.
+        raise HTTPException(status_code=403, detail=locked)
+
+
 def _submit_study(kind: str, fn):
     """Start a job with the plan's wall-clock budget as a watchdog."""
+    _refuse_locked_study()
     cfg = context.current_settings()
     job = jobs.submit(kind, fn)
     if cfg.timeseries_timeout_s:
@@ -577,6 +607,7 @@ class FaultPointRequest(BaseModel):
 def fault_point(req: FaultPointRequest) -> dict:
     """One fault of a chosen kind and resistance at one bus: the current in
     the fault, what every series element carries, the voltages meanwhile."""
+    _refuse_locked_study()
     try:
         return fault_study_mod.fault_point(req.circuit, req.bus, req.kind, req.rOhm, req.phase)
     except engine.EngineBusy as exc:
@@ -606,6 +637,7 @@ class ScreenRequest(BaseModel):
 @router.post("/screen")
 def screen_der(req: ScreenRequest) -> dict:
     """The interconnection screens for one DER at a point of common coupling."""
+    _refuse_locked_study()
     try:
         return screening_study.screen(req.circuit, req.bus, req.options)
     except engine.EngineBusy as exc:
@@ -622,6 +654,7 @@ class SwitchingRequest(BaseModel):
 @router.post("/switching")
 def switching(req: SwitchingRequest) -> dict:
     """Open/close steps applied in order, each solved."""
+    _refuse_locked_study()
     try:
         return contingency_study.switching_sequence(req.circuit, req.steps[:200])
     except engine.EngineBusy as exc:
@@ -649,6 +682,7 @@ class TransferRequest(BaseModel):
 
 @router.post("/transfer")
 def transfer(req: TransferRequest) -> dict:
+    _refuse_locked_study()
     try:
         return contingency_study.transfer_capability(req.circuit, req.tie, req.toleranceKw)
     except engine.EngineBusy as exc:
@@ -677,6 +711,7 @@ class CvrRequest(BaseModel):
 
 @router.post("/cvr")
 def cvr(req: CvrRequest) -> dict:
+    _refuse_locked_study()
     try:
         return voltvar_study.cvr(req.circuit, req.reductionV, req.stepMin)
     except engine.EngineBusy as exc:
@@ -736,6 +771,7 @@ class CapacityRequest(BaseModel):
 
 @router.post("/capacity")
 def capacity_route(req: CapacityRequest) -> dict:
+    _refuse_locked_study()
     try:
         return capacity_study.capacity_search(req.circuit, req.maxMult)
     except engine.EngineBusy as exc:
@@ -788,6 +824,7 @@ class AllocateRequest(BaseModel):
 
 @router.post("/allocate")
 def allocate_loads(req: AllocateRequest) -> dict:
+    _refuse_locked_study()
     try:
         return allocation_study.allocate(req.circuit, req.rows[:20000], req.options)
     except engine.EngineBusy as exc:
@@ -807,6 +844,7 @@ class FaultLineRequest(BaseModel):
 @router.post("/faultline")
 def fault_on_line(req: FaultLineRequest) -> dict:
     """A fault part way along a line: the line is split at the fraction."""
+    _refuse_locked_study()
     try:
         return protection_depth_study.fault_on_line(req.circuit, req.line, req.fraction, req.kind, req.rOhm)
     except engine.EngineBusy as exc:
@@ -834,6 +872,7 @@ class FuseSavingRequest(BaseModel):
 
 @router.post("/fusesaving")
 def fuse_saving(req: FuseSavingRequest) -> dict:
+    _refuse_locked_study()
     try:
         return protection_depth_study.fuse_saving(req.circuit, req.rOhm)
     except engine.EngineBusy as exc:
@@ -927,6 +966,7 @@ class RvcRequest(BaseModel):
 
 @router.post("/rvc")
 def rvc(req: RvcRequest) -> dict:
+    _refuse_locked_study()
     try:
         return harmonics_study.rapid_voltage_change(
             req.circuit, req.bus, req.kind, req.kva, req.pf, req.lrcMultiple, req.limitPct, req.derId)

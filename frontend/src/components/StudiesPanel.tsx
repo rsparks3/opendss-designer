@@ -16,6 +16,7 @@ import { HostingCapacityPanel } from './HostingCapacityPanel'
 import { QaPanel, TlmPanel } from './ModelPanels'
 import { ProtectionPanel } from './ProtectionPanel'
 import { PowerQualityPanel } from './PowerQualityPanel'
+import { LockedNote } from './LockedNote'
 
 type Study = 'qa' | 'hosting' | 'contingency' | 'voltvar' | 'balance' | 'capacity' | 'tlm' | 'protection' | 'pq'
 
@@ -37,6 +38,7 @@ export function StudiesPanel() {
   return (
     <div className="studies-panel">
       <div className="studies-side">
+        <LockedNote feature="studies" />
         {STUDIES.map((s) => (
           <button key={s.key} className={`curves-item${study === s.key ? ' active' : ''}`} title={s.help} onClick={() => setStudy(s.key)}>
             {s.label}

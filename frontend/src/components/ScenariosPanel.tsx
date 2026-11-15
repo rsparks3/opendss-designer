@@ -5,6 +5,7 @@ import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
 import type { BatchCell } from '../types/circuit'
+import { LockedNote } from './LockedNote'
 
 /**
  * The Scenarios tab: the base case and every alternative, which one is
@@ -61,6 +62,7 @@ export function ScenariosPanel() {
   return (
     <div className="scenarios-panel">
       <div className="scenarios-side">
+        <LockedNote feature="studies" />
         <div className="scenarios-head">
           <b>Load level</b>
           <select

@@ -4,6 +4,7 @@ import { toCircuitJSON, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
 import type { ScreenOptions, ScreenResult } from '../types/circuit'
+import { LockedNote } from './LockedNote'
 
 const DEFAULTS: ScreenOptions = {
   kw: 500,
@@ -82,6 +83,7 @@ export function ScreeningDialog({ onClose }: { onClose: () => void }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box wide" role="dialog" aria-label="Screen a DER" tabIndex={-1} ref={box}
            onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+        <LockedNote feature="studies" />
         <div className="modal-title">Screen a DER interconnection</div>
         {!result?.converged && (
           <div className="library-note">Solve the circuit once so the buses can be listed by name.</div>

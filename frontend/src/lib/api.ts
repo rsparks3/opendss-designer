@@ -141,8 +141,12 @@ export interface HealthInfo {
   }
   /** Present only behind a gateway that describes the caller's plan. */
   plan?: PlanInfo
+  /** Features a proxy withholds from this caller, with its reason. */
+  features?: Partial<Record<FeatureKey, { locked: boolean; reason: string | null }>>
   idleSeconds?: number
 }
+
+export type FeatureKey = 'convert' | 'studies'
 
 export const api = {
   health: () => get<HealthInfo>('/api/health'),

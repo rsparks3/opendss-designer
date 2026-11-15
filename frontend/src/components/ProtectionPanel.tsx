@@ -3,6 +3,7 @@ import { fmtPct, runStudy } from '../lib/studies'
 import { toCircuitJSON, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { FaultLineResult, FuseSavingResult, ReachResult, RecloserPlacementResult } from '../types/circuit'
+import { LockedNote } from './LockedNote'
 
 const amps = (a: number | null | undefined) => (a == null ? '—' : a >= 1000 ? `${(a / 1000).toFixed(2)} kA` : `${a.toFixed(0)} A`)
 const secs = (s: number | null | undefined) => (s == null ? '—' : `${s.toFixed(3)} s`)
@@ -70,6 +71,7 @@ export function ProtectionPanel() {
     )
   return (
     <div className="study">
+      <LockedNote feature="studies" />
       <div className="scenarios-head">
         <b>Protection</b>
         <label>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { toCircuitJSON, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import type { AllocationResult, LoadShapeJSON } from '../types/circuit'
+import { LockedNote } from './LockedNote'
 
 type Mode = 'kwh' | 'kw' | 'intervals'
 
@@ -95,6 +96,7 @@ export function AllocationDialog({ onClose }: { onClose: () => void }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box wide" role="dialog" aria-label="Allocate loads" tabIndex={-1} ref={box} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
         <div className="modal-title">Allocate loads from meter data</div>
+        <LockedNote feature="studies" />
         <textarea
           className="alloc-text"
           aria-label="Meter data"
