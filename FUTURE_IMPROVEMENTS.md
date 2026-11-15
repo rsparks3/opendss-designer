@@ -705,11 +705,14 @@ and M10 (`PLANNING_AUDIT.md` §2.9, §2.10).
   starting and PV transients against IEEE 1453 / 1547 §4.7, reusing M13's
   trip test
 
-## Before M12–M17 go to the hosted instance (found 2026-11-15)
+## Before M12–M17 go to the hosted instance (found 2026-11-15) — ✅ DONE the same day
 
-The hosted deploy of the help hints was done from a cherry-pick onto `main`
-(commit a4df225 + lockfile fix aa356b5, workers `sha-aa356b5`) because this
-branch is not safe behind the gateway yet:
+Resolved 2026-11-15: gateway 0.6.0 (cloud branch `studies-gateway`) holds a
+worker per background job, follows it, meters it and pins its calls; the
+direct studies joined its engine paths; studies are withheld below Pro
+(`features.studies`, in the deploy repo's `gateway/plans.json`); the ckt5
+importer regression is fixed (8797349). Workers `sha-5a2270c` (0.9.0) are
+live. What was found, for the record:
 
 - **Background jobs need worker affinity.** `JobManager` is in-process and
   the gateway round-robins every unknown `/api` path over two workers, so a
