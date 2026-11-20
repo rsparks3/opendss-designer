@@ -26,7 +26,7 @@ export type AnalysisMode = 'snapshot' | 'timeseries'
 /** The M14 studies the Studies tab holds results for. */
 export type StudyKey = 'n1' | 'transfer' | 'switching' | 'sweep' | 'cvr' | 'placement' | 'balance' | 'losses' | 'capacity' | 'qa' | 'tlm' | 'reach' | 'fusesaving' | 'recplacement' | 'harmonics' | 'rvc'
 
-export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'reliability' | 'phases' | 'priority' | 'compare' | 'hosting' | 'off'
+export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'reliability' | 'phases' | 'priority' | 'islands' | 'compare' | 'hosting' | 'off'
 
 /** A solve kept for comparison: the base case, or an earlier alternative,
  *  pinned so the next solve can be shown as a difference from it. */

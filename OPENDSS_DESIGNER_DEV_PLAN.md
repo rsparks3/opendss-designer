@@ -173,6 +173,7 @@ The trace (1.2) is a dependency for islanding (1.3) and allocation zones (1.4).
 
 **Engine approach** (subject to the 1.0 spike):
 - OpenDSS has no isochronous generator. A generator in *isochronous* mode compiles as a `Vsource` at its terminal: `basekv` from the generator kV, `pu=1.0`, and `r1/x1` from the subtransient reactance, `x1 = Xd'' · kV² / MVA` on the generator's `kva` base. `Xd''` defaults to 0.15 pu.
+- **As built (2026-11-20):** Xd'' sets the source impedance in **fault studies** only (fault study, fault point, fault sweep: `compile_circuit(fault=True)`). In the **power flow**, the machine's voltage regulator holds its terminal, so the source is nearly stiff (a twentieth of Xd''). With the full Xd'' in series, a 1.5 MVA set at 80 % sagged its island to 0.92 pu, a drop the real machine would correct, which would break the honest-labeling rule. G1's fault contribution checks against hand calculation: 465 A vs. 437 A.
 - In *grid* mode the generator keeps today's `new generator` emission.
 - Zero isochronous sources in an island: all of its loads are unserved. More than one: warn and treat them all as `Vsource`; results are indicative only.
 - The island warning becomes a status (not a warning) when the island contains an isochronous source.

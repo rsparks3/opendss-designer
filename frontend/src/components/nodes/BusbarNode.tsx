@@ -18,7 +18,7 @@ import { useUiStore } from '../../store/uiStore'
 import { SYMBOL_PITCH } from '../../lib/defaults'
 import { phaseColor } from '../../lib/phasing'
 import { useResultsStore } from '../../store/resultsStore'
-import { FaultBadge, NodeLabel, PhaseBadge, Terminal, useBusPriorityColor, useNodeIssueClass, VoltageBadge } from './common'
+import { FaultBadge, NodeLabel, PhaseBadge, Terminal, useBusPriorityColor, useIslandColor, useNodeIssueClass, VoltageBadge } from './common'
 
 const BAR_H = 14
 
@@ -49,7 +49,8 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
   })
   // In the 'priority' overlay: the highest priority its loss would drop.
   const priorityBar = useBusPriorityColor(id)
-  const barColor = priorityBar ?? phaseBar
+  const islandBar = useIslandColor(id)
+  const barColor = islandBar ?? priorityBar ?? phaseBar
 
   // Re-measure the handles when they change -- but not on mount, which
   // React Flow measures anyway: three thousand bars asking at once is three

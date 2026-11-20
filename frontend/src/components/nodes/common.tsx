@@ -12,7 +12,7 @@ import { signalStruggle } from '../../store/hintStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import { deltaColor } from '../../lib/compare'
 import { formatKw, hostingColor } from '../../lib/hostingCapacity'
-import { busPriorityOf, PRIORITY_COLORS, priorityOf } from '../../lib/trace'
+import { busPriorityOf, islandColorOf, PRIORITY_COLORS, priorityOf } from '../../lib/trace'
 import type { Params } from '../../types/circuit'
 import { LoadingPie } from '../LoadingPie'
 
@@ -310,6 +310,8 @@ export function useOverlayInk(nodeId: string, params: Params): React.CSSProperti
   const phase = usePhaseInk(params)
   const overlay = useResultsStore((s) => s.overlay)
   const reliability = useResultsStore((s) => s.reliability)
+  const island = useIslandColor(nodeId)
+  if (island) return { '--ink': island } as React.CSSProperties
   if (overlay !== 'reliability') return phase
   const r = reliabilityOf(reliability, nodeId)
   if (!r || !reliability) return undefined
@@ -322,6 +324,12 @@ export function useLoadInk(nodeId: string, params: Params): React.CSSProperties 
   const other = useOverlayInk(nodeId, params)
   const on = useResultsStore((s) => s.overlay === 'priority')
   return on ? ({ '--ink': PRIORITY_COLORS[priorityOf(params)] } as React.CSSProperties) : other
+}
+
+/** In the 'islands' overlay: the colour of the element's island. */
+export function useIslandColor(id: string): string | undefined {
+  const on = useResultsStore((s) => s.overlay === 'islands')
+  return useCircuitStore((s) => (on ? islandColorOf(s.nodes, s.edges, id) : undefined))
 }
 
 /** A busbar's colour in the 'priority' overlay: the highest priority of the

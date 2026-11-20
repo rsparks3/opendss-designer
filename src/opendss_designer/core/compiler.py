@@ -473,7 +473,7 @@ def _bus_suffix(explicit, phases: int, phasing=None) -> str:
 
 
 def compile_circuit(
-    circuit: Circuit, shape_dir: Path | None = None, export: bool = False
+    circuit: Circuit, shape_dir: Path | None = None, export: bool = False, fault: bool = False
 ) -> CompileResult:
     """Compile to Text commands. With `shape_dir` (the solve path), large
     loadshapes become `mult=(file=...)` references plus aux_files entries;
@@ -1193,6 +1193,15 @@ def compile_circuit(
 
     for n in generators:
         p = n.params
+        if p.get("islandMode") == "isochronous":
+            # OpenDSS has no isochronous machine: a Generator is constant
+            # P (and Q or V) and cannot hold an island's voltage. In this
+            # mode it is a voltage source at its terminal behind its
+            # subtransient reactance (x1 = Xd'' kV^2 / MVA), which is what
+            # carries an island after the utility is lost. Indicative only.
+            cmds.append(_isochronous_source(n, element_name("vsource", p.get("name"), n.id, n.id),
+                                            conn.node_buses[n.id][0], kv_bases, fault))
+            continue
         name = element_name("generator", p.get("name"), n.id, n.id)
         phases = _phases(p)
         bus = conn.node_buses[n.id][0] + _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
@@ -1339,6 +1348,49 @@ def compile_circuit(
         cmds.extend(_bus_coordinates(circuit, conn))
     res.commands = cmds
     return res
+
+
+# Subtransient reactance when none is entered, and the X/R a standby set's
+# stator typically has. Both are per the generator's own rating.
+DEFAULT_XDPP = 0.15
+GENERATOR_X_OVER_R = 20.0
+# The share of Xd'' left in series for a power flow (see _isochronous_source).
+AVR_STIFFNESS = 0.05
+
+
+def generator_rating_kva(params: dict) -> float:
+    """A generator's rating: its kVA, or the engine's 1.2 x kW when blank."""
+    kva = _num(params, "kva")
+    if kva is not None and kva > 0:
+        return kva
+    return 1.2 * (_num(params, "kw", 1000.0) or 1000.0)
+
+
+def _isochronous_source(n, name: str, bus: str, kv_bases: set[float], fault: bool) -> str:
+    """A generator carrying an island, as a Vsource at its terminal.
+
+    For a fault study it sits behind its subtransient reactance
+    (x1 = Xd'' kV^2 / MVA, default Xd'' 0.15 pu), which sets the current it
+    feeds a fault. For a power flow its voltage regulator holds the terminal
+    voltage while it carries load, so it is nearly stiff (a twentieth of
+    Xd''): the island's voltages are then the network's drop, not a sag the
+    machine would correct. Neither limits its output -- the island summary
+    judges loading against the rating."""
+    p = n.params
+    phases = _phases(p)
+    bus += _bus_suffix(p.get("busNodes"), phases, p.get("phasing"))
+    kv = _num(p, "kv", 12.47) or 12.47
+    xdpp = _num(p, "xdpp", DEFAULT_XDPP)
+    if xdpp is None or not 0.01 <= xdpp <= 2:
+        xdpp = DEFAULT_XDPP
+    mva = generator_rating_kva(p) / 1000.0
+    x1 = xdpp * kv * kv / mva * (1.0 if fault else AVR_STIFFNESS)
+    r1 = x1 / GENERATOR_X_OVER_R
+    kv_bases.add(kv)
+    what = f"Xd''={xdpp:g} pu" if fault else "voltage-regulated"
+    return (f"new vsource.{name} bus1={bus} basekv={kv:g} pu=1 angle=0 phases={phases} "
+            f"r1={r1:.6g} x1={x1:.6g} r0={r1:.6g} x0={x1:.6g}"
+            f"  ! isochronous generator ({what}) on {mva * 1000:g} kVA")
 
 
 def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:

@@ -113,6 +113,10 @@ export interface CircuitState {
   updateScenario: (id: string, patch: Partial<Pick<ScenarioJSON, 'name' | 'description'>>) => void
   removeScenario: (id: string) => void
   duplicateScenario: (id: string) => string | null
+  /** Loss of utility in one step: a scenario with every utility source out
+   *  of service and every generator in service and isochronous, opened.
+   *  Returns its id, or null when there is no generator to carry anything. */
+  addUtilityOutageScenario: () => string | null
   /** Move a scenario up (-1) or down (+1) the list. */
   moveScenario: (id: string, delta: -1 | 1) => void
   /** Make a scenario the base case: the base becomes its drawing, it is
@@ -764,6 +768,36 @@ export const useCircuitStore = create<CircuitState>()(
           dirty: true,
         })
         return copyId
+      },
+      addUtilityOutageScenario: () => {
+        get().activateScenario(null)
+        const s = get()
+        const overrides: Record<string, Params> = {}
+        for (const n of s.nodes) {
+          if (n.type === 'vsource' && n.data.params.kind !== 'other' && n.data.params.enabled !== false) {
+            overrides[n.id] = { enabled: false }
+          } else if (n.type === 'generator') {
+            const p: Params = {}
+            if (n.data.params.enabled === false) p.enabled = true
+            if (n.data.params.islandMode !== 'isochronous') p.islandMode = 'isochronous'
+            if (Object.keys(p).length) overrides[n.id] = p
+          }
+        }
+        if (!s.nodes.some((n) => n.type === 'generator')) return null
+        const taken = new Set(s.scenarios.map((sc) => sc.name))
+        let name = 'Utility outage'
+        for (let i = 2; taken.has(name); i++) name = `Utility outage ${i}`
+        const id = newScenarioId(s.scenarios.map((sc) => sc.id))
+        set({
+          scenarios: [...s.scenarios, {
+            id, name,
+            description: 'Every utility source out of service; every generator in service and isochronous.',
+            overrides, addedNodes: [], addedEdges: [], removed: [],
+          }],
+          dirty: true,
+        })
+        get().activateScenario(id)
+        return id
       },
       moveScenario: (id, delta) => {
         const list = [...get().scenarios]

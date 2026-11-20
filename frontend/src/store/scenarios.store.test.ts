@@ -135,3 +135,25 @@ describe('scenarios in the store', () => {
     expect(useResultsStore.getState().stale).toBe(true)
   })
 })
+
+describe('utility outage', () => {
+  it('takes the utility out, makes every generator isochronous, and opens it', async () => {
+    const campus = (await import('../../../src/opendss_designer/samples/installation-campus.oneline.json')).default
+    useCircuitStore.getState().loadCircuit(JSON.parse(JSON.stringify(campus)) as unknown as CircuitJSON)
+    const id = useCircuitStore.getState().addUtilityOutageScenario()!
+    const s = useCircuitStore.getState()
+    expect(s.activeScenario).toBe(id)
+    const sc = s.scenarios.find((x) => x.id === id)!
+    expect(sc.name).toBe('Utility outage')
+    expect(sc.overrides).toEqual({
+      util: { enabled: false },
+      gen1: { enabled: true, islandMode: 'isochronous' },
+      gen2: { enabled: true, islandMode: 'isochronous' },
+    })
+    expect(s.nodes.find((n) => n.id === 'util')!.data.params.enabled).toBe(false)
+    // A second one gets its own name.
+    useCircuitStore.getState().addUtilityOutageScenario()
+    expect(useCircuitStore.getState().scenarios.map((x) => x.name).filter((n) => /^Utility outage( \d)?$/.test(n)))
+      .toEqual(['Utility outage', 'Utility outage 2'])
+  })
+})

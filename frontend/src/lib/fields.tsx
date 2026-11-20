@@ -118,6 +118,8 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'mvasc1', label: '1φ short-circuit', kind: 'number', unit: 'MVA' },
     { key: 'x1r1', label: 'X/R (positive seq.)', kind: 'number', placeholder: '4' },
     { key: 'x0r0', label: 'X/R (zero seq.)', kind: 'number', placeholder: '3' },
+    // A utility source is what "Utility outage" takes away.
+    { key: 'kind', label: 'Kind', kind: 'select', options: ['utility', 'other'] },
   ],
   busbar: [
     { key: 'name', label: 'Bus name', kind: 'text' },
@@ -302,6 +304,12 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'model', label: 'Mode', kind: 'select', options: [1, 3] }, // 1=const kW/pf, 3=PV (holds vpu)
     { key: 'vpu', label: 'V setpoint (PV mode)', kind: 'number', unit: 'pu' },
+    // Grid-following (a constant-P Generator, the usual) or isochronous: it
+    // holds an island's voltage when the utility is lost, compiled as a
+    // voltage source behind Xd'' (screening-grade; see the docs).
+    { key: 'islandMode', label: 'Island mode', kind: 'select', options: ['grid', 'isochronous'] },
+    { key: 'xdpp', label: "Subtransient reactance Xd''", kind: 'number', unit: 'pu', placeholder: '0.15' },
+    { key: 'fuelHours', label: 'Fuel on hand', kind: 'number', unit: 'h' },
   ],
   pvsystem: [
     { key: 'name', label: 'Name', kind: 'text' },

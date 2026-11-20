@@ -13,7 +13,7 @@ from typing import Any
 
 from ..core import engine
 from ..core.model import RATED_LEVEL, Circuit
-from .islanding import unserved_by_priority
+from .islanding import island_summary, unserved_by_priority
 from .scenarios import effective_circuit
 
 Progress = Callable[[int, int, str | None], None]
@@ -63,7 +63,8 @@ def cell_detail(case: Circuit, result: dict[str, Any]) -> dict[str, Any]:
     loading = {e["id"]: round(e["loadingPct"], 2) for e in (result.get("elements") or {}).values()
                if e.get("id") and e.get("loadingPct") is not None}
     return {"busVmin": buses, "loading": loading,
-            "unservedKw": unserved_by_priority(case, result)}
+            "unservedKw": unserved_by_priority(case, result),
+            "islands": island_summary(case, result) if result.get("converged") else None}
 
 
 def run_batch(circuit: Circuit, scenario_ids: list[str | None] | None = None,

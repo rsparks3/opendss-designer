@@ -1878,3 +1878,19 @@ kbd {
 .react-flow__edge.scenario-added .react-flow__edge-path { filter: drop-shadow(0 0 2px #2e7d32) drop-shadow(0 0 2px #2e7d32); }
 .scenarios-view { display: inline-flex; gap: 4px; margin-left: auto; }
 .scenarios-compare-table td.worst { background: var(--danger-bg); color: var(--danger); font-weight: 600; }
+
+/* Island summary cards ('islands' overlay). */
+.island-cards {
+  position: absolute; top: 44px; left: 10px; z-index: 5; display: flex; flex-direction: column; gap: 6px;
+  width: 250px; max-height: calc(100% - 120px); overflow: auto; font-size: 12px;
+}
+.island-card {
+  background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-left: 5px solid var(--border);
+  border-radius: 5px; padding: 5px 8px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+.island-card.alarm { background: var(--danger-bg); border-color: var(--danger-border); }
+.island-card .island-title { font-weight: 600; margin-bottom: 2px; }
+.island-card .bad { color: var(--danger); font-weight: 600; }
+.island-card .muted, .island-card.muted, .island-card.note { color: var(--muted); }
+.island-card.note { font-size: 11px; box-shadow: none; }
+.island-card .prio-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }

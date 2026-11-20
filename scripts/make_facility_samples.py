@@ -184,8 +184,24 @@ def installation() -> None:
     b.line("ln_tie", "brk_tie", "t2", "bus_hous", "c", at=1630, length=0.6, name="TIE-F2-F3",
            **CABLE)
 
+    outage = {"util": {"enabled": False},
+              "gen1": {"enabled": True, "islandMode": "isochronous"},
+              "gen2": {"enabled": True, "islandMode": "isochronous"},
+              "brk_t": {"closed": False}}
+    scenarios = [
+        {"id": "sc1", "name": "Utility outage, bus split",
+         "description": "The 69 kV service lost; the bus tie opened so G1 carries main bus A "
+                        "and G2 carries main bus B.",
+         "overrides": outage, "addedNodes": [], "addedEdges": [], "removed": []},
+        {"id": "sc2", "name": "Utility outage, housing shed",
+         "description": "As above, with feeder 3 (family housing and the school) opened so G2 "
+                        "stays inside its rating.",
+         "overrides": {**outage, "brk_f3": {"closed": False}},
+         "addedNodes": [], "addedEdges": [], "removed": []},
+    ]
     b.write({"tagVocabulary": ["medical", "c2", "comms", "logistics", "support", "residential",
-                               "shelter"]})
+                               "shelter"],
+             "scenarios": scenarios})
 
 
 def looped() -> None:

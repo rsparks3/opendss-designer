@@ -187,6 +187,20 @@ export function ScenariosPanel() {
           />
           <button type="button" onClick={add} disabled={!hasElements}>+ Add</button>
         </div>
+        <div className="scenarios-add">
+          <button
+            type="button"
+            disabled={!nodes.some((n) => n.type === 'generator')}
+            title={nodes.some((n) => n.type === 'generator')
+              ? 'A scenario with every utility source out of service and every generator in service and isochronous'
+              : 'Add a generator first: with the utility gone, nothing else carries load'}
+            onClick={() => {
+              if (useCircuitStore.getState().addUtilityOutageScenario()) useResultsStore.getState().setOverlay('islands')
+            }}
+          >
+            ⚡ Utility outage
+          </button>
+        </div>
         {active && (
           <div className="library-note">
             Editing <b>{name(active)}</b>: every change on the drawing belongs to this scenario until you

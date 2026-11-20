@@ -46,6 +46,7 @@ from ..studies import contingency as contingency_study
 from ..studies import faults as fault_study_mod
 from ..studies import harmonics as harmonics_study
 from ..studies import hosting_capacity as hc_study
+from ..studies import islanding as islanding_study
 from ..studies import protection_depth as protection_depth_study
 from ..studies import screening as screening_study
 from ..studies import secondary as secondary_study
@@ -139,7 +140,7 @@ def get_sample(sample_id: str) -> dict:
 @router.post("/solve")
 def solve(circuit: Circuit) -> dict:
     try:
-        return engine.solve(circuit)
+        return islanding_study.solve_with_islands(circuit)
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
 
@@ -185,6 +186,13 @@ def validate_circuit(circuit: Circuit) -> dict:
     """Issues, plus which phases reach each element so the one-line can
     colour by phase before anything has been solved."""
     return {"issues": [i.model_dump() for i in validate(circuit)], "phases": phase_map(circuit)}
+
+
+@router.post("/islands")
+def islands(circuit: Circuit) -> dict:
+    """The islands the drawing forms (open scenario applied), their sources
+    and their loads by priority -- topology only, no solve."""
+    return islanding_study.topology_islands(circuit)
 
 
 class TraceRequest(BaseModel):

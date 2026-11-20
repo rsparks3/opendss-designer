@@ -1045,5 +1045,58 @@
   "support",
   "residential",
   "shelter"
+ ],
+ "scenarios": [
+  {
+   "id": "sc1",
+   "name": "Utility outage, bus split",
+   "description": "The 69 kV service lost; the bus tie opened so G1 carries main bus A and G2 carries main bus B.",
+   "overrides": {
+    "util": {
+     "enabled": false
+    },
+    "gen1": {
+     "enabled": true,
+     "islandMode": "isochronous"
+    },
+    "gen2": {
+     "enabled": true,
+     "islandMode": "isochronous"
+    },
+    "brk_t": {
+     "closed": false
+    }
+   },
+   "addedNodes": [],
+   "addedEdges": [],
+   "removed": []
+  },
+  {
+   "id": "sc2",
+   "name": "Utility outage, housing shed",
+   "description": "As above, with feeder 3 (family housing and the school) opened so G2 stays inside its rating.",
+   "overrides": {
+    "util": {
+     "enabled": false
+    },
+    "gen1": {
+     "enabled": true,
+     "islandMode": "isochronous"
+    },
+    "gen2": {
+     "enabled": true,
+     "islandMode": "isochronous"
+    },
+    "brk_t": {
+     "closed": false
+    },
+    "brk_f3": {
+     "closed": false
+    }
+   },
+   "addedNodes": [],
+   "addedEdges": [],
+   "removed": []
+  }
  ]
 }

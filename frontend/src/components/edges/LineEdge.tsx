@@ -10,6 +10,7 @@ import { useIsGrabbed } from '../../store/grabStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import { LoadingPie } from '../LoadingPie'
 import { useEdgePath, WaypointDots } from './waypoints'
+import { useIslandColor } from '../nodes/common'
 
 export function LineEdge(props: EdgeProps<AppEdge>) {
   const [path, labelX, labelY] = useEdgePath(props)
@@ -20,6 +21,7 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
   const reliability = useResultsStore((s) => s.reliability)
   const baseline = useResultsStore((s) => s.baseline)
   const limits = useLimits()
+  const island = useIslandColor(props.id)
 
   const el = result?.converged ? resultById(result).get(props.id) : null
 
@@ -58,6 +60,8 @@ export function LineEdge(props: EdgeProps<AppEdge>) {
       resultText = head ? `${head.custInterrupts.toFixed(2)} cust·int/yr` : `λ ${r.data.lambda.toFixed(3)} /yr`
     }
   }
+
+  if (island && !props.selected && !grabbed) stroke = island
 
   const outOfService = !inService(props.data?.params)
   const name = String(props.data?.params?.name ?? '')

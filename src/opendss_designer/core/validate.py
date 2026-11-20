@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .. import context
 from ..settings import Settings
+from . import trace
 from .compiler import compile_circuit
 from .connectivity import BUSBAR_CANON_HANDLE, sanitize_name, synthesize, terminal_key
 from .model import Circuit, Issue, conducts, in_service, node_terminals
@@ -352,43 +353,42 @@ def validate(circuit: Circuit) -> list[Issue]:
                     message=f"{n.type.capitalize()} '{label}' terminal {h} is not connected.",
                     nodeId=n.id))
 
-    # Reachability from the source over wires, lines, and 2-terminal devices.
+    # Reachability from the sources over wires, lines, and the devices that
+    # conduct -- on the circuit as it will be solved (open scenario applied),
+    # with only sources in service counting: a utility taken out and a
+    # generator in isochronous mode carrying an island are both normal.
     if sources:
-        adjacency: dict[str, set[str]] = {}
-
-        def link(a: str, b: str) -> None:
-            adjacency.setdefault(a, set()).add(b)
-            adjacency.setdefault(b, set()).add(a)
-
-        for e in circuit.edges:
-            if e.type == "line" and e.id in conn.line_buses and in_service(e.params):
-                b1, b2 = conn.line_buses[e.id]
-                link(b1, b2)
-        for n in circuit.nodes:
-            buses = conn.node_buses.get(n.id, [])
-            if n.type in SERIES_TYPES and len(buses) >= 2:
-                if not conducts(n):
-                    continue
-                for b in buses[1:]:  # a tertiary winding is a third bus
-                    link(buses[0], b)
-
-        reachable: set[str] = set()
-        stack = [conn.node_buses[s.id][0] for s in sources if s.id in conn.node_buses]
-        while stack:
-            b = stack.pop()
-            if b in reachable:
-                continue
-            reachable.add(b)
-            stack.extend(adjacency.get(b, ()))
-
-        for n in circuit.nodes:
-            buses = conn.node_buses.get(n.id, [])
-            if buses and not any(b in reachable for b in buses):
-                label = n.params.get("name") or n.id
-                issues.append(Issue(
-                    severity="warning", code="island",
-                    message=f"'{label}' is not electrically connected to the source.",
-                    nodeId=n.id))
+        topo = trace.build(trace.resolve(circuit))
+        live = trace.energized(topo)
+        if not topo.sources:
+            issues.append(Issue(
+                severity="warning", code="no-energized-source",
+                message="No source is in service: the whole circuit is de-energised. "
+                        "Put the utility back in service, or set a generator to isochronous "
+                        "to carry an island."))
+        else:
+            for n in topo.circuit.nodes:
+                buses = topo.element_buses.get(n.id, [])
+                if buses and not any(b in live for b in buses):
+                    label = n.params.get("name") or n.id
+                    issues.append(Issue(
+                        severity="warning", code="island",
+                        message=f"'{label}' is not electrically connected to a source.",
+                        nodeId=n.id))
+            # Two sources holding one island: OpenDSS solves it, but how
+            # load shares between them is not modelled -- indicative only.
+            iso = {sid for sid, s in topo.sources.items()
+                   if topo.nodes[sid].type == "generator"}
+            for part in trace.islands(topo):
+                srcs = part["sources"]
+                if len(srcs) > 1 and any(sid in iso for sid in srcs):
+                    names = ", ".join(str(topo.nodes[sid].params.get("name") or sid)
+                                      for sid in srcs)
+                    issues.append(Issue(
+                        severity="warning", code="parallel-sources",
+                        message=f"{names} hold the same island together: each is modelled "
+                                "as a voltage source, so how they share load is indicative only.",
+                        nodeId=next(sid for sid in srcs if sid in iso)))
 
     # Loadshape references and sanity. Loads should follow load shapes and PV
     # irradiance shapes (storage dispatch may follow either kind).

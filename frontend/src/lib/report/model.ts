@@ -15,6 +15,7 @@ import { applyScenario, levelNamed } from '../scenarios'
 import type {
   BalanceResult,
   BatchCell,
+  IslandSummary,
   BatchResult,
   CapacityResult,
   CvrResult,
@@ -46,7 +47,7 @@ import {
   buildTopology, firstProtectiveUpstream, PRIORITIES, PRIORITY_LABELS, PROTECTIVE_TYPES, priorityOf, upstreamPaths,
 } from '../trace'
 
-export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'scenarios' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
+export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'scenarios' | 'outage' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
 
 export type Cell = string | number | null
 
@@ -137,6 +138,7 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   diagram: 'One-line diagram',
   critical: 'Critical loads',
   scenarios: 'Scenarios',
+  outage: 'Loss of utility',
   shortcircuit: 'Short circuit',
   protection: 'Protection',
   reliability: 'Reliability',
@@ -319,6 +321,10 @@ export function buildReport(input: ReportInput): Report {
 
   if (sections.has('critical')) {
     out.push(criticalLoadsSection(circuit))
+  }
+  if (sections.has('outage')) {
+    const sec = outageSection(circuit, solved, input.batch ?? null)
+    if (sec.tables.length) out.push(sec)
   }
   if (sections.has('scenarios') && circuit.scenarios?.length) {
     out.push(scenariosSection(circuit, input.batch ?? null))
@@ -585,6 +591,84 @@ function studiesSection(studies: Partial<Record<string, unknown>>, names: Names)
     })
   }
   return { id: 'studies', title: 'Planning studies', tables, figures: [] }
+}
+
+export const ISOCHRONOUS_NOTE =
+  'Generators in isochronous mode are modelled as voltage sources at their terminals: held at 1.0 pu by their ' +
+  'voltage regulators in the power flow, and behind their subtransient reactance (Xd\u2032\u2032, 0.15 pu ' +
+  'unless entered) in fault studies. The model does not limit a machine to its rating, share load by droop, or ' +
+  'represent governor or fuel limits: a loading over 100 % means the island cannot be carried as configured. ' +
+  'Screening grade, not a dynamic or stability study.'
+
+/** Loss of utility: for every case whose islands a generator carries or
+ *  that leaves load dark -- each scenario of the last batch, or this solve
+ *  when there is no batch -- the islands and the unserved load. */
+export function outageSection(circuit: CircuitJSON, solve: SolveResult | null, batch: BatchResult | null): ReportSection {
+  const cases: { label: string; islands: IslandSummary }[] = []
+  const relevant = (isl: IslandSummary | null | undefined) =>
+    !!isl && (isl.islands.some((i) => i.sources.some((s) => s.kind === 'generator')) ||
+      PRIORITIES.some((p) => isl.unservedKw[p] > 0))
+  if (batch) {
+    const level = batch.levels[0] ?? null
+    for (const c of batch.cells) {
+      if (c.level === level && relevant(c.detail?.islands)) cases.push({ label: c.scenarioName, islands: c.detail!.islands! })
+    }
+  } else if (solve && relevant(solve.islands)) {
+    cases.push({ label: scenarioLabel(circuit, solve), islands: solve.islands! })
+  }
+  const tables: Table[] = []
+  for (const { label, islands } of cases) {
+    const rows = islands.islands.map((i) => ({
+      island: i.energized ? i.sources.map((s) => s.name).join(' + ') : 'De-energised',
+      served: i.energized ? i.servedKw : null,
+      rating: i.sources.reduce((s, x) => s + (x.ratingKva ?? 0), 0) || null,
+      loading: i.sources.length === 1 ? i.sources[0].loadingPct : null,
+      fuel: i.sources.find((s) => s.fuelHours)?.fuelHours ?? null,
+      vmin: i.vminPu,
+      vmax: i.vmaxPu,
+      critical: i.unservedKw.critical || null,
+      unserved: PRIORITIES.reduce((s, p) => s + i.unservedKw[p], 0) || null,
+    }))
+    tables.push({
+      id: `outage-islands-${tables.length}`,
+      title: `${label}: islands`,
+      columns: [
+        { key: 'island', label: 'Carried by' },
+        { key: 'served', label: 'Served', unit: 'kW', digits: 0 },
+        { key: 'rating', label: 'Rating', unit: 'kVA', digits: 0 },
+        { key: 'loading', label: 'Loading', unit: '%', digits: 0 },
+        { key: 'fuel', label: 'Fuel', unit: 'h', digits: 0 },
+        { key: 'vmin', label: 'V min', unit: 'pu', digits: 3 },
+        { key: 'vmax', label: 'V max', unit: 'pu', digits: 3 },
+        { key: 'critical', label: 'Critical unserved', unit: 'kW', digits: 0 },
+        { key: 'unserved', label: 'All unserved', unit: 'kW', digits: 0 },
+      ],
+      rows,
+      flags: islands.islands.map((i) => (i.alarm ? 'violation' : !i.energized ? 'warning' : null)),
+      note: islands.islands.some((i) => i.multipleSources)
+        ? 'An island held by more than one source: how they share it is not modelled (indicative only).'
+        : undefined,
+    })
+    if (islands.unservedLoads.length) {
+      tables.push({
+        id: `outage-unserved-${tables.length}`,
+        title: `${label}: unserved loads`,
+        columns: [
+          { key: 'name', label: 'Load' },
+          { key: 'building', label: 'Building' },
+          { key: 'priority', label: 'Priority' },
+          { key: 'kw', label: 'Load', unit: 'kW', digits: 0 },
+        ],
+        rows: islands.unservedLoads.map((l) => ({
+          name: l.name, building: l.building || '—',
+          priority: PRIORITY_LABELS[(l.priority as (typeof PRIORITIES)[number])] ?? l.priority, kw: l.kw,
+        })),
+        flags: islands.unservedLoads.map((l) => (l.priority === 'critical' ? 'violation' : null)),
+      })
+    }
+  }
+  if (tables.length) tables[tables.length - 1].note = [tables[tables.length - 1].note, ISOCHRONOUS_NOTE].filter(Boolean).join(' ')
+  return { id: 'outage', title: 'Loss of utility', tables, figures: [] }
 }
 
 /** A parameter change in words: "opened", "taken out of service", or

@@ -393,6 +393,8 @@ export interface SolveResult {
   /** What the solve was run at. Absent from older results. */
   loadLevel?: LoadLevelJSON
   scenario?: string | null
+  /** The solve by island: sources, loading, served and dark load. */
+  islands?: IslandSummary | null
 }
 
 export interface TimeSeriesResult {
@@ -478,6 +480,7 @@ export interface BatchCell {
     busVmin: Record<string, number | null>
     loading: Record<string, number>
     unservedKw: Record<'critical' | 'essential' | 'nonessential' | 'unassigned', number>
+    islands?: IslandSummary | null
   } | null
 }
 
@@ -999,4 +1002,39 @@ export interface FaultResult {
   buses: Record<string, FaultBusResult>
   nodeBuses: Record<string, string[]>
   issues: Issue[]
+}
+
+/** A solve read back island by island (studies/islanding.py). */
+export interface IslandSource {
+  id: string
+  name: string
+  kind: 'utility' | 'other' | 'generator'
+  kw: number
+  kvar: number
+  kva: number
+  ratingKva: number | null
+  loadingPct: number | null
+  fuelHours?: number | null
+}
+
+export interface IslandResult {
+  index: number
+  energized: boolean
+  sources: IslandSource[]
+  loadCount: number
+  busCount: number
+  servedKw: number
+  servedKvar: number
+  vminPu: number | null
+  vmaxPu: number | null
+  unservedKw: Record<'critical' | 'essential' | 'nonessential' | 'unassigned', number>
+  alarm: boolean
+  multipleSources: boolean
+}
+
+export interface IslandSummary {
+  islands: IslandResult[]
+  unservedKw: Record<'critical' | 'essential' | 'nonessential' | 'unassigned', number>
+  unservedLoads: { id: string; name: string; priority: string; kw: number; building: string }[]
+  energizedCount: number
 }

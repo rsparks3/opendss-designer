@@ -393,10 +393,47 @@ export function busPriorities(topo: Topology): Map<string, Priority> {
   return out
 }
 
+export interface Island {
+  buses: Set<string>
+  sources: string[]
+  energized: boolean
+}
+
+/** The connected parts of the conducting graph that hold a source or a
+ *  bus; energized ones (a source in them) first, ordered by their first
+ *  source's id so colours are stable. */
+export function islandsOf(topo: Topology): Island[] {
+  const all = new Set<string>()
+  for (const bs of topo.elementBuses.values()) for (const b of bs) all.add(b)
+  const at = new Map<string, string[]>()
+  for (const [sid, b] of topo.sources) at.set(b, [...(at.get(b) ?? []), sid])
+  const seen = new Set<string>()
+  const out: Island[] = []
+  for (const start of all) {
+    if (seen.has(start)) continue
+    const part = reach(topo, [start])
+    for (const b of part) seen.add(b)
+    const sources = [...part].flatMap((b) => at.get(b) ?? []).sort()
+    out.push({ buses: part, sources, energized: sources.length > 0 })
+  }
+  out.sort((a, b) => Number(b.energized) - Number(a.energized) || (a.sources[0] ?? '').localeCompare(b.sources[0] ?? ''))
+  return out
+}
+
+/** Energized islands take these in turn; a dark one is grey. */
+export const ISLAND_COLORS = ['#1e88e5', '#43a047', '#8e24aa', '#f4511e', '#00897b', '#c0ca33', '#6d4c41', '#d81b60']
+export const DARK_ISLAND = '#9e9e9e'
+
 // One topology per drawing: the canvas asks per busbar, and every busbar's
 // selector runs on every store change, so the answer is kept for as long as
 // the nodes and edges arrays are the same ones.
-let memo: { nodes: AppNode[]; edges: AppEdge[]; topo: Topology; priorities?: Map<string, Priority> } | null = null
+let memo: {
+  nodes: AppNode[]
+  edges: AppEdge[]
+  topo: Topology
+  priorities?: Map<string, Priority>
+  islandColor?: Map<string, string>
+} | null = null
 
 export function topologyOf(nodes: AppNode[], edges: AppEdge[]): Topology {
   if (!memo || memo.nodes !== nodes || memo.edges !== edges) memo = { nodes, edges, topo: buildTopology(nodes, edges) }
@@ -460,4 +497,25 @@ export function traceView(nodes: AppNode[], edges: AppEdge[], kind: 'upstream' |
     if (litBuses.has(topo.wireBus.get(e.id) ?? '') && (kind === 'downstream' || nodeIds.has(other))) edgeIds.add(e.id)
   }
   return { kind, elementId, nodeIds, edgeIds, paths, downstream: down, firstProtective: firstProtectiveUpstream(topo, elementId) }
+}
+
+/** The islands overlay's colour for an element (node, line or wire): its
+ *  island's, by its first bus (a wire's own). Undefined for annotations. */
+export function islandColorOf(nodes: AppNode[], edges: AppEdge[], id: string): string | undefined {
+  const topo = topologyOf(nodes, edges)
+  if (!memo!.islandColor) {
+    const byBus = new Map<string, string>()
+    islandsOf(topo).forEach((isl, i) => {
+      const c = isl.energized ? ISLAND_COLORS[i % ISLAND_COLORS.length] : DARK_ISLAND
+      for (const b of isl.buses) byBus.set(b, c)
+    })
+    memo!.islandColor = byBus
+  }
+  const bus = topo.elementBuses.get(id)?.[0] ?? topo.wireBus.get(id)
+  return bus ? memo!.islandColor.get(bus) : undefined
+}
+
+/** The colour of the island a source carries, for its summary card. */
+export function islandColorOfSource(nodes: AppNode[], edges: AppEdge[], sourceId: string): string {
+  return islandColorOf(nodes, edges, sourceId) ?? DARK_ISLAND
 }

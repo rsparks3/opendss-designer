@@ -143,7 +143,7 @@ def fault_point(
 def _fault_point(
     circuit: Circuit, bus: str, kind: str, r_ohm: float, phase: int | None
 ) -> dict[str, Any]:
-    compiled = compile_circuit(circuit, shape_dir=engine.SHAPE_DIR)
+    compiled = compile_circuit(circuit, shape_dir=engine.SHAPE_DIR, fault=True)
     issues = limit_issues(circuit) + list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "issues": [i.model_dump() for i in issues]}
@@ -220,7 +220,7 @@ def fault_sweep(
 def _fault_sweep(
     circuit: Circuit, r_ohm: float, progress: Progress | None, cancel: threading.Event | None
 ) -> dict[str, Any]:
-    compiled = compile_circuit(circuit, shape_dir=engine.SHAPE_DIR)
+    compiled = compile_circuit(circuit, shape_dir=engine.SHAPE_DIR, fault=True)
     issues = limit_issues(circuit) + list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "issues": [i.model_dump() for i in issues], "buses": {}}

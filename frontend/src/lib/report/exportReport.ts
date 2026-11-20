@@ -34,6 +34,8 @@ export function sectionAvailability(): Record<SectionKey, string | null> {
     diagram: null,
     critical: nodes.some((n) => n.type === 'load' && ['critical', 'essential'].includes(String(n.data.params.priority)))
       ? null : 'No load is marked critical or essential (Priority on the load).',
+    outage: nodes.some((n) => n.type === 'generator') || rs.batch
+      ? null : 'The circuit has no generator, and no batch has been run.',
     scenarios: useCircuitStore.getState().scenarios.length ? null : 'The project has no scenarios (Scenarios tab).',
     shortcircuit: null,
     protection: nodes.some((n) => PROTECTIVE.has(n.type ?? '')) ? null : 'The circuit has no breakers, fuses, reclosers or relays.',
@@ -56,7 +58,8 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
   const circuit: CircuitJSON = toCircuitJSON(useCircuitStore.getState())
   let rs = useResultsStore.getState()
 
-  if (sections.has('loadflow') && (rs.stale || !rs.result)) {
+  const needsSolve = sections.has('loadflow') || (sections.has('outage') && !rs.batch)
+  if (needsSolve && (rs.stale || !rs.result)) {
     if (rs.analysisMode === 'timeseries') {
       throw new Error('Switch to Snapshot and solve before exporting a load-flow report.')
     }

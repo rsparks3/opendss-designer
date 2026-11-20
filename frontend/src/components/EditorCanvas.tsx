@@ -40,6 +40,7 @@ import { TracePanel } from './TracePanel'
 import { traceView } from '../lib/trace'
 import { scenarioMarks } from '../lib/scenarios'
 import { ScenarioBanner } from './ScenarioBanner'
+import { IslandCards } from './IslandCards'
 import { ViewToggle } from './ViewToggle'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
 import { BreakerNode } from './nodes/BreakerNode'
@@ -567,6 +568,7 @@ export function EditorCanvas() {
       <PhaseLegend />
       {trace && <TracePanel view={trace} />}
       <ScenarioBanner />
+      <IslandCards />
       <ViewToggle />
       {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
       <HintCard />

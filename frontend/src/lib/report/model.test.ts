@@ -280,3 +280,32 @@ describe('scenarios section', () => {
     expect(sec.tables).toHaveLength(1)
   })
 })
+
+describe('loss of utility section', () => {
+  it('tabulates the islands of a solve a generator carries, with the modelling note', async () => {
+    const { outageSection } = await import('./model')
+    const solve = {
+      converged: true,
+      islands: {
+        energizedCount: 1,
+        unservedKw: { critical: 150, essential: 0, nonessential: 0, unassigned: 0 },
+        unservedLoads: [{ id: 'c', name: 'COMMS', priority: 'critical', kw: 150, building: 'Bldg 310' }],
+        islands: [
+          { index: 0, energized: true, sources: [{ id: 'g', name: 'G1', kind: 'generator', kw: 1600, kvar: 500, kva: 1676, ratingKva: 1500, loadingPct: 111.7, fuelHours: 72 }],
+            loadCount: 3, busCount: 5, servedKw: 1600, servedKvar: 500, vminPu: 0.97, vmaxPu: 1, alarm: true, multipleSources: false,
+            unservedKw: { critical: 0, essential: 0, nonessential: 0, unassigned: 0 } },
+          { index: 1, energized: false, sources: [], loadCount: 1, busCount: 2, servedKw: 0, servedKvar: 0, vminPu: null, vmaxPu: null,
+            alarm: true, multipleSources: false, unservedKw: { critical: 150, essential: 0, nonessential: 0, unassigned: 0 } },
+        ],
+      },
+    } as unknown as SolveResult
+    const sec = outageSection(circuit, solve, null)
+    expect(sec.tables.map((t) => t.title)).toEqual(['Base case: islands', 'Base case: unserved loads'])
+    expect(sec.tables[0].rows[0]).toMatchObject({ island: 'G1', loading: 111.7, fuel: 72 })
+    expect(sec.tables[0].flags).toEqual(['violation', 'violation']) // dark with critical load in it
+    expect(sec.tables[1].flags).toEqual(['violation'])
+    expect(sec.tables[1].note).toMatch(/screening grade/i)
+    // A solve with only the utility and nothing dark says nothing.
+    expect(outageSection(circuit, { converged: true, islands: { energizedCount: 1, unservedKw: { critical: 0, essential: 0, nonessential: 0, unassigned: 0 }, unservedLoads: [], islands: [] } } as unknown as SolveResult, null).tables).toEqual([])
+  })
+})

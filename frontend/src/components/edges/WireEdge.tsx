@@ -4,6 +4,7 @@ import type { AppEdge } from '../../store/circuitStore'
 import { useIsGrabbed } from '../../store/grabStore'
 import { useResultsStore } from '../../store/resultsStore'
 import { useEdgePath, WaypointDots } from './waypoints'
+import { useIslandColor } from '../nodes/common'
 
 export function WireEdge(props: EdgeProps<AppEdge>) {
   const [path] = useEdgePath(props)
@@ -13,12 +14,15 @@ export function WireEdge(props: EdgeProps<AppEdge>) {
   const busPhases = useResultsStore((s) =>
     s.overlay === 'phases' ? (s.phases?.wires[props.id] ?? null) : undefined,
   )
+  const island = useIslandColor(props.id)
   const stroke =
     props.selected || grabbed
       ? 'var(--accent)'
-      : busPhases === undefined
-        ? 'var(--ink)'
-        : phaseColor(busPhases)
+      : island
+        ? island
+        : busPhases === undefined
+          ? 'var(--ink)'
+          : phaseColor(busPhases)
   return (
     <>
       <BaseEdge

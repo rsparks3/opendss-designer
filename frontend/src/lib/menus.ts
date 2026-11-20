@@ -97,6 +97,11 @@ export const OVERLAY_CHOICES: { mode: OverlayMode; label: string; title?: string
     label: 'Priority',
     title: 'Loads coloured by priority, and each bus by the highest priority it would drop (no solve needed)',
   },
+  {
+    mode: 'islands',
+    label: 'Islands',
+    title: 'Each part of the circuit a source holds in its own colour, what no source reaches in grey; after a solve, a card per island (no solve needed for the colours)',
+  },
   { mode: 'compare', label: 'Compare', title: 'Change from the pinned baseline: bus voltage in pu, element loading in points' },
   { mode: 'hosting', label: 'Hosting', title: 'Hosting capacity at every bus from the last run (Hosting tab)' },
   { mode: 'off', label: 'Off' },
@@ -518,6 +523,16 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
       item('Run every scenario at every load level', () => void runBatch(), {
         disabled: empty || rs.batchRunning,
         title: 'A background batch; results land in the Scenarios tab',
+      }),
+      item('Utility outage', () => {
+        if (!cs.addUtilityOutageScenario()) {
+          useResultsStore.getState().setFlash('Add a generator first: with the utility gone, nothing else carries load.')
+          return
+        }
+        rs.setOverlay('islands')
+      }, {
+        disabled: empty,
+        title: 'A scenario with the utility out of service and every generator isochronous, opened with the Islands overlay on',
       }),
       item('Screen a DER interconnection…', () => ui.openScreening(null), {
         disabled: empty || hasErrors,

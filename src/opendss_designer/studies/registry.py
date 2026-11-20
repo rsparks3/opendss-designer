@@ -24,6 +24,7 @@ from . import (
     faults,
     harmonics,
     hosting_capacity,
+    islanding,
     protection_depth,
     screening,
     secondary,
@@ -38,7 +39,8 @@ def _opt(options: dict[str, Any], *keys: str) -> dict[str, Any]:
 
 
 STUDIES: dict[str, tuple[str, Study]] = {
-    "solve": ("Snapshot power flow at the active load level", lambda c, o: engine.solve(c)),
+    "solve": ("Snapshot power flow at the active load level",
+              lambda c, o: islanding.solve_with_islands(c)),
     "fault": (
         "Fault study (bolted three-phase and line-to-ground at every bus)",
         lambda c, o: engine.fault_study(c),

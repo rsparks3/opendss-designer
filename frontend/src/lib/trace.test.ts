@@ -128,3 +128,22 @@ describe('traceView', () => {
     for (const id of ['w_g1', 'w_hosp_x', 'ln_f1', 'gen1']) expect([...d.edgeIds, ...d.nodeIds]).toContain(id)
   })
 })
+
+describe('islands', () => {
+  it('a dark part is its own grey island; an isochronous generator lights its own', async () => {
+    const { islandsOf, islandColorOf, DARK_ISLAND } = await import('./trace')
+    const open = load(campusJson, { brk_f3: { closed: false } })
+    const parts = islandsOf(open)
+    expect(parts.filter((p) => p.energized).map((p) => p.sources)).toEqual([['util']])
+    const c = fromCircuitJSON(campusJson as unknown as CircuitJSON)
+    const nodes = c.nodes.map((n) => (n.id === 'util' ? { ...n, data: { ...n.data, params: { ...n.data.params, enabled: false } } }
+      : n.id === 'gen1' || n.id === 'gen2' ? { ...n, data: { ...n.data, params: { ...n.data.params, enabled: true, islandMode: 'isochronous' } } }
+        : n.id === 'brk_t' ? { ...n, data: { ...n.data, params: { ...n.data.params, closed: false } } } : n))
+    const a = islandColorOf(nodes, c.edges, 'ld_hosp')
+    const b = islandColorOf(nodes, c.edges, 'ld_ops')
+    expect(a).toBeDefined()
+    expect(a).not.toBe(b)
+    expect(a).not.toBe(DARK_ISLAND)
+    expect(islandColorOf(nodes, c.edges, 'w_g1')).toBe(a) // a wire takes its bus's island
+  })
+})

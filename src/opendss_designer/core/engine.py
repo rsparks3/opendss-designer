@@ -877,7 +877,7 @@ def quiet_for_fault_study(element_map: dict[str, str],
 def fault_study(circuit: Circuit) -> dict[str, Any]:
     """Short-circuit study (`solve mode=faultstudy`): per-bus Thevenin
     impedances and prospective 3-phase / single-phase fault currents."""
-    compiled: CompileResult = compile_circuit(circuit, shape_dir=SHAPE_DIR)
+    compiled: CompileResult = compile_circuit(circuit, shape_dir=SHAPE_DIR, fault=True)
     issues = limit_issues(circuit) + list(compiled.issues)
     if any(i.severity == "error" for i in issues):
         return {"converged": False, "buses": {}, "nodeBuses": {},

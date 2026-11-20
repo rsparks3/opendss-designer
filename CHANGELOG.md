@@ -37,6 +37,15 @@ configurations of an installation-scale system.
   - *File → Export → OpenDSS (.dss)* offers the base case or any scenario, fully resolved.
   - The report gained a *Scenarios* section: each scenario's changes in words and, after a batch, the unserved load, lowest voltage and highest loading of each.
   - A scenario override that is not a parameter patch is refused.
+- **Loss of utility.**
+  - Generators gained *Island mode*: grid-following, or isochronous. An isochronous generator holds an island's voltage when the utility is lost. It is modelled as a voltage source at its terminal: stiff in the power flow (its regulator holds the voltage), behind its subtransient reactance *Xd''* (0.15 pu unless entered) in fault studies.
+  - Generators also gained *Fuel on hand*, used by the report.
+  - Sources gained *Kind* (utility or other).
+  - **Analysis → Utility outage** (and ⚡ in the Scenarios tab) makes a scenario with every utility source out of service and every generator isochronous, opens it, and turns on the new **Islands** overlay. In that overlay, each island is drawn in its own colour and what no source reaches is grey. After a solve, a card per island shows what carries it, the load it serves, each machine's loading against its rating and fuel, and the voltage range; a card for what is dark lists the unserved load by priority. A card turns red when a machine is past its rating or critical load is unserved.
+  - Every solve carries this island summary. `POST /api/islands` gives the islands from topology alone.
+  - The report gained *Loss of utility*: the islands and the unserved loads of each scenario a generator carries, with the modelling note.
+  - Validation now judges islands on the circuit as it will be solved (the open scenario applied, sources out of service not counted). It says so when no source is in service, and warns when two machines hold one island.
+  - The Installation campus sample carries two outage scenarios.
 - Samples: **Installation campus** (a fictional base: utility service, split
   main bus, three feeders, a normally-open tie, two standby generators,
   loads at every priority) and **Looped feeder, two sources**.
