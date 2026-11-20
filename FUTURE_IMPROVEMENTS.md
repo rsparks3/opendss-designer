@@ -280,6 +280,8 @@ repository, `opendss-designer-cloud`; deployment stays in
 `opendss-designer-demo`. Stage 0 (ship the demo, move the docs site to
 `opendssdesigner-docs.ryanmsparks.com`) precedes all of it.
 
+> **Facility planning track (added 2026-11-20).** A second track for installation-scale systems (bases, campuses: ERRE, MILCON, loss-of-utility) runs alongside this direction, in `OPENDSS_DESIGNER_DEV_PLAN.md`. Milestone A (trace and priority, scenario gaps, islanding, metered allocation) comes next.
+
 ## Direction — the distribution planning market (decided 2026-09-11)
 
 M10–M18 are aimed at a specific goal: becoming an open-source alternative to the
