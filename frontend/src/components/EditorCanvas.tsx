@@ -38,6 +38,8 @@ import { decideOverview, nodeBounds, nodesInView } from '../lib/viewBudget'
 import { PhaseLegend } from './PhaseLegend'
 import { TracePanel } from './TracePanel'
 import { traceView } from '../lib/trace'
+import { scenarioMarks } from '../lib/scenarios'
+import { ScenarioBanner } from './ScenarioBanner'
 import { ViewToggle } from './ViewToggle'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
 import { BreakerNode } from './nodes/BreakerNode'
@@ -104,6 +106,13 @@ function markTrace<T extends AppNode | AppEdge>(items: T[], hit: Set<string> | u
   return items.map((it) => (hit.has(it.id) ? { ...it, className: `${it.className ?? ''} trace-hit` } : it))
 }
 
+function markScenario<T extends AppNode | AppEdge>(items: T[], marks: { changed: Set<string>; added: Set<string> } | null): T[] {
+  if (!marks || (!marks.changed.size && !marks.added.size)) return items
+  return items.map((it) =>
+    marks.changed.has(it.id) ? { ...it, className: `${it.className ?? ''} scenario-changed` }
+      : marks.added.has(it.id) ? { ...it, className: `${it.className ?? ''} scenario-added` } : it)
+}
+
 const NO_NODES: AppNode[] = []
 const NO_EDGES: AppEdge[] = []
 
@@ -130,8 +139,17 @@ export function EditorCanvas() {
     () => (traceReq ? traceView(storeNodes, storeEdges, traceReq.kind, traceReq.elementId) : null),
     [traceReq, storeNodes, storeEdges],
   )
-  const marked = useMemo(() => markTrace(markOutOfService(storeNodes), trace?.nodeIds), [storeNodes, trace])
-  const markedEdges = useMemo(() => markTrace(storeEdges, trace?.edgeIds), [storeEdges, trace])
+  // While a scenario is open, what it changes wears a dashed halo.
+  const scenarioBase = useCircuitStore((s) => s.scenarioBase)
+  const marks = useMemo(
+    () => (scenarioBase ? scenarioMarks(scenarioBase, { nodes: storeNodes, edges: storeEdges }) : null),
+    [scenarioBase, storeNodes, storeEdges],
+  )
+  const marked = useMemo(
+    () => markTrace(markScenario(markOutOfService(storeNodes), marks), trace?.nodeIds),
+    [storeNodes, trace, marks],
+  )
+  const markedEdges = useMemo(() => markTrace(markScenario(storeEdges, marks), trace?.edgeIds), [storeEdges, trace, marks])
   const nodes = overview ? NO_NODES : marked
   const edges = overview ? NO_EDGES : markedEdges
   const onNodesChange = useCircuitStore((s) => s.onNodesChange)
@@ -548,6 +566,7 @@ export function EditorCanvas() {
       {overview && <OverviewLayer />}
       <PhaseLegend />
       {trace && <TracePanel view={trace} />}
+      <ScenarioBanner />
       <ViewToggle />
       {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
       <HintCard />

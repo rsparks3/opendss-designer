@@ -104,11 +104,11 @@ The trace (1.2) is a dependency for islanding (1.3) and allocation zones (1.4).
 - **Undo/redo across scenario switches.** Switching clears history on purpose; undo works within a scenario.
 
 **Remaining:**
-- **Override allowlist per element type**, enforced in `core/scenarios.py` (reuse the compiler's per-property sanitising lists).
+- **Override allowlist per element type**, enforced in `core/scenarios.py` (reuse the compiler's per-property sanitising lists). *Done differently (2026-11-20):* no per-type key allowlist exists to reuse, and base-case params aren't restricted either. The real guard is the compiler, which allowlists or clamps every value where it reads it. `Scenario.overrides` now refuses anything that isn't a parameter patch: identifier keys, plain JSON values nested at most three deep, and at most 64 kB per element.
 - **Dashed halo** on elements a scenario overrides, adds or removes. The hover tooltip shows base vs. scenario values.
 - **A banner on the canvas:** "Editing scenario X — Return to base case".
 - **Scenarios panel:** rename, reorder, and *Promote to base case* (confirm; this replaces the base with the scenario's resolved drawing and removes the scenario).
-- **Compare table per element across scenarios:** extend the batch job to optionally return per-element results (bus voltages, element loading, losses, unserved kW by priority). Display one column per scenario and highlight the worst value per row. This lives in the Scenarios panel's batch view, not in a new route.
+- **Compare table per element across scenarios** *(done: Scenarios tab → batch view)*: extend the batch job to optionally return per-element results (bus voltages, element loading, losses, unserved kW by priority). Display one column per scenario and highlight the worst value per row. This lives in the Scenarios panel's batch view, not in a new route.
 - **`.dss` export scenario picker:** base or any scenario, fully resolved.
 - **Report:** scenario definitions with their overrides spelled out in words.
 

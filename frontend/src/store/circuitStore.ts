@@ -113,6 +113,12 @@ export interface CircuitState {
   updateScenario: (id: string, patch: Partial<Pick<ScenarioJSON, 'name' | 'description'>>) => void
   removeScenario: (id: string) => void
   duplicateScenario: (id: string) => string | null
+  /** Move a scenario up (-1) or down (+1) the list. */
+  moveScenario: (id: string, delta: -1 | 1) => void
+  /** Make a scenario the base case: the base becomes its drawing, it is
+   *  removed, and every other scenario is rebased so it still describes
+   *  the same drawing it did. Not undoable (like switching). */
+  promoteScenario: (id: string) => void
   /** Open a scenario for editing and solving (null returns to the base). */
   activateScenario: (id: string | null) => void
   placementType: NodeType | null
@@ -758,6 +764,30 @@ export const useCircuitStore = create<CircuitState>()(
           dirty: true,
         })
         return copyId
+      },
+      moveScenario: (id, delta) => {
+        const list = [...get().scenarios]
+        const i = list.findIndex((sc) => sc.id === id)
+        const j = i + delta
+        if (i < 0 || j < 0 || j >= list.length) return
+        ;[list[i], list[j]] = [list[j], list[i]]
+        set({ scenarios: list, dirty: true })
+      },
+      promoteScenario: (id) => {
+        // Close whatever is open first so every scenario's deltas are current
+        // and nodes/edges hold the base.
+        get().activateScenario(null)
+        const s = get()
+        const target = s.scenarios.find((sc) => sc.id === id)
+        if (!target) return
+        const oldBase = { nodes: s.nodes, edges: s.edges }
+        const newBase = applyScenario(oldBase, target, drawingFromJSON)
+        const scenarios = s.scenarios
+          .filter((sc) => sc.id !== id)
+          .map((sc) => ({ ...sc, ...diffScenario(newBase, applyScenario(oldBase, sc, drawingFromJSON)) }))
+        set({ nodes: newBase.nodes, edges: newBase.edges, scenarios, dirty: true })
+        clearHistory()
+        markStale()
       },
       activateScenario: (id) => {
         const s = get()

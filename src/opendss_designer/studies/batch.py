@@ -13,6 +13,7 @@ from typing import Any
 
 from ..core import engine
 from ..core.model import RATED_LEVEL, Circuit
+from .islanding import unserved_by_priority
 from .scenarios import effective_circuit
 
 Progress = Callable[[int, int, str | None], None]
@@ -53,10 +54,23 @@ def cell_summary(result: dict[str, Any], limits) -> dict[str, Any]:
     }
 
 
+def cell_detail(case: Circuit, result: dict[str, Any]) -> dict[str, Any]:
+    """Per-element numbers for the compare table: each bus's lowest voltage
+    (pu, dark buses as 0), each series element's loading (keyed by diagram
+    id), and the load left unserved by priority."""
+    buses = {name: (round(b["vminPu"], 5) if b.get("vminPu") is not None else None)
+             for name, b in (result.get("buses") or {}).items()}
+    loading = {e["id"]: round(e["loadingPct"], 2) for e in (result.get("elements") or {}).values()
+               if e.get("id") and e.get("loadingPct") is not None}
+    return {"busVmin": buses, "loading": loading,
+            "unservedKw": unserved_by_priority(case, result)}
+
+
 def run_batch(circuit: Circuit, scenario_ids: list[str | None] | None = None,
               level_names: list[str | None] | None = None,
               progress: Progress | None = None,
-              cancel: threading.Event | None = None) -> dict[str, Any]:
+              cancel: threading.Event | None = None,
+              detail: bool = True) -> dict[str, Any]:
     """Solve every (scenario, level) pair. `None` in either list is the base
     case or the rated level; both default to "everything the circuit has,
     base/rated included"."""
@@ -84,6 +98,7 @@ def run_batch(circuit: Circuit, scenario_ids: list[str | None] | None = None,
                 "level": lname, "levelName": level.name, "loadmult": level.loadmult,
                 "rating": level.rating,
                 **cell_summary(result, circuit.criteria),
+                "detail": cell_detail(case, result) if detail else None,
                 "errors": [i["message"] for i in result.get("issues", [])
                            if i.get("severity") == "error"][:3],
             })

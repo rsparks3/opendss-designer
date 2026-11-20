@@ -1,6 +1,7 @@
 import { fmtSimHour } from '../lib/axis'
 import { nodeLetter } from '../lib/phasing'
 import { reliabilityOf, sectionHeadedBy } from '../lib/reliability'
+import { overrideRows } from '../lib/scenarios'
 import { useCircuitStore } from '../store/circuitStore'
 import { activeResult, activeStale, useResultsStore } from '../store/resultsStore'
 import type { BusResult, ElementResult } from '../types/circuit'
@@ -36,7 +37,21 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
   const section = rel && reliability ? reliability.sections.find((x) => x.id === rel.data.sectionId) : null
   const heads = overlay === 'reliability' ? sectionHeadedBy(reliability, target.id) : null
   const solved = result?.converged && !stale ? result : null
-  if (!solved && !rel) return null
+  // In an open scenario: what it changes on this element, base → scenario.
+  const scenarioName = useCircuitStore((s) => s.scenarios.find((sc) => sc.id === s.activeScenario)?.name ?? null)
+  const scenarioBase = useCircuitStore((s) => s.scenarioBase)
+  const baseParams = scenarioBase
+    ? target.kind === 'node'
+      ? scenarioBase.nodes.find((n) => n.id === target.id)?.data.params
+      : scenarioBase.edges.find((e) => e.id === target.id)?.data?.params
+    : undefined
+  const nowParams = target.kind === 'node'
+    ? nodes.find((n) => n.id === target.id)?.data.params
+    : edges.find((e) => e.id === target.id)?.data?.params
+  const overrides = scenarioBase ? overrideRows(baseParams, nowParams) : []
+  const addedHere = !!scenarioBase && !baseParams && !!nowParams
+  const scen = overrides.length > 0 || addedHere
+  if (!solved && !rel && !scen) return null
 
   const params =
     target.kind === 'node'
@@ -57,7 +72,8 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
       ? fault.buses[fault.nodeBuses[target.id]?.[0] ?? '']
       : undefined
 
-  if (!buses.length && !element && !rel) return null
+  if (!buses.length && !element && !rel && !scen) return null
+  const show = (v: unknown) => (v == null || v === '' ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v))
 
   return (
     <div className="result-tooltip" style={{ left: target.x + 14, top: target.y + 14 }}>
@@ -67,6 +83,23 @@ export function ResultTooltip({ target }: { target: HoverTarget }) {
           <span className="rt-hour"> @ {fmtSimHour(scrubHour, scrubMode)}</span>
         )}
       </div>
+      {scen && (
+        <div className="rt-section">
+          <div className="rt-heading">scenario {scenarioName ?? ''}{addedHere ? ': added here' : ''}</div>
+          {overrides.length > 0 && (
+            <table>
+              <tbody>
+                {overrides.map((r) => (
+                  <tr key={r.key}>
+                    <td>{r.key}</td>
+                    <td colSpan={3}>{show(r.base)} → <b>{show(r.now)}</b></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
       {buses.map(([busName, data]) => (
         <div key={busName} className="rt-section">
           <div className="rt-heading">

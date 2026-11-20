@@ -219,3 +219,22 @@ export function applyScenario(
 export function scenarioSize(s: ScenarioJSON): number {
   return Object.keys(s.overrides).length + s.addedNodes.length + s.addedEdges.length + s.removed.length
 }
+
+/** Which elements on screen the open scenario changes or adds, for the
+ *  dashed halo; ids of nodes and edges alike. */
+export function scenarioMarks(base: Drawing, now: Drawing): { changed: Set<string>; added: Set<string> } {
+  const d = diffScenario(base, now)
+  return {
+    changed: new Set(Object.keys(d.overrides)),
+    added: new Set([...d.addedNodes.map((n) => n.id), ...d.addedEdges.map((e) => e.id)]),
+  }
+}
+
+/** One element's parameters in the base and in the open scenario, key by
+ *  key, for the hover readout. Empty when the scenario leaves it alone. */
+export function overrideRows(base: Params | undefined, now: Params | undefined): { key: string; base: unknown; now: unknown }[] {
+  if (!base || !now) return []
+  const d = paramsDelta(base, now)
+  if (!d) return []
+  return Object.keys(d).map((key) => ({ key, base: base[key], now: now[key] }))
+}

@@ -6,6 +6,37 @@ import { useResultsStore } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
 import type { BatchCell } from '../types/circuit'
 import { LockedNote } from './LockedNote'
+import { compareTable, type CompareMetric, type CompareTable } from '../lib/scenarioCompare'
+
+/** One column per scenario, the worst value of each row picked out. */
+function CompareView({ table, metric, onLocate }: { table: CompareTable; metric: CompareMetric; onLocate: (id: string) => void }) {
+  const fmt = (v: number | null) =>
+    v == null ? '—' : metric === 'voltage' ? (v < 0.05 ? 'dark' : v.toFixed(3)) : metric === 'loading' ? `${v.toFixed(0)} %` : `${v.toFixed(0)} kW`
+  if (!table.rows.length) return <div className="bp-empty">Nothing to compare at this level: run all again.</div>
+  return (
+    <table className="bp-table scenarios-matrix scenarios-compare-table">
+      <thead>
+        <tr>
+          <th>{metric === 'unserved' ? 'Priority' : metric === 'voltage' ? 'Bus (lowest phase)' : 'Element'}</th>
+          {table.columns.map((c) => <th key={String(c.id)}>{c.name}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {table.rows.map((r) => (
+          <tr key={r.key}>
+            <td className="bp-ro">
+              {r.elementId && <button className="bp-locate" title="Select on diagram" onClick={() => onLocate(r.elementId!)}>⌖</button>}{' '}
+              {r.label}
+            </td>
+            {r.values.map((v, i) => (
+              <td key={i} className={`bp-ro${r.worst === i ? ' worst' : ''}`}>{fmt(v)}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
 
 /**
  * The Scenarios tab: the base case and every alternative, which one is
@@ -35,6 +66,12 @@ export function ScenariosPanel() {
   const pinBaseline = useResultsStore((s) => s.pinBaseline)
   const baseline = useResultsStore((s) => s.baseline)
   const [draft, setDraft] = useState('')
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [view, setView] = useState<'matrix' | CompareMetric>('matrix')
+  const [compareLevel, setCompareLevel] = useState<string | null>(null)
+  const [promoting, setPromoting] = useState<string | null>(null)
+  const moveScenario = useCircuitStore((s) => s.moveScenario)
+  const promoteScenario = useCircuitStore((s) => s.promoteScenario)
 
   const hasElements = nodes.some((n) => n.type !== 'note' && n.type !== 'zone')
   const name = (id: string | null) => (id ? scenarios.find((sc) => sc.id === id)?.name ?? id : 'Base case')
@@ -90,15 +127,52 @@ export function ScenariosPanel() {
               Base case
             </button>
           </li>
-          {scenarios.map((sc) => (
+          {scenarios.map((sc, i) => (
             <li key={sc.id} className={active === sc.id ? 'active' : ''}>
-              <button type="button" className="scenarios-pick" onClick={() => activateScenario(sc.id)} title={sc.description || undefined}>
-                {sc.name}
-                <span className="scenarios-count">
-                  {active === sc.id ? 'editing' : `${scenarioSize(sc)} change${scenarioSize(sc) === 1 ? '' : 's'}`}
-                </span>
-              </button>
+              {renaming === sc.id ? (
+                <input
+                  className="scenarios-rename"
+                  aria-label="Scenario name"
+                  autoFocus
+                  defaultValue={sc.name}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim()
+                    if (v) updateScenario(sc.id, { name: v })
+                    setRenaming(null)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                    if (e.key === 'Escape') setRenaming(null)
+                  }}
+                />
+              ) : (
+                <button type="button" className="scenarios-pick" onClick={() => activateScenario(sc.id)}
+                        onDoubleClick={() => setRenaming(sc.id)} title={sc.description || 'Double-click to rename'}>
+                  {sc.name}
+                  <span className="scenarios-count">
+                    {active === sc.id ? 'editing' : `${scenarioSize(sc)} change${scenarioSize(sc) === 1 ? '' : 's'}`}
+                  </span>
+                </button>
+              )}
+              <button type="button" className="scenarios-mini" title="Rename" onClick={() => setRenaming(sc.id)}>✎</button>
+              <button type="button" className="scenarios-mini" title="Move up" disabled={i === 0} onClick={() => moveScenario(sc.id, -1)}>↑</button>
+              <button type="button" className="scenarios-mini" title="Move down" disabled={i === scenarios.length - 1} onClick={() => moveScenario(sc.id, 1)}>↓</button>
               <button type="button" className="scenarios-mini" title="Duplicate" onClick={() => duplicateScenario(sc.id)}>⧉</button>
+              <button
+                type="button"
+                className={`scenarios-mini${promoting === sc.id ? ' danger' : ''}`}
+                title={promoting === sc.id
+                  ? 'Click again to make this the base case (the other scenarios are kept, rebased; this cannot be undone)'
+                  : 'Promote to base case'}
+                onClick={() => {
+                  if (promoting !== sc.id) return setPromoting(sc.id)
+                  setPromoting(null)
+                  promoteScenario(sc.id)
+                }}
+                onBlur={() => setPromoting(null)}
+              >
+                {promoting === sc.id ? 'Make base?' : '⤒'}
+              </button>
               <button type="button" className="scenarios-mini" title="Delete this scenario" onClick={() => removeScenario(sc.id)}>✕</button>
             </li>
           ))}
@@ -156,6 +230,22 @@ export function ScenariosPanel() {
             </button>
           )}
           {batch && <span className="scenarios-count">run {new Date(batch.ranAt).toLocaleTimeString()}</span>}
+          {batch && (
+            <span className="scenarios-view">
+              <select aria-label="Batch view" value={view} onChange={(e) => setView(e.target.value as typeof view)}>
+                <option value="matrix">Summary matrix</option>
+                <option value="unserved">Compare: unserved load</option>
+                <option value="voltage">Compare: bus voltage</option>
+                <option value="loading">Compare: element loading</option>
+              </select>
+              {view !== 'matrix' && batch.result.levels.length > 1 && (
+                <select aria-label="Level to compare" value={String(compareLevel ?? '')}
+                        onChange={(e) => setCompareLevel(e.target.value || null)}>
+                  {batch.result.levels.map((l) => <option key={String(l)} value={String(l ?? '')}>{l ?? 'Rated'}</option>)}
+                </select>
+              )}
+            </span>
+          )}
         </div>
         {!batch ? (
           <div className="bp-empty">
@@ -163,6 +253,9 @@ export function ScenariosPanel() {
             the worst loading, the losses and the number of violations of each, so alternatives compare in one
             table. Define levels in Project properties and scenarios on the left.
           </div>
+        ) : view !== 'matrix' ? (
+          <CompareView table={compareTable(batch.result, compareLevel ?? batch.result.levels[0] ?? null, view,
+            (id) => elementName(null, id))} metric={view} onLocate={locate} />
         ) : (
           <table className="bp-table scenarios-matrix">
             <thead>

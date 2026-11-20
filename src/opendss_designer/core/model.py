@@ -8,9 +8,11 @@ schema change.
 
 from __future__ import annotations
 
+import json
+import re
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # Structural ceilings that apply in every mode. These are not the demo limits
 # (see settings.Settings / validate.py, which sit far below these); they exist
@@ -267,6 +269,49 @@ class Scenario(BaseModel):
         default_factory=list
     )
     removed: Annotated[list[str], Field(max_length=MAX_NODES)] = Field(default_factory=list)
+
+    @field_validator("overrides")
+    @classmethod
+    def _overrides_are_parameters(cls, v: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        """An override is a parameter patch, nothing else: identifier-like
+        keys, JSON values of bounded size. What a value may be is checked
+        where the compiler reads it (every property is allowlisted or
+        clamped there), exactly as for the base circuit's own parameters;
+        this keeps a scenario from smuggling anything that is not a
+        parameter, or one too large to be one."""
+        for element_id, patch in v.items():
+            if not element_id or len(element_id) > 200:
+                raise ValueError("an override names an element id that is empty or too long")
+            for key, value in patch.items():
+                if not _PARAM_KEY_RE.fullmatch(key):
+                    raise ValueError(f"'{key[:40]}' is not a parameter name")
+                if not _plain_json(value, depth=0):
+                    raise ValueError(f"the override of '{key}' is not a plain value")
+            if len(json.dumps(patch, default=str)) > MAX_OVERRIDE_BYTES:
+                raise ValueError(f"the override of element '{element_id[:40]}' is too large")
+        return v
+
+
+# A parameter name: what the editor and importer write ("kw", "windings",
+# "w0.kv" in the spreadsheet's flattened form never reaches the server).
+_PARAM_KEY_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,63}")
+MAX_OVERRIDE_BYTES = 64_000
+
+
+def _plain_json(value: Any, depth: int) -> bool:
+    """None, a bool, a finite number, a string, or lists/dicts of them (a
+    transformer's windings), nested at most three deep."""
+    if value is None or isinstance(value, (bool, str)):
+        return True
+    if isinstance(value, (int, float)):
+        return value == value and value not in (float("inf"), float("-inf"))
+    if depth >= 3:
+        return False
+    if isinstance(value, list):
+        return all(_plain_json(x, depth + 1) for x in value)
+    if isinstance(value, dict):
+        return all(isinstance(k, str) and _plain_json(x, depth + 1) for k, x in value.items())
+    return False
 
 
 class Allocation(BaseModel):

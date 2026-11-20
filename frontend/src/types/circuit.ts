@@ -473,6 +473,12 @@ export interface BatchCell {
   overloads: number
   loadingWarnings: number
   errors: string[]
+  /** Per-element numbers for the compare table (studies/batch.py). */
+  detail?: {
+    busVmin: Record<string, number | null>
+    loading: Record<string, number>
+    unservedKw: Record<'critical' | 'essential' | 'nonessential' | 'unassigned', number>
+  } | null
 }
 
 export interface BatchResult {

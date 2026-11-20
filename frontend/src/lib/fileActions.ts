@@ -363,10 +363,16 @@ export async function saveToFile(choose = false) {
   }
 }
 
-export async function exportDss() {
-  const { name } = useCircuitStore.getState()
+/** The .dss script of the drawing; with a scenario id, of that scenario
+ *  fully resolved, and with null of the base case, whichever is open. */
+export async function exportDss(scenarioId?: string | null) {
+  const { name, scenarios } = useCircuitStore.getState()
+  const doc = circuit()
+  const chosen = scenarioId === undefined ? doc : { ...doc, activeScenario: scenarioId }
+  const sc = scenarios.find((x) => x.id === chosen.activeScenario)
+  const file = `${name || 'circuit'}${sc ? ` - ${sc.name.replace(/[\\/:*?"<>|]+/g, '-')}` : ''}.dss`
   try {
-    download(`${name || 'circuit'}.dss`, await api.exportDss(circuit()), 'text/plain')
+    download(file, await api.exportDss(chosen), 'text/plain')
   } catch (err) {
     flash(`Export failed: ${errText(err)}`)
   }

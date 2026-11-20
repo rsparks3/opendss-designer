@@ -29,6 +29,14 @@ configurations of an installation-scale system.
   in the colour of the highest priority its loss would drop.
 - **Critical loads** report section: every critical and essential load with
   its source, feeder, transformer and first protective device upstream.
+- **Scenarios, finished.**
+  - While a scenario is open, a banner across the drawing says so and offers *Return to base case*.
+  - What the scenario changes or adds wears a dashed halo, and hovering an element shows each changed parameter, base → scenario.
+  - The Scenarios tab can rename (✎ or double-click), reorder and *Promote to base case*. Promoting rebases the other scenarios, so each still describes the same circuit.
+  - After *Run all*, the batch view can compare scenarios element by element: unserved load by priority, every bus's lowest voltage, or every element's loading, one column per scenario, with the worst value of each row picked out.
+  - *File → Export → OpenDSS (.dss)* offers the base case or any scenario, fully resolved.
+  - The report gained a *Scenarios* section: each scenario's changes in words and, after a batch, the unserved load, lowest voltage and highest loading of each.
+  - A scenario override that is not a parameter patch is refused.
 - Samples: **Installation campus** (a fictional base: utility service, split
   main bus, three feeders, a normally-open tie, two standby generators,
   loads at every priority) and **Looped feeder, two sources**.

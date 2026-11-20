@@ -285,7 +285,21 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
             disabled: empty,
           }),
           sep,
-          item('OpenDSS (.dss)', () => void exportDss(), { title: 'A runnable OpenDSS script', disabled: empty }),
+          cs.scenarios.length
+            ? {
+                kind: 'sub',
+                label: 'OpenDSS (.dss)',
+                disabled: empty,
+                items: [
+                  item('Base case', () => void exportDss(null), { title: 'The circuit with no scenario applied' }),
+                  ...cs.scenarios.map((sc) =>
+                    item(sc.name, () => void exportDss(sc.id), {
+                      title: 'A runnable OpenDSS script of this scenario, fully resolved',
+                      checked: cs.activeScenario === sc.id,
+                    })),
+                ],
+              }
+            : item('OpenDSS (.dss)', () => void exportDss(), { title: 'A runnable OpenDSS script', disabled: empty }),
           sep,
           item('Image (SVG)', () => void exportImage('svg'), {
             title: 'An editable vector drawing, with the active overlay and a legend',

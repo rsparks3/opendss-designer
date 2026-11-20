@@ -253,3 +253,30 @@ describe('critical loads section', () => {
     expect(t.note).toMatch(/F1 open/)
   })
 })
+
+describe('scenarios section', () => {
+  it('says what each scenario changes, in words', async () => {
+    const campus = (await import('../../../../src/opendss_designer/samples/installation-campus.oneline.json')).default as unknown as CircuitJSON
+    const { scenariosSection } = await import('./model')
+    const sec = scenariosSection({
+      ...campus,
+      scenarios: [
+        {
+          id: 'o', name: 'Utility outage', description: 'Loss of the 69 kV line',
+          overrides: { util: { enabled: false }, gen1: { enabled: true, islandMode: 'isochronous' }, brk_t: { closed: false }, ld_hosp: { kw: 1000 } },
+          addedNodes: [], addedEdges: [], removed: ['ld_wh'],
+        },
+        { id: 'n', name: 'Nothing', description: '', overrides: {}, addedNodes: [], addedEdges: [], removed: [] },
+      ],
+    }, null)
+    const changes = sec.tables[0].rows.map((r) => r.change)
+    expect(changes).toContain('Source UTILITY: taken out of service')
+    expect(changes).toContain('Generator G1: returned to service; set to isochronous (carries an island)')
+    expect(changes).toContain('Breaker 52-T BUS TIE: opened')
+    expect(changes).toContain('Load HOSPITAL: kw 900 → 1000')
+    expect(changes).toContain('Load WAREHOUSE removed')
+    expect(changes).toContain('(no changes from the base case)')
+    expect(sec.tables[0].rows[0]).toMatchObject({ scenario: 'Utility outage', description: 'Loss of the 69 kV line' })
+    expect(sec.tables).toHaveLength(1)
+  })
+})

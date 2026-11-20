@@ -14,6 +14,7 @@ import { HC_LABELS } from '../hostingCapacity'
 import { applyScenario, levelNamed } from '../scenarios'
 import type {
   BalanceResult,
+  BatchCell,
   BatchResult,
   CapacityResult,
   CvrResult,
@@ -45,7 +46,7 @@ import {
   buildTopology, firstProtectiveUpstream, PRIORITIES, PRIORITY_LABELS, PROTECTIVE_TYPES, priorityOf, upstreamPaths,
 } from '../trace'
 
-export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
+export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'scenarios' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
 
 export type Cell = string | number | null
 
@@ -135,6 +136,7 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   loadflow: 'Load flow',
   diagram: 'One-line diagram',
   critical: 'Critical loads',
+  scenarios: 'Scenarios',
   shortcircuit: 'Short circuit',
   protection: 'Protection',
   reliability: 'Reliability',
@@ -317,6 +319,9 @@ export function buildReport(input: ReportInput): Report {
 
   if (sections.has('critical')) {
     out.push(criticalLoadsSection(circuit))
+  }
+  if (sections.has('scenarios') && circuit.scenarios?.length) {
+    out.push(scenariosSection(circuit, input.batch ?? null))
   }
 
   if (sections.has('shortcircuit') && input.fault?.converged) {
@@ -580,6 +585,90 @@ function studiesSection(studies: Partial<Record<string, unknown>>, names: Names)
     })
   }
   return { id: 'studies', title: 'Planning studies', tables, figures: [] }
+}
+
+/** A parameter change in words: "opened", "taken out of service", or
+ *  "kw 900 → 1200". */
+export function changeInWords(key: string, before: unknown, after: unknown): string {
+  const show = (v: unknown) => (v == null || v === '' ? '(blank)' : typeof v === 'object' ? JSON.stringify(v) : String(v))
+  if (key === 'closed') return after === false ? 'opened' : 'closed'
+  if (key === 'enabled') return after === false ? 'taken out of service' : 'returned to service'
+  if (key === 'islandMode') return after === 'isochronous' ? 'set to isochronous (carries an island)' : 'set to grid-following'
+  return `${key} ${show(before)} → ${show(after)}`
+}
+
+/** Every scenario with what it changes, in words, and -- when a batch has
+ *  been run -- the load each leaves unserved, by priority. */
+export function scenariosSection(circuit: CircuitJSON, batch: BatchResult | null): ReportSection {
+  const nodes = new Map(circuit.nodes.map((n) => [n.id, n]))
+  const edges = new Map(circuit.edges.map((e) => [e.id, e]))
+  const label = (id: string) => {
+    const n = nodes.get(id)
+    const e = n ? undefined : edges.get(id)
+    const type = n ? TYPE_NAMES[n.type] ?? n.type : e?.type === 'line' ? 'Line' : 'Wire'
+    const name = (n?.params.name ?? e?.params.name ?? id) as string
+    return `${type} ${name}`
+  }
+  const rows: Record<string, Cell>[] = []
+  for (const sc of circuit.scenarios ?? []) {
+    const changes: string[] = []
+    for (const [id, patch] of Object.entries(sc.overrides)) {
+      const before = nodes.get(id)?.params ?? edges.get(id)?.params ?? {}
+      const words = Object.entries(patch).map(([k, v]) => changeInWords(k, before[k], v))
+      changes.push(`${label(id)}: ${words.join('; ')}`)
+    }
+    for (const n of sc.addedNodes) changes.push(`${TYPE_NAMES[n.type] ?? n.type} ${String(n.params.name ?? n.id)} added`)
+    for (const e of sc.addedEdges) if (e.type === 'line') changes.push(`Line ${String(e.params.name ?? e.id)} added`)
+    for (const id of sc.removed) if (nodes.has(id) || edges.get(id)?.type === 'line') changes.push(`${label(id)} removed`)
+    if (!changes.length) changes.push('(no changes from the base case)')
+    changes.forEach((text, i) => rows.push({
+      scenario: i === 0 ? sc.name : '',
+      description: i === 0 ? sc.description || '' : '',
+      change: text,
+    }))
+  }
+  const tables: Table[] = [{
+    id: 'scenario-definitions',
+    title: 'Scenario definitions',
+    columns: [
+      { key: 'scenario', label: 'Scenario' },
+      { key: 'description', label: 'Description' },
+      { key: 'change', label: 'Change from the base case', width: 3 },
+    ],
+    rows,
+  }]
+  if (batch) {
+    const level = batch.levels[0] ?? null
+    const cells = batch.scenarios
+      .map((sc) => batch.cells.find((c) => c.scenario === sc.id && c.level === level))
+      .filter((c): c is BatchCell => !!c)
+    tables.push({
+      id: 'scenario-compare',
+      title: `Scenario comparison${cells[0] ? ` at ${cells[0].levelName}` : ''}`,
+      columns: [
+        { key: 'scenario', label: 'Scenario' },
+        { key: 'critical', label: 'Unserved critical', unit: 'kW', digits: 0 },
+        { key: 'essential', label: 'Unserved essential', unit: 'kW', digits: 0 },
+        { key: 'other', label: 'Other unserved', unit: 'kW', digits: 0 },
+        { key: 'minv', label: 'Lowest voltage', unit: 'pu', digits: 3 },
+        { key: 'load', label: 'Highest loading', unit: '%', digits: 0 },
+        { key: 'losses', label: 'Losses', unit: 'kW', digits: 1 },
+      ],
+      rows: cells.map((c) => ({
+        scenario: c.scenarioName,
+        critical: c.detail?.unservedKw.critical ?? null,
+        essential: c.detail?.unservedKw.essential ?? null,
+        other: c.detail ? c.detail.unservedKw.nonessential + c.detail.unservedKw.unassigned : null,
+        minv: c.minVpu,
+        load: c.maxLoadingPct,
+        losses: c.lossKw,
+      })),
+      flags: cells.map((c) => (!c.converged || (c.detail?.unservedKw.critical ?? 0) > 0 ? 'violation'
+        : (c.detail?.unservedKw.essential ?? 0) > 0 ? 'warning' : null)),
+      note: 'From the last batch run (Scenarios tab → Run all). Unserved load is the load on buses the solve left de-energised.',
+    })
+  }
+  return { id: 'scenarios', title: 'Scenarios', tables, figures: [] }
 }
 
 /** The drawing a section should read: the base with the open scenario

@@ -1859,3 +1859,22 @@ kbd {
 .trace-panel button.trace-load:hover { color: var(--accent); text-decoration: underline; }
 .trace-panel ol { margin: 2px 0 6px; padding-left: 18px; }
 .trace-panel .muted { color: var(--muted); }
+.scenarios-rename { flex: 1 1 auto; min-width: 0; }
+.scenarios-mini.danger { color: var(--danger); border-color: var(--danger-border); background: var(--danger-bg); }
+
+/* An open scenario: a banner over the drawing, and a dashed halo on what it
+   changes (amber) or adds (green). */
+.scenario-banner {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 6;
+  display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; font-size: 12px;
+  background: var(--warn-bg); color: var(--ink); border: 1px solid var(--warn); border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); white-space: nowrap;
+}
+.scenario-banner button { padding: 1px 10px; border-radius: 10px; }
+.react-flow__node.scenario-changed .symbol-node,
+.react-flow__node.scenario-added .symbol-node { outline: 2px dashed var(--warn); outline-offset: 4px; border-radius: 4px; }
+.react-flow__node.scenario-added .symbol-node { outline-color: #2e7d32; }
+.react-flow__edge.scenario-changed .react-flow__edge-path { filter: drop-shadow(0 0 2px var(--warn)) drop-shadow(0 0 2px var(--warn)); }
+.react-flow__edge.scenario-added .react-flow__edge-path { filter: drop-shadow(0 0 2px #2e7d32) drop-shadow(0 0 2px #2e7d32); }
+.scenarios-view { display: inline-flex; gap: 4px; margin-left: auto; }
+.scenarios-compare-table td.worst { background: var(--danger-bg); color: var(--danger); font-weight: 600; }

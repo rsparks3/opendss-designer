@@ -57,6 +57,49 @@ describe('scenarios in the store', () => {
     expect(st.dirty).toBe(false)
   })
 
+  it('three scenarios survive save and load unchanged', () => {
+    const st = () => useCircuitStore.getState()
+    const brk = st().nodes.find((n) => n.type === 'breaker')!
+    const load = st().nodes.find((n) => n.type === 'load')!
+    st().addScenario('Breaker open')
+    st().updateNodeParams(brk.id, { closed: false })
+    st().addScenario('Load up')
+    st().updateNodeParams(load.id, { kw: 1500 })
+    st().addScenario('PV added')
+    st().addNodeAt('pvsystem', { x: 600, y: 600 })
+    st().activateScenario(null)
+    const saved = JSON.parse(JSON.stringify(toCircuitJSON(st())))
+    expect(saved.scenarios).toHaveLength(3)
+    st().loadCircuit(JSON.parse(JSON.stringify(saved)))
+    expect(JSON.parse(JSON.stringify(toCircuitJSON(st())))).toEqual(saved)
+  })
+
+  it('reorders, and promotes a scenario to the base with the others rebased', () => {
+    const st = () => useCircuitStore.getState()
+    const brk = st().nodes.find((n) => n.type === 'breaker')!
+    const load = st().nodes.find((n) => n.type === 'load')!
+    const kw0 = load.data.params.kw
+    const a = st().addScenario('Load up')
+    st().updateNodeParams(load.id, { kw: 1500 })
+    const b = st().addScenario('Breaker open')
+    st().updateNodeParams(brk.id, { closed: false })
+    st().activateScenario(null)
+    st().moveScenario(b, -1)
+    expect(st().scenarios.map((x) => x.id)).toEqual([b, a])
+    st().moveScenario(b, -1) // already first: nothing
+    expect(st().scenarios.map((x) => x.id)).toEqual([b, a])
+
+    st().promoteScenario(a)
+    // The base is now "Load up"...
+    expect(st().nodes.find((n) => n.id === load.id)!.data.params.kw).toBe(1500)
+    expect(st().scenarios.map((x) => x.id)).toEqual([b])
+    // ...and "Breaker open" still means what it meant: the old base's load,
+    // breaker open -- so it now carries the load change back as well.
+    st().activateScenario(b)
+    expect(st().nodes.find((n) => n.id === brk.id)!.data.params.closed).toBe(false)
+    expect(st().nodes.find((n) => n.id === load.id)!.data.params.kw).toBe(kw0)
+  })
+
   it('duplicate, rename and remove', () => {
     const s = useCircuitStore.getState()
     const id = s.addScenario('A')
