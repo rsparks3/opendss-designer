@@ -17,6 +17,7 @@ configurations of an installation-scale system.
   and as fill-down columns in the Elements tab. They travel through a `.dss`
   export as a `! designer:` comment line above the load, which the importer
   reads back.
+- **Priority from class on import.** A load's OpenDSS `class=` is read on import (it is where a converted CYME or Synergi model carries its customer class). Where `config/priority_by_class.csv` maps a class to a priority, the importer sets the load's priority, keeping any the file already states. An import request may also send its own `priorityByClass`. The shipped file is empty.
 - **Trace to source** and **Show downstream** on the right-click menu. The
   trace lights the path to every source that reaches the element and lists
   it with the first protective device upstream; downstream dims everything

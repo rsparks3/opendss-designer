@@ -1,0 +1,8 @@
+# Load priority by customer or load class, applied to imported models
+# (CYME, Synergi, .dss). One row per class; priority is critical,
+# essential, nonessential or unassigned. Empty: no mapping is assumed.
+# Copy to ./config/priority_by_class.csv (or $OPENDSS_DESIGNER_CONFIG) and
+# fill it in for your installation, e.g.
+#   hospital,critical
+#   residential,nonessential
+class,priority

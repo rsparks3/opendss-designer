@@ -26,6 +26,7 @@ from ..core import (
     linecodes,
     multispeak,
     nrel,
+    priority_map,
     protection,
     qa,
     reliability,
@@ -428,6 +429,9 @@ class ImportRequest(BaseModel):
 
     files: list[DssFile] | None = None
     text: str | None = None
+    # Customer or load class -> priority for this import (overrides the
+    # configured config/priority_by_class.csv).
+    priorityByClass: Annotated[dict[str, str], Field(max_length=200)] | None = None
 
 
 def _check_import_size(files: list[DssFile]) -> None:
@@ -456,7 +460,10 @@ def import_file(payload: ImportRequest = Body(...)) -> dict:
         files = [DssFile(name="main.dss", text=payload.text or "")]
     _check_import_size(files)
     try:
-        return importer.import_dss_files([f.model_dump() for f in files])
+        result = importer.import_dss_files([f.model_dump() for f in files])
+        if payload.priorityByClass:
+            priority_map.apply(result["circuit"], payload.priorityByClass)
+        return result
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
     except importer.ImportFailure as exc:
@@ -480,6 +487,9 @@ class BinaryFile(BaseModel):
 class ConvertRequest(BaseModel):
     format: str
     files: list[BinaryFile]
+    # Customer or load class -> priority for this import (overrides the
+    # configured config/priority_by_class.csv).
+    priorityByClass: Annotated[dict[str, str], Field(max_length=200)] | None = None
 
 
 @router.post("/import/convert")
@@ -510,7 +520,10 @@ def import_converted(req: ConvertRequest) -> dict:
             )
         decoded.append((f.name, data))
     try:
-        return convert.convert_and_import(req.format, decoded)
+        result = convert.convert_and_import(req.format, decoded)
+        if req.priorityByClass:
+            priority_map.apply(result["circuit"], req.priorityByClass)
+        return result
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
     except convert.ConvertFailure as exc:

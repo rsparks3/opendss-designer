@@ -51,7 +51,7 @@ Export to `.dss` must continue to work with every field below ignored. Import of
 
 Everything below was built as described, except where a *Done differently* or *As built* note says otherwise. The user's guide is `docs/facility.md`, and `frontend/e2e/facility.spec.ts` runs the milestone's exit demo end to end.
 
-**Not done in this milestone:** the CYME/Synergi customer-class → priority mapping (1.2). It belongs in the separate `opendss-designer-convert` plugin, which is not in this repository.
+**CYME/Synergi class → priority (1.2), as built:** the convert plugin hands this repository `.dss`, so the mapping is applied in the importer. OpenDSS's load `class=` is now read on import. `config/priority_by_class.csv` (shipped empty, so no mapping is assumed), or a `priorityByClass` sent with `/api/import/dss` or `/api/import/convert`, sets the priority of each load whose class it names. A priority the file already states is kept.
 
 **Goal:** answer the three ERRE questions in the tool: *what is feeding what, what happens when the utility goes away, and what does the system look like under each operating configuration.*
 

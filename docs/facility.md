@@ -42,6 +42,13 @@ New Load.hospital bus1=... kw=900 ...
 
 To any other tool the line is a comment.
 
+Imported models carry a customer or load class rather than a priority. CYME
+and Synergi models are converted to `.dss` first, so the same path applies.
+The importer reads OpenDSS's `class=` into the load's *Class*. Where
+`config/priority_by_class.csv` maps classes to priorities (one `class,priority`
+row each; the shipped file is empty), each matching load gets that priority.
+A priority already stated in a `! designer:` line is kept.
+
 ## Trace to source, show downstream
 
 Right-click any element:

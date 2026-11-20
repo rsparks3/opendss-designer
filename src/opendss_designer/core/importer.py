@@ -22,7 +22,7 @@ from typing import Any
 
 import opendssdirect as dss
 
-from . import designer_meta, engine, passthrough
+from . import designer_meta, engine, passthrough, priority_map
 from .connectivity import sanitize_name
 from .model import (
     Circuit,
@@ -459,6 +459,9 @@ def _keep_passthrough(result: dict[str, Any], files: list[dict[str, str]], main:
     result["circuit"]["passthrough"] = [e.model_dump() for e in entries]
     result["circuit"]["comments"] = comments
     designer_meta.apply_to_import(result["circuit"])
+    # Priority from class where a mapping is configured (after the designer
+    # lines, so a priority the file states is kept).
+    priority_map.apply(result["circuit"])
     kept = {e.name.lower() for e in entries}
     result["passthrough"] = [e.name for e in entries]
     # Whatever could not be found in the text (defined by some construct the
@@ -1149,6 +1152,10 @@ def _read_model_back(warnings: list[str]) -> dict[str, Any]:
         }
         if int(dss.Loads.NumCust()) != 1:
             params["numcust"] = int(dss.Loads.NumCust())
+        # OpenDSS's own load class (an integer, 1 unless the file says):
+        # what a converted CYME or Synergi model carries its customer class in.
+        if int(dss.Loads.Class()) != 1:
+            params["class"] = str(int(dss.Loads.Class()))
         if params["model"] == 4:
             params["cvrwatts"] = dss.Loads.CVRwatts()
             params["cvrvars"] = dss.Loads.CVRvars()
