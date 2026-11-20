@@ -34,7 +34,7 @@ from ..core import (
 )
 from ..core.compiler import export_dss
 from ..core.jobs import jobs
-from ..core.model import Circuit
+from ..core.model import Allocation, Circuit
 from ..core.ratelimit import RateLimited, TokenBucket
 from ..core.validate import phase_map, validate
 from ..settings import settings
@@ -902,6 +902,33 @@ def allocate_loads(req: AllocateRequest) -> dict:
         return allocation_study.allocate(req.circuit, req.rows[:20000], req.options)
     except engine.EngineBusy as exc:
         raise _busy(exc) from exc
+
+
+class AllocateZoneRequest(BaseModel):
+    circuit: Circuit
+    allocation: Allocation
+
+
+@router.post("/allocate/zone")
+def allocate_zone(req: AllocateZoneRequest) -> dict:
+    """Scale the loads below a meter point until the solve agrees with the
+    measured kW (and kvar or PF): the factor found, not written into loads."""
+    _refuse_locked_study()
+    try:
+        return allocation_study.allocate_zone(req.circuit, req.allocation)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
+
+
+class BakeRequest(BaseModel):
+    circuit: Circuit
+    allocationId: Annotated[str, Field(min_length=1, max_length=64)]
+
+
+@router.post("/allocate/bake")
+def bake_allocation(req: BakeRequest) -> dict:
+    """The load values an allocation's factor stands for, as overrides."""
+    return allocation_study.bake(req.circuit, req.allocationId)
 
 
 # --- M16: protection and reliability depth ----------------------------------------

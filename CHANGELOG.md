@@ -46,6 +46,16 @@ configurations of an installation-scale system.
   - The report gained *Loss of utility*: the islands and the unserved loads of each scenario a generator carries, with the modelling note.
   - Validation now judges islands on the circuit as it will be solved (the open scenario applied, sources out of service not counted). It says so when no source is in service, and warns when two machines hold one island.
   - The Installation campus sample carries two outage scenarios.
+- **Allocate to a metered value.**
+  - Right-click a meter point (a source, a breaker or other device, a transformer or a line) and give the measured kW. Optionally also give kvar or PF, demand factors by priority or tag, and where the measurement came from.
+  - The loads below it are scaled until the solve agrees within 0.5 % (at most five solves).
+  - The factor is stored with the project and applied at every solve, so the entered values are kept. A small ×factor tag marks each scaled load. *Bake into loads* writes the values in instead, and *Clear* removes the allocation.
+  - Loads gained *Fixed* (metered separately, never scaled).
+  - Zones are judged on the base case, so they hold through any scenario. Two zones may not overlap.
+  - The `.dss` export writes the allocated values with a comment giving the factor; the CIM export writes the allocated values too.
+  - The report gained *Load basis*.
+  - The existing allocation from billing or AMI data now iterates to 0.5 % instead of two fixed passes, and leaves fixed loads alone.
+  - Routes: `POST /api/allocate/zone` and `/api/allocate/bake`.
 - Samples: **Installation campus** (a fictional base: utility service, split
   main bus, three feeders, a normally-open tie, two standby generators,
   loads at every priority) and **Looped feeder, two sources**.

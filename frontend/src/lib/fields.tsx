@@ -144,6 +144,9 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'priority', label: 'Priority', kind: 'select', options: ['unassigned', 'critical', 'essential', 'nonessential'] },
     { key: 'tags', label: 'Tags', kind: 'tags' },
     { key: 'building', label: 'Building', kind: 'text', placeholder: 'Bldg 1200' },
+    // Metered separately (a chiller plant on its own meter): an allocation
+    // never scales it.
+    { key: 'fixed', label: 'Fixed (not scaled by allocation)', kind: 'checkbox', defaultOff: true },
     // Model 4 (CVR): how real and reactive power follow the voltage.
     { key: 'cvrwatts', label: 'CVR factor (kW)', kind: 'number', placeholder: '1', showIf: (p) => Number(p.model) === 4 },
     { key: 'cvrvars', label: 'CVR factor (kvar)', kind: 'number', placeholder: '2', showIf: (p) => Number(p.model) === 4 },

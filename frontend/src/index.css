@@ -1894,3 +1894,10 @@ kbd {
 .island-card .muted, .island-card.muted, .island-card.note { color: var(--muted); }
 .island-card.note { font-size: 11px; box-shadow: none; }
 .island-card .prio-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+
+/* A load an allocation scales: its multiplier, small, beside the symbol. */
+.alloc-badge {
+  position: absolute; top: 2px; right: -30px; font-size: 9px; line-height: 12px; padding: 0 3px;
+  border-radius: 6px; background: var(--subtle); border: 1px solid var(--border); color: var(--muted);
+  pointer-events: auto; white-space: nowrap;
+}

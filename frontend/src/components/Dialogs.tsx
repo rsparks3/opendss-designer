@@ -1,3 +1,4 @@
+import { ZoneAllocationDialog } from './ZoneAllocationDialog'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { exportSaved, openFromLibrary, openProjectFile, saveAsChosen } from '../lib/fileActions'
 import { useInstanceHealth } from '../lib/instance'
@@ -63,6 +64,8 @@ export function Dialogs() {
       return <ScreeningDialog onClose={close} />
     case 'allocate':
       return <AllocationDialog onClose={close} />
+    case 'zoneAllocate':
+      return <ZoneAllocationDialog onClose={close} />
     case 'adoption':
       return <AdoptionDialog onClose={close} />
     default:

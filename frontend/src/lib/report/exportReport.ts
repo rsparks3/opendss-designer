@@ -34,6 +34,7 @@ export function sectionAvailability(): Record<SectionKey, string | null> {
     diagram: null,
     critical: nodes.some((n) => n.type === 'load' && ['critical', 'essential'].includes(String(n.data.params.priority)))
       ? null : 'No load is marked critical or essential (Priority on the load).',
+    loadbasis: useCircuitStore.getState().allocations.length ? null : 'No load has been allocated to a metered value (right-click a meter point).',
     outage: nodes.some((n) => n.type === 'generator') || rs.batch
       ? null : 'The circuit has no generator, and no batch has been run.',
     scenarios: useCircuitStore.getState().scenarios.length ? null : 'The project has no scenarios (Scenarios tab).',

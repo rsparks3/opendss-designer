@@ -12,6 +12,7 @@ import { signalStruggle } from '../../store/hintStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import { deltaColor } from '../../lib/compare'
 import { formatKw, hostingColor } from '../../lib/hostingCapacity'
+import { allocationOf } from '../../lib/allocation'
 import { busPriorityOf, islandColorOf, PRIORITY_COLORS, priorityOf } from '../../lib/trace'
 import type { Params } from '../../types/circuit'
 import { LoadingPie } from '../LoadingPie'
@@ -330,6 +331,17 @@ export function useLoadInk(nodeId: string, params: Params): React.CSSProperties 
 export function useIslandColor(id: string): string | undefined {
   const on = useResultsStore((s) => s.overlay === 'islands')
   return useCircuitStore((s) => (on ? islandColorOf(s.nodes, s.edges, id) : undefined))
+}
+
+/** A small tag on a load an allocation scales: its kW multiplier. */
+export function AllocationBadge({ nodeId }: { nodeId: string }) {
+  const a = useCircuitStore((s) => {
+    const r = allocationOf(s.scenarioBase?.nodes ?? s.nodes, s.scenarioBase?.edges ?? s.edges, s.allocations, nodeId)
+    return r ? `${r.factor.toFixed(3)}|${r.allocation}` : null
+  })
+  if (!a) return null
+  const [factor, id] = a.split('|')
+  return <div className="alloc-badge" title={`Scaled by allocation ${id}: entered kW × ${factor}`}>×{factor}</div>
 }
 
 /** A busbar's colour in the 'priority' overlay: the highest priority of the

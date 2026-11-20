@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import designer_meta, passthrough
+from . import allocations, designer_meta, passthrough
 from .connectivity import (
     BUSBAR_CANON_HANDLE,
     ConnectivityResult,
@@ -85,6 +85,9 @@ class CompileResult:
     optional_commands: set[str] = field(default_factory=set)
     # Lowercase class.name of each passthrough element that runs.
     passthrough_names: list[str] = field(default_factory=list)
+    # Load id -> (allocation id, kW multiplier) for every load an allocation
+    # scaled, for the export's comment.
+    allocated: dict[str, tuple[str, float]] = field(default_factory=dict)
 
 
 def _num(params: dict, key: str, default: float | None = None) -> float | None:
@@ -482,6 +485,11 @@ def compile_circuit(
     element, the ones a solve would leave out included (commented out when
     they refer to something that is gone)."""
     res = CompileResult()
+    # Metered-zone allocations scale loads by zones judged on the base
+    # drawing (core/allocations), so they are worked out before the scenario.
+    scales, alloc_issues = allocations.multipliers(circuit)
+    res.issues.extend(alloc_issues)
+    res.allocated = {lid: (sc.allocation, sc.kw) for lid, sc in scales.items()}
     # The active scenario's deltas, so every caller -- solve, fault study,
     # time series, export -- sees the effective circuit.
     circuit = apply_scenario(circuit, circuit.scenario)
@@ -1154,6 +1162,16 @@ def compile_circuit(
         if load_class and class_mult is not None:
             kw = kw * class_mult
         pf = _num(p, "pf", 0.95)
+        power = f"kw={kw:g} pf={pf:g}"
+        scale = scales.get(n.id)
+        if scale is not None:
+            # Allocated: kW by its factor; reactive power by its own when a
+            # kvar or PF target set one, which pins kvar instead of the PF.
+            if abs(scale.kvar - scale.kw) > 1e-12 and pf is not None and 0 < abs(pf) <= 1:
+                kvar = kw * math.tan(math.acos(abs(pf))) * scale.kvar * (1 if pf > 0 else -1)
+                power = f"kw={kw * scale.kw:g} kvar={kvar:g}"
+            else:
+                power = f"kw={kw * scale.kw:g} pf={pf:g}"
         load_conn = _enum(p, "conn", CONN_TYPES, "wye")
         model = int(_num(p, "model", 1) or 1)
         # A drawn load keeps the forgiving 0.85 floor so a sketch with a
@@ -1166,7 +1184,7 @@ def compile_circuit(
         customers = f" numcust={int(numcust)}" if numcust is not None and numcust >= 0 else ""
         cmds.append(
             f"new load.{name} bus1={bus} phases={phases} conn={load_conn} "
-            f"kv={kv:g} kw={kw:g} pf={pf:g} model={model} vminpu={vminpu:g}"
+            f"kv={kv:g} {power} model={model} vminpu={vminpu:g}"
             + customers
             + _load_model_extras(p, model)
             + shape_ref(p, n.id)
@@ -1430,6 +1448,10 @@ def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:
             node = by_id.get(res.element_map.get(key, ""))
             if node is not None and (meta := designer_meta.format_line(node.type, node.params)):
                 body.append(meta)
+            if node is not None and node.id in res.allocated:
+                alloc, mult = res.allocated[node.id]
+                body.append(f"! allocated: kW scaled by {mult:.4f} (allocation {alloc}); "
+                            f"entered {node.params.get('kw')} kW")
         body.append(cmd)
     header = _as_comment(notes["circuit"]) + [""] if "circuit" in notes else []
     if loose:

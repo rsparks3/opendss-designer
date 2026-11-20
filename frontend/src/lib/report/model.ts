@@ -43,11 +43,12 @@ import { EMPTY_STUDY, limitsOf } from '../limits'
 import { operateSeconds, type TccResult } from '../tcc'
 import { traceUnit } from './charts'
 import { fromCircuitJSON, type AppEdge, type AppNode } from '../../store/circuitStore'
+import { zoneLoads } from '../allocation'
 import {
   buildTopology, firstProtectiveUpstream, PRIORITIES, PRIORITY_LABELS, PROTECTIVE_TYPES, priorityOf, upstreamPaths,
 } from '../trace'
 
-export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'scenarios' | 'outage' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
+export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'loadbasis' | 'scenarios' | 'outage' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
 
 export type Cell = string | number | null
 
@@ -137,6 +138,7 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   loadflow: 'Load flow',
   diagram: 'One-line diagram',
   critical: 'Critical loads',
+  loadbasis: 'Load basis',
   scenarios: 'Scenarios',
   outage: 'Loss of utility',
   shortcircuit: 'Short circuit',
@@ -321,6 +323,9 @@ export function buildReport(input: ReportInput): Report {
 
   if (sections.has('critical')) {
     out.push(criticalLoadsSection(circuit))
+  }
+  if (sections.has('loadbasis') && circuit.allocations?.length) {
+    out.push(loadBasisSection(circuit))
   }
   if (sections.has('outage')) {
     const sec = outageSection(circuit, solved, input.batch ?? null)
@@ -591,6 +596,59 @@ function studiesSection(studies: Partial<Record<string, unknown>>, names: Names)
     })
   }
   return { id: 'studies', title: 'Planning studies', tables, figures: [] }
+}
+
+/** Every metered-zone allocation: where it was measured, the target, the
+ *  measurement's source and the factor the model carries. */
+export function loadBasisSection(circuit: CircuitJSON): ReportSection {
+  const { nodes, edges } = fromCircuitJSON(circuit)
+  const topo = buildTopology(nodes, edges)
+  const nameOf = (id: string) => {
+    const n = topo.nodes.get(id)
+    return String((n ? n.data.params.name : topo.edges.find((e) => e.id === id)?.data?.params.name) || id)
+  }
+  const rows = (circuit.allocations ?? []).map((a) => {
+    const loads = zoneLoads(topo, a.meterElementId)
+    const fixed = loads.filter((id) => topo.nodes.get(id)?.data.params.fixed === true).length
+    return {
+      meter: nameOf(a.meterElementId),
+      target: a.targetKW,
+      reactive: a.targetKvar != null ? `${a.targetKvar} kvar` : a.targetPF != null ? `PF ${a.targetPF}` : '—',
+      source: a.source || '—',
+      factor: a.lastFactor ?? null,
+      kvarFactor: a.lastKvarFactor ?? null,
+      achieved: a.lastAchievedKW ?? null,
+      loads: `${loads.length - fixed}${fixed ? ` (+${fixed} fixed)` : ''}`,
+      demand: a.demandFactors ? Object.entries(a.demandFactors).map(([k, v]) => `${k} ×${v}`).join(', ') : '—',
+      status: a.lastFactor == null ? 'not run' : a.lastConverged ? `within 0.5 % (${a.lastIterations} it.)` : 'did not converge',
+    }
+  })
+  return {
+    id: 'loadbasis',
+    title: 'Load basis',
+    tables: [{
+      id: 'allocations',
+      title: 'Loads allocated to metered values',
+      columns: [
+        { key: 'meter', label: 'Meter point' },
+        { key: 'target', label: 'Measured', unit: 'kW', digits: 0 },
+        { key: 'reactive', label: 'Reactive' },
+        { key: 'source', label: 'Source of the measurement', width: 2 },
+        { key: 'loads', label: 'Loads scaled' },
+        { key: 'demand', label: 'Demand factors' },
+        { key: 'factor', label: 'Factor', digits: 4 },
+        { key: 'kvarFactor', label: 'kvar factor', digits: 4 },
+        { key: 'achieved', label: 'Solved', unit: 'kW', digits: 0 },
+        { key: 'status', label: 'Status' },
+      ],
+      rows,
+      flags: (circuit.allocations ?? []).map((a) => (a.lastFactor == null || !a.lastConverged ? 'warning' : null)),
+      note: 'Every load below a meter point (except those marked fixed) has its entered kW multiplied by the factor, ' +
+        'after the demand factors, when the circuit is solved; the entered values are kept. Zones are taken from the base ' +
+        'case, so they do not move when a scenario reconfigures the circuit.',
+    }],
+    figures: [],
+  }
 }
 
 export const ISOCHRONOUS_NOTE =

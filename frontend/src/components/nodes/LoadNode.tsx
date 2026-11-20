@@ -1,6 +1,7 @@
 import { Position, type NodeProps } from '@xyflow/react'
 import type { AppNode } from '../../store/circuitStore'
 import {
+  AllocationBadge,
   NodeLabel,
   ReliabilityBadge,
   rotatedBox,
@@ -34,6 +35,7 @@ export function LoadNode({ id, data }: NodeProps<AppNode>) {
         {kw != null && <div className="sub-label">{Number(kw)} kW</div>}
       </NodeLabel>
       <VoltageBadge nodeId={id} />
+      <AllocationBadge nodeId={id} />
       <ReliabilityBadge nodeId={id} customers={Number(data.params.numcust ?? 1)} />
     </div>
   )

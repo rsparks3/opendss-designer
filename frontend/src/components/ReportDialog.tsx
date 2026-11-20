@@ -5,11 +5,12 @@ import { SECTION_LABELS, type SectionKey } from '../lib/report/model'
 import { useResultsStore } from '../store/resultsStore'
 import { readFlag, useUiStore, writePref } from '../store/uiStore'
 
-const ORDER: SectionKey[] = ['loadflow', 'diagram', 'critical', 'outage', 'scenarios', 'shortcircuit', 'protection', 'reliability', 'timeseries', 'comparison', 'batch', 'hosting', 'screening', 'studies', 'history']
+const ORDER: SectionKey[] = ['loadflow', 'diagram', 'critical', 'loadbasis', 'outage', 'scenarios', 'shortcircuit', 'protection', 'reliability', 'timeseries', 'comparison', 'batch', 'hosting', 'screening', 'studies', 'history']
 
 const WHAT: Record<SectionKey, string> = {
   loadflow: 'Summary, abnormal conditions, bus voltages, branch flows, loads and generation, losses, voltage profile',
   diagram: 'The drawing, with its notes',
+  loadbasis: 'Each load allocation to a metered value: the meter point, the measurement and its source, the loads scaled and the factor',
   outage: 'For each scenario a generator carries (after Run all) or this solve: the islands, what carries them and at what loading, and the load left dark',
   scenarios: 'Each scenario\u2019s changes from the base case in words and, after Run all, the unserved load, lowest voltage and highest loading of each',
   critical: 'Every critical and essential load with its source, feeder, transformer and first protective device upstream',

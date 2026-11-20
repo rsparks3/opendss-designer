@@ -18,7 +18,7 @@ import {
  * or saved with a project; the preferences persist per browser.
  */
 
-export type Dialog = 'saveAs' | 'library' | 'shortcuts' | 'about' | 'find' | 'prefs' | 'project' | 'report' | 'gis' | 'screen' | 'allocate' | 'adoption' | null
+export type Dialog = 'saveAs' | 'library' | 'shortcuts' | 'about' | 'find' | 'prefs' | 'project' | 'report' | 'gis' | 'screen' | 'allocate' | 'zoneAllocate' | 'adoption' | null
 
 /** Panels the View menu can show and hide. Keys match SidePanel storage keys. */
 export type PanelKey = 'palette2' | 'properties' | 'bottom'
@@ -80,6 +80,9 @@ interface UiState {
    *  drawing, so it follows edits); null is no trace. */
   trace: TraceRequest | null
   setTrace: (t: TraceRequest | null) => void
+  /** The meter point the zone-allocation dialog is for. */
+  allocationMeter: string | null
+  openZoneAllocation: (meterId: string) => void
 }
 
 const PREFIX = 'opendss-designer.'
@@ -142,6 +145,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   setEditingNote: (editingNote) => set({ editingNote }),
   trace: null,
   setTrace: (trace) => set({ trace }),
+  allocationMeter: null,
+  openZoneAllocation: (allocationMeter) => set({ allocationMeter, dialog: 'zoneAllocate' }),
   closeDialog: () => set({ dialog: null }),
 
   panelOpen: {

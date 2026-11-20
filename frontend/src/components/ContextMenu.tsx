@@ -139,6 +139,13 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
     if (node?.type !== 'load') {
       items.push({ label: 'Show downstream', action: () => setTrace({ kind: 'downstream', elementId: picked.id }) })
     }
+    const METER_TYPES = ['vsource', 'transformer', 'regulator', 'breaker', 'fuse', 'recloser', 'relay']
+    if ((node && METER_TYPES.includes(node.type ?? '')) || edge?.type === 'line') {
+      items.push({
+        label: 'Allocate to a metered value…',
+        action: () => useUiStore.getState().openZoneAllocation(picked.id),
+      })
+    }
     items.push({
       label: 'Select everything downstream',
       action: () => store.selectMany(downstreamOf(store.nodes, store.edges, picked)),

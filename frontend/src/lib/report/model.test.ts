@@ -309,3 +309,20 @@ describe('loss of utility section', () => {
     expect(outageSection(circuit, { converged: true, islands: { energizedCount: 1, unservedKw: { critical: 0, essential: 0, nonessential: 0, unassigned: 0 }, unservedLoads: [], islands: [] } } as unknown as SolveResult, null).tables).toEqual([])
   })
 })
+
+describe('load basis section', () => {
+  it('lists each allocation with its zone and factor', async () => {
+    const campus = (await import('../../../../src/opendss_designer/samples/installation-campus.oneline.json')).default as unknown as CircuitJSON
+    const { loadBasisSection } = await import('./model')
+    const t = loadBasisSection({
+      ...campus,
+      allocations: [
+        { id: 'a', meterElementId: 'brk_f1', targetKW: 1000, targetPF: 0.95, source: 'Meter F1, July peak', lastFactor: 0.87, lastAchievedKW: 999.6, lastIterations: 2, lastConverged: true },
+        { id: 'b', meterElementId: 'brk_f3', targetKW: 1600 },
+      ],
+    }).tables[0]
+    expect(t.rows[0]).toMatchObject({ meter: '52-F1', target: 1000, reactive: 'PF 0.95', source: 'Meter F1, July peak', factor: 0.87, loads: '2', status: 'within 0.5 % (2 it.)' })
+    expect(t.rows[1]).toMatchObject({ meter: '52-F3', status: 'not run' })
+    expect(t.flags).toEqual([null, 'warning'])
+  })
+})

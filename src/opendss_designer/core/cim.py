@@ -30,6 +30,7 @@ import xml.etree.ElementTree as ET
 from typing import Any
 from xml.sax.saxutils import escape
 
+from . import allocations
 from .connectivity import synthesize
 from .model import Circuit
 
@@ -593,7 +594,10 @@ def _end_info_x(objs: dict[str, _Obj], end: _Obj) -> float | None:
 
 
 def circuit_to_cim(circuit: Circuit) -> str:
-    """A CIM100 RDF/XML document for the circuit's power system model."""
+    """A CIM100 RDF/XML document for the circuit's power system model.
+    Loads in an allocation's zone are written at their allocated power, as
+    the .dss export writes them."""
+    scales, _ = allocations.multipliers(circuit)
     conn = synthesize(circuit)
     cim = CIM_NS_CANDIDATES[0]
     out: list[str] = [
@@ -655,6 +659,8 @@ def circuit_to_cim(circuit: Circuit) -> str:
             kw = num(p, "kw", 100.0)
             pf = num(p, "pf", 0.95)
             kvar = kw * math.tan(math.acos(min(abs(pf), 1.0))) if pf else 0.0
+            if (sc := scales.get(n.id)) is not None:
+                kw, kvar = kw * sc.kw, kvar * sc.kvar
             out.append(
                 f'  <cim:EnergyConsumer rdf:ID="{eq}">\n    <cim:IdentifiedObject.name>{escape(str(p.get("name") or n.id))}</cim:IdentifiedObject.name>\n'
                 f"    <cim:EnergyConsumer.p>{kw * 1000:.6g}</cim:EnergyConsumer.p>\n    <cim:EnergyConsumer.q>{kvar * 1000:.6g}</cim:EnergyConsumer.q>\n"
