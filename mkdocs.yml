@@ -43,6 +43,7 @@ nav:
   - Time-series analysis: timeseries.md
   - Study reports: report.md
   - Planning (levels, scenarios, compare): planning.md
+  - Facility planning (priority, outage, allocation): facility.md
   - Hosting capacity: hosting-capacity.md
   - Planning studies: studies.md
   - Model quality and libraries: model.md

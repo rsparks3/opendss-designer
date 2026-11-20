@@ -11,7 +11,7 @@ import { useUiStore } from '../store/uiStore'
  */
 /** Overlays reached from their own tab and the Analysis menu rather than
  *  the toolbar, which stays one row high. */
-const STUDY_OVERLAYS = new Set(['compare', 'hosting'])
+const STUDY_OVERLAYS = new Set(['compare', 'hosting', 'islands'])
 
 export function Toolbar() {
   const name = useCircuitStore((s) => s.name)

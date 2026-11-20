@@ -47,7 +47,11 @@ Export to `.dss` must continue to work with every field below ignored. Import of
 
 ---
 
-## 1. Milestone A — Resilience core (Tier 1)
+## 1. Milestone A — Resilience core (Tier 1) — ✅ DONE 2026-11-20 (branch `facility-tier1`)
+
+Everything below was built as described, except where a *Done differently* or *As built* note says otherwise. The user's guide is `docs/facility.md`, and `frontend/e2e/facility.spec.ts` runs the milestone's exit demo end to end.
+
+**Not done in this milestone:** the CYME/Synergi customer-class → priority mapping (1.2). It belongs in the separate `opendss-designer-convert` plugin, which is not in this repository.
 
 **Goal:** answer the three ERRE questions in the tool: *what is feeding what, what happens when the utility goes away, and what does the system look like under each operating configuration.*
 
