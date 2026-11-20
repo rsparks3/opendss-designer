@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import passthrough
+from . import designer_meta, passthrough
 from .connectivity import (
     BUSBAR_CANON_HANDLE,
     ConnectivityResult,
@@ -1349,6 +1349,8 @@ def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:
     # Notes on the drawing become comments too: one pointing at an element
     # goes above that element, the rest in a block after the header.
     dss_name = {diagram_id: full for full, diagram_id in res.element_map.items()}
+    effective = apply_scenario(circuit, circuit.scenario)
+    by_id = {n.id: n for n in effective.nodes}
     pinned: dict[str, list[str]] = {}
     loose: list[str] = []
     for n in circuit.nodes:
@@ -1372,6 +1374,10 @@ def export_dss(circuit: Circuit) -> tuple[str, list[Issue]]:
                 body.extend(_as_comment(notes[key]))
             # The first source is the circuit's own Vsource.
             body.extend(pinned.get("vsource.source" if key == "circuit" else key, []))
+            # What OpenDSS has no property for (priority, island mode, ...).
+            node = by_id.get(res.element_map.get(key, ""))
+            if node is not None and (meta := designer_meta.format_line(node.type, node.params)):
+                body.append(meta)
         body.append(cmd)
     header = _as_comment(notes["circuit"]) + [""] if "circuit" in notes else []
     if loose:

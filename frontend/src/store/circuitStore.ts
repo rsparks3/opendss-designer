@@ -20,6 +20,7 @@ import type { CircuitJSON, CircuitNodeJSON, EdgeKind, LoadShapeJSON, NodeType, P
   LimitsJSON,
   LineCodeJSON,
   LineGeometryJSON,
+  AllocationJSON,
   LoadLevelJSON,
   PassthroughJSON,
   ScenarioJSON,
@@ -90,6 +91,12 @@ export interface CircuitState {
   xyCurves: Record<string, XYCurveJSON>
   setXyCurve: (name: string, spec: XYCurveJSON) => void
   removeXyCurve: (name: string) => void
+  /** Tag names offered on loads; any tag is allowed. */
+  tagVocabulary: string[]
+  setTagVocabulary: (tags: string[]) => void
+  /** Metered-zone load allocations (factor applied at compile time). */
+  allocations: AllocationJSON[]
+  setAllocations: (allocations: AllocationJSON[]) => void
   /** The load conditions studies run at; null = rated only. */
   loadLevels: LoadLevelJSON[] | null
   setLoadLevels: (levels: LoadLevelJSON[] | null) => void
@@ -495,7 +502,7 @@ export function toCircuitJSON(
     'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves' | 'lineCodes'
   > & Partial<Pick<CircuitState, 'passthrough' | 'comments' | 'limits' | 'study' | 'voltageBases' | 'crs'
     | 'xyCurves' | 'loadLevels' | 'activeLevel' | 'scenarios' | 'activeScenario' | 'scenarioBase'
-    | 'wireData' | 'lineGeometries' | 'history'>>,
+    | 'wireData' | 'lineGeometries' | 'history' | 'tagVocabulary' | 'allocations'>>,
 ): CircuitJSON {
   // While a scenario is open the drawing on screen is the scenario's; the
   // document holds the base and the deltas, refreshed from the drawing.
@@ -551,6 +558,8 @@ export function toCircuitJSON(
     ...(s.activeLevel ? { activeLevel: s.activeLevel } : {}),
     ...(scenarios.length ? { scenarios } : {}),
     ...(s.activeScenario ? { activeScenario: s.activeScenario } : {}),
+    ...(s.tagVocabulary?.length ? { tagVocabulary: s.tagVocabulary } : {}),
+    ...(s.allocations?.length ? { allocations: s.allocations } : {}),
   }
 }
 
@@ -682,6 +691,16 @@ export const useCircuitStore = create<CircuitState>()(
       removeXyCurve: (name) => {
         const { [name]: _gone, ...rest } = get().xyCurves
         set({ xyCurves: rest, dirty: true })
+        markStale()
+      },
+      tagVocabulary: [],
+      setTagVocabulary: (tags) => {
+        const clean = [...new Set(tags.map((t) => t.trim()).filter(Boolean))]
+        set({ tagVocabulary: clean, dirty: true })
+      },
+      allocations: [],
+      setAllocations: (allocations) => {
+        set({ allocations, dirty: true })
         markStale()
       },
       loadLevels: null,
@@ -1236,6 +1255,8 @@ export const useCircuitStore = create<CircuitState>()(
           scenarios: c.scenarios ?? [],
           activeScenario: null,
           scenarioBase: null,
+          tagVocabulary: c.tagVocabulary ?? [],
+          allocations: c.allocations ?? [],
           dirty: false,
         })
         // Cleared here rather than at each call site: Open used to leave the
@@ -1271,6 +1292,8 @@ export const useCircuitStore = create<CircuitState>()(
           scenarios: [],
           activeScenario: null,
           scenarioBase: null,
+          tagVocabulary: [],
+          allocations: [],
           dirty: true,
           projectId: null,
         })
@@ -1461,6 +1484,8 @@ export const useCircuitStore = create<CircuitState>()(
         loadLevels: s.loadLevels,
         activeLevel: s.activeLevel,
         scenarios: s.scenarios,
+        tagVocabulary: s.tagVocabulary,
+        allocations: s.allocations,
       }),
       limit: 100,
       // By reference, element by element. Every action replaces what it

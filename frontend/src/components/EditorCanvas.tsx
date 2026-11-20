@@ -36,6 +36,8 @@ import { OverviewLayer } from './OverviewLayer'
 import { LargeMiniMap } from './LargeMiniMap'
 import { decideOverview, nodeBounds, nodesInView } from '../lib/viewBudget'
 import { PhaseLegend } from './PhaseLegend'
+import { TracePanel } from './TracePanel'
+import { traceView } from '../lib/trace'
 import { ViewToggle } from './ViewToggle'
 import { ResultTooltip, type HoverTarget } from './ResultTooltip'
 import { BreakerNode } from './nodes/BreakerNode'
@@ -95,6 +97,13 @@ function markOutOfService(nodes: AppNode[]): AppNode[] {
   return changed ? out : nodes
 }
 
+/** In a trace, what is lit wears `trace-hit`; the canvas wrapper's
+ *  `tracing` class dims everything else (index.css). */
+function markTrace<T extends AppNode | AppEdge>(items: T[], hit: Set<string> | undefined): T[] {
+  if (!hit) return items
+  return items.map((it) => (hit.has(it.id) ? { ...it, className: `${it.className ?? ''} trace-hit` } : it))
+}
+
 const NO_NODES: AppNode[] = []
 const NO_EDGES: AppEdge[] = []
 
@@ -116,9 +125,15 @@ export function EditorCanvas() {
     wasOverview.current = next
     return next
   })
-  const marked = useMemo(() => markOutOfService(storeNodes), [storeNodes])
+  const traceReq = useUiStore((s) => s.trace)
+  const trace = useMemo(
+    () => (traceReq ? traceView(storeNodes, storeEdges, traceReq.kind, traceReq.elementId) : null),
+    [traceReq, storeNodes, storeEdges],
+  )
+  const marked = useMemo(() => markTrace(markOutOfService(storeNodes), trace?.nodeIds), [storeNodes, trace])
+  const markedEdges = useMemo(() => markTrace(storeEdges, trace?.edgeIds), [storeEdges, trace])
   const nodes = overview ? NO_NODES : marked
-  const edges = overview ? NO_EDGES : storeEdges
+  const edges = overview ? NO_EDGES : markedEdges
   const onNodesChange = useCircuitStore((s) => s.onNodesChange)
   const onEdgesChange = useCircuitStore((s) => s.onEdgesChange)
   const onConnect = useCircuitStore((s) => s.onConnect)
@@ -314,6 +329,7 @@ export function EditorCanvas() {
         setPlacement(null)
         setBusbarDraft(null)
         setMenu(null)
+        useUiStore.getState().setTrace(null)
       }
       if (inField) return
       // Keys typed into an open menu or dialog are theirs, not the drawing's.
@@ -417,7 +433,7 @@ export function EditorCanvas() {
   useEffect(() => useUiStore.getState().setRouting(routing), [routing])
 
   return (
-    <div className={`canvas-wrap${placementType ? ' placing' : ''}${routing ? ' routing' : ''}`}>
+    <div className={`canvas-wrap${placementType ? ' placing' : ''}${routing ? ' routing' : ''}${trace ? ' tracing' : ''}`}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -531,6 +547,7 @@ export function EditorCanvas() {
       )}
       {overview && <OverviewLayer />}
       <PhaseLegend />
+      {trace && <TracePanel view={trace} />}
       <ViewToggle />
       {flash && <div className={`flash-toast ${flashKind}`}>{flash}</div>}
       <HintCard />

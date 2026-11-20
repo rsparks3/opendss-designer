@@ -16,6 +16,7 @@
  *  how far the user has zoomed or panned.
  */
 import { LOW_V, NEUTRAL, OK, VIOLATION, WARN } from './colorScale'
+import { PRIORITIES, PRIORITY_COLORS, PRIORITY_LABELS } from './trace'
 import { DEFAULT_LIMITS, fmtPu } from './limits'
 import { PHASE_LEGEND } from './phasing'
 import { resolveColor } from './theme'
@@ -73,6 +74,8 @@ export function legendFor(overlay: OverlayMode, limits: LimitsJSON = DEFAULT_LIM
       ]
     case 'phases':
       return PHASE_LEGEND
+    case 'priority':
+      return PRIORITIES.map((p) => ({ label: PRIORITY_LABELS[p], color: PRIORITY_COLORS[p] }))
     default:
       return []
   }
@@ -85,6 +88,7 @@ export const OVERLAY_LABELS: Record<OverlayMode, string> = {
   fault: 'Fault current',
   reliability: 'Reliability',
   phases: 'Phases',
+  priority: 'Load priority',
   compare: 'Change from baseline',
   hosting: 'Hosting capacity',
   off: '',

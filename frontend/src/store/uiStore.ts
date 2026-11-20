@@ -75,6 +75,11 @@ interface UiState {
   /** The note whose text is being typed on the canvas, if any. */
   editingNote: string | null
   setEditingNote: (id: string | null) => void
+  /** Trace to source / show downstream of one element: the canvas lights
+   *  the answer and dims the rest (lib/trace, worked out from the live
+   *  drawing, so it follows edits); null is no trace. */
+  trace: TraceRequest | null
+  setTrace: (t: TraceRequest | null) => void
 }
 
 const PREFIX = 'opendss-designer.'
@@ -123,6 +128,11 @@ function readPalette(): PhasePalette {
 const initialPref = readThemePref()
 const initialPalette = readPalette()
 
+export interface TraceRequest {
+  kind: 'upstream' | 'downstream'
+  elementId: string
+}
+
 export const useUiStore = create<UiState>()((set, get) => ({
   dialog: null,
   openDialog: (dialog) => set({ dialog }),
@@ -130,6 +140,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   openScreening: (screenTarget) => set({ screenTarget, dialog: 'screen' }),
   editingNote: null,
   setEditingNote: (editingNote) => set({ editingNote }),
+  trace: null,
+  setTrace: (trace) => set({ trace }),
   closeDialog: () => set({ dialog: null }),
 
   panelOpen: {

@@ -11,6 +11,13 @@ describe('migrateCircuit', () => {
     expect(circuit.nodes).toHaveLength(1)
   })
 
+  it('upgrades a version-1 document unchanged apart from its version', () => {
+    const { circuit, warning } = migrateCircuit(minimal)
+    expect(warning).toBeUndefined()
+    expect({ ...circuit, version: 1 }).toEqual(minimal)
+    expect(circuit.version).toBe(2)
+  })
+
   it('treats a missing version as the original format', () => {
     const { version, ...noVersion } = minimal
     void version

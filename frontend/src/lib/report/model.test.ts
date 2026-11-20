@@ -221,3 +221,35 @@ describe('study report model', () => {
     expect(reportFileName('Feeder: 12', 'pdf')).toBe('Feeder- 12-report.pdf')
   })
 })
+
+describe('critical loads section', () => {
+  it('lists critical and essential loads with what feeds them, critical first', async () => {
+    const campus = (await import('../../../../src/opendss_designer/samples/installation-campus.oneline.json')).default as unknown as CircuitJSON
+    const { criticalLoadsSection } = await import('./model')
+    const t = criticalLoadsSection(campus).tables[0]
+    expect(t.rows.map((r) => r.load)).toEqual([
+      'COMMS NODE', 'HOSPITAL', 'OPS CENTER', 'DENTAL CLINIC', 'DINING FACILITY', 'SCHOOL',
+    ])
+    const clinic = t.rows.find((r) => r.load === 'DENTAL CLINIC')!
+    expect(clinic).toMatchObject({
+      building: 'Bldg 1210', priority: 'Essential', source: 'UTILITY', feeder: '52-F1',
+      transformer: 'T-CLINIC', device: 'F-CLINIC',
+    })
+    expect(t.rows.find((r) => r.load === 'SCHOOL')).toMatchObject({ feeder: '52-F3', device: '52-F3' })
+    expect(t.flags?.every((f) => f === null)).toBe(true)
+  })
+
+  it('follows the open scenario: a load cut off says so and is flagged', async () => {
+    const campus = (await import('../../../../src/opendss_designer/samples/installation-campus.oneline.json')).default as unknown as CircuitJSON
+    const { criticalLoadsSection } = await import('./model')
+    const t = criticalLoadsSection({
+      ...campus,
+      scenarios: [{ id: 'sc1', name: 'F1 open', description: '', overrides: { brk_f1: { closed: false } }, addedNodes: [], addedEdges: [], removed: [] }],
+      activeScenario: 'sc1',
+    }).tables[0]
+    const hosp = t.rows.findIndex((r) => r.load === 'HOSPITAL')
+    expect(t.rows[hosp].source).toMatch(/^none/)
+    expect(t.flags?.[hosp]).toBe('violation')
+    expect(t.note).toMatch(/F1 open/)
+  })
+})

@@ -22,7 +22,7 @@ from typing import Any
 
 import opendssdirect as dss
 
-from . import engine, passthrough
+from . import designer_meta, engine, passthrough
 from .connectivity import sanitize_name
 from .model import (
     Circuit,
@@ -458,6 +458,7 @@ def _keep_passthrough(result: dict[str, Any], files: list[dict[str, str]], main:
     )
     result["circuit"]["passthrough"] = [e.model_dump() for e in entries]
     result["circuit"]["comments"] = comments
+    designer_meta.apply_to_import(result["circuit"])
     kept = {e.name.lower() for e in entries}
     result["passthrough"] = [e.name for e in entries]
     # Whatever could not be found in the text (defined by some construct the

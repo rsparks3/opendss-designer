@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { setTransformerCatalog, useCircuitStore } from '../store/circuitStore'
 import type { Params, Winding } from '../types/circuit'
 
@@ -11,7 +11,7 @@ export interface Field {
    *  lines of text; 'target' the element a note's arrow points at. */
   kind:
     | 'number' | 'text' | 'select' | 'checkbox' | 'loadshape' | 'curve' | 'phasing'
-    | 'textarea' | 'target' | 'element' | 'xycurve' | 'geometry' | 'catalog'
+    | 'textarea' | 'target' | 'element' | 'xycurve' | 'geometry' | 'catalog' | 'tags'
   /** For kind 'loadshape': which shape category the dropdown offers.
    *  Default 'load'; 'any' lists both (storage dispatch). */
   shapeKind?: 'load' | 'irradiance' | 'any'
@@ -137,6 +137,11 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'conn', label: 'Connection', kind: 'select', options: ['wye', 'delta'] },
     { key: 'model', label: 'Load model', kind: 'select', options: [1, 2, 3, 4, 5, 8] },
     { key: 'class', label: 'Class', kind: 'text', placeholder: 'residential, commercial, …' },
+    // How much it matters when the power goes (lib/trace PRIORITIES): the
+    // Priority overlay, the downstream list and the critical-loads report.
+    { key: 'priority', label: 'Priority', kind: 'select', options: ['unassigned', 'critical', 'essential', 'nonessential'] },
+    { key: 'tags', label: 'Tags', kind: 'tags' },
+    { key: 'building', label: 'Building', kind: 'text', placeholder: 'Bldg 1200' },
     // Model 4 (CVR): how real and reactive power follow the voltage.
     { key: 'cvrwatts', label: 'CVR factor (kW)', kind: 'number', placeholder: '1', showIf: (p) => Number(p.model) === 4 },
     { key: 'cvrvars', label: 'CVR factor (kvar)', kind: 'number', placeholder: '2', showIf: (p) => Number(p.model) === 4 },
@@ -612,6 +617,58 @@ function TargetSelect({ value, onCommit }: { value: unknown; onCommit: (v: unkno
   )
 }
 
+/** A list of tags as chips: Enter or a comma adds what is typed, Backspace
+ *  in an empty box takes the last one off, × removes one. The project's tag
+ *  vocabulary is offered as suggestions. Commits a string array (or
+ *  undefined when empty). */
+export function parseTags(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((t): t is string => typeof t === 'string' && !!t.trim())
+  if (typeof value === 'string') return value.split(',').map((t) => t.trim()).filter(Boolean)
+  return []
+}
+
+function TagsInput({ value, onCommit }: { value: unknown; onCommit: (v: unknown) => void }) {
+  const vocabulary = useCircuitStore((s) => s.tagVocabulary)
+  const [draft, setDraft] = useState('')
+  const tags = parseTags(value)
+  const listId = useId()
+  const commit = (next: string[]) => onCommit(next.length ? [...new Set(next)] : undefined)
+  const add = () => {
+    const more = parseTags(draft)
+    if (more.length) commit([...tags, ...more])
+    setDraft('')
+  }
+  return (
+    <span className="tags-input">
+      {tags.map((t) => (
+        <span key={t} className="tag-chip">
+          {t}
+          <button type="button" title={`Remove ${t}`} onClick={() => commit(tags.filter((x) => x !== t))}>×</button>
+        </span>
+      ))}
+      <input
+        type="text"
+        list={listId}
+        value={draft}
+        placeholder={tags.length ? '' : 'add a tag'}
+        onChange={(e) => {
+          if (!e.target.value.endsWith(',')) return setDraft(e.target.value)
+          setDraft('')
+          commit([...tags, ...parseTags(e.target.value)])
+        }}
+        onBlur={add}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') add()
+          else if (e.key === 'Backspace' && !draft && tags.length) commit(tags.slice(0, -1))
+        }}
+      />
+      <datalist id={listId}>
+        {vocabulary.filter((v) => !tags.includes(v)).map((v) => <option key={v} value={v} />)}
+      </datalist>
+    </span>
+  )
+}
+
 export function FieldInput({
   field,
   value,
@@ -650,6 +707,9 @@ export function FieldInput({
   }
   if (field.kind === 'catalog') {
     return <CatalogSelect value={value} onCommit={onCommit} />
+  }
+  if (field.kind === 'tags') {
+    return <TagsInput value={value} onCommit={onCommit} />
   }
   if (field.kind === 'textarea') {
     return (

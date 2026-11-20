@@ -275,6 +275,33 @@ export interface CircuitJSON {
   /** Alternatives to this base circuit, and which one is open. */
   scenarios?: ScenarioJSON[] | null
   activeScenario?: string | null
+  /** Tag names the project offers on loads (suggestions; any tag is allowed). */
+  tagVocabulary?: string[] | null
+  /** Load allocations to metered values, by zone (a meter element). */
+  allocations?: AllocationJSON[] | null
+}
+
+/** Scale the loads below a meter point so the solve agrees with a measured
+ *  value. The factor found is stored and applied when the circuit compiles,
+ *  so the loads keep the values entered; *Bake* writes them in. */
+export interface AllocationJSON {
+  id: string
+  /** The series element (or source) the measurement was taken at. */
+  meterElementId: string
+  targetKW: number
+  targetKvar?: number | null
+  targetPF?: number | null
+  /** Multiplier by load priority or tag, applied before the scaling. */
+  demandFactors?: Record<string, number> | null
+  /** Where the measurement came from (free text, for the report). */
+  source?: string
+  /** The factor the last run found, applied at compile time; absent until run. */
+  lastFactor?: number | null
+  /** The kvar factor, when a kvar or PF target was given. */
+  lastKvarFactor?: number | null
+  lastAchievedKW?: number | null
+  lastIterations?: number | null
+  lastConverged?: boolean | null
 }
 
 export interface LimitsJSON {

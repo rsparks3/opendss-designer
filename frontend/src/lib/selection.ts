@@ -1,6 +1,7 @@
 import type { AppEdge, AppNode } from '../store/circuitStore'
 import { FIELDS, type Field } from './fields'
 import { effectivePhasing } from './phasing'
+import { buildTopology, downstream, energized, highlightOf } from './trace'
 import type { Params } from '../types/circuit'
 
 export interface Picked {
@@ -9,59 +10,54 @@ export interface Picked {
 }
 
 /**
- * Everything downstream of an element: the part of the circuit that would
- * be cut off from every source if the element were removed, plus the element
- * itself. For a bus that is its whole lateral; for a line or device, what it
- * feeds. An element nothing feeds from a source (an island) yields its own
+ * Everything downstream of an element: what would lose every source if the
+ * element opened (a series element) or went (a bus), plus the element
+ * itself. Open switches and elements out of service already break the path
+ * (lib/trace). An element no source reaches (an island) yields its own
  * connected component, so the answer is never empty.
  */
 export function downstreamOf(nodes: AppNode[], edges: AppEdge[], target: { kind: 'node' | 'edge'; id: string }): Picked {
-  const adj = new Map<string, { node: string; edge: string }[]>()
-  const link = (a: string, b: string, edge: string) => adj.set(a, [...(adj.get(a) ?? []), { node: b, edge }])
-  for (const e of edges) {
-    if (target.kind === 'edge' && e.id === target.id) continue
-    link(e.source, e.target, e.id)
-    link(e.target, e.source, e.id)
-  }
-  const blocked = target.kind === 'node' ? target.id : null
-  const reach = (starts: string[]): Set<string> => {
-    const seen = new Set<string>()
-    const queue = starts.filter((s) => s !== blocked)
-    for (const s of queue) seen.add(s)
-    while (queue.length) {
-      const id = queue.shift()!
-      for (const { node } of adj.get(id) ?? []) {
-        if (node === blocked || seen.has(node)) continue
-        seen.add(node)
-        queue.push(node)
-      }
+  const topo = buildTopology(nodes, edges)
+  const buses = topo.elementBuses.get(target.id) ?? []
+  const live = energized(topo)
+  if (buses.length && !buses.some((b) => live.has(b))) {
+    // An island: everything joined to it by anything at all, open or not.
+    const seen = new Set<string>([target.id])
+    const queue = [target.id]
+    const adj = new Map<string, string[]>()
+    for (const e of edges) {
+      adj.set(e.source, [...(adj.get(e.source) ?? []), e.target])
+      adj.set(e.target, [...(adj.get(e.target) ?? []), e.source])
     }
-    return seen
+    if (target.kind === 'edge') {
+      const e = edges.find((x) => x.id === target.id)
+      for (const id of e ? [e.source, e.target] : []) if (!seen.has(id)) { seen.add(id); queue.push(id) }
+    }
+    for (let i = 0; i < queue.length; i++) {
+      for (const next of adj.get(queue[i]) ?? []) if (!seen.has(next)) { seen.add(next); queue.push(next) }
+    }
+    return {
+      nodeIds: nodes.filter((n) => seen.has(n.id)).map((n) => n.id),
+      edgeIds: edges.filter((e) => (seen.has(e.source) && seen.has(e.target)) || e.id === target.id).map((e) => e.id),
+    }
   }
-  const sources = nodes.filter((n) => n.type === 'vsource').map((n) => n.id)
-  const fed = reach(sources)
-
-  // Seeds: the far side(s) of the element. For a node, its neighbours that
-  // the sources no longer reach; for an edge, whichever end is now unfed.
-  let seeds: string[]
-  if (target.kind === 'node') {
-    seeds = (adj.get(target.id) ?? []).map((l) => l.node).filter((id) => !fed.has(id))
-  } else {
-    const e = edges.find((x) => x.id === target.id)
-    seeds = e ? [e.source, e.target].filter((id) => !fed.has(id)) : []
+  const d = downstream(topo, target.id)
+  const lit = highlightOf(topo, d.buses, [...d.nodeIds, ...d.edgeIds])
+  const nodeIds = new Set([...d.nodeIds, ...lit.nodeIds])
+  if (target.kind === 'node') nodeIds.add(target.id)
+  const edgeIds = new Set([...d.edgeIds, ...lit.edgeIds])
+  if (target.kind === 'edge') edgeIds.add(target.id)
+  // Wires from the element to what it feeds.
+  for (const e of edges) {
+    if ((e.source === target.id || e.target === target.id) && e.type !== 'line') {
+      const other = e.source === target.id ? e.target : e.source
+      if (nodeIds.has(other)) edgeIds.add(e.id)
+    }
   }
-  // An island (nothing upstream reaches a source): take its whole component.
-  if (!seeds.length && !fed.has(target.kind === 'node' ? target.id : '')) {
-    const e = target.kind === 'edge' ? edges.find((x) => x.id === target.id) : null
-    seeds = target.kind === 'node' ? [target.id] : e ? [e.source, e.target] : []
+  return {
+    nodeIds: nodes.filter((n) => nodeIds.has(n.id)).map((n) => n.id),
+    edgeIds: edges.filter((e) => edgeIds.has(e.id)).map((e) => e.id),
   }
-  const below = reach(seeds)
-  if (target.kind === 'node') below.add(target.id)
-  const nodeIds = nodes.filter((n) => below.has(n.id)).map((n) => n.id)
-  const edgeIds = edges
-    .filter((e) => (below.has(e.source) && below.has(e.target)) || e.id === target.id)
-    .map((e) => e.id)
-  return { nodeIds, edgeIds }
 }
 
 /** Every element of one type; 'line' means line edges. */

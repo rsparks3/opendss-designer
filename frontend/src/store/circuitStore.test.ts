@@ -126,6 +126,8 @@ describe('circuit JSON round trip', () => {
       loadLevels: FIXTURE.loadLevels ?? null,
       activeLevel: FIXTURE.activeLevel ?? null,
       scenarios: FIXTURE.scenarios ?? [],
+      tagVocabulary: FIXTURE.tagVocabulary ?? [],
+      allocations: FIXTURE.allocations ?? [],
     })
     // Serialize both so undefined-vs-absent differences disappear.
     expect(JSON.parse(JSON.stringify(out))).toEqual(JSON.parse(JSON.stringify(FIXTURE)))

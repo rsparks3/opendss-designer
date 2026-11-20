@@ -8,14 +8,14 @@ import {
   SymbolSvg,
   Terminal,
   useNodeIssueClass,
-  useOverlayInk,
+  useLoadInk,
   useSymbolRotation,
   VoltageBadge,
 } from './common'
 
 export function LoadNode({ id, data }: NodeProps<AppNode>) {
   const issueClass = useNodeIssueClass(id)
-  const phaseInk = useOverlayInk(id, data.params)
+  const phaseInk = useLoadInk(id, data.params)
   const rot = useSymbolRotation(id, data.params)
   const box = rotatedBox(40, 60, rot)
   const kw = data.params.kw

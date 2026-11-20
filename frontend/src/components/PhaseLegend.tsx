@@ -1,3 +1,4 @@
+import { PRIORITIES, PRIORITY_COLORS, PRIORITY_LABELS } from '../lib/trace'
 import { PHASE_LEGEND } from '../lib/phasing'
 import { indicesLine, reliabilityLegend } from '../lib/reliability'
 import { useCircuitStore } from '../store/circuitStore'
@@ -14,6 +15,19 @@ export function PhaseLegend() {
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
   const hosting = useResultsStore((s) => s.hosting)
+  if (overlay === 'priority') {
+    return (
+      <div className="phase-legend" role="list" aria-label="Load priority">
+        {PRIORITIES.map((p) => (
+          <span key={p} role="listitem" className="phase-legend-item">
+            <span className="phase-legend-swatch" style={{ background: PRIORITY_COLORS[p] }} />
+            {PRIORITY_LABELS[p]}
+          </span>
+        ))}
+        <span role="listitem" className="phase-legend-item">buses: highest they would drop</span>
+      </div>
+    )
+  }
   if (overlay === 'hosting') {
     if (!hosting?.converged) return null
     const max = hosting.summary.maxKw ?? 0

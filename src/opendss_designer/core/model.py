@@ -269,6 +269,29 @@ class Scenario(BaseModel):
     removed: Annotated[list[str], Field(max_length=MAX_NODES)] = Field(default_factory=list)
 
 
+class Allocation(BaseModel):
+    """Scale the loads below a meter point (`meterElementId`: a series element
+    or a source) so a solve agrees with a measured value. The factor a run
+    finds is stored here and applied when the circuit compiles, so the
+    loads keep the values entered; baking writes it into them instead."""
+
+    id: Annotated[str, Field(min_length=1, max_length=64)]
+    meterElementId: Annotated[str, Field(min_length=1, max_length=200)]
+    targetKW: Annotated[float, Field(gt=0, le=1e7)]
+    targetKvar: Annotated[float, Field(ge=-1e7, le=1e7)] | None = None
+    targetPF: Annotated[float, Field(gt=0, le=1)] | None = None
+    # Multiplier by load priority or tag, applied before the scaling.
+    demandFactors: (
+        Annotated[dict[str, Annotated[float, Field(ge=0, le=100)]], Field(max_length=50)] | None
+    ) = None
+    source: Annotated[str, Field(max_length=500)] = ""
+    lastFactor: Annotated[float, Field(gt=0, le=1000)] | None = None
+    lastKvarFactor: Annotated[float, Field(gt=0, le=1000)] | None = None
+    lastAchievedKW: float | None = None
+    lastIterations: int | None = None
+    lastConverged: bool | None = None
+
+
 class Limits(BaseModel):
     """What counts as an abnormal condition: the planning criteria the
     overlays, the solve's violation flags and the study report all apply.
@@ -368,6 +391,12 @@ class Circuit(BaseModel):
     # solved. None means the base case.
     scenarios: Annotated[list[Scenario], Field(max_length=200)] | None = None
     activeScenario: Annotated[str, Field(max_length=64)] | None = None
+    # Tag names offered on loads (suggestions; a load may carry any tag).
+    tagVocabulary: Annotated[
+        list[Annotated[str, Field(max_length=80)]], Field(max_length=500)
+    ] | None = None
+    # Metered-zone load allocations; their factors apply at compile time.
+    allocations: Annotated[list[Allocation], Field(max_length=100)] | None = None
 
     @property
     def criteria(self) -> Limits:

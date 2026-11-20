@@ -32,6 +32,8 @@ export function sectionAvailability(): Record<SectionKey, string | null> {
   return {
     loadflow: null,
     diagram: null,
+    critical: nodes.some((n) => n.type === 'load' && ['critical', 'essential'].includes(String(n.data.params.priority)))
+      ? null : 'No load is marked critical or essential (Priority on the load).',
     shortcircuit: null,
     protection: nodes.some((n) => PROTECTIVE.has(n.type ?? '')) ? null : 'The circuit has no breakers, fuses, reclosers or relays.',
     reliability: null,

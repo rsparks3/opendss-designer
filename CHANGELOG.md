@@ -3,6 +3,38 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+Facility planning, milestone A (`OPENDSS_DESIGNER_DEV_PLAN.md`): what feeds
+what, what happens when the utility goes away, and the operating
+configurations of an installation-scale system.
+
+### Added
+
+- **Load priority, tags and building.** Loads gained *Priority*
+  (critical, essential, non-essential, unassigned), *Tags* (chips, with the
+  project's tag vocabulary offered) and *Building*, in the properties panel
+  and as fill-down columns in the Elements tab. They travel through a `.dss`
+  export as a `! designer:` comment line above the load, which the importer
+  reads back.
+- **Trace to source** and **Show downstream** on the right-click menu. The
+  trace lights the path to every source that reaches the element and lists
+  it with the first protective device upstream; downstream dims everything
+  else and lists what the element would drop, by priority, with kW and
+  customers. Open switches and out-of-service elements break a path, and a
+  device on a loop drops nothing. *Select everything downstream* follows the
+  same rules (it used to walk through open switches). `POST /api/trace`
+  answers the same question on the server.
+- **Priority overlay.** Loads in their priority's colour, and every busbar
+  in the colour of the highest priority its loss would drop.
+- **Critical loads** report section: every critical and essential load with
+  its source, feeder, transformer and first protective device upstream.
+- Samples: **Installation campus** (a fictional base: utility service, split
+  main bus, three feeders, a normally-open tie, two standby generators,
+  loads at every priority) and **Looped feeder, two sources**.
+- The project file format is version 2. A version-1 file opens unchanged;
+  an older build opening a version-2 file warns before saving over it.
+
 ## 0.9.0 — 2026-11-15
 
 Distribution planning. Load levels and scenarios, Volt/VAR and contingency

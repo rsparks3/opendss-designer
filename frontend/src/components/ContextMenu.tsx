@@ -134,6 +134,11 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
   const type = node ? node.type ?? '' : edge?.type === 'line' ? 'line' : ''
   const picked = node ? { kind: 'node' as const, id: node.id } : edge ? { kind: 'edge' as const, id: edge.id } : null
   if (picked && !(node && isAnnotation(node)) && (node || edge?.type === 'line')) {
+    const setTrace = useUiStore.getState().setTrace
+    items.push({ label: 'Trace to source', action: () => setTrace({ kind: 'upstream', elementId: picked.id }) })
+    if (node?.type !== 'load') {
+      items.push({ label: 'Show downstream', action: () => setTrace({ kind: 'downstream', elementId: picked.id }) })
+    }
     items.push({
       label: 'Select everything downstream',
       action: () => store.selectMany(downstreamOf(store.nodes, store.edges, picked)),

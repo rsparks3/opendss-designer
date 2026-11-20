@@ -92,6 +92,11 @@ export const OVERLAY_CHOICES: { mode: OverlayMode; label: string; title?: string
     label: 'Phases',
     title: 'Colour lines by the phases they carry and buses by the phases that reach them (no solve needed)',
   },
+  {
+    mode: 'priority',
+    label: 'Priority',
+    title: 'Loads coloured by priority, and each bus by the highest priority it would drop (no solve needed)',
+  },
   { mode: 'compare', label: 'Compare', title: 'Change from the pinned baseline: bus voltage in pu, element loading in points' },
   { mode: 'hosting', label: 'Hosting', title: 'Hosting capacity at every bus from the last run (Hosting tab)' },
   { mode: 'off', label: 'Off' },

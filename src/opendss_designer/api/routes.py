@@ -9,11 +9,11 @@ import json
 import logging
 import queue
 import threading
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import PlainTextResponse, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .. import __version__, context
 from ..core import (
@@ -30,6 +30,7 @@ from ..core import (
     qa,
     reliability,
     samples,
+    trace,
 )
 from ..core.compiler import export_dss
 from ..core.jobs import jobs
@@ -184,6 +185,18 @@ def validate_circuit(circuit: Circuit) -> dict:
     """Issues, plus which phases reach each element so the one-line can
     colour by phase before anything has been solved."""
     return {"issues": [i.model_dump() for i in validate(circuit)], "phases": phase_map(circuit)}
+
+
+class TraceRequest(BaseModel):
+    circuit: Circuit
+    elementId: Annotated[str, Field(min_length=1, max_length=200)]
+
+
+@router.post("/trace")
+def trace_element(req: TraceRequest) -> dict:
+    """Upstream paths to every source and the downstream set of one element,
+    from the drawn topology (no solve), with the open scenario applied."""
+    return trace.trace(req.circuit, req.elementId)
 
 
 @router.post("/export/dss", response_class=PlainTextResponse)

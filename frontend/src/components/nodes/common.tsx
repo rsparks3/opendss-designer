@@ -12,6 +12,7 @@ import { signalStruggle } from '../../store/hintStore'
 import { activeResult, activeStale, useResultsStore } from '../../store/resultsStore'
 import { deltaColor } from '../../lib/compare'
 import { formatKw, hostingColor } from '../../lib/hostingCapacity'
+import { busPriorityOf, PRIORITY_COLORS, priorityOf } from '../../lib/trace'
 import type { Params } from '../../types/circuit'
 import { LoadingPie } from '../LoadingPie'
 
@@ -313,6 +314,21 @@ export function useOverlayInk(nodeId: string, params: Params): React.CSSProperti
   const r = reliabilityOf(reliability, nodeId)
   if (!r || !reliability) return undefined
   return { '--ink': sectionColor(reliability, r.data.sectionId) } as React.CSSProperties
+}
+
+/** A load's ink in the 'priority' overlay (and its phases/section ink
+ *  otherwise): critical red, essential amber, non-essential blue. */
+export function useLoadInk(nodeId: string, params: Params): React.CSSProperties | undefined {
+  const other = useOverlayInk(nodeId, params)
+  const on = useResultsStore((s) => s.overlay === 'priority')
+  return on ? ({ '--ink': PRIORITY_COLORS[priorityOf(params)] } as React.CSSProperties) : other
+}
+
+/** A busbar's colour in the 'priority' overlay: the highest priority of the
+ *  loads its loss would drop. */
+export function useBusPriorityColor(busbarId: string): string | undefined {
+  const on = useResultsStore((s) => s.overlay === 'priority')
+  return useCircuitStore((s) => (on ? PRIORITY_COLORS[busPriorityOf(s.nodes, s.edges, busbarId)] : undefined))
 }
 
 /** In the reliability overlay: a load says how many customers it serves,

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "name": "schema-fixture",
   "nodes": [
     {
@@ -123,7 +123,7 @@
       "type": "load",
       "position": { "x": 520, "y": 480 },
       "width": null,
-      "params": { "name": "LOAD1", "kv": 12.47, "kw": 1000, "pf": 0.95, "phases": 3, "conn": "wye", "model": 1, "loadshape": "day24" }
+      "params": { "name": "LOAD1", "kv": 12.47, "kw": 1000, "pf": 0.95, "phases": 3, "conn": "wye", "model": 1, "loadshape": "day24", "priority": "critical", "tags": ["medical", "c2"], "building": "Bldg 1200" }
     },
     {
       "id": "n_cap",
@@ -137,7 +137,7 @@
       "type": "generator",
       "position": { "x": 620, "y": 400 },
       "width": null,
-      "params": { "name": "GEN1", "kv": 12.47, "kw": 500, "pf": 1.0, "kva": 750, "phases": 3, "conn": "wye", "model": 1, "vpu": 1.02 }
+      "params": { "name": "GEN1", "kv": 12.47, "kw": 500, "pf": 1.0, "kva": 750, "phases": 3, "conn": "wye", "model": 1, "vpu": 1.02, "islandMode": "grid", "xdpp": 0.15, "fuelHours": 48 }
     },
     {
       "id": "n_pv",
@@ -474,6 +474,21 @@
       "addedNodes": [],
       "addedEdges": [],
       "removed": []
+    }
+  ],
+  "tagVocabulary": ["medical", "c2"],
+  "allocations": [
+    {
+      "id": "al1",
+      "meterElementId": "n_brk",
+      "targetKW": 1200,
+      "targetPF": 0.95,
+      "demandFactors": { "nonessential": 0.8 },
+      "source": "Substation meter, 2026-07 peak",
+      "lastFactor": 1.04,
+      "lastAchievedKW": 1199.5,
+      "lastIterations": 3,
+      "lastConverged": true
     }
   ]
 }

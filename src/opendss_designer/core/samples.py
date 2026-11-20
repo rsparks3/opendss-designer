@@ -27,6 +27,16 @@ _TITLES: dict[str, tuple[str, str]] = {
         "Radial feeder with DER",
         "A four-bus feeder with rooftop PV, a battery and a daily load shape — "
         "the one to open for a time-series run."),
+    # Facility planning (scripts/make_facility_samples.py writes both).
+    "installation-campus": (
+        "Installation campus",
+        "A fictional base: 69 kV utility service, a split 13.2 kV main bus, "
+        "three feeders with a normally-open tie, two standby generators and "
+        "building loads tagged by priority — the one for loss-of-utility."),
+    "looped-two-source": (
+        "Looped feeder, two sources",
+        "A 12.47 kV loop fed from both ends with a fused spur, for tracing "
+        "on a meshed circuit."),
     # The IEEE PES test feeders, exactly as the Import button reads EPRI's
     # files (scripts/make_ieee_samples.py regenerates them). The engine's
     # answers on these are compared with the published solutions on the

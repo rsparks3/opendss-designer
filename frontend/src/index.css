@@ -1820,3 +1820,42 @@ kbd {
   color: var(--ink);
   font-size: 12.5px;
 }
+
+/* Tags on a load: chips with a remove button, then a box for the next one.
+   In the spreadsheet the row height is fixed, so the chips scroll sideways. */
+.tags-input { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; min-width: 0; }
+.bp-cell .tags-input { flex-wrap: nowrap; overflow-x: auto; }
+.tag-chip {
+  display: inline-flex; align-items: center; gap: 2px; padding: 0 2px 0 6px;
+  border-radius: 9px; background: var(--subtle); border: 1px solid var(--border);
+  font-size: 11px; line-height: 16px; white-space: nowrap;
+}
+.tag-chip button {
+  border: 0; background: none; padding: 0 3px; cursor: pointer; color: var(--muted); font-size: 12px; line-height: 1;
+}
+.tag-chip button:hover { color: var(--danger); }
+.tags-input input { flex: 1; min-width: 60px; }
+
+/* Trace to source / show downstream: what is lit stays, the rest fades. */
+.canvas-wrap.tracing .react-flow__node:not(.trace-hit) { opacity: 0.22; }
+.canvas-wrap.tracing .react-flow__edge:not(.trace-hit) { opacity: 0.18; }
+.canvas-wrap.tracing .react-flow__edge.trace-hit .react-flow__edge-path {
+  stroke: var(--accent) !important; stroke-width: 3px !important;
+}
+.trace-panel {
+  position: absolute; top: 48px; right: 10px; z-index: 6; width: 300px; max-height: calc(100% - 60px);
+  overflow: auto; background: var(--panel); color: var(--ink); border: 1px solid var(--border);
+  border-radius: 6px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); font-size: 12px; padding: 8px 10px;
+}
+.trace-panel h4 { margin: 0 0 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.trace-panel h4 .spacer { flex: 1; }
+.trace-panel .trace-close { border: 0; background: none; cursor: pointer; font-size: 15px; color: var(--muted); }
+.trace-panel table { width: 100%; border-collapse: collapse; margin: 4px 0 6px; }
+.trace-panel td, .trace-panel th { padding: 1px 4px; text-align: left; }
+.trace-panel td.num, .trace-panel th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.trace-panel .prio-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+.trace-panel .trace-group { margin-top: 6px; font-weight: 600; }
+.trace-panel button.trace-load { border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink); text-align: left; }
+.trace-panel button.trace-load:hover { color: var(--accent); text-decoration: underline; }
+.trace-panel ol { margin: 2px 0 6px; padding-left: 18px; }
+.trace-panel .muted { color: var(--muted); }

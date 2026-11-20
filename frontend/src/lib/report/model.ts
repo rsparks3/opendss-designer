@@ -11,7 +11,7 @@
  */
 import { compareResults } from '../compare'
 import { HC_LABELS } from '../hostingCapacity'
-import { levelNamed } from '../scenarios'
+import { applyScenario, levelNamed } from '../scenarios'
 import type {
   BalanceResult,
   BatchResult,
@@ -40,8 +40,12 @@ import type {
 import { EMPTY_STUDY, limitsOf } from '../limits'
 import { operateSeconds, type TccResult } from '../tcc'
 import { traceUnit } from './charts'
+import { fromCircuitJSON, type AppEdge, type AppNode } from '../../store/circuitStore'
+import {
+  buildTopology, firstProtectiveUpstream, PRIORITIES, PRIORITY_LABELS, PROTECTIVE_TYPES, priorityOf, upstreamPaths,
+} from '../trace'
 
-export type SectionKey = 'loadflow' | 'diagram' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
+export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
 
 export type Cell = string | number | null
 
@@ -130,6 +134,7 @@ export interface ReportInput {
 export const SECTION_LABELS: Record<SectionKey, string> = {
   loadflow: 'Load flow',
   diagram: 'One-line diagram',
+  critical: 'Critical loads',
   shortcircuit: 'Short circuit',
   protection: 'Protection',
   reliability: 'Reliability',
@@ -308,6 +313,10 @@ export function buildReport(input: ReportInput): Report {
   const notes = notesTable(circuit, names)
   if (notes && (sections.has('diagram') || sections.has('loadflow'))) {
     out.push({ id: 'notes', title: 'Notes', tables: [notes], figures: [] })
+  }
+
+  if (sections.has('critical')) {
+    out.push(criticalLoadsSection(circuit))
   }
 
   if (sections.has('shortcircuit') && input.fault?.converged) {
@@ -571,6 +580,102 @@ function studiesSection(studies: Partial<Record<string, unknown>>, names: Names)
     })
   }
   return { id: 'studies', title: 'Planning studies', tables, figures: [] }
+}
+
+/** The drawing a section should read: the base with the open scenario
+ *  applied, as the solve sees it. */
+export function effectiveDrawing(circuit: CircuitJSON): { nodes: AppNode[]; edges: AppEdge[] } {
+  const base = fromCircuitJSON(circuit)
+  const sc = circuit.activeScenario ? circuit.scenarios?.find((x) => x.id === circuit.activeScenario) : undefined
+  if (!sc) return base
+  return applyScenario(base, sc, (nodes, edges) =>
+    fromCircuitJSON({ version: circuit.version, name: '', nodes, edges, busNames: {}, loadShapes: {} }))
+}
+
+/** Every critical and essential load with what feeds it: the source, the
+ *  feeder (the last protective device leaving a switchgear bus on the way
+ *  down -- the feeder breaker, not the main or a bus tie above it), the
+ *  transformer nearest the load, and the first
+ *  protective device that would clear a fault at it. From the drawing; no
+ *  solve. */
+export function criticalLoadsSection(circuit: CircuitJSON): ReportSection {
+  const { nodes, edges } = effectiveDrawing(circuit)
+  const topo = buildTopology(nodes, edges)
+  const nameOf = (id: string | null | undefined) => {
+    if (!id) return '—'
+    const n = topo.nodes.get(id)
+    const p = n ? n.data.params : topo.edges.find((e) => e.id === id)?.data?.params
+    return String(p?.name || id)
+  }
+  const typeOf = (id: string) => topo.nodes.get(id)?.type ?? (topo.series.has(id) ? 'line' : '')
+  const rows: Record<string, Cell>[] = []
+  const wanted = [...topo.nodes.values()].filter(
+    (n) => n.type === 'load' && ['critical', 'essential'].includes(priorityOf(n.data.params)),
+  )
+  wanted.sort((a, b) =>
+    PRIORITIES.indexOf(priorityOf(a.data.params)) - PRIORITIES.indexOf(priorityOf(b.data.params)) ||
+    String(a.data.params.name ?? '').localeCompare(String(b.data.params.name ?? '')))
+  let dark = 0
+  for (const n of wanted) {
+    const p = n.data.params
+    const [path] = upstreamPaths(topo, n.id)
+    let feeder: string | null = null
+    let transformer: string | null = null
+    if (path) {
+      // The feeder: the last protective device leaving a switchgear bus (a
+      // bus with three or more protective devices on it) on the way down;
+      // failing that, the first line after a bus that branches.
+      const devicesAt = (bus: string) =>
+        (topo.links.get(bus) ?? []).filter(([, el]) => PROTECTIVE_TYPES.has(typeOf(el))).length
+      for (let i = 0; i < path.elements.length; i++) {
+        if (PROTECTIVE_TYPES.has(typeOf(path.elements[i])) && devicesAt(path.buses[i]) >= 3) feeder = path.elements[i]
+      }
+      for (let i = 0; i < path.elements.length && !feeder; i++) {
+        if ((topo.links.get(path.buses[i]) ?? []).length >= 3 && typeOf(path.elements[i]) === 'line') feeder = path.elements[i]
+      }
+      for (const el of path.elements) if (typeOf(el) === 'transformer') transformer = el
+    } else {
+      dark++
+    }
+    rows.push({
+      load: nameOf(n.id),
+      building: String(p.building ?? '') || '—',
+      priority: PRIORITY_LABELS[priorityOf(p)],
+      kw: Number(p.kw) || 0,
+      source: path ? nameOf(path.sourceId) : 'none (de-energised)',
+      feeder: nameOf(feeder),
+      transformer: nameOf(transformer),
+      device: nameOf(firstProtectiveUpstream(topo, n.id)),
+    })
+  }
+  const sc = circuit.activeScenario ? circuit.scenarios?.find((x) => x.id === circuit.activeScenario) : undefined
+  const notes = [
+    'Priorities as entered on each load. Source and feeder are traced on the drawing (open switches and elements out of service break a path); the feeder is the last protective device leaving a switchgear bus (three or more devices) on the way to the load.',
+    sc ? `As configured in scenario "${sc.name}".` : '',
+    dark ? `${dark} of them have no path to any source as drawn.` : '',
+  ].filter(Boolean)
+  return {
+    id: 'critical',
+    title: 'Critical loads',
+    tables: [{
+      id: 'critical-loads',
+      title: 'Critical and essential loads',
+      columns: [
+        { key: 'load', label: 'Load' },
+        { key: 'building', label: 'Building' },
+        { key: 'priority', label: 'Priority' },
+        { key: 'kw', label: 'Load', unit: 'kW', digits: 0 },
+        { key: 'source', label: 'Source' },
+        { key: 'feeder', label: 'Feeder' },
+        { key: 'transformer', label: 'Transformer' },
+        { key: 'device', label: 'First protective device' },
+      ],
+      rows,
+      flags: rows.map((r) => (String(r.source).startsWith('none') ? 'violation' : null)),
+      note: rows.length ? notes.join(' ') : 'No load is marked critical or essential (set Priority on the loads).',
+    }],
+    figures: [],
+  }
 }
 
 function screeningSection(s: ScreenResult): ReportSection {

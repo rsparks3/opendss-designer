@@ -13,7 +13,7 @@
 import type { CircuitJSON } from '../types/circuit'
 
 /** Bump when the document shape changes, and add a migration below. */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export interface MigrationResult {
   circuit: CircuitJSON
@@ -23,9 +23,16 @@ export interface MigrationResult {
 
 export class DocumentError extends Error {}
 
-/** Migrations from version N to N+1, applied in order. Empty today -- the
- *  point is that the seam exists before the first change needs it. */
-const MIGRATIONS: Record<number, (c: CircuitJSON) => CircuitJSON> = {}
+/** Migrations from version N to N+1, applied in order.
+ *
+ *  2 -- facility planning (load priority, tags and building, generator
+ *  island mode, source kind, tag vocabulary, allocations). Every one of
+ *  them is optional with a default that means "as before", so a version-1
+ *  document needs no change; the bump marks files that may carry them, so
+ *  an older build warns before saving over one. */
+const MIGRATIONS: Record<number, (c: CircuitJSON) => CircuitJSON> = {
+  1: (c) => c,
+}
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)

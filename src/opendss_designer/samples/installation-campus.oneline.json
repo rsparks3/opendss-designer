@@ -1,0 +1,1049 @@
+{
+ "version": 2,
+ "name": "installation-campus",
+ "busNames": {},
+ "nodes": [
+  {
+   "id": "util",
+   "type": "vsource",
+   "position": {
+    "x": 310,
+    "y": 0
+   },
+   "params": {
+    "name": "UTILITY",
+    "kind": "utility",
+    "basekv": 69,
+    "pu": 1.03,
+    "angle": 0,
+    "phases": 3,
+    "mvasc3": 500,
+    "mvasc1": 450,
+    "x1r1": 10,
+    "x0r0": 8
+   }
+  },
+  {
+   "id": "t1",
+   "type": "transformer",
+   "position": {
+    "x": 310,
+    "y": 100
+   },
+   "params": {
+    "name": "T1 MAIN",
+    "phases": 3,
+    "xhl": 8,
+    "pctloadloss": 0.5,
+    "windings": [
+     {
+      "kv": 69,
+      "kva": 10000,
+      "conn": "delta"
+     },
+     {
+      "kv": 13.2,
+      "kva": 10000,
+      "conn": "wye"
+     }
+    ]
+   }
+  },
+  {
+   "id": "brk_m",
+   "type": "breaker",
+   "position": {
+    "x": 310,
+    "y": 220
+   },
+   "params": {
+    "name": "52-M",
+    "closed": true,
+    "normamps": 600,
+    "phases": 3
+   }
+  },
+  {
+   "id": "bus_a",
+   "type": "busbar",
+   "position": {
+    "x": 100,
+    "y": 330
+   },
+   "width": 480,
+   "params": {
+    "name": "MAIN BUS A",
+    "basekv": 13.2
+   }
+  },
+  {
+   "id": "bus_b",
+   "type": "busbar",
+   "position": {
+    "x": 720,
+    "y": 330
+   },
+   "width": 900,
+   "params": {
+    "name": "MAIN BUS B",
+    "basekv": 13.2
+   }
+  },
+  {
+   "id": "brk_t",
+   "type": "breaker",
+   "position": {
+    "x": 630,
+    "y": 230
+   },
+   "params": {
+    "name": "52-T BUS TIE",
+    "closed": true,
+    "normamps": 1200,
+    "phases": 3
+   }
+  },
+  {
+   "id": "brk_f1",
+   "type": "breaker",
+   "position": {
+    "x": 210,
+    "y": 430
+   },
+   "params": {
+    "name": "52-F1",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3
+   }
+  },
+  {
+   "id": "bus_hosp",
+   "type": "busbar",
+   "position": {
+    "x": 120,
+    "y": 620
+   },
+   "width": 300,
+   "params": {
+    "name": "HOSPITAL MV",
+    "basekv": 13.2
+   }
+  },
+  {
+   "id": "xf_hosp",
+   "type": "transformer",
+   "position": {
+    "x": 150,
+    "y": 720
+   },
+   "params": {
+    "name": "T-HOSP",
+    "phases": 3,
+    "xhl": 5.75,
+    "pctloadloss": 1.0,
+    "windings": [
+     {
+      "kv": 13.2,
+      "kva": 1500,
+      "conn": "delta"
+     },
+     {
+      "kv": 0.48,
+      "kva": 1500,
+      "conn": "wye"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ld_hosp",
+   "type": "load",
+   "position": {
+    "x": 150,
+    "y": 850
+   },
+   "params": {
+    "kv": 0.48,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "name": "HOSPITAL",
+    "kw": 900,
+    "pf": 0.92,
+    "priority": "critical",
+    "building": "Bldg 1200",
+    "tags": [
+     "medical"
+    ],
+    "numcust": 1
+   }
+  },
+  {
+   "id": "fu_clinic",
+   "type": "fuse",
+   "position": {
+    "x": 270,
+    "y": 720
+   },
+   "params": {
+    "name": "F-CLINIC",
+    "closed": true,
+    "ratedcurrent": 65,
+    "phases": 3
+   }
+  },
+  {
+   "id": "xf_clinic",
+   "type": "transformer",
+   "position": {
+    "x": 270,
+    "y": 830
+   },
+   "params": {
+    "name": "T-CLINIC",
+    "phases": 3,
+    "xhl": 5.75,
+    "pctloadloss": 1.0,
+    "windings": [
+     {
+      "kv": 13.2,
+      "kva": 500,
+      "conn": "delta"
+     },
+     {
+      "kv": 0.48,
+      "kva": 500,
+      "conn": "wye"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ld_clinic",
+   "type": "load",
+   "position": {
+    "x": 270,
+    "y": 960
+   },
+   "params": {
+    "kv": 0.48,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "name": "DENTAL CLINIC",
+    "kw": 250,
+    "pf": 0.9,
+    "priority": "essential",
+    "building": "Bldg 1210",
+    "tags": [
+     "medical"
+    ],
+    "numcust": 1
+   }
+  },
+  {
+   "id": "gen1",
+   "type": "generator",
+   "position": {
+    "x": 350,
+    "y": 720
+   },
+   "params": {
+    "name": "G1",
+    "kv": 13.2,
+    "kw": 1200,
+    "pf": 0.9,
+    "kva": 1500,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "enabled": false,
+    "islandMode": "grid",
+    "xdpp": 0.15,
+    "fuelHours": 72
+   }
+  },
+  {
+   "id": "brk_f2",
+   "type": "breaker",
+   "position": {
+    "x": 810,
+    "y": 430
+   },
+   "params": {
+    "name": "52-F2",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3
+   }
+  },
+  {
+   "id": "bus_ops",
+   "type": "busbar",
+   "position": {
+    "x": 760,
+    "y": 620
+   },
+   "width": 400,
+   "params": {
+    "name": "OPS MV",
+    "basekv": 13.2
+   }
+  },
+  {
+   "id": "xf_ops",
+   "type": "transformer",
+   "position": {
+    "x": 770,
+    "y": 720
+   },
+   "params": {
+    "name": "T-OPS",
+    "phases": 3,
+    "xhl": 5.75,
+    "pctloadloss": 1.0,
+    "windings": [
+     {
+      "kv": 13.2,
+      "kva": 1000,
+      "conn": "delta"
+     },
+     {
+      "kv": 0.48,
+      "kva": 1000,
+      "conn": "wye"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ld_ops",
+   "type": "load",
+   "position": {
+    "x": 770,
+    "y": 850
+   },
+   "params": {
+    "kv": 0.48,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "name": "OPS CENTER",
+    "kw": 600,
+    "pf": 0.9,
+    "priority": "critical",
+    "building": "Bldg 300",
+    "tags": [
+     "c2"
+    ],
+    "numcust": 1
+   }
+  },
+  {
+   "id": "fu_comms",
+   "type": "fuse",
+   "position": {
+    "x": 850,
+    "y": 720
+   },
+   "params": {
+    "name": "F-COMMS",
+    "closed": true,
+    "ratedcurrent": 65,
+    "phases": 3
+   }
+  },
+  {
+   "id": "xf_comms",
+   "type": "transformer",
+   "position": {
+    "x": 850,
+    "y": 830
+   },
+   "params": {
+    "name": "T-COMMS",
+    "phases": 3,
+    "xhl": 5.75,
+    "pctloadloss": 1.0,
+    "windings": [
+     {
+      "kv": 13.2,
+      "kva": 300,
+      "conn": "delta"
+     },
+     {
+      "kv": 0.48,
+      "kva": 300,
+      "conn": "wye"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ld_comms",
+   "type": "load",
+   "position": {
+    "x": 850,
+    "y": 960
+   },
+   "params": {
+    "kv": 0.48,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "name": "COMMS NODE",
+    "kw": 150,
+    "pf": 0.95,
+    "priority": "critical",
+    "building": "Bldg 310",
+    "tags": [
+     "c2",
+     "comms"
+    ],
+    "numcust": 1
+   }
+  },
+  {
+   "id": "gen2",
+   "type": "generator",
+   "position": {
+    "x": 930,
+    "y": 720
+   },
+   "params": {
+    "name": "G2 CENTRAL PLANT",
+    "kv": 13.2,
+    "kw": 1500,
+    "pf": 0.9,
+    "kva": 2000,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "enabled": false,
+    "islandMode": "grid",
+    "xdpp": 0.15,
+    "fuelHours": 48
+   }
+  },
+  {
+   "id": "bus_wh",
+   "type": "busbar",
+   "position": {
+    "x": 1040,
+    "y": 1100
+   },
+   "width": 200,
+   "params": {
+    "name": "SUPPORT MV",
+    "basekv": 13.2
+   }
+  },
+  {
+   "id": "xf_wh",
+   "type": "transformer",
+   "position": {
+    "x": 1050,
+    "y": 1200
+   },
+   "params": {
+    "name": "T-WH",
+    "phases": 3,
+    "xhl": 5.75,
+    "pctloadloss": 1.0,
+    "windings": [
+     {
+      "kv": 13.2,
+      "kva": 750,
+      "conn": "delta"
+     },
+     {
+      "kv": 0.48,
+      "kva": 750,
+      "conn": "wye"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ld_wh",
+   "type": "load",
+   "position": {
+    "x": 1050,
+    "y": 1330
+   },
+   "params": {
+    "kv": 0.48,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "name": "WAREHOUSE",
+    "kw": 400,
+    "pf": 0.85,
+    "priority": "nonessential",
+    "building": "Bldg 450",
+    "tags": [
+     "logistics"
+    ],
+    "numcust": 1
+   }
+  },
+  {
+   "id": "xf_dining",
+   "type": "transformer",
+   "position": {
+    "x": 1130,
+    "y": 1200
+   },
+   "params": {
+    "name": "T-DINING",
+    "phases": 3,
+    "xhl": 5.75,
+    "pctloadloss": 1.0,
+    "windings": [
+     {
+      "kv": 13.2,
+      "kva": 500,
+      "conn": "delta"
+     },
+     {
+      "kv": 0.48,
+      "kva": 500,
+      "conn": "wye"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ld_dining",
+   "type": "load",
+   "position": {
+    "x": 1130,
+    "y": 1330
+   },
+   "params": {
+    "kv": 0.48,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "name": "DINING FACILITY",
+    "kw": 300,
+    "pf": 0.9,
+    "priority": "essential",
+    "building": "Bldg 460",
+    "tags": [
+     "support"
+    ],
+    "numcust": 1
+   }
+  },
+  {
+   "id": "brk_tie",
+   "type": "breaker",
+   "position": {
+    "x": 1190,
+    "y": 1200
+   },
+   "params": {
+    "name": "52-TIE F2-F3",
+    "closed": false,
+    "tie": true,
+    "normamps": 400,
+    "phases": 3
+   }
+  },
+  {
+   "id": "brk_f3",
+   "type": "breaker",
+   "position": {
+    "x": 1450,
+    "y": 430
+   },
+   "params": {
+    "name": "52-F3",
+    "closed": true,
+    "normamps": 400,
+    "phases": 3
+   }
+  },
+  {
+   "id": "bus_hous",
+   "type": "busbar",
+   "position": {
+    "x": 1360,
+    "y": 620
+   },
+   "width": 300,
+   "params": {
+    "name": "HOUSING MV",
+    "basekv": 13.2
+   }
+  },
+  {
+   "id": "xf_hous",
+   "type": "transformer",
+   "position": {
+    "x": 1390,
+    "y": 720
+   },
+   "params": {
+    "name": "T-HOUS",
+    "phases": 3,
+    "xhl": 5.75,
+    "pctloadloss": 1.0,
+    "windings": [
+     {
+      "kv": 13.2,
+      "kva": 2000,
+      "conn": "delta"
+     },
+     {
+      "kv": 0.48,
+      "kva": 2000,
+      "conn": "wye"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ld_hous",
+   "type": "load",
+   "position": {
+    "x": 1390,
+    "y": 850
+   },
+   "params": {
+    "kv": 0.48,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "name": "FAMILY HOUSING",
+    "kw": 1200,
+    "pf": 0.95,
+    "priority": "nonessential",
+    "building": "Housing area",
+    "tags": [
+     "residential"
+    ],
+    "numcust": 300
+   }
+  },
+  {
+   "id": "xf_school",
+   "type": "transformer",
+   "position": {
+    "x": 1510,
+    "y": 720
+   },
+   "params": {
+    "name": "T-SCHOOL",
+    "phases": 3,
+    "xhl": 5.75,
+    "pctloadloss": 1.0,
+    "windings": [
+     {
+      "kv": 13.2,
+      "kva": 500,
+      "conn": "delta"
+     },
+     {
+      "kv": 0.48,
+      "kva": 500,
+      "conn": "wye"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ld_school",
+   "type": "load",
+   "position": {
+    "x": 1510,
+    "y": 850
+   },
+   "params": {
+    "kv": 0.48,
+    "phases": 3,
+    "conn": "wye",
+    "model": 1,
+    "name": "SCHOOL",
+    "kw": 300,
+    "pf": 0.92,
+    "priority": "essential",
+    "building": "Bldg 900",
+    "tags": [
+     "shelter"
+    ],
+    "numcust": 1
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "w_util",
+   "type": "wire",
+   "source": "util",
+   "sourceHandle": "t1",
+   "target": "t1",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_t1",
+   "type": "wire",
+   "source": "t1",
+   "sourceHandle": "t2",
+   "target": "brk_m",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_m",
+   "type": "wire",
+   "source": "brk_m",
+   "sourceHandle": "t2",
+   "target": "bus_a",
+   "targetHandle": "b11",
+   "params": {}
+  },
+  {
+   "id": "w_t_a",
+   "type": "wire",
+   "source": "bus_a",
+   "sourceHandle": "b23",
+   "target": "brk_t",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_t_b",
+   "type": "wire",
+   "source": "brk_t",
+   "sourceHandle": "t2",
+   "target": "bus_b",
+   "targetHandle": "b0",
+   "params": {}
+  },
+  {
+   "id": "w_f1",
+   "type": "wire",
+   "source": "bus_a",
+   "sourceHandle": "c6",
+   "target": "brk_f1",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "ln_f1",
+   "type": "line",
+   "source": "brk_f1",
+   "sourceHandle": "t2",
+   "target": "bus_hosp",
+   "targetHandle": "b5",
+   "params": {
+    "length": 1.2,
+    "name": "F1-MAIN",
+    "units": "km",
+    "r1": 0.1,
+    "x1": 0.12,
+    "r0": 0.3,
+    "x0": 0.36,
+    "normamps": 400,
+    "phases": 3
+   }
+  },
+  {
+   "id": "w_hosp_x",
+   "type": "wire",
+   "source": "bus_hosp",
+   "sourceHandle": "c2",
+   "target": "xf_hosp",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_hosp_l",
+   "type": "wire",
+   "source": "xf_hosp",
+   "sourceHandle": "t2",
+   "target": "ld_hosp",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_clinic_f",
+   "type": "wire",
+   "source": "bus_hosp",
+   "sourceHandle": "c8",
+   "target": "fu_clinic",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_clinic_x",
+   "type": "wire",
+   "source": "fu_clinic",
+   "sourceHandle": "t2",
+   "target": "xf_clinic",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_clinic_l",
+   "type": "wire",
+   "source": "xf_clinic",
+   "sourceHandle": "t2",
+   "target": "ld_clinic",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_g1",
+   "type": "wire",
+   "source": "bus_hosp",
+   "sourceHandle": "c12",
+   "target": "gen1",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_f2",
+   "type": "wire",
+   "source": "bus_b",
+   "sourceHandle": "c5",
+   "target": "brk_f2",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "ln_f2",
+   "type": "line",
+   "source": "brk_f2",
+   "sourceHandle": "t2",
+   "target": "bus_ops",
+   "targetHandle": "b3",
+   "params": {
+    "length": 0.9,
+    "name": "F2-MAIN",
+    "units": "km",
+    "r1": 0.1,
+    "x1": 0.12,
+    "r0": 0.3,
+    "x0": 0.36,
+    "normamps": 400,
+    "phases": 3
+   }
+  },
+  {
+   "id": "w_ops_x",
+   "type": "wire",
+   "source": "bus_ops",
+   "sourceHandle": "c1",
+   "target": "xf_ops",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_ops_l",
+   "type": "wire",
+   "source": "xf_ops",
+   "sourceHandle": "t2",
+   "target": "ld_ops",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_comms_f",
+   "type": "wire",
+   "source": "bus_ops",
+   "sourceHandle": "c5",
+   "target": "fu_comms",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_comms_x",
+   "type": "wire",
+   "source": "fu_comms",
+   "sourceHandle": "t2",
+   "target": "xf_comms",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_comms_l",
+   "type": "wire",
+   "source": "xf_comms",
+   "sourceHandle": "t2",
+   "target": "ld_comms",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_g2",
+   "type": "wire",
+   "source": "bus_ops",
+   "sourceHandle": "c9",
+   "target": "gen2",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "ln_f2b",
+   "type": "line",
+   "source": "bus_ops",
+   "sourceHandle": "c17",
+   "target": "bus_wh",
+   "targetHandle": "b3",
+   "params": {
+    "length": 0.7,
+    "name": "F2-SUPPORT",
+    "units": "km",
+    "r1": 0.1,
+    "x1": 0.12,
+    "r0": 0.3,
+    "x0": 0.36,
+    "normamps": 400,
+    "phases": 3
+   }
+  },
+  {
+   "id": "w_wh_x",
+   "type": "wire",
+   "source": "bus_wh",
+   "sourceHandle": "c1",
+   "target": "xf_wh",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_wh_l",
+   "type": "wire",
+   "source": "xf_wh",
+   "sourceHandle": "t2",
+   "target": "ld_wh",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_dining_x",
+   "type": "wire",
+   "source": "bus_wh",
+   "sourceHandle": "c5",
+   "target": "xf_dining",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_dining_l",
+   "type": "wire",
+   "source": "xf_dining",
+   "sourceHandle": "t2",
+   "target": "ld_dining",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_tie",
+   "type": "wire",
+   "source": "bus_wh",
+   "sourceHandle": "c8",
+   "target": "brk_tie",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_f3",
+   "type": "wire",
+   "source": "bus_b",
+   "sourceHandle": "c37",
+   "target": "brk_f3",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "ln_f3",
+   "type": "line",
+   "source": "brk_f3",
+   "sourceHandle": "t2",
+   "target": "bus_hous",
+   "targetHandle": "b5",
+   "params": {
+    "length": 1.5,
+    "name": "F3-MAIN",
+    "units": "km",
+    "r1": 0.1,
+    "x1": 0.12,
+    "r0": 0.3,
+    "x0": 0.36,
+    "normamps": 400,
+    "phases": 3
+   }
+  },
+  {
+   "id": "w_hous_x",
+   "type": "wire",
+   "source": "bus_hous",
+   "sourceHandle": "c2",
+   "target": "xf_hous",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_hous_l",
+   "type": "wire",
+   "source": "xf_hous",
+   "sourceHandle": "t2",
+   "target": "ld_hous",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_school_x",
+   "type": "wire",
+   "source": "bus_hous",
+   "sourceHandle": "c8",
+   "target": "xf_school",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "w_school_l",
+   "type": "wire",
+   "source": "xf_school",
+   "sourceHandle": "t2",
+   "target": "ld_school",
+   "targetHandle": "t1",
+   "params": {}
+  },
+  {
+   "id": "ln_tie",
+   "type": "line",
+   "source": "brk_tie",
+   "sourceHandle": "t2",
+   "target": "bus_hous",
+   "targetHandle": "c13",
+   "params": {
+    "length": 0.6,
+    "name": "TIE-F2-F3",
+    "units": "km",
+    "r1": 0.1,
+    "x1": 0.12,
+    "r0": 0.3,
+    "x0": 0.36,
+    "normamps": 400,
+    "phases": 3
+   }
+  }
+ ],
+ "loadShapes": {},
+ "tagVocabulary": [
+  "medical",
+  "c2",
+  "comms",
+  "logistics",
+  "support",
+  "residential",
+  "shelter"
+ ]
+}
