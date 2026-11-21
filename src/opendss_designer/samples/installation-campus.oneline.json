@@ -105,16 +105,21 @@
   },
   {
    "id": "brk_f1",
-   "type": "breaker",
+   "type": "relay",
    "position": {
-    "x": 210,
+    "x": 200,
     "y": 430
    },
    "params": {
     "name": "52-F1",
     "closed": true,
     "normamps": 400,
-    "phases": 3
+    "phases": 3,
+    "phasetrip": 300,
+    "phasecurve": "iec_vi",
+    "tdphase": 0.3,
+    "groundcurve": "none",
+    "interruptingka": 25
    }
   },
   {

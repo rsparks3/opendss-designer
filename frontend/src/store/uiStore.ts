@@ -32,6 +32,11 @@ interface UiState {
   /** The node the screening dialog was opened on (its bus is preselected). */
   screenTarget: string | null
   openScreening: (nodeId: string | null) => void
+  /** The device whose chain the TCC plot shows (Plot TCC on its right-click); null = every device. */
+  tccFocus: string | null
+  /** Bumped by Plot TCC so the Graph tab opens on the time-current plot. */
+  tccSignal: number
+  plotTcc: (nodeId: string | null) => void
 
   panelOpen: Record<PanelKey, boolean>
   setPanelOpen: (key: PanelKey, open: boolean) => void
@@ -141,6 +146,9 @@ export const useUiStore = create<UiState>()((set, get) => ({
   openDialog: (dialog) => set({ dialog }),
   screenTarget: null,
   openScreening: (screenTarget) => set({ screenTarget, dialog: 'screen' }),
+  tccFocus: null,
+  tccSignal: 0,
+  plotTcc: (tccFocus) => set((s) => ({ tccFocus, tccSignal: s.tccSignal + 1 })),
   editingNote: null,
   setEditingNote: (editingNote) => set({ editingNote }),
   trace: null,

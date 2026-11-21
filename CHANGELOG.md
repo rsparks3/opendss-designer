@@ -39,6 +39,20 @@ milestone A below.
   margin set in Project properties → Limits. Pass, fail or unrated, labelled
   a screening check, not an ANSI C37 / IEC 60909 study. `POST /api/duty`.
 
+- **TCC chains and saved sets.** *Plot TCC* on a fuse, recloser or relay
+  plots it with every protective device above it, grades each pair at the
+  fault current (a bracket and a table with the margin and the rule), and
+  draws the line-to-ground fault current beside the three-phase one. Device
+  sets can be saved with the project (`tccSets`); the report prints one plot
+  per set. Curve, pickup, time-dial and fuse-size edits redraw without a
+  solve.
+- **Relay time dial** (phase and ground), written to the engine and applied
+  to the plot, and the **generic IEC 60255 and IEEE short-time inverse curve
+  families**, offered in every relay's curve list and defined in the engine
+  only when used.
+- The installation sample's feeder breaker 52-F1 is now relay-tripped (IEC
+  very inverse) and graded over the clinic fuse.
+
 ### Changed (milestone B)
 
 - The protection study's interrupting-duty warning uses the larger of the

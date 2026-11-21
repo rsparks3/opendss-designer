@@ -4,6 +4,7 @@ import { beginGesture, endGesture, useCircuitStore } from '../store/circuitStore
 import { useResultsStore } from '../store/resultsStore'
 import type { TccCurveJSON, XYCurveJSON } from '../types/circuit'
 import { IEEE1547_CURVES } from '../lib/scenarios'
+import { GENERIC_CURVES } from '../lib/fields'
 
 const PREVIEW_W = 380
 const PREVIEW_H = 190
@@ -335,6 +336,10 @@ function TccCurvesPanel() {
             IEEE inverse family) are always available on every device.
           </div>
         )}
+        <div className="library-note" title="Computed from the published formulas at a time dial of 1; a relay's time dial scales them. Not manufacturer data.">
+          <b>Generic (read-only)</b>, in every relay's curve list:{' '}
+          {Object.entries(GENERIC_CURVES).map(([k, label]) => `${k} (${label})`).join(', ')}.
+        </div>
         {names.map((n) => (
           <button
             key={n}

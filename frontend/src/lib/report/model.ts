@@ -134,6 +134,8 @@ export interface ReportInput {
   /** SVG drawings the caller rendered: the one-line (from the canvas) and
    *  the charts (report/charts.ts). */
   figures?: Partial<Record<'diagram' | 'profile' | 'tcc' | 'timeseries', string>>
+  /** One time-current plot per saved device set (Graph → Protection), in place of the all-devices plot. */
+  tccSets?: { name: string; svg: string }[]
   sections: ReadonlySet<SectionKey>
   date: Date
   softwareVersion?: string | null
@@ -346,7 +348,7 @@ export function buildReport(input: ReportInput): Report {
     out.push(faultSection(input.fault, new Names(circuit, input.fault.nodeBuses)))
   }
   if (sections.has('protection') && input.tcc) {
-    const prot = protectionSection(input.tcc, names, input.figures?.tcc)
+    const prot = protectionSection(input.tcc, names, input.figures?.tcc, input.tccSets)
     // With the duty section in the report, interrupting duty is read there.
     if (sections.has('duty') && input.duty?.converged) {
       const i = prot.tables.findIndex((t) => t.id === 'interrupting-duty')
@@ -1778,7 +1780,7 @@ function settingsSheet(circuit: CircuitJSON, names: Names): Table {
   }
 }
 
-function protectionSection(tcc: TccResult, names: Names, plot?: string): ReportSection {
+function protectionSection(tcc: TccResult, names: Names, plot?: string, sets?: { name: string; svg: string }[]): ReportSection {
   const settings: Record<string, Cell>[] = []
   for (const d of tcc.devices) {
     for (const t of d.traces) {
@@ -1864,7 +1866,9 @@ function protectionSection(tcc: TccResult, names: Names, plot?: string): ReportS
         note: findings.length ? undefined : 'No coordination or interrupting-duty problems were found.',
       },
     ],
-    figures: plot ? [{ id: 'tcc', title: 'Time-current curves', svg: plot }] : [],
+    figures: sets?.length
+      ? sets.map((s, i) => ({ id: `tcc-${i + 1}`, title: `Time-current curves: ${s.name}`, svg: s.svg }))
+      : plot ? [{ id: 'tcc', title: 'Time-current curves', svg: plot }] : [],
   }
 }
 

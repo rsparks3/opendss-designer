@@ -125,6 +125,21 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
     ...(rs.timeseries && sections.has('timeseries') ? { timeseries: timeSeriesSvg(rs.timeseries) ?? undefined } : {}),
   }
 
+  // One plot per saved device set, when there are any.
+  const sets = useCircuitStore.getState().tccSets
+  const tccSets = tcc && sets.length
+    ? sets.flatMap((set) => {
+        const devices = tcc!.devices.filter((d) => d.nodeId && set.deviceIds.includes(d.nodeId))
+        const svg = devices.length
+          ? tccSvg({ ...tcc!, devices }, {
+              device: (d) => (d.nodeId ? names.element(d.nodeId, d.name).name : d.name),
+              bus: (b) => names.bus(b),
+            })
+          : null
+        return svg ? [{ name: set.name, svg }] : []
+      })
+    : []
+
   let versions: { version?: string; opendssVersion?: string } = {}
   try {
     versions = await api.health()
@@ -137,6 +152,7 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
     solve,
     fault,
     tcc,
+    tccSets,
     duty,
     reliability,
     timeseries: rs.timeseries,

@@ -5,6 +5,7 @@ import { useCircuitStore, useLimits } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import { TccGraphPanel } from './TccGraphPanel'
 import { TimeGraphPanel } from './TimeGraphPanel'
+import { useUiStore } from '../store/uiStore'
 
 const ML = 60
 const MR = 18
@@ -33,11 +34,22 @@ const PHASE_COLORS: Record<number, string> = { 1: 'currentColor', 2: '#d32f2f', 
 
 type Domain = { x: [number, number]; y: [number, number] }
 
+let seenTccSignal = 0
+
 /** Graph tab: Snapshot mode plots the last power-flow solution; Time mode
  *  (enabled once a time-series run exists) plots quantities over hours. */
 export function GraphPanel() {
   const timeseries = useResultsStore((s) => s.timeseries)
   const [gmode, setGmode] = useState<'snapshot' | 'time' | 'tcc'>('snapshot')
+  // Plot TCC on a device's right-click opens the time-current plot (once per
+  // request, so reopening the tab later starts where it usually does).
+  const tccSignal = useUiStore((s) => s.tccSignal)
+  useEffect(() => {
+    if (tccSignal > seenTccSignal) {
+      seenTccSignal = tccSignal
+      setGmode('tcc')
+    }
+  }, [tccSignal])
   // A fresh time-series result pulls the tab into Time mode.
   useEffect(() => {
     if (timeseries) setGmode('time')

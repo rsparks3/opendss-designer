@@ -4,6 +4,7 @@ import { effectivePhasing } from '../lib/phasing'
 import { allOfType, downstreamOf, onPhase } from '../lib/selection'
 import { isAnnotation, NODE_SIZE } from '../lib/defaults'
 import { useCircuitStore } from '../store/circuitStore'
+import { useResultsStore } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
 import type { NodeType } from '../types/circuit'
 import { typeLabel } from './BulkEditor'
@@ -69,6 +70,15 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
       items.push({
         label: closed ? labels[0] : labels[1],
         action: () => store.updateNodeParams(node.id, { closed: !closed }),
+      })
+    }
+    if (node.type === 'fuse' || node.type === 'recloser' || node.type === 'relay') {
+      items.push({
+        label: 'Plot TCC',
+        action: () => {
+          useUiStore.getState().plotTcc(node.id)
+          useResultsStore.getState().requestGraphTab()
+        },
       })
     }
     if (node.type === 'busbar' || node.type === 'load') {

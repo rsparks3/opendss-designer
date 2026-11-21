@@ -12,6 +12,7 @@ from typing import Any
 
 import opendssdirect as dss
 
+from . import tcc_library
 from .compiler import CompileResult, compile_circuit
 from .connectivity import synthesize
 from .engine import (
@@ -60,8 +61,12 @@ def builtin_curves() -> dict[str, Any]:
             # Read from a scratch circuit, so nothing user-defined is loaded
             # and this really is the built-in set.
             _BUILTIN_CACHE = {n: _curve_points(n) for n in loaded_curve_names()}
+    generic = [{"name": n, "points": [[m, t] for m, t in zip(*tcc_library.GENERIC_CURVES[n],
+                                                              strict=True)],
+                "builtin": True, "generic": True, "label": tcc_library.label(n)}
+               for n in tcc_library.GENERIC_CURVES]
     return {"curves": [{"name": n, "points": pts, "builtin": True}
-                       for n, pts in _BUILTIN_CACHE.items()]}
+                       for n, pts in _BUILTIN_CACHE.items()] + generic}
 
 
 def _num_array(query: str) -> list[float]:
@@ -91,7 +96,8 @@ def _prop_float(full_name: str, prop: str, default: float = 0.0) -> float:
 
 
 def _curve_trace(label: str, curve: str, pickup: float, delay: float,
-                 fault: str = "phase") -> dict[str, Any] | None:
+                 fault: str = "phase", time_dial: float = 1.0,
+                 keys: dict[str, str] | None = None) -> dict[str, Any] | None:
     """One plottable trace in amps and seconds, or None when the device has no
     usable curve (no curve name, no pickup, or a curve with a single point).
 
@@ -106,12 +112,18 @@ def _curve_trace(label: str, curve: str, pickup: float, delay: float,
     n = min(len(mult), len(secs))
     if n < 2:
         return None
+    td = time_dial if time_dial > 0 else 1.0
     return {
         "label": label,
         "curve": curve,
         "fault": fault,
         "pickupA": round(pickup, 2),
-        "points": [[round(mult[i] * pickup, 2), round(secs[i] + delay, 5)]
+        "timeDial": td,
+        "delay": delay,
+        # Which of the element's params set this trace, so the plot can
+        # redraw it from an edit without another solve.
+        "keys": keys or {},
+        "points": [[round(mult[i] * pickup, 2), round(secs[i] * td + delay, 5)]
                    for i in range(n)],
     }
 
@@ -164,7 +176,8 @@ def _read_devices(element_map: dict[str, str]) -> list[dict[str, Any]]:
         if dev:
             curve = str(dss.Fuses.TCCCurve()).lower()
             trace = _curve_trace(f"{name} ({curve})", curve,
-                                 dss.Fuses.RatedCurrent(), dss.Fuses.Delay())
+                                 dss.Fuses.RatedCurrent(), dss.Fuses.Delay(),
+                                 keys={"curve": "fusecurve", "pickup": "ratedcurrent"})
             if trace:
                 dev["traces"].append(trace)
                 devices.append(dev)
@@ -187,7 +200,9 @@ def _read_devices(element_map: dict[str, str]) -> list[dict[str, Any]]:
                 ("ground delayed", "grounddelayed", ground_pickup, "ground"),
             ):
                 trace = _curve_trace(f"{name} {label}", _prop(full, prop).lower(),
-                                     pickup, delay, kind)
+                                     pickup, delay, kind,
+                                     keys={"curve": prop, "pickup": "phasetrip" if kind == "phase"
+                                           else "groundtrip"})
                 if trace:
                     dev["traces"].append(trace)
             if dev["traces"]:
@@ -206,13 +221,15 @@ def _read_devices(element_map: dict[str, str]) -> list[dict[str, Any]]:
             continue
         if dev and _prop(full, "type").lower().startswith("current"):
             delay = _prop_float(full, "delay")
-            for label, curve_prop, trip_prop in (
-                ("phase", "phasecurve", "phasetrip"),
-                ("ground", "groundcurve", "groundtrip"),
+            for label, curve_prop, trip_prop, td_prop in (
+                ("phase", "phasecurve", "phasetrip", "tdphase"),
+                ("ground", "groundcurve", "groundtrip", "tdground"),
             ):
                 trace = _curve_trace(f"{name} {label}",
                                      _prop(full, curve_prop).lower(),
-                                     _prop_float(full, trip_prop), delay, label)
+                                     _prop_float(full, trip_prop), delay, label,
+                                     _prop_float(full, td_prop, 1.0),
+                                     {"curve": curve_prop, "pickup": trip_prop, "td": td_prop})
                 if trace:
                     dev["traces"].append(trace)
             if dev["traces"]:

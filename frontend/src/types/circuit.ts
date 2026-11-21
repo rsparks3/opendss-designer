@@ -66,6 +66,12 @@ export interface CircuitEdgeJSON {
 
 /** A user-defined time-current curve: multiples of the device's pickup
  *  against seconds to operate, like the engine's own curves. */
+export interface TccSetJSON {
+  id: string
+  name: string
+  deviceIds: string[]
+}
+
 export interface TccCurveJSON {
   multiples: number[]
   seconds: number[]
@@ -279,6 +285,8 @@ export interface CircuitJSON {
   tagVocabulary?: string[] | null
   /** Load allocations to metered values, by zone (a meter element). */
   allocations?: AllocationJSON[] | null
+  /** Saved device sets for the time-current plot. */
+  tccSets?: TccSetJSON[] | null
 }
 
 /** Scale the loads below a meter point so the solve agrees with a measured

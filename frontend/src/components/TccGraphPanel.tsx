@@ -1,16 +1,39 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import {
+  chainMargins,
+  curveLibrary,
+  faultSignature,
   formatAmps,
   formatSeconds,
   logTicks,
   operateSeconds,
+  retrace,
+  tccChain,
+  type CurveLibrary,
   type TccDevice,
   type TccResult,
   type TccTrace,
 } from '../lib/tcc'
 import { toCircuitJSON, useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
+import { useUiStore } from '../store/uiStore'
+
+// The engine's curves and the generic families, fetched once.
+let servedCurves: Promise<{ name: string; points: [number, number][] }[]> | null = null
+function loadServedCurves() {
+  servedCurves ??= api.tccCurves().then((r) => r.curves).catch(() => {
+    servedCurves = null
+    return []
+  })
+  return servedCurves
+}
+
+/** Order a set of devices nearest the fault first: a device further from the
+ *  source has the longer chain above it. */
+function orderChain(devs: TccDevice[], chainLen: (id: string) => number): TccDevice[] {
+  return [...devs].sort((a, b) => chainLen(b.nodeId ?? '') - chainLen(a.nodeId ?? ''))
+}
 
 const ML = 62
 const MR = 150 // room for the legend
@@ -50,7 +73,16 @@ export function TccGraphPanel() {
   const setFlash = useResultsStore((s) => s.setFlash)
   const [data, setData] = useState<TccResult | null>(null)
   const [loading, setLoading] = useState(false)
-  const [stale, setStale] = useState(false)
+  const [ranOn, setRanOn] = useState<string | null>(null)
+  const [served, setServed] = useState<{ name: string; points: [number, number][] }[] | null>(null)
+  const userCurves = useCircuitStore((s) => s.tccCurves)
+  const tccSets = useCircuitStore((s) => s.tccSets)
+  const setTccSets = useCircuitStore((s) => s.setTccSets)
+  const focus = useUiStore((s) => s.tccFocus)
+  const tccSignal = useUiStore((s) => s.tccSignal)
+  // 'all', 'chain' (the focused device and those above it) or a saved set's id.
+  const [view, setView] = useState<string>(() => (useUiStore.getState().tccFocus ? 'chain' : 'all'))
+  const [naming, setNaming] = useState<string | null>(null)
   const [hidden, setHidden] = useState<Record<string, boolean>>({})
   const [hover, setHover] = useState<Hover | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -97,22 +129,31 @@ export function TccGraphPanel() {
     return { curved, switches: curved + nodes.filter((n) => n.type === 'breaker').length }
   }, [nodes])
 
-  // Editing the circuit invalidates the plot; re-running is one click, not
-  // automatic, because it costs a fault-study solve.
+  // A curve, pickup, time dial or fuse size redraws at once (below); only an
+  // edit the fault current depends on makes the fault lines stale, and
+  // re-running is one click, not automatic, because it costs a solve.
+  const signature = useMemo(() => faultSignature(nodes, edges), [nodes, edges])
+  const stale = ranOn !== null && ranOn !== signature
+  useEffect(() => {
+    void loadServedCurves().then(setServed)
+  }, [])
   useEffect(() => {
     if (first.current) {
       first.current = false
       return
     }
-    setStale(true)
-  }, [nodes, edges])
+    if (focus) setView('chain')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tccSignal])
+  const lib: CurveLibrary = useMemo(() => curveLibrary(served, userCurves), [served, userCurves])
 
   const run = async () => {
     setLoading(true)
     try {
-      const result = await api.tcc(toCircuitJSON(useCircuitStore.getState()))
+      const st = useCircuitStore.getState()
+      const result = await api.tcc(toCircuitJSON(st))
       setData(result)
-      setStale(false)
+      setRanOn(faultSignature(st.nodes, st.edges))
       // Coordination findings belong in the Problems list with everything
       // else that is wrong with the circuit, not buried in this tab. They live
       // in their own slot: validation rewrites `issues` on every edit and
@@ -135,8 +176,37 @@ export function TccGraphPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const devices = data?.devices ?? []
-  const visible = devices.filter((d) => !hidden[d.name])
+  // Every device as its params are now, on the fault currents of the last run.
+  const paramsOf = useMemo(() => new Map(nodes.map((n) => [n.id, n.data.params])), [nodes])
+  const devices = useMemo(
+    () => (data?.devices ?? []).map((d) => (d.nodeId ? retrace(d, paramsOf.get(d.nodeId), lib) : d)),
+    [data, paramsOf, lib],
+  )
+  const savedSet = tccSets.find((x) => x.id === view)
+  const chainIds = useMemo(
+    () => (view === 'chain' && focus ? tccChain(nodes, edges, focus) : savedSet ? savedSet.deviceIds : null),
+    [view, focus, savedSet, nodes, edges],
+  )
+  const chainLen = (id: string) => tccChain(nodes, edges, id).length
+  const shown = chainIds
+    ? orderChain(devices.filter((d) => d.nodeId && chainIds.includes(d.nodeId)), chainLen)
+    : devices
+  const visible = shown.filter((d) => !hidden[d.name])
+  // Graded under the drawing's names (the engine's are lower-case).
+  const margins = chainIds && visible.length > 1
+    ? chainMargins(visible.map((d) => ({ ...d, name: String((d.nodeId && paramsOf.get(d.nodeId)?.name) || d.name) })))
+    : []
+  const focusName = focus ? String(paramsOf.get(focus)?.name ?? focus) : null
+  const saveSet = (name: string) => {
+    const ids = (chainIds ?? visible.map((d) => d.nodeId).filter((x): x is string => !!x)).slice(0, 50)
+    const taken = new Set(tccSets.map((x) => x.id))
+    let i = 1
+    while (taken.has(`tcc${i}`)) i++
+    const id = `tcc${i}`
+    setTccSets([...tccSets, { id, name: name.trim() || `Set ${i}`, deviceIds: ids }])
+    setView(id)
+    setNaming(null)
+  }
   // Breakers, and any protective device whose curve could not be read: the
   // plot has nothing to show for them, so they get a line in a table instead.
   const plotted = new Set(devices.map((d) => d.nodeId))
@@ -165,8 +235,25 @@ export function TccGraphPanel() {
   const controls = (
     <div className="graph-controls">
       <button onClick={() => void run()} disabled={loading || counts.switches === 0}>
-        {loading ? 'Running…' : stale ? 'Re-run (circuit changed)' : 'Re-run'}
+        {loading ? 'Running…' : stale ? 'Re-run (fault currents changed)' : 'Re-run'}
       </button>
+      <select aria-label="Devices plotted" value={view} onChange={(e) => setView(e.target.value)}>
+        <option value="all">All devices</option>
+        {focus && <option value="chain">{focusName} and above</option>}
+        {tccSets.map((t) => <option key={t.id} value={t.id}>Set: {t.name}</option>)}
+      </select>
+      {naming === null ? (
+        <button type="button" disabled={!visible.length} title="Keep these devices as a named set; the report prints one plot per set" onClick={() => setNaming(view === 'chain' && focusName ? `${focusName} chain` : '')}>Save set…</button>
+      ) : (
+        <span className="tcc-name-set">
+          <input autoFocus aria-label="Set name" value={naming} onChange={(e) => setNaming(e.target.value)}
+                 onKeyDown={(e) => { if (e.key === 'Enter') saveSet(naming); if (e.key === 'Escape') setNaming(null) }} />
+          <button type="button" onClick={() => saveSet(naming)}>Save</button>
+        </span>
+      )}
+      {savedSet && (
+        <button type="button" title="Forget this set" onClick={() => { setTccSets(tccSets.filter((x) => x.id !== savedSet.id)); setView('all') }}>Delete set</button>
+      )}
       <span className="graph-hint">
         {counts.curved === 0
           ? 'Add a fuse, recloser or relay to plot its curve'
@@ -319,6 +406,24 @@ export function TccGraphPanel() {
                 </g>
               )),
             )}
+            {visible.map((d) =>
+              d.faultA1ph ? (
+                <line key={`g-${d.name}`} x1={lx(d.faultA1ph)} x2={lx(d.faultA1ph)} y1={MT} y2={MT + PLOT_H}
+                      stroke={colorOf(d.name)} className="tcc-fault ground">
+                  <title>{`${d.name}: line-to-ground fault ${formatAmps(d.faultA1ph)} A`}</title>
+                </line>
+              ) : null,
+            )}
+            {margins.filter((m) => m.downSecs != null && m.upSecs != null).map((m) => (
+              <g key={`m-${m.down}-${m.up}-${m.fault}`} className={m.ok ? 'tcc-margin ok' : 'tcc-margin bad'}>
+                <line x1={lx(m.amps)} x2={lx(m.amps)} y1={ly(m.downSecs!)} y2={ly(m.upSecs!)} />
+                <line x1={lx(m.amps) - 4} x2={lx(m.amps) + 4} y1={ly(m.downSecs!)} y2={ly(m.downSecs!)} />
+                <line x1={lx(m.amps) - 4} x2={lx(m.amps) + 4} y1={ly(m.upSecs!)} y2={ly(m.upSecs!)} />
+                <text x={lx(m.amps) + 6} y={(ly(m.downSecs!) + ly(m.upSecs!)) / 2 + 4}>
+                  {m.marginS! >= 0 ? '+' : ''}{formatSeconds(Math.abs(m.marginS!))} s {m.ok ? '✓' : '✗'}
+                </text>
+              </g>
+            ))}
             {visible.map((d, i) =>
               d.faultA3ph ? (
                 <g key={`f-${d.name}`}>
@@ -337,7 +442,7 @@ export function TccGraphPanel() {
           <rect x={ML} y={MT} width={PLOT_W} height={PLOT_H} className="vp-frame" />
 
           {/* Legend: click a device to take it off the plot. */}
-          {devices.map((d, i) => (
+          {shown.map((d, i) => (
             <g key={d.name} className="tcc-legend-row"
                onClick={() => setHidden({ ...hidden, [d.name]: !hidden[d.name] })}>
               <rect x={ML + PLOT_W + 10} y={MT + i * 34 - 2} width={MR - 18} height={32}
@@ -375,6 +480,27 @@ export function TccGraphPanel() {
           ◢
         </div>
       </div>
+      {margins.length > 0 && (
+        <div className="tcc-switches">
+          <div className="tcc-switches-title">Coordination along the chain, at the fault current of the device nearer the fault</div>
+          <table>
+            <thead><tr><th>Pair</th><th>Fault</th><th>Below</th><th>Above</th><th>Margin</th><th>Rule</th><th /></tr></thead>
+            <tbody>
+              {margins.map((m) => (
+                <tr key={`${m.down}-${m.up}-${m.fault}`}>
+                  <td>{m.down} → {m.up}</td>
+                  <td>{formatAmps(m.amps)} A {m.fault === 'phase' ? '3φ' : 'LG'}</td>
+                  <td>{m.downSecs == null ? 'no trip' : `${formatSeconds(m.downSecs)} s`}</td>
+                  <td>{m.upSecs == null ? 'no trip' : `${formatSeconds(m.upSecs)} s`}</td>
+                  <td>{m.marginS == null ? '—' : `${formatSeconds(m.marginS)} s`}</td>
+                  <td>{m.rule}</td>
+                  <td className={m.ok === false ? 'over' : undefined}>{m.ok == null ? '—' : m.ok ? 'graded' : 'not graded'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {switchTable}
       {hover && (
         <div className="result-tooltip" style={{ left: hover.x + 14, top: hover.y + 14 }}>

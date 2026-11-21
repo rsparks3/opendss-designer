@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import allocations, designer_meta, passthrough
+from . import allocations, designer_meta, passthrough, tcc_library
 from .connectivity import (
     BUSBAR_CANON_HANDLE,
     ConnectivityResult,
@@ -653,6 +653,18 @@ def compile_circuit(
         curve_names.add(curve)
         cmds.append(f"new tcc_curve.{curve} npts={n} c_array=({mult}) t_array=({secs})")
 
+    # The generic relay families (IEC 60255, IEEE short-time inverse), each
+    # defined only if a device names it and the circuit has no curve of that
+    # name of its own.
+    curve_keys = ("fusecurve", "phasefast", "phasedelayed", "groundfast", "grounddelayed",
+                  "phasecurve", "groundcurve")
+    wanted = {sanitize_name(str(nd.params.get(k, "")).strip().lower())
+              for nd in circuit.nodes if nd.type in ("fuse", "recloser", "relay")
+              for k in curve_keys}
+    for generic in sorted(wanted & set(tcc_library.GENERIC_CURVES) - curve_names):
+        curve_names.add(generic)
+        cmds.append(tcc_library.command(generic))
+
     # Inverter volt-var / volt-watt curves (XYCurve), before the PV and
     # storage units whose InvControl names them. A reference to a curve not
     # emitted here is a hard engine error, so xy_names is the set a unit may
@@ -1150,11 +1162,19 @@ def compile_circuit(
             f"phasetrip={_num(p, 'phasetrip', 200.0):g} "
             f"delay={_num(p, 'delay', 0.0):g}"
         )
+        # The time dial multiplies the curve's time axis (TMS for IEC curves).
+        for td_key in ("tdphase",):
+            td = _num(p, td_key)
+            if td is not None and td > 0:
+                cmd += f" {td_key}={td:g}"
         # No ground curve means no ground unit at all, which is a different
         # relay from one with a ground unit picked up at some default.
         ground = curve_ref(p, "groundcurve", RELAY_CURVES | {"none"}, "none", n.id)
         if ground != "none":
             cmd += f" groundcurve={ground} groundtrip={_num(p, 'groundtrip', 50.0):g}"
+            td = _num(p, "tdground")
+            if td is not None and td > 0:
+                cmd += f" tdground={td:g}"
         cmds.append(cmd)
         out_of_service("relay", name, p)
 

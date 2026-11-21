@@ -281,8 +281,11 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'closed', label: 'Closed', kind: 'checkbox' },
     { key: 'phasetrip', label: 'Phase pickup', kind: 'number', unit: 'A' },
     { key: 'phasecurve', label: 'Phase curve', kind: 'curve', curveKind: 'relay' },
+    // Multiplies the curve's time axis (TMS for the IEC curves).
+    { key: 'tdphase', label: 'Phase time dial', kind: 'number', placeholder: '1' },
     { key: 'groundtrip', label: 'Ground pickup', kind: 'number', unit: 'A' },
     { key: 'groundcurve', label: 'Ground curve', kind: 'curve', curveKind: 'relay', allowNone: true },
+    { key: 'tdground', label: 'Ground time dial', kind: 'number', placeholder: '1' },
     { key: 'delay', label: 'Added delay', kind: 'number', unit: 's' },
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
     EMERGENCY_AMPS,
@@ -429,6 +432,17 @@ const BUILTIN_CURVES: Record<string, string[]> = {
   relay: ['mod_inv', 'very_inv', 'ext_inv', 'definite'],
 }
 
+/** Generic relay curve families from their published formulas, at a time
+ *  dial of 1 (core/tcc_library.py); defined in the engine when a device
+ *  names one. */
+export const GENERIC_CURVES: Record<string, string> = {
+  iec_si: 'IEC standard inverse',
+  iec_vi: 'IEC very inverse',
+  iec_ei: 'IEC extremely inverse',
+  iec_lti: 'IEC long-time inverse',
+  ieee_sti: 'IEEE short-time inverse (U5)',
+}
+
 function CurveSelect({
   value,
   curveKind = 'relay',
@@ -442,13 +456,17 @@ function CurveSelect({
 }) {
   const mine = Object.keys(useCircuitStore((s) => s.tccCurves))
   const builtin = BUILTIN_CURVES[curveKind] ?? []
+  const generic = curveKind === 'relay' ? Object.keys(GENERIC_CURVES).filter((n) => !mine.includes(n)) : []
   const current = String(value ?? '')
-  const known = [...builtin, ...mine]
+  const known = [...builtin, ...generic, ...mine]
   return (
     <select value={current} onChange={(e) => onCommit(e.target.value)}>
       {allowNone && <option value="none">none</option>}
       {builtin.map((n) => (
         <option key={n} value={n}>{n}</option>
+      ))}
+      {generic.map((n) => (
+        <option key={n} value={n}>{n} — {GENERIC_CURVES[n]}</option>
       ))}
       {mine.map((n) => (
         <option key={n} value={n}>{n} (this circuit)</option>

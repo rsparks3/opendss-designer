@@ -14,7 +14,8 @@ import { temporal } from 'zundo'
 import { create } from 'zustand'
 import { defaultLineParams, defaultParams, isAnnotation, isNote, nextName, NODE_SIZE, SYMBOL_PITCH } from '../lib/defaults'
 import { insertPoint, interiorPoints, simplifyCollinear } from '../lib/edgeGeometry'
-import type { CircuitJSON, CircuitNodeJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
+import type {
+  TccSetJSON, CircuitJSON, CircuitNodeJSON, EdgeKind, LoadShapeJSON, NodeType, Params,
   GeoPoint,
   HistoryEntryJSON,
   LimitsJSON,
@@ -97,6 +98,9 @@ export interface CircuitState {
   /** Metered-zone load allocations (factor applied at compile time). */
   allocations: AllocationJSON[]
   setAllocations: (allocations: AllocationJSON[]) => void
+  /** Saved device sets for the time-current plot (one plot each in the report). */
+  tccSets: TccSetJSON[]
+  setTccSets: (sets: TccSetJSON[]) => void
   /** The load conditions studies run at; null = rated only. */
   loadLevels: LoadLevelJSON[] | null
   setLoadLevels: (levels: LoadLevelJSON[] | null) => void
@@ -517,7 +521,7 @@ export function toCircuitJSON(
     'name' | 'nodes' | 'edges' | 'busNames' | 'loadShapes' | 'tccCurves' | 'lineCodes'
   > & Partial<Pick<CircuitState, 'passthrough' | 'comments' | 'limits' | 'study' | 'voltageBases' | 'crs'
     | 'xyCurves' | 'loadLevels' | 'activeLevel' | 'scenarios' | 'activeScenario' | 'scenarioBase'
-    | 'wireData' | 'lineGeometries' | 'history' | 'tagVocabulary' | 'allocations'>>,
+    | 'wireData' | 'lineGeometries' | 'history' | 'tagVocabulary' | 'allocations' | 'tccSets'>>,
 ): CircuitJSON {
   // While a scenario is open the drawing on screen is the scenario's; the
   // document holds the base and the deltas, refreshed from the drawing.
@@ -575,6 +579,7 @@ export function toCircuitJSON(
     ...(s.activeScenario ? { activeScenario: s.activeScenario } : {}),
     ...(s.tagVocabulary?.length ? { tagVocabulary: s.tagVocabulary } : {}),
     ...(s.allocations?.length ? { allocations: s.allocations } : {}),
+    ...(s.tccSets?.length ? { tccSets: s.tccSets } : {}),
   }
 }
 
@@ -718,6 +723,9 @@ export const useCircuitStore = create<CircuitState>()(
         set({ allocations, dirty: true })
         markStale()
       },
+      tccSets: [],
+      // Which devices are plotted together changes no result.
+      setTccSets: (tccSets) => set({ tccSets, dirty: true }),
       loadLevels: null,
       setLoadLevels: (levels) => {
         const loadLevels = levels?.length ? levels : null
@@ -1374,6 +1382,7 @@ export const useCircuitStore = create<CircuitState>()(
           scenarioBase: null,
           tagVocabulary: c.tagVocabulary ?? [],
           allocations: c.allocations ?? [],
+          tccSets: c.tccSets ?? [],
           dirty: false,
         })
         // Cleared here rather than at each call site: Open used to leave the
@@ -1411,6 +1420,7 @@ export const useCircuitStore = create<CircuitState>()(
           scenarioBase: null,
           tagVocabulary: [],
           allocations: [],
+          tccSets: [],
           dirty: true,
           projectId: null,
         })
@@ -1603,6 +1613,7 @@ export const useCircuitStore = create<CircuitState>()(
         scenarios: s.scenarios,
         tagVocabulary: s.tagVocabulary,
         allocations: s.allocations,
+        tccSets: s.tccSets,
       }),
       limit: 100,
       // By reference, element by element. Every action replaces what it

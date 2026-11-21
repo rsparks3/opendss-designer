@@ -150,6 +150,7 @@ export type FeatureKey = 'convert' | 'studies'
 
 export const api = {
   health: () => get<HealthInfo>('/api/health'),
+  tccCurves: () => get<{ curves: { name: string; points: [number, number][]; generic?: boolean; label?: string }[] }>('/api/tcccurves'),
 
   samples: () => get<{ samples: SampleMeta[] }>('/api/samples'),
 

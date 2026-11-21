@@ -26,7 +26,7 @@ SAMPLES = ROOT / "src" / "opendss_designer" / "samples"
 
 PITCH = 20
 SIZE = {"vsource": (40, 60), "transformer": (40, 80), "breaker": (40, 60), "fuse": (40, 60),
-        "load": (40, 60), "generator": (40, 60)}
+        "load": (40, 60), "generator": (40, 60), "relay": (60, 60)}
 
 
 class Builder:
@@ -128,7 +128,9 @@ def installation() -> None:
     b.wire("w_t_b", "brk_t", "t2", "bus_b", "b", at=730)
 
     # Feeder 1: the hospital, with G1 on its MV bus.
-    b.sym("brk_f1", "breaker", 230, 430, name="52-F1", closed=True, normamps=400, phases=3)
+    # A relay-tripped feeder breaker (IEC very inverse), graded over the clinic fuse.
+    b.sym("brk_f1", "relay", 230, 430, name="52-F1", closed=True, normamps=400, phases=3,
+          phasetrip=300, phasecurve="iec_vi", tdphase=0.3, groundcurve="none", interruptingka=25)
     b.wire("w_f1", "bus_a", "c", "brk_f1", "t1")
     b.bus("bus_hosp", "HOSPITAL MV", MV, 120, 620, 300)
     b.line("ln_f1", "brk_f1", "t2", "bus_hosp", "b", length=1.2, name="F1-MAIN", **CABLE)

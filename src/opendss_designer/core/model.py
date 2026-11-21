@@ -314,6 +314,17 @@ def _plain_json(value: Any, depth: int) -> bool:
     return False
 
 
+class TccSet(BaseModel):
+    """A saved selection of protective devices for the time-current plot
+    (facility plan 2.5): one plot per set in the report."""
+
+    id: Annotated[str, Field(min_length=1, max_length=64)]
+    name: Annotated[str, Field(min_length=1, max_length=120)]
+    deviceIds: Annotated[list[Annotated[str, Field(max_length=200)]], Field(max_length=50)] = Field(
+        default_factory=list
+    )
+
+
 class Allocation(BaseModel):
     """Scale the loads below a meter point (`meterElementId`: a series element
     or a source) so a solve agrees with a measured value. The factor a run
@@ -447,6 +458,8 @@ class Circuit(BaseModel):
     ] | None = None
     # Metered-zone load allocations; their factors apply at compile time.
     allocations: Annotated[list[Allocation], Field(max_length=100)] | None = None
+    # Saved device sets for the time-current plot.
+    tccSets: Annotated[list[TccSet], Field(max_length=100)] | None = None
 
     @property
     def criteria(self) -> Limits:

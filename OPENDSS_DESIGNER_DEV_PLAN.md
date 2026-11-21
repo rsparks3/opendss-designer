@@ -378,7 +378,10 @@ Names follow the code, not the original draft: ratings are lower-case element pa
 - `dutyMargin` 1.1 turns a 9.5 kA fault on a 10 kA device into a fail.
 - The existing protection tests still pass.
 
-### 2.5 Interactive TCC plot
+### 2.5 Interactive TCC plot — ✅ DONE 2026-11-21
+
+**As built:** `core/tcc_library.py` (generic families), relay `tdphase`/`tdground` (there was no time dial at all before: neither the engine nor the plot saw one), traces carrying `timeDial`, `delay` and `keys` so `lib/tcc.ts` `retrace` redraws from params; `faultSignature` decides when fault lines are stale. Chains from `lib/tcc.ts` `tccChain` (the TS trace's upstream path); `Circuit.tccSets`. In the sample, 52-F1 became a relay (IEC VI, 300 A, TMS 0.3): 0.30 s over F-CLINIC at 4.1 kA. Tests: `tests/test_tcc_facility.py`, `lib/tcc.test.ts`, and the Milestone B demo `frontend/e2e/planning.spec.ts`.
+
 
 **Exists:**
 - `POST /api/tcc` (`tcc_study`) and Graph tab → Protection (`TccGraphPanel`): an in-house log-log SVG with every protective device. It draws a 3φ fault line per device, recloser fast/delayed curves, dashed ground curves and dotted extrapolation, and toggles devices from the legend.

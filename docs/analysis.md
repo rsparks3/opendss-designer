@@ -218,6 +218,36 @@ costs a fault-study solve, so it runs when you open the tab and then on
 **Re-run**; editing the circuit marks it stale rather than re-running by
 itself.
 
+#### A device and the devices above it
+
+Right-click a fuse, recloser or relay → **Plot TCC** opens this plot on that
+device and every protective device between it and its source (*F-CLINIC and
+above* in the device list). Along that chain each pair is graded at the fault
+current of the device nearer the fault, three-phase on the phase units and
+line-to-ground where both have a ground unit: a bracket on the plot and a
+row in the table under it give the two operating times and the margin,
+green when it meets the rule (0.25 s; for two fuses, clearing within 75 % of
+the upstream melt) and red when it does not. The line-to-ground fault current
+is drawn dotted beside the dashed three-phase one.
+
+**Save set…** keeps the devices shown under a name; the list offers every
+saved set, and the report prints one time-current plot per set (all devices
+when there are none).
+
+Changing a curve, pickup, time dial, added delay or fuse size redraws the
+plot at once: the curves are scaled in the browser. Only an edit the fault
+current depends on (an impedance, a source, a switch opened) asks for a
+re-run.
+
+Relays have a **time dial** for the phase and the ground unit, which
+multiplies the curve's time axis (the TMS of an IEC curve). Besides the
+engine's IEEE moderately, very and extremely inverse curves, every relay can
+use the generic **IEC 60255 standard, very, extremely and long-time
+inverse** and the **IEEE short-time inverse (U5)** curves (`iec_si`,
+`iec_vi`, `iec_ei`, `iec_lti`, `ieee_sti`), computed from their published
+formulas at a time dial of 1. They are formula curves, not manufacturer
+data; the compiler defines one in the engine only when a device names it.
+
 #### Switches with no curve
 
 A breaker has no protection attached — no curve, no pickup, nothing to plot
