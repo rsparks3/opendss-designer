@@ -9,7 +9,7 @@
 - GIS coordinates and the map view;
 - the TCC graph.
 
-**Tier 3 has not yet been reconciled.** Several of its items partly exist (3.2 map view, 3.3 shapes). Reconcile each one, as Tiers 1 and 2 were, before starting it.
+**Tiers 1 and 2 are done. Tier 3 has not yet been reconciled.** Several of its items partly exist (3.2 map view, 3.3 shapes). Reconcile each one, as Tiers 1 and 2 were, before starting it.
 
 **Relation to the roadmap:** this plan is a second track (facility / installation planning) *alongside* the utility distribution-planning direction in `FUTURE_IMPROVEMENTS.md`. It does not replace that direction.
 
@@ -243,7 +243,9 @@ The trace (1.2) is a dependency for islanding (1.3) and allocation zones (1.4).
 
 ---
 
-## 2. Milestone B — Planning studies (Tier 2)
+## 2. Milestone B — Planning studies (Tier 2) — ✅ DONE 2026-11-21 (branch `facility-tier2`)
+
+Everything below was built as described, except where an *As built* note says otherwise. `frontend/e2e/planning.spec.ts` runs the milestone's exit demo end to end on `installation-campus`. **Cross-cutting fix found while building:** transformers were rated at OpenDSS's default 110 % of nameplate; the compiler now writes `normhkva` (2.2).
 
 **Goal:** the capacity and contingency deliverables a planner needs for a MILCON review or a resilience assessment.
 
@@ -316,7 +318,10 @@ Names follow the code, not the original draft: ratings are lower-case element pa
 - On a long feeder where voltage binds first, the headroom row says *voltage* and its spare is below the thermal spare. Hold it to a probe at the same bus within 10 %.
 - Two growth levels give two columns, and spare shrinks with the level.
 
-### 2.3 Generator and BESS sizing against an island
+### 2.3 Generator and BESS sizing against an island — ✅ DONE 2026-11-21
+
+**As built:** `studies/sizing.py` (`POST /api/sizing`), `SizingDialog` (right-click a device or busbar). Drawdown is over windows of at most one cycle (a cyclic day run twice, so a night spanning midnight counts whole, without counting two nights as one). The verification builds the island uncut, reads its bus voltage base, then opens the element in the engine (an island cut before the build has no voltage base), and starts the battery at the charge the schedule needs. A day carried on a draining battery is reported as *one day only*, not a pass. Verification is daily only; a yearly sizing says so. The battery kWh reported includes the reserve; *usable* is the drawdown / round-trip efficiency. Tests: `tests/test_sizing.py`, `lib/sizing.test.ts`, the sizing steps of `planning.spec.ts`.
+
 
 **Exists:**
 - 1.3 islands, `downstream_set` (1.2), and the per-island summary.

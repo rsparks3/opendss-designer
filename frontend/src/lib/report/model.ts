@@ -42,13 +42,14 @@ import type {
 } from '../../types/circuit'
 import { EMPTY_STUDY, limitsOf } from '../limits'
 import { operateSeconds, type TccResult } from '../tcc'
-import { traceUnit } from './charts'
+import { sizingSvg, traceUnit } from './charts'
 import { fromCircuitJSON, type AppEdge, type AppNode } from '../../store/circuitStore'
 import { zoneLoads } from '../allocation'
 import {
   buildTopology, firstProtectiveUpstream, PRIORITIES, PRIORITY_LABELS, PROTECTIVE_TYPES, priorityOf, upstreamPaths,
 } from '../trace'
 import type { HeadroomResult, ProbeResult } from '../headroom'
+import { hourLabel, type SizingResult } from '../sizing'
 
 export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'loadbasis' | 'scenarios' | 'outage' | 'shortcircuit' | 'protection' | 'duty' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
 
@@ -685,7 +686,37 @@ function studiesSection(studies: Partial<Record<string, unknown>>, names: Names,
       ],
     })
   }
-  return { id: 'studies', title: 'Planning studies', tables, figures: [] }
+  const figures: { id: string; title: string; svg: string }[] = []
+  const sz = studies.sizing as SizingResult | undefined
+  if (sz?.ok) {
+    const v = sz.verification
+    const span = sz.mode === 'daily' ? 'day' : 'year'
+    const rows: Record<string, Cell>[] = [
+      { what: 'Island', value: `everything below ${sz.elementName}: ${sz.loads} load${sz.loads === 1 ? '' : 's'}, ${sz.pvCount} PV system${sz.pvCount === 1 ? '' : 's'}`, note: `over a ${span}` },
+      { what: 'Peak net load', value: `${Math.round(sz.generator.peakNetKw)} kW`, note: `at ${hourLabel(sz.generator.peakHour, sz.mode === 'yearly')}` },
+      { what: 'Generator needed', value: `${Math.round(sz.generator.requiredKw)} kW`, note: `peak + ${sz.generator.marginPct} % reserve margin` },
+      { what: 'Generator used for the battery', value: `${Math.round(sz.generator.chosenKw)} kW`, note: `${sz.generator.hoursAbove80} h above 80 % of it` },
+      sz.battery.kwh > 0
+        ? { what: 'Battery', value: `${Math.round(sz.battery.kw)} kW / ${Math.round(sz.battery.kwh)} kWh`, note: `${Math.round(sz.battery.usableKwh)} kWh usable above a ${sz.battery.reservePct} % reserve, ${sz.battery.efficiencyPct} % round trip` }
+        : { what: 'Battery', value: 'none needed', note: '' },
+      { what: `Energy over the ${span}`, value: `${Math.round(sz.battery.energyBalanceKwh)} kWh`, note: sz.battery.cycleCloses ? 'closes: the island can be carried indefinitely' : `short: cannot be carried indefinitely${sz.battery.emptiesAfterHours ? ` (battery empty after about ${Math.round(sz.battery.emptiesAfterHours)} h)` : ''}` },
+      { what: 'Reverse power', value: `${sz.reversePowerCount} h`, note: sz.reversePowerCount ? 'PV surplus the generator would have to absorb: curtail or add storage' : '' },
+      ...sz.generator.existing.map((g) => ({ what: `Fuel: ${g.name}`, value: g.fuelHours ? `${g.fuelHours} h` : 'not entered', note: '' })),
+      { what: 'Verification', value: !v ? 'not run' : !v.ran ? 'not run' : v.passed ? 'passed' : v.oneDayOnly ? 'one day only' : 'failed',
+        note: !v ? '' : !v.ran ? (v.why ?? '') : `generator up to ${v.maxGenLoadingPct} % of ${v.generatorKva} kVA${v.minSocPct != null ? `, battery down to ${v.minSocPct} %` : ''}${v.reverseHours ? `, ${v.reverseHours} h reverse power` : ''}` },
+    ]
+    tables.push({
+      id: 'sizing',
+      title: 'Backup sizing',
+      columns: [{ key: 'what', label: '', width: 1.6 }, { key: 'value', label: 'Size', width: 1.4 }, { key: 'note', label: 'Basis', width: 4 }],
+      rows,
+      flags: rows.map((r) => (r.what === 'Verification' && r.value === 'failed') || (String(r.what).startsWith('Energy') && !sz.battery.cycleCloses) ? 'violation' : null),
+      note: 'A sizing calculator with a verification run, not an optimisation. Net load is the island\u2019s load less its PV (Pmpp × irradiance × its shape, without inverter or temperature losses). The battery covers the largest drawdown of (generator + PV − load) over the run, divided by the round-trip efficiency, charging only from surplus. The verification cuts the island off, stops its generators, and solves it hour by hour on a new isochronous generator (its kVA at 0.8 power factor) and the battery following the computed dispatch.',
+    })
+    const svg = sizingSvg(sz)
+    if (svg) figures.push({ id: 'sizing', title: `Backup sizing: everything below ${sz.elementName}`, svg })
+  }
+  return { id: 'studies', title: 'Planning studies', tables, figures }
 }
 
 /** Every metered-zone allocation: where it was measured, the target, the

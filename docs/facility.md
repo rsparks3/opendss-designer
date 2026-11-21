@@ -2,7 +2,7 @@
 description: Installation-scale resilience planning in OpenDSS Designer — load priority and tracing, loss of utility with isochronous generators, operating scenarios, and allocating loads to metered values.
 ---
 
-# Facility planning: priority, trace, loss of utility, allocation
+# Facility planning: priority, trace, loss of utility, sizing, allocation
 
 A base, a campus or a large industrial site asks three questions of its
 distribution model, in an Energy Resilience Readiness Exercise and every
@@ -115,6 +115,50 @@ gives the islands from topology alone. The report's **Loss of utility**
 section covers every scenario a generator carries after *Run all*, or the
 current solve without one. For each, it gives the island table and the
 unserved loads, followed by the modelling note above.
+
+## Sizing a generator and a battery for an island
+
+Right-click a breaker, fuse, recloser, relay, transformer or busbar →
+**Size backup for downstream…** sizes the backup for everything that element
+would drop (its downstream set), on the open scenario at the active level:
+
+- **The profile:** each load's own loadshape (flat where it has none), or
+  one shape chosen for all of them, over a day or a year; less the PV in the
+  island if ticked (Pmpp × irradiance × its irradiance shape, capped at the
+  inverter rating, without inverter or temperature losses).
+- **Generator:** the largest net load plus the reserve margin (20 % unless
+  changed), the hour it falls in, the hours above 80 % of the size, and the
+  fuel on hand of any generator already in the island.
+- **Battery,** for the generator size found or one you type: the generator
+  runs up to its rating and the battery covers the rest, charging only from
+  surplus. Its energy is the largest drawdown of (generator + PV − load) over
+  the run, divided by the round-trip efficiency, plus the reserve; its power
+  the largest deficit or surplus.
+- **Does it close?** When the day (or the year) as a whole is short of
+  energy, the island cannot be carried indefinitely, and the dialog says
+  how long a full battery lasts instead of offering a size that only works
+  once.
+- **Reverse power:** hours where PV exceeds the load and the battery cannot
+  take the surplus are flagged: a real generator cannot absorb it (the
+  engine's isochronous source would, silently). Curtail the PV or add
+  storage.
+- **Verification** (daily): the element is opened, the island's own
+  generators stopped, and the island solved hour by hour on a new
+  isochronous generator of the chosen size (its kVA at 0.8 power factor) and
+  the battery following the computed dispatch. It passes when the battery
+  stays above its reserve, the generator within its rating, with no reverse
+  power, and the day closes.
+
+**Insert in a new scenario** adds the generator (marked *Standby*, so the
+N-1 sweep and *Utility outage* start it) and the battery, connected on the
+island side of the element, in a scenario called *Backup for …*; the
+battery's dispatch is saved as a loadshape. The report's **Planning
+studies** section prints the sizes, the verification and the profile chart.
+
+!!! warning "A sizing calculator"
+    No optimisation, no fuel or emissions model, and the generator's
+    governor and the battery's inverter are not modelled. Use it to bound
+    the sizes, then check the chosen units with the time-series run.
 
 ## Scenarios and the comparison
 

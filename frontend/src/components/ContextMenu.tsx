@@ -72,6 +72,12 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
         action: () => store.updateNodeParams(node.id, { closed: !closed }),
       })
     }
+    if (['breaker', 'fuse', 'recloser', 'relay', 'transformer', 'busbar'].includes(node.type ?? '')) {
+      items.push({
+        label: 'Size backup for downstream…',
+        action: () => useUiStore.getState().openSizing(node.id),
+      })
+    }
     if (node.type === 'fuse' || node.type === 'recloser' || node.type === 'relay') {
       items.push({
         label: 'Plot TCC',

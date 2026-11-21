@@ -409,7 +409,7 @@ export function TccGraphPanel() {
             {visible.map((d) =>
               d.faultA1ph ? (
                 <line key={`g-${d.name}`} x1={lx(d.faultA1ph)} x2={lx(d.faultA1ph)} y1={MT} y2={MT + PLOT_H}
-                      stroke={colorOf(d.name)} className="tcc-fault ground">
+                      stroke={colorOf(d.name)} className="tcc-fault-lg">
                   <title>{`${d.name}: line-to-ground fault ${formatAmps(d.faultA1ph)} A`}</title>
                 </line>
               ) : null,

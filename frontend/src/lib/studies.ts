@@ -80,6 +80,7 @@ export const LABELS: Record<StudyKey, string> = {
   rvc: 'Rapid voltage change',
   headroom: 'Capacity headroom',
   probes: 'Find maximum load',
+  sizing: 'Backup sizing',
 }
 
 export const fmtKw = (kw: number | null | undefined) =>

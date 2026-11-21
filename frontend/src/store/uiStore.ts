@@ -18,7 +18,7 @@ import {
  * or saved with a project; the preferences persist per browser.
  */
 
-export type Dialog = 'saveAs' | 'library' | 'shortcuts' | 'about' | 'find' | 'prefs' | 'project' | 'report' | 'gis' | 'screen' | 'allocate' | 'zoneAllocate' | 'adoption' | null
+export type Dialog = 'saveAs' | 'library' | 'shortcuts' | 'about' | 'find' | 'prefs' | 'project' | 'report' | 'gis' | 'screen' | 'allocate' | 'zoneAllocate' | 'adoption' | 'sizing' | null
 
 /** Panels the View menu can show and hide. Keys match SidePanel storage keys. */
 export type PanelKey = 'palette2' | 'properties' | 'bottom'
@@ -32,6 +32,9 @@ interface UiState {
   /** The node the screening dialog was opened on (its bus is preselected). */
   screenTarget: string | null
   openScreening: (nodeId: string | null) => void
+  /** The element whose downstream island the sizing dialog sizes for. */
+  sizingTarget: string | null
+  openSizing: (nodeId: string) => void
   /** The device whose chain the TCC plot shows (Plot TCC on its right-click); null = every device. */
   tccFocus: string | null
   /** Bumped by Plot TCC so the Graph tab opens on the time-current plot. */
@@ -146,6 +149,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   openDialog: (dialog) => set({ dialog }),
   screenTarget: null,
   openScreening: (screenTarget) => set({ screenTarget, dialog: 'screen' }),
+  sizingTarget: null,
+  openSizing: (sizingTarget) => set({ sizingTarget, dialog: 'sizing' }),
   tccFocus: null,
   tccSignal: 0,
   plotTcc: (tccFocus) => set((s) => ({ tccFocus, tccSignal: s.tccSignal + 1 })),

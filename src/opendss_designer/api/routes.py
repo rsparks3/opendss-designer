@@ -53,6 +53,7 @@ from ..studies import islanding as islanding_study
 from ..studies import protection_depth as protection_depth_study
 from ..studies import screening as screening_study
 from ..studies import secondary as secondary_study
+from ..studies import sizing as sizing_study
 from ..studies import voltvar as voltvar_study
 
 logger = logging.getLogger(__name__)
@@ -661,6 +662,24 @@ def start_hosting_capacity(req: HostingCapacityRequest) -> dict:
             req.circuit, req.options, progress, cancel
         ),
     )
+
+
+class SizingRequest(BaseModel):
+    circuit: Circuit
+    # See studies.sizing.DEFAULTS: elementId, shape, mode, marginPct, countPv,
+    # generatorKw, efficiencyPct, reservePct, verify.
+    options: dict | None = None
+
+
+@router.post("/sizing")
+def sizing(req: SizingRequest) -> dict:
+    """Generator and battery sizes for the island below an element, with a
+    daily verification run."""
+    _refuse_locked_study()
+    try:
+        return sizing_study.size_backup(req.circuit, req.options)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
 
 
 class DutyRequest(BaseModel):

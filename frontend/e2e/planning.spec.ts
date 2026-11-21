@@ -23,7 +23,7 @@ async function sheetText(wb: ExcelJS.Workbook, name: string): Promise<string> {
 // rank contingencies with the standby generators, size a new load with the
 // probe, screen equipment duty, read a coordination chain off the TCC plot
 // -- and all of it in the report.
-test('installation: N-1, headroom and probe, duty, TCC chain and the report', async ({ page }) => {
+test('installation: N-1, headroom and probe, duty, TCC chain, backup sizing and the report', async ({ page }) => {
   await page.addInitScript(() => localStorage.clear())
   await page.goto('/')
   await page.waitForFunction(() => !!(window as any).opendssDesigner)
@@ -75,6 +75,18 @@ test('installation: N-1, headroom and probe, duty, TCC chain and the report', as
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByLabel('Devices plotted')).toHaveValue('tcc1')
 
+  // --- 2.3 backup sizing ---------------------------------------------------------------
+  await page.locator('.react-flow__node[data-id="brk_f1"]').click({ button: 'right' })
+  await page.getByRole('button', { name: 'Size backup for downstream…' }).click()
+  const sizing = page.getByRole('dialog', { name: 'Size backup' })
+  await sizing.getByLabel('Generator kW').fill('900')
+  await sizing.getByRole('button', { name: 'Size', exact: true }).click()
+  await expect(sizing).toContainText('Verification:', { timeout: 30000 })
+  await expect(sizing.locator('.sizing-chart svg')).toBeVisible()
+  await sizing.getByRole('button', { name: 'Insert in a new scenario' }).click()
+  await expect(page.locator('.scenario-banner')).toContainText('Backup for 52-F1')
+  await page.locator('.scenario-banner').getByRole('button', { name: 'Return to base case' }).click()
+
   // --- the report -------------------------------------------------------------------------
   await menu(page, 'File', 'Export', 'Study report…')
   const dialog = page.getByRole('dialog', { name: 'Study report' })
@@ -96,4 +108,5 @@ test('installation: N-1, headroom and probe, duty, TCC chain and the report', as
   expect(planning).toContain('Capacity headroom')
   expect(planning).toContain('HOSPITAL MV')
   expect(planning).toMatch(/Standby generators/)
+  expect(planning).toContain('Backup sizing')
 })

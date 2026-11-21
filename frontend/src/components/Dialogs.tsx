@@ -13,6 +13,7 @@ import { GisImportDialog } from './GisImportDialog'
 import { ProjectDialog } from './ProjectDialog'
 import { ReportDialog } from './ReportDialog'
 import { ScreeningDialog } from './ScreeningDialog'
+import { SizingDialog } from './SizingDialog'
 import { AllocationDialog } from './AllocationDialog'
 import { AdoptionDialog } from './AdoptionDialog'
 import { LibraryDialog, SaveAsDialog } from './ProjectLibrary'
@@ -68,6 +69,8 @@ export function Dialogs() {
       return <ZoneAllocationDialog onClose={close} />
     case 'adoption':
       return <AdoptionDialog onClose={close} />
+    case 'sizing':
+      return <SizingDialog onClose={close} />
     default:
       return null
   }

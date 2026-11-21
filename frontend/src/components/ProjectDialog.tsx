@@ -109,8 +109,9 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
     vmaxPu: Number(draft.vmaxPu),
     warnPct: Number(draft.warnPct),
     overloadPct: Number(draft.overloadPct),
-    dutyMargin: Number(draft.dutyMargin),
-    asymmetryFactor: Number(draft.asymmetryFactor),
+    // Written only when set, so limits that never used them save as before.
+    ...(Number(draft.dutyMargin) !== 1 ? { dutyMargin: Number(draft.dutyMargin) } : {}),
+    ...(Number(draft.asymmetryFactor) !== 1 ? { asymmetryFactor: Number(draft.asymmetryFactor) } : {}),
   }
   const problem = limitsProblem(parsed)
   const changed = !problem && !sameLimits(parsed, limitsOf(stored))

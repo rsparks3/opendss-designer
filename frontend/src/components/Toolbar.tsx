@@ -12,7 +12,8 @@ import { listed } from '../lib/scenarios'
  */
 /** Overlays reached from their own tab and the Analysis menu rather than
  *  the toolbar, which stays one row high. */
-const STUDY_OVERLAYS = new Set(['compare', 'hosting', 'islands'])
+// Kept to the Analysis → Overlay menu: the toolbar must stay one row at 1280 px.
+const STUDY_OVERLAYS = new Set(['compare', 'hosting', 'islands', 'duty'])
 
 export function Toolbar() {
   const name = useCircuitStore((s) => s.name)

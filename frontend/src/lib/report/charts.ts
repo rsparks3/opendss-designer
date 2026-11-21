@@ -5,6 +5,7 @@
 import type { LimitsJSON, SolveResult, TimeSeriesResult } from '../../types/circuit'
 import { fmt, niceStep, ticks } from '../axis'
 import { formatAmps, formatSeconds, logTicks, type TccDevice, type TccResult, type TccTrace } from '../tcc'
+import type { SizingResult } from '../sizing'
 
 /** How the report names what the engine returns in lower case. */
 export interface Naming {
@@ -227,4 +228,47 @@ function legend(body: string[], entries: [string, string, string?][]) {
     body.push(text(lx + 24, ly + 4, label, 'start', 10, INK))
     lx += 34 + label.length * 6
   }
+}
+
+/** Backup sizing (studies/sizing.py): the island's load, PV and net load
+ *  over the day (each day's peak over a year), the generator size, and the
+ *  battery's charge from the verification run. */
+export function sizingSvg(r: SizingResult): string | null {
+  const yearly = r.mode === 'yearly'
+  const reduce = (xs: number[]) => {
+    if (!yearly) return xs
+    const out: number[] = []
+    for (let d = 0; d * 24 < xs.length; d++) out.push(Math.max(...xs.slice(d * 24, d * 24 + 24)))
+    return out
+  }
+  const load = reduce(r.profile.loadKw)
+  const pv = reduce(r.profile.pvKw)
+  const net = reduce(r.profile.netKw)
+  if (load.length < 2) return null
+  const n = load.length
+  const soc = !yearly && r.verification?.hours?.length ? r.verification.hours.map((h) => h.socPct) : null
+  const hiKw = Math.max(...load, ...pv, r.generator.chosenKw, r.generator.requiredKw, 1) * 1.1
+  const loKw = Math.min(0, ...net) * 1.1
+  const right = CHART_W - M.r - (soc ? 40 : 0)
+  const x = scale({ lo: 0, hi: n - 1 }, M.l, right)
+  const y = scale({ lo: loKw, hi: hiKw }, CHART_H - M.b, M.t)
+  const body: string[] = []
+  axes(body, ticks(0, n - 1, yearly ? 12 : 12), ticks(loKw, hiKw, 6), x, y, yearly ? 'Day (peak of each day)' : 'Hour', 'kW', right)
+  const pts = (xs: number[]) => xs.map((v, i) => [x(i), y(v)] as [number, number])
+  body.push(polyline(pts(load), SERIES_COLORS[0]))
+  if (r.pvCount) body.push(polyline(pts(pv), SERIES_COLORS[4], 1.2))
+  body.push(polyline(pts(net), SERIES_COLORS[3], 1.8))
+  if (r.generator.chosenKw > 0) body.push(line(M.l, y(r.generator.chosenKw), right, y(r.generator.chosenKw), SERIES_COLORS[2], 1.4, '6 4'))
+  if (loKw < 0) body.push(line(M.l, y(0), right, y(0), INK, 0.8))
+  const entries: [string, string, string?][] = [['Load', SERIES_COLORS[0]], ...(r.pvCount ? [['PV', SERIES_COLORS[4]] as [string, string]] : []),
+    ['Net load', SERIES_COLORS[3]], ['Generator', SERIES_COLORS[2], '6 4']]
+  if (soc) {
+    const ys = scale({ lo: 0, hi: 100 }, CHART_H - M.b, M.t)
+    for (const v of [0, 25, 50, 75, 100]) body.push(text(right + 6, ys(v) + 4, `${v}`, 'start', 11, SERIES_COLORS[1]))
+    body.push(text(CHART_W - 10, (M.t + CHART_H - M.b) / 2, 'Battery charge (%)', 'middle', 12, SERIES_COLORS[1], ` transform="rotate(90 ${CHART_W - 10} ${f((M.t + CHART_H - M.b) / 2)})"`))
+    body.push(polyline(soc.map((v, i) => [x(i), ys(v ?? 0)] as [number, number]), SERIES_COLORS[1], 1.4))
+    entries.push(['Battery charge', SERIES_COLORS[1]])
+  }
+  legend(body, entries)
+  return frame(body)
 }

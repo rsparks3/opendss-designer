@@ -1,5 +1,6 @@
 import type { DutyResult, CircuitJSON, FaultResult, Issue, JobSnapshot, PhaseMap, ScreenOptions, ScreenResult, SolveResult, ReliabilityResult } from '../types/circuit'
 import type { TccResult } from './tcc'
+import type { SizingOptions, SizingResult } from './sizing'
 
 export interface NrelMeta {
   products: Record<string, { label: string; zones: string[]; buildingTypes: string[] }>
@@ -162,6 +163,7 @@ export const api = {
 
   tcc: (circuit: CircuitJSON) => post<TccResult>('/api/tcc', circuit),
   duty: (circuit: CircuitJSON) => post<DutyResult>('/api/duty', { circuit }),
+  sizing: (circuit: CircuitJSON, options: Partial<SizingOptions>) => post<SizingResult>('/api/sizing', { circuit, options }),
 
   reliability: (circuit: CircuitJSON) => post<ReliabilityResult>('/api/reliability', circuit),
 

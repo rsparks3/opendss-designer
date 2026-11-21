@@ -5,8 +5,8 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-Facility planning, milestone B (planning studies) is under way on top of
-milestone A below.
+Facility planning, milestone B (planning studies), on top of milestone A
+below. `frontend/e2e/planning.spec.ts` runs its exit demo end to end.
 
 ### Added (milestone B)
 
@@ -52,6 +52,13 @@ milestone A below.
   only when used.
 - The installation sample's feeder breaker 52-F1 is now relay-tripped (IEC
   very inverse) and graded over the clinic fuse.
+
+- **Backup sizing** (right-click → *Size backup for downstream…*): the
+  generator and battery the island below an element needs over a day or a
+  year, whether the energy balance closes, the hours of PV surplus the
+  generator would have to absorb, and a daily verification run on the
+  sized units. *Insert in a new scenario* adds them (the generator on
+  standby). Printed in the report with its profile chart. `POST /api/sizing`.
 
 ### Changed (milestone B)
 
