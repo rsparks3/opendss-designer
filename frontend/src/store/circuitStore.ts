@@ -32,7 +32,7 @@ import type { CircuitJSON, CircuitNodeJSON, EdgeKind, LoadShapeJSON, NodeType, P
 } from '../types/circuit'
 import { SCHEMA_VERSION } from '../lib/schema'
 import { limitsOf } from '../lib/limits'
-import { applyScenario, diffScenario, newScenarioId } from '../lib/scenarios'
+import { applyScenario, diffScenario, isPreview, mergeOverrides, newScenarioId, PREVIEW_ID } from '../lib/scenarios'
 import { setLimitsSource, useResultsStore } from './resultsStore'
 
 export interface XY {
@@ -125,6 +125,11 @@ export interface CircuitState {
   promoteScenario: (id: string) => void
   /** Open a scenario for editing and solving (null returns to the base). */
   activateScenario: (id: string | null) => void
+  /** Show parameter patches on the drawing as the temporary preview
+   *  scenario, on top of the scenario open now (if any). Never saved. */
+  previewScenario: (name: string, description: string, overrides: Record<string, Params>) => void
+  /** Keep the open preview as an ordinary scenario; returns its id. */
+  keepPreview: (name?: string) => string | null
   placementType: NodeType | null
   connectMode: EdgeKind
   /** True when there are changes not yet saved to a project file. */
@@ -773,10 +778,16 @@ export const useCircuitStore = create<CircuitState>()(
         get().activateScenario(null)
         const s = get()
         const overrides: Record<string, Params> = {}
+        // With units marked Standby, those start and whatever already runs
+        // carries on; a generator out of service and not on standby stays
+        // off. A file with no standby unit keeps the older rule: every
+        // generator starts.
+        const anyStandby = s.nodes.some((n) => n.type === 'generator' && n.data.params.standby === true)
         for (const n of s.nodes) {
           if (n.type === 'vsource' && n.data.params.kind !== 'other' && n.data.params.enabled !== false) {
             overrides[n.id] = { enabled: false }
           } else if (n.type === 'generator') {
+            if (anyStandby && n.data.params.standby !== true && n.data.params.enabled === false) continue
             const p: Params = {}
             if (n.data.params.enabled === false) p.enabled = true
             if (n.data.params.islandMode !== 'isochronous') p.islandMode = 'isochronous'
@@ -791,7 +802,9 @@ export const useCircuitStore = create<CircuitState>()(
         set({
           scenarios: [...s.scenarios, {
             id, name,
-            description: 'Every utility source out of service; every generator in service and isochronous.',
+            description: anyStandby
+              ? 'Every utility source out of service; standby and running generators isochronous.'
+              : 'Every utility source out of service; every generator in service and isochronous.',
             overrides, addedNodes: [], addedEdges: [], removed: [],
           }],
           dirty: true,
@@ -836,6 +849,8 @@ export const useCircuitStore = create<CircuitState>()(
           scenarios = scenarios.map((sc) => (sc.id === s.activeScenario ? { ...sc, ...deltas } : sc))
           nodes = s.scenarioBase.nodes
           edges = s.scenarioBase.edges
+          // The preview exists only while it is open.
+          if (isPreview(s.activeScenario)) scenarios = scenarios.filter((sc) => !isPreview(sc.id))
         }
         const target = id ? scenarios.find((sc) => sc.id === id) : undefined
         if (!target) {
@@ -856,6 +871,44 @@ export const useCircuitStore = create<CircuitState>()(
         // changed" would put the base's elements into the scenario.
         clearHistory()
         markStale()
+      },
+      previewScenario: (name, description, overrides) => {
+        const before = get()
+        const wasDirty = before.dirty
+        const from = isPreview(before.activeScenario) ? null : before.activeScenario
+        // Leaving whatever is open writes its edits back first.
+        get().activateScenario(null)
+        const s = get()
+        const src = from ? s.scenarios.find((sc) => sc.id === from) : undefined
+        set({
+          scenarios: [...s.scenarios.filter((sc) => !isPreview(sc.id)), {
+            id: PREVIEW_ID,
+            name,
+            description,
+            overrides: mergeOverrides(src?.overrides, overrides),
+            addedNodes: src?.addedNodes ?? [],
+            addedEdges: src?.addedEdges ?? [],
+            removed: src?.removed ?? [],
+          }],
+        })
+        get().activateScenario(PREVIEW_ID)
+        // Looking is not editing: the file is no more changed than it was.
+        set({ dirty: wasDirty })
+      },
+      keepPreview: (name) => {
+        const s = get()
+        if (!isPreview(s.activeScenario)) return null
+        const id = newScenarioId(s.scenarios.map((sc) => sc.id))
+        const taken = new Set(s.scenarios.filter((sc) => !isPreview(sc.id)).map((sc) => sc.name))
+        const want = (name ?? s.scenarios.find((sc) => isPreview(sc.id))?.name ?? 'Scenario').trim() || 'Scenario'
+        let nm = want
+        for (let i = 2; taken.has(nm); i++) nm = `${want} ${i}`
+        set({
+          scenarios: s.scenarios.map((sc) => (isPreview(sc.id) ? { ...sc, id, name: nm } : sc)),
+          activeScenario: id,
+          dirty: true,
+        })
+        return id
       },
       placementType: null,
       connectMode: 'wire',

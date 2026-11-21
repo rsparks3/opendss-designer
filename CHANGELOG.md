@@ -5,6 +5,31 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+Facility planning, milestone B (planning studies) is under way on top of
+milestone A below.
+
+### Added (milestone B)
+
+- **N-1 for facilities.** The contingency sweep reports the load left dark
+  by priority and ranks by critical load no tie restores; adds losses and
+  the islands each outage forms; can take out transformers only, or leave
+  out elements by tag (series elements now carry *Tags*); and shows its
+  solve count before running. **Standby** generators (a new generator field)
+  start isochronous in an island an outage leaves without a source, with
+  their loading judged against their rating. **Show** previews a row on the
+  drawing without saving it, and **Save as scenario** keeps it. The report
+  prints the worst rows (top N, set in the report dialog) as *Contingency
+  ranking* with the criteria used.
+
+### Changed (milestone B)
+
+- **Utility outage** starts the generators marked *Standby* and those
+  already running, and leaves a stopped non-standby unit off. A file with no
+  standby unit keeps the old rule (every generator starts).
+- N-1, switching sequences and transfer capability count load with the
+  level's class multipliers and stored allocation factors, as the
+  islanding study does.
+
 Facility planning, milestone A (`OPENDSS_DESIGNER_DEV_PLAN.md`): what feeds
 what, what happens when the utility goes away, and the operating
 configurations of an installation-scale system.

@@ -25,7 +25,7 @@ import { runSolve } from './solve'
 import { runBatch } from './batch'
 import { exportResultsToGis } from './resultsGis'
 import { DEFAULT_HC_OPTIONS, runHostingCapacity } from './hostingCapacity'
-import { levelNamed } from './scenarios'
+import { levelNamed, listed } from './scenarios'
 import { redo, undo, useCircuitStore } from '../store/circuitStore'
 import { signalStruggle } from '../store/hintStore'
 import { useResultsStore, type OverlayMode } from '../store/resultsStore'
@@ -294,14 +294,14 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
             title: 'A runnable OpenDSS script of what is open (the base case or the open scenario)',
             disabled: empty,
           }),
-          ...(cs.scenarios.length
+          ...(listed(cs.scenarios).length
             ? [{
                 kind: 'sub' as const,
                 label: 'OpenDSS (.dss) of…',
                 disabled: empty,
                 items: [
                   item('Base case', () => void exportDss(null), { title: 'The circuit with no scenario applied' }),
-                  ...cs.scenarios.map((sc) =>
+                  ...listed(cs.scenarios).map((sc) =>
                     item(sc.name, () => void exportDss(sc.id), {
                       title: 'A runnable OpenDSS script of this scenario, fully resolved',
                       checked: cs.activeScenario === sc.id,
@@ -511,11 +511,11 @@ export function buildMenus(ops: CanvasOps, samples: SampleMeta[], convert: Conve
         label: 'Scenario',
         items: [
           item('Base case', () => cs.activateScenario(null), { radio: true, checked: cs.activeScenario === null }),
-          ...cs.scenarios.map((sc) =>
+          ...listed(cs.scenarios).map((sc) =>
             item(sc.name, () => cs.activateScenario(sc.id), { radio: true, checked: cs.activeScenario === sc.id }),
           ),
           sep,
-          item('New scenario', () => cs.addScenario(`Alternative ${cs.scenarios.length + 1}`), { disabled: empty }),
+          item('New scenario', () => cs.addScenario(`Alternative ${listed(cs.scenarios).length + 1}`), { disabled: empty }),
         ],
       },
       item('Pin solve as baseline', () => rs.pinBaseline(

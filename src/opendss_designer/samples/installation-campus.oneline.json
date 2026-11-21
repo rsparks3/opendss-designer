@@ -261,7 +261,8 @@
     "enabled": false,
     "islandMode": "grid",
     "xdpp": 0.15,
-    "fuelHours": 72
+    "fuelHours": 72,
+    "standby": true
    }
   },
   {
@@ -423,7 +424,8 @@
     "enabled": false,
     "islandMode": "grid",
     "xdpp": 0.15,
-    "fuelHours": 48
+    "fuelHours": 48,
+    "standby": true
    }
   },
   {

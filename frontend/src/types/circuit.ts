@@ -618,26 +618,57 @@ export interface CaseSummary {
   violations: number
 }
 
+/** kW by load priority (trace.ts PRIORITIES). */
+export type ByPriority = Record<'critical' | 'essential' | 'nonessential' | 'unassigned', number>
+
+export interface N1Generator {
+  id: string
+  name: string
+  kw: number
+  kvar: number
+  ratingKva: number
+  loadingPct: number | null
+}
+
+export type N1Summary = CaseSummary & { generators?: N1Generator[]; genOverloads?: number; lossesKw?: number }
+
 export interface N1Case {
   id: string
   element: string
   kind: string
   converged: boolean
   unservedKw: number | null
+  unservedByPriority?: ByPriority | null
   darkBuses?: number
-  noAction?: CaseSummary
-  bestTie: (CaseSummary & { tie: string; tieName: string; restoredKw: number; remainingUnservedKw: number; newViolations: number }) | null
+  islandsFormed?: number
+  standbyStarted?: string[]
+  noAction?: N1Summary
+  bestTie: (N1Summary & {
+    tie: string; tieName: string; restoredKw: number; remainingUnservedKw: number
+    remainingByPriority?: ByPriority; newViolations: number; standbyStarted?: string[]
+  }) | null
   remainingUnservedKw: number | null
+  remainingByPriority?: ByPriority | null
+}
+
+export interface N1Options {
+  candidates: 'switches' | 'all' | 'transformers'
+  requireClean?: boolean
+  standby?: boolean
+  excludeTags?: string[]
 }
 
 export interface N1Result {
   converged: boolean
   cancelled: boolean
-  base: CaseSummary & { totalLoadKw: number; darkBuses: number }
+  options?: N1Options
+  base: N1Summary & { totalLoadKw: number; darkBuses: number; standbyRunning?: string[] }
   ties: { id: string; name: string }[]
+  standbyUnits?: { id: string; name: string; ratingKva: number }[]
   cases: N1Case[]
-  summary: { candidates: number; evaluated: number; withLostLoad: number; restorable: number; solves: number }
+  summary: { candidates: number; evaluated: number; withLostLoad: number; withCriticalLoss?: number; restorable: number; solves: number }
   loadLevel: LoadLevelJSON
+  scenario?: string | null
   issues: Issue[]
 }
 

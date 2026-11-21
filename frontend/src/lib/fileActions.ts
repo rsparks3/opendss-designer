@@ -18,6 +18,7 @@ import {
 import { limitsOf } from './limits'
 import { autoLayout } from './layout'
 import { loadProject, newProjectId, saveProject } from './library'
+import { withoutPreview } from './scenarios'
 import { migrateCircuit } from './schema'
 import { inLightTheme } from './theme'
 
@@ -81,7 +82,8 @@ export function pickFiles(accept: string, multiple = false): Promise<File[]> {
   })
 }
 
-const circuit = () => toCircuitJSON(useCircuitStore.getState())
+// What a file holds: never the temporary preview scenario.
+const circuit = () => withoutPreview(toCircuitJSON(useCircuitStore.getState()))
 const flash = (msg: string, kind?: 'error' | 'info', durationMs?: number) =>
   useResultsStore.getState().setFlash(msg, kind, durationMs)
 const errText = (err: unknown) => (err instanceof Error ? err.message : String(err))

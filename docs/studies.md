@@ -12,14 +12,31 @@ section. Hosting capacity has [its own page](hosting-capacity.md).
 ## Contingency
 
 **N-1.** Every closed switch and protective device (and, if asked, every
-line and transformer) is taken out in turn. For each: the load left dark;
-the normally-open **tie switch** that restores the most of it, chosen
-among the breakers marked *Tie switch* in their properties (or every
-normally-open breaker when none is marked); the lowest voltage and highest
-loading while the tie carries it; and the violations that appear. Ranked
-by the load that cannot be restored. A tie restoring load but bringing a
-new violation is still offered, with the count; tick nothing and it is the
+line and transformer, or the transformers alone) is taken out in turn;
+elements carrying a tag listed under *exclude tags* are left out. The tab
+shows the number of solves before it runs. For each outage: the load left
+dark, split by priority (critical, essential, non-essential, unassigned);
+how many separate parts with load it cuts off; the normally-open **tie
+switch** that restores the most of it, chosen among the breakers marked *Tie
+switch* in their properties (or every normally-open breaker when none is
+marked); the lowest voltage, highest loading and losses while the tie carries
+it; and the violations that appear. Ranked by the **critical** load no tie
+restores, then by all of it. A tie restoring load but bringing a new
+violation is still offered, with the count; tick nothing and it is the
 planner's call.
+
+With **start standby generators** ticked, a generator marked *Standby*
+starts, isochronous, in any island the outage (or the outage with the tie
+closed) leaves without a source, as an automatic transfer switch would; the
+row reports its loading against its rating, and past 100 % counts as a
+violation. Load is counted as the solve sees it: the level's multiplier, the
+class multipliers and any stored allocation factor.
+
+**Show** puts a row on the drawing as a temporary preview (the element out,
+the tie closed, the standby units running) on top of whatever scenario is
+open; the banner says it is not saved, and leaving it discards it. **Save as
+scenario** keeps it as an ordinary scenario. The report prints the worst rows
+(ten unless the report dialog says otherwise) with the options used.
 
 **Transfer capability.** For a tie: close it, isolate one side at the
 first switch between it and its source (so the tie feeds that side), and

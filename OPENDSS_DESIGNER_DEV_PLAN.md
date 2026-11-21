@@ -257,7 +257,10 @@ Names follow the code, not the original draft: ratings are lower-case element pa
 
 **Schema.** Bump `SCHEMA_VERSION` to 3 with a no-op migration (2→3), once, at the first item that adds a field. New element params need no migration. The new project-level keys (`Limits.dutyMargin`, `Limits.asymmetryFactor`, `tccSets`) touch the backend `Circuit` model.
 
-### 2.1 N-1 contingency sweep — mostly shipped in 0.9.0 (M14)
+### 2.1 N-1 contingency sweep — ✅ DONE 2026-11-21
+
+**As built:** `studies/contingency.py` (`_Standby` adds a disabled isochronous `Vsource` per standby unit to the one build and toggles it per case; topology from `core/trace.py` decides which islands lost every source). The preview is the reserved scenario id `__preview` (`lib/scenarios.ts` `PREVIEW_ID`); `withoutPreview` strips it from files, autosave and batch runs, and `listed` hides it from every scenario list. *Return* from a preview goes to the base case, not to the scenario it was opened from. Tests: `tests/test_n1_facility.py`, `lib/contingency.test.ts`, `store/scenarios.store.test.ts`.
+
 
 **Exists:**
 - `studies/contingency.py` `n_minus_1`. It takes out every closed switch and protective device in turn (with `candidates: 'all'`, also every line, transformer and regulator). For each one it reports unserved kW, dark buses, worst voltage and loading, and violations, and finds the tie that restores the most load. Results are ranked by load that can't be restored.

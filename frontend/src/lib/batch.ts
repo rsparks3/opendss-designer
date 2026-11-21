@@ -1,4 +1,5 @@
 import { toCircuitJSON, useCircuitStore } from '../store/circuitStore'
+import { withoutPreview } from './scenarios'
 import { useResultsStore } from '../store/resultsStore'
 import type { BatchResult } from '../types/circuit'
 import { runJob } from './jobs'
@@ -13,7 +14,7 @@ export async function runBatch(): Promise<boolean> {
   try {
     const result = await runJob<BatchResult>(
       '/api/jobs/batch',
-      { circuit: toCircuitJSON(useCircuitStore.getState()) },
+      { circuit: withoutPreview(toCircuitJSON(useCircuitStore.getState())) },
       {
         signal: abort.signal,
         onProgress: (p) => useResultsStore.getState().setBatchProgress(p),

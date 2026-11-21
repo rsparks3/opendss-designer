@@ -4,6 +4,7 @@ import { redo, undo, useCircuitStore } from '../store/circuitStore'
 import { signalStruggle } from '../store/hintStore'
 import { useResultsStore } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
+import { listed } from '../lib/scenarios'
 
 /**
  * The row under the menu bar: only what gets pressed all day. Everything
@@ -22,7 +23,7 @@ export function Toolbar() {
   const levels = useCircuitStore((s) => s.loadLevels)
   const activeLevel = useCircuitStore((s) => s.activeLevel)
   const setActiveLevel = useCircuitStore((s) => s.setActiveLevel)
-  const scenarios = useCircuitStore((s) => s.scenarios)
+  const scenarios = listed(useCircuitStore((s) => s.scenarios))
   const activeScenario = useCircuitStore((s) => s.activeScenario)
   const activateScenario = useCircuitStore((s) => s.activateScenario)
 

@@ -3,6 +3,7 @@ import { chooseOverlay } from '../lib/fileActions'
 import { compareResults, type CompareRow } from '../lib/compare'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
+import { listed } from '../lib/scenarios'
 
 /** The Compare tab: the current solve against the pinned baseline, bus by
  *  bus and element by element, largest change first. */
@@ -14,7 +15,7 @@ export function ComparePanel() {
   const clearBaseline = useResultsStore((s) => s.clearBaseline)
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
-  const scenarios = useCircuitStore((s) => s.scenarios)
+  const scenarios = listed(useCircuitStore((s) => s.scenarios))
   const selectOnly = useCircuitStore((s) => s.selectOnly)
   const [kind, setKind] = useState<'buses' | 'elements'>('buses')
   const [onlyChanged, setOnlyChanged] = useState(true)

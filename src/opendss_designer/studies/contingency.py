@@ -27,10 +27,18 @@ from typing import Any
 
 import opendssdirect as dss
 
-from ..core import engine
-from ..core.compiler import CompileResult, compile_circuit
+from ..core import allocations, engine, trace
+from ..core.compiler import (
+    CompileResult,
+    _isochronous_source,
+    compile_circuit,
+    generator_rating_kva,
+)
+from ..core.connectivity import sanitize_name
 from ..core.model import Circuit, Issue, in_service
+from ..core.trace import PRIORITIES, priority_of
 from ..core.validate import limit_issues
+from .islanding import demand_kw
 from .scenarios import effective_circuit
 
 Progress = Callable[[int, int, str | None], None]
@@ -56,8 +64,12 @@ class _Net:
         for idx, node in enumerate(node_names):
             self.slices.setdefault(node.split(".", 1)[0], []).append(idx)
         self.pd_names = [n.lower() for n in dss.PDElements.AllNames()]
-        # Rated load (at the level's multiplier) on each bus.
+        # What each bus's loads ask for at the level: kW times the level's
+        # multiplier, its class multiplier and any stored allocation factor,
+        # as the compiler writes them (and as the islanding study counts).
+        scales, _ = allocations.multipliers(circuit)
         self.load_kw: dict[str, float] = {}
+        self.load_pr: dict[str, dict[str, float]] = {}
         self.load_ids: dict[str, list[str]] = {}
         for n in circuit.nodes:
             if (
@@ -67,11 +79,11 @@ class _Net:
                 and n.id in self.conn.node_buses
             ):
                 bus = self.conn.node_buses[n.id][0].lower()
-                try:
-                    kw = float(n.params.get("kw", 100.0))
-                except (TypeError, ValueError):
-                    kw = 100.0
-                self.load_kw[bus] = self.load_kw.get(bus, 0.0) + kw * self.level.loadmult
+                scale = scales.get(n.id)
+                kw = demand_kw(n, self.level, scale.kw if scale else 1.0)
+                self.load_kw[bus] = self.load_kw.get(bus, 0.0) + kw
+                pr = self.load_pr.setdefault(bus, dict.fromkeys(PRIORITIES, 0.0))
+                pr[priority_of(n.params)] += kw
                 self.load_ids.setdefault(bus, []).append(n.id)
         self.total_load = sum(self.load_kw.values())
         self.solves = 0
@@ -110,6 +122,16 @@ class _Net:
 
     def unserved_kw(self, dark: set[str]) -> float:
         return sum(self.load_kw.get(b, 0.0) for b in dark)
+
+    def unserved_by_priority(self, dark: set[str]) -> dict[str, float]:
+        out = dict.fromkeys(PRIORITIES, 0.0)
+        for b in dark:
+            for k, v in self.load_pr.get(b, {}).items():
+                out[k] += v
+        return {k: round(v, 1) for k, v in out.items()}
+
+    def losses_kw(self) -> float:
+        return float(dss.Circuit.Losses()[0]) / 1000.0
 
     def state(self, full: str, closed: bool) -> None:
         """Open or close a switch, or take a line or transformer out."""
@@ -266,13 +288,71 @@ def _switching_sequence(circuit: Circuit, steps: list[dict[str, Any]]) -> dict[s
 
 DEFAULT_N1_OPTIONS: dict[str, Any] = {
     # Which elements to take out: closed switches and protective devices
-    # ("switches"), or those plus every transformer and line ("all").
+    # ("switches"), those plus every transformer, regulator and line ("all"),
+    # or the transformers and regulators alone ("transformers").
     "candidates": "switches",
     # Tie switches to try; None = ties_of(circuit).
     "ties": None,
     # Count a restoration only when it brings no new violation.
     "requireClean": False,
+    # Start the standby generators (`standby: true`) of any island an outage
+    # leaves without a source, isochronous, as an automatic transfer would.
+    "standby": False,
+    # Leave out elements carrying any of these tags.
+    "excludeTags": [],
 }
+
+CANDIDATE_SETS = ("switches", "all", "transformers")
+
+
+def _options(raw: dict[str, Any] | None) -> dict[str, Any]:
+    opts = dict(DEFAULT_N1_OPTIONS)
+    opts.update({k: v for k, v in (raw or {}).items() if k in opts})
+    if opts["candidates"] not in CANDIDATE_SETS:
+        opts["candidates"] = "switches"
+    tags = opts["excludeTags"] if isinstance(opts["excludeTags"], list) else []
+    opts["excludeTags"] = [str(t).strip().lower() for t in tags if str(t).strip()][:50]
+    opts["standby"] = opts["standby"] is True
+    return opts
+
+
+def is_standby(params: dict[str, Any]) -> bool:
+    return params.get("standby") is True
+
+
+def _excluded(params: dict[str, Any], tags: list[str]) -> bool:
+    if not tags:
+        return False
+    mine = {str(t).strip().lower() for t in params.get("tags") or [] if isinstance(t, str)}
+    return bool(mine & set(tags))
+
+
+def _candidate_elements(circuit: Circuit, opts: dict[str, Any],
+                        tie_ids: list[str]) -> list[tuple[str, str]]:
+    """(element id, kind) for every element the sweep takes out, as drawn."""
+    out: list[tuple[str, str]] = []
+    which = opts["candidates"]
+    tags = opts["excludeTags"]
+    for n in circuit.nodes:
+        if not in_service(n.params) or _excluded(n.params, tags):
+            continue
+        if n.type in SWITCHES:
+            if which != "transformers" and n.params.get("closed", True) and n.id not in tie_ids:
+                out.append((n.id, n.type))
+        elif n.type in ("transformer", "regulator") and which in ("all", "transformers"):
+            out.append((n.id, n.type))
+    if which == "all":
+        for e in circuit.edges:
+            if e.type == "line" and in_service(e.params) and not _excluded(e.params, tags):
+                out.append((e.id, "line"))
+    return out
+
+
+def estimate_n1_solves(circuit: Circuit, raw_options: dict[str, Any] | None = None) -> int:
+    opts = _options(raw_options)
+    tie_ids = list(opts["ties"]) if opts["ties"] else ties_of(circuit)
+    n_dev = len(_candidate_elements(circuit, opts, tie_ids))
+    return 1 + n_dev * (1 + len(tie_ids))
 
 
 def n_minus_1(
@@ -281,21 +361,116 @@ def n_minus_1(
     progress: Progress | None = None,
     cancel: threading.Event | None = None,
 ) -> dict[str, Any]:
-    opts = dict(DEFAULT_N1_OPTIONS)
-    opts.update({k: v for k, v in (raw_options or {}).items() if k in opts})
+    opts = _options(raw_options)
     circuit = effective_circuit(circuit)
     return _n_minus_1(circuit, opts, progress, cancel)
 
 
-def estimate_n1_solves(circuit: Circuit, raw_options: dict[str, Any] | None = None) -> int:
-    opts = dict(DEFAULT_N1_OPTIONS)
-    opts.update({k: v for k, v in (raw_options or {}).items() if k in opts})
-    n_dev = sum(1 for n in circuit.nodes if n.type in SWITCHES and n.params.get("closed", True))
-    if opts["candidates"] == "all":
-        n_dev += sum(1 for n in circuit.nodes if n.type in ("transformer", "regulator"))
-        n_dev += sum(1 for e in circuit.edges if e.type == "line")
-    ties = len(opts["ties"]) if opts["ties"] else len(ties_of(circuit))
-    return 1 + n_dev * (1 + ties)
+class _Standby:
+    """The standby generators, each a disabled isochronous source added to
+    the built circuit, started for the islands an outage leaves without a
+    source and stopped again afterwards.
+
+    OpenDSS cannot turn a Generator into a Vsource with an `edit`, so the
+    source is defined up front beside the generator (whose own element, if
+    it runs grid-parallel in the base case, is disabled while the source
+    carries its island)."""
+
+    def __init__(self, circuit: Circuit, compiled: CompileResult, tie_ids: list[str]) -> None:
+        self.units: dict[str, dict[str, Any]] = {}
+        self.running: set[str] = set()
+        conn = compiled.connectivity
+        gen_full = {ref: full for full, ref in compiled.element_map.items()
+                    if full.startswith("generator.")}
+        for n in circuit.nodes:
+            if (n.type != "generator" or not is_standby(n.params)
+                    or n.params.get("islandMode") == "isochronous"
+                    or conn is None or not conn.node_buses.get(n.id)):
+                continue
+            name = f"stby_{sanitize_name(n.id) or 'gen'}"
+            cmd = _isochronous_source(n, name, conn.node_buses[n.id][0], set(), False)
+            dss.Text.Command(cmd.split("  !", 1)[0])
+            dss.Text.Command(f"disable vsource.{name}")
+            grid = gen_full.get(n.id) if in_service(n.params) else None
+            self.units[n.id] = {
+                "id": n.id,
+                "name": str(n.params.get("name") or n.id),
+                "full": f"vsource.{name}",
+                "grid": grid,
+                "bus": conn.node_buses[n.id][0],
+                "ratingKva": generator_rating_kva(n.params),
+            }
+        # The drawing's topology, and the same with each tie closed, for
+        # deciding which islands have lost every source.
+        self.topo: dict[str | None, trace.Topology] = {}
+        if self.units:
+            self.topo[None] = trace.build(circuit)
+            for tid in tie_ids:
+                closed = circuit.model_copy(update={"nodes": [
+                    n.model_copy(update={"params": {**n.params, "closed": True}})
+                    if n.id == tid else n for n in circuit.nodes]})
+                self.topo[tid] = trace.build(closed)
+
+    def needed(self, cut: str | None, tie: str | None) -> set[str]:
+        """The standby units whose bus no source reaches with `cut` out and
+        `tie` closed."""
+        if not self.units:
+            return set()
+        topo = self.topo.get(tie) or self.topo[None]
+        live = trace.energized(topo, cut_element=cut)
+        return {gid for gid, u in self.units.items() if u["bus"] not in live}
+
+    def run(self, wanted: set[str]) -> None:
+        for gid in self.running - wanted:
+            u = self.units[gid]
+            dss.Text.Command(f"disable {u['full']}")
+            if u["grid"]:
+                dss.Text.Command(f"enable {u['grid']}")
+        for gid in wanted - self.running:
+            u = self.units[gid]
+            if u["grid"]:
+                dss.Text.Command(f"disable {u['grid']}")
+            dss.Text.Command(f"enable {u['full']}")
+        self.running = set(wanted)
+
+    def loading(self) -> list[dict[str, Any]]:
+        out = []
+        for gid in sorted(self.running):
+            u = self.units[gid]
+            dss.Circuit.SetActiveElement(u["full"])
+            ncond = dss.CktElement.NumConductors()
+            pw = dss.CktElement.Powers()[: 2 * ncond]
+            kw, kvar = -sum(pw[0::2]), -sum(pw[1::2])
+            kva = math.hypot(kw, kvar)
+            out.append({
+                "id": gid, "name": u["name"], "kw": round(kw, 1), "kvar": round(kvar, 1),
+                "ratingKva": round(u["ratingKva"], 1),
+                "loadingPct": round(100.0 * kva / u["ratingKva"], 1) if u["ratingKva"] else None,
+            })
+        return out
+
+
+def _critical_left(case: dict[str, Any]) -> float:
+    return float((case.get("remainingByPriority") or {}).get("critical") or 0)
+
+
+def _islands_formed(topo: trace.Topology | None, cut: str | None,
+                    net: _Net, base_live: set[str] | None) -> int:
+    """How many separate parts with load the outage cuts off from every source."""
+    if topo is None or base_live is None:
+        return 0
+    live = trace.energized(topo, cut_element=cut)
+    lost = base_live - live
+    count = 0
+    seen: set[str] = set()
+    for b in sorted(lost):
+        if b in seen:
+            continue
+        part = trace._reach(topo, [b], cut_element=cut)
+        seen |= part
+        if any(net.load_kw.get(x.lower(), 0.0) > 0 for x in part):
+            count += 1
+    return count
 
 
 @engine.on_engine_thread
@@ -310,6 +485,34 @@ def _n_minus_1(
         if not ok:
             return {"converged": False, "issues": [i.model_dump() for i in issues], "cases": []}
         net = _Net(circuit, compiled)
+        tie_ids = list(opts["ties"]) if opts["ties"] else ties_of(circuit)
+        ties = [(t, net.full_of[t]) for t in tie_ids if t in net.full_of]
+        standby = _Standby(circuit, compiled, [t for t, _ in ties]) if opts["standby"] else None
+        if standby is not None and not standby.units:
+            issues.append(Issue(
+                severity="warning", code="no-standby",
+                message="No generator is marked Standby, so none was started."))
+        topo = standby.topo.get(None) if standby and standby.units else trace.build(circuit)
+        base_live = trace.energized(topo)
+
+        def gen_rows() -> list[dict[str, Any]]:
+            return standby.loading() if standby is not None else []
+
+        def judged(v, dark) -> dict[str, Any]:
+            """The summary, with standby generators past their rating counted
+            as violations."""
+            summ = net.summary(v, net.loading(), dark)
+            gens = gen_rows()
+            over = sum(1 for g in gens if (g["loadingPct"] or 0) > 100)
+            summ["generators"] = gens
+            summ["genOverloads"] = over
+            summ["violations"] += over
+            summ["lossesKw"] = round(net.losses_kw(), 1)
+            return summ
+
+        base_standby = standby.needed(None, None) if standby else set()
+        if standby is not None:
+            standby.run(base_standby)
         if not net.solve():
             issues.append(
                 Issue(
@@ -321,20 +524,10 @@ def _n_minus_1(
             return {"converged": False, "issues": [i.model_dump() for i in issues], "cases": []}
         base_v = net.voltages()
         base_dark = net.dark_buses(base_v)
-        base = net.summary(base_v, net.loading(), base_dark)
-        tie_ids = list(opts["ties"]) if opts["ties"] else ties_of(circuit)
-        ties = [(t, net.full_of[t]) for t in tie_ids if t in net.full_of]
-        candidates: list[tuple[str, str, str]] = []  # (id, full, kind)
-        for n in circuit.nodes:
-            if n.id in net.full_of and in_service(n.params):
-                if n.type in SWITCHES and n.params.get("closed", True) and n.id not in tie_ids:
-                    candidates.append((n.id, net.full_of[n.id], n.type))
-                elif opts["candidates"] == "all" and n.type in ("transformer", "regulator"):
-                    candidates.append((n.id, net.full_of[n.id], n.type))
-        if opts["candidates"] == "all":
-            for e in circuit.edges:
-                if e.type == "line" and e.id in net.full_of and in_service(e.params):
-                    candidates.append((e.id, net.full_of[e.id], "line"))
+        base = judged(base_v, base_dark)
+        candidates = [(cid, net.full_of[cid], kind)
+                      for cid, kind in _candidate_elements(circuit, opts, tie_ids)
+                      if cid in net.full_of]
         cases: list[dict[str, Any]] = []
         cancelled = False
         total = len(candidates)
@@ -343,12 +536,17 @@ def _n_minus_1(
                 cancelled = True
                 break
             net.state(full, False)
+            started = standby.needed(cid, None) if standby else set()
+            if standby is not None:
+                standby.run(started)
             conv = net.solve()
             case: dict[str, Any] = {
                 "id": cid,
                 "element": _name(circuit, cid),
                 "kind": kind,
                 "converged": conv,
+                "islandsFormed": _islands_formed(topo, cid, net, base_live),
+                "standbyStarted": sorted(started - base_standby),
             }
             if conv:
                 v = net.voltages()
@@ -357,27 +555,34 @@ def _n_minus_1(
                 case.update(
                     {
                         "unservedKw": round(lost, 1),
+                        "unservedByPriority": net.unserved_by_priority(dark),
                         "darkBuses": len(dark),
-                        "noAction": net.summary(v, net.loading(), dark | base_dark),
+                        "noAction": judged(v, dark | base_dark),
                     }
                 )
                 best: dict[str, Any] | None = None
                 if lost > 0.5:
                     for tid, tfull in ties:
                         net.state(tfull, True)
+                        tstarted = standby.needed(cid, tid) if standby else set()
+                        if standby is not None:
+                            standby.run(tstarted)
                         tconv = net.solve()
                         if tconv:
                             tv = net.voltages()
                             tdark = net.dark_buses(tv) - base_dark
-                            restored = lost - net.unserved_kw(tdark)
-                            summ = net.summary(tv, net.loading(), tdark | base_dark)
+                            remaining = net.unserved_kw(tdark)
+                            restored = lost - remaining
+                            summ = judged(tv, tdark | base_dark)
                             new_viol = max(0, summ["violations"] - base["violations"])
                             cand = {
                                 "tie": tid,
                                 "tieName": _name(circuit, tid),
                                 "restoredKw": round(restored, 1),
-                                "remainingUnservedKw": round(lost - restored, 1),
+                                "remainingUnservedKw": round(remaining, 1),
+                                "remainingByPriority": net.unserved_by_priority(tdark),
                                 "newViolations": new_viol,
+                                "standbyStarted": sorted(tstarted - base_standby),
                                 **summ,
                             }
                             acceptable = restored > 0.5 and (
@@ -400,28 +605,43 @@ def _n_minus_1(
                         net.state(tfull, False)
                 case["bestTie"] = best
                 case["remainingUnservedKw"] = (
-                    round(best["remainingUnservedKw"], 1) if best else round(lost, 1)
+                    best["remainingUnservedKw"] if best else round(lost, 1)
+                )
+                case["remainingByPriority"] = (
+                    best["remainingByPriority"] if best else case["unservedByPriority"]
                 )
             else:
-                case.update({"unservedKw": None, "remainingUnservedKw": None, "bestTie": None})
+                case.update({"unservedKw": None, "remainingUnservedKw": None, "bestTie": None,
+                             "unservedByPriority": None, "remainingByPriority": None})
             net.state(full, True)
+            if standby is not None:
+                standby.run(base_standby)
             cases.append(case)
             if progress is not None and (i % max(1, total // 100) == 0 or i == total - 1):
                 progress(i + 1, total, _name(circuit, cid))
         # Back to the base state, which the edits above already restored.
         net.solve()
-    cases.sort(key=lambda c: (-(c["remainingUnservedKw"] or 0), -(c["unservedKw"] or 0)))
+    cases.sort(key=lambda c: (
+        -_critical_left(c),
+        -(c["remainingUnservedKw"] or 0),
+        -(c["unservedKw"] or 0),
+    ))
     restorable = sum(1 for c in cases if c.get("bestTie"))
     return {
         "converged": True,
         "cancelled": cancelled,
-        "base": {**base, "totalLoadKw": round(net.total_load, 1), "darkBuses": len(base_dark)},
+        "options": {k: opts[k] for k in ("candidates", "requireClean", "standby", "excludeTags")},
+        "base": {**base, "totalLoadKw": round(net.total_load, 1), "darkBuses": len(base_dark),
+                 "standbyRunning": sorted(base_standby)},
         "ties": [{"id": t, "name": _name(circuit, t)} for t, _ in ties],
+        "standbyUnits": ([{"id": u["id"], "name": u["name"], "ratingKva": round(u["ratingKva"], 1)}
+                          for u in standby.units.values()] if standby else []),
         "cases": cases,
         "summary": {
             "candidates": len(candidates),
             "evaluated": len(cases),
             "withLostLoad": sum(1 for c in cases if (c.get("unservedKw") or 0) > 0.5),
+            "withCriticalLoss": sum(1 for c in cases if _critical_left(c) > 0.5),
             "restorable": restorable,
             "solves": net.solves,
         },

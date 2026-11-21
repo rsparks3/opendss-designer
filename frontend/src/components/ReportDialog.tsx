@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { OVERLAY_LABELS } from '../lib/exportDiagram'
 import { exportReport, sectionAvailability, type ReportFormat } from '../lib/report/exportReport'
-import { SECTION_LABELS, type SectionKey } from '../lib/report/model'
+import { N1_TOP_DEFAULT, SECTION_LABELS, type SectionKey } from '../lib/report/model'
 import { useResultsStore } from '../store/resultsStore'
-import { readFlag, useUiStore, writePref } from '../store/uiStore'
+import { readFlag, readPref, useUiStore, writePref } from '../store/uiStore'
 
 const ORDER: SectionKey[] = ['loadflow', 'diagram', 'critical', 'loadbasis', 'outage', 'scenarios', 'shortcircuit', 'protection', 'reliability', 'timeseries', 'comparison', 'batch', 'hosting', 'screening', 'studies', 'history']
 
@@ -53,6 +53,11 @@ function remember(format: ReportFormat, sections: Set<SectionKey>) {
 export function ReportDialog({ onClose }: { onClose: () => void }) {
   const [{ format, sections }, setChoice] = useState(remembered)
   const [busy, setBusy] = useState<string | null>(null)
+  const [n1Top, setN1Top] = useState(() => {
+    const v = Number(readPref('report.n1TopN'))
+    return Number.isInteger(v) && v > 0 ? v : N1_TOP_DEFAULT
+  })
+  const hasN1 = useResultsStore((s) => !!s.studies.n1)
   const [error, setError] = useState<string | null>(null)
   const openDialog = useUiStore((s) => s.openDialog)
   const overlay = useResultsStore((s) => s.overlay)
@@ -73,7 +78,8 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
     setBusy('Starting…')
     remember(format, sections)
     try {
-      await exportReport({ format, sections: chosen, onProgress: setBusy })
+      writePref('report.n1TopN', String(n1Top))
+      await exportReport({ format, sections: chosen, n1TopN: n1Top, onProgress: setBusy })
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -125,6 +131,14 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
                 <span>
                   <strong>{SECTION_LABELS[k]}</strong>
                   <span className="report-what">{why ?? WHAT[k]}</span>
+                  {k === 'studies' && hasN1 && !why && (
+                    <span className="report-what">
+                      N-1: the worst{' '}
+                      <input className="hosting-num" type="number" min={1} max={500} aria-label="N-1 rows in the report" value={n1Top}
+                        onChange={(e) => setN1Top(Math.max(1, Math.min(500, Math.floor(Number(e.target.value)) || 1)))} />{' '}
+                      rows
+                    </span>
+                  )}
                 </span>
               </label>
             )

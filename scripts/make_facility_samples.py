@@ -139,7 +139,7 @@ def installation() -> None:
              {"name": "DENTAL CLINIC", "kw": 250, "pf": 0.9, "priority": "essential",
               "building": "Bldg 1210", "tags": ["medical"], "numcust": 1}, fuse=True)
     b.sym("gen1", "generator", 370, 720, name="G1", kv=MV, kw=1200, pf=0.9, kva=1500, phases=3,
-          conn="wye", model=1, enabled=False, islandMode="grid", xdpp=0.15, fuelHours=72)
+          conn="wye", model=1, enabled=False, islandMode="grid", xdpp=0.15, fuelHours=72, standby=True)
     b.wire("w_g1", "bus_hosp", "c", "gen1", "t1")
 
     # Feeder 2: operations and support, with G2 at the central plant and a
@@ -156,7 +156,7 @@ def installation() -> None:
               "building": "Bldg 310", "tags": ["c2", "comms"], "numcust": 1}, fuse=True)
     b.sym("gen2", "generator", 950, 720, name="G2 CENTRAL PLANT", kv=MV, kw=1500, pf=0.9,
           kva=2000, phases=3, conn="wye", model=1, enabled=False, islandMode="grid", xdpp=0.15,
-          fuelHours=48)
+          fuelHours=48, standby=True)
     b.wire("w_g2", "bus_ops", "c", "gen2", "t1")
     b.bus("bus_wh", "SUPPORT MV", MV, 1040, 1100, 200)
     b.line("ln_f2b", "bus_ops", "c", "bus_wh", "b", at=1110, length=0.7, name="F2-SUPPORT", **CABLE)

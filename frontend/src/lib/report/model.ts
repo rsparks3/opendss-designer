@@ -11,7 +11,7 @@
  */
 import { compareResults } from '../compare'
 import { HC_LABELS } from '../hostingCapacity'
-import { applyScenario, levelNamed } from '../scenarios'
+import { applyScenario, levelNamed, listed } from '../scenarios'
 import type {
   BalanceResult,
   BatchCell,
@@ -125,6 +125,8 @@ export interface ReportInput {
   screening?: ScreenResult | null
   /** The M14 planning studies that have been run, by key. */
   studies?: Partial<Record<string, unknown>> | null
+  /** How many N-1 rows to print, worst first (default N1_TOP_DEFAULT). */
+  n1TopN?: number
   /** SVG drawings the caller rendered: the one-line (from the canvas) and
    *  the charts (report/charts.ts). */
   figures?: Partial<Record<'diagram' | 'profile' | 'tcc' | 'timeseries', string>>
@@ -331,7 +333,7 @@ export function buildReport(input: ReportInput): Report {
     const sec = outageSection(circuit, solved, input.batch ?? null)
     if (sec.tables.length) out.push(sec)
   }
-  if (sections.has('scenarios') && circuit.scenarios?.length) {
+  if (sections.has('scenarios') && listed(circuit.scenarios ?? []).length) {
     out.push(scenariosSection(circuit, input.batch ?? null))
   }
 
@@ -386,7 +388,7 @@ export function buildReport(input: ReportInput): Report {
     out.push(screeningSection(input.screening))
   }
   if (sections.has('studies') && input.studies) {
-    const s = studiesSection(input.studies, names)
+    const s = studiesSection(input.studies, names, input.n1TopN)
     if (s.tables.length) out.push(s)
   }
   if (sections.has('history') && circuit.history?.length) {
@@ -413,32 +415,57 @@ export function buildReport(input: ReportInput): Report {
   return { meta, sections: out }
 }
 
-function studiesSection(studies: Partial<Record<string, unknown>>, names: Names): ReportSection {
+/** How many N-1 rows the report prints unless told otherwise. */
+export const N1_TOP_DEFAULT = 10
+
+function studiesSection(studies: Partial<Record<string, unknown>>, names: Names, n1TopN?: number): ReportSection {
   const tables: Table[] = []
   const n1 = studies.n1 as N1Result | undefined
   if (n1?.converged) {
+    const top = Math.max(1, Math.floor(n1TopN ?? N1_TOP_DEFAULT))
+    const shown = n1.cases.slice(0, top)
+    const standby = !!n1.options?.standby
+    const worstGen = (c: (typeof shown)[number]) => {
+      const gens = (c.bestTie ?? c.noAction)?.generators ?? []
+      const g = gens.reduce<(typeof gens)[number] | null>((w, x) => (!w || (x.loadingPct ?? 0) > (w.loadingPct ?? 0) ? x : w), null)
+      return g ? `${g.name} ${g.loadingPct == null ? '—' : `${Math.round(g.loadingPct)} %`}` : null
+    }
+    const candidates = { switches: 'every closed switch and protective device', all: 'every switch, protective device, line and transformer', transformers: 'every transformer and regulator' }[n1.options?.candidates ?? 'switches']
     tables.push({
       id: 'n1',
-      title: 'N-1 contingency',
+      title: 'Contingency ranking (N-1)',
       columns: [
-        { key: 'device', label: 'Lost device' },
+        { key: 'device', label: 'Lost element' },
         { key: 'kind', label: 'Type' },
         { key: 'dark', label: 'Load left dark', unit: 'kW', digits: 0 },
         { key: 'tie', label: 'Best tie' },
-        { key: 'restored', label: 'Restored', unit: 'kW', digits: 0 },
-        { key: 'remaining', label: 'Still dark', unit: 'kW', digits: 0 },
+        { key: 'crit', label: 'Critical still dark', unit: 'kW', digits: 0 },
+        { key: 'ess', label: 'Essential still dark', unit: 'kW', digits: 0 },
+        { key: 'remaining', label: 'All still dark', unit: 'kW', digits: 0 },
+        { key: 'islands', label: 'Islands formed' },
+        ...(standby ? [{ key: 'gen', label: 'Standby loading' }] : []),
         { key: 'minV', label: 'Lowest V', unit: 'pu', digits: 3 },
         { key: 'loading', label: 'Highest loading', unit: '%', digits: 0 },
         { key: 'viol', label: 'New violations' },
       ],
-      rows: n1.cases.map((c) => ({
+      rows: shown.map((c) => ({
         device: c.element, kind: c.kind, dark: c.unservedKw, tie: c.bestTie?.tieName ?? ((c.unservedKw ?? 0) > 0.5 ? 'none' : null),
-        restored: c.bestTie?.restoredKw ?? null, remaining: c.remainingUnservedKw,
+        crit: c.remainingByPriority?.critical ?? null, ess: c.remainingByPriority?.essential ?? null,
+        remaining: c.remainingUnservedKw, islands: c.islandsFormed ?? null,
+        ...(standby ? { gen: worstGen(c) } : {}),
         minV: c.bestTie?.minVpu ?? c.noAction?.minVpu ?? null, loading: c.bestTie?.maxLoadingPct ?? c.noAction?.maxLoadingPct ?? null,
         viol: c.bestTie ? c.bestTie.newViolations : c.noAction ? Math.max(0, c.noAction.violations - n1.base.violations) : null,
       })),
-      flags: n1.cases.map((c) => ((c.remainingUnservedKw ?? 0) > 0.5 ? 'violation' : null)),
-      note: `${n1.summary.evaluated} devices at ${n1.loadLevel.name}; ties: ${n1.ties.map((t) => t.name).join(', ') || 'none'}; base load ${n1.base.totalLoadKw} kW.`,
+      flags: shown.map((c) => ((c.remainingByPriority?.critical ?? 0) > 0.5 || (c.remainingUnservedKw ?? 0) > 0.5 ? 'violation' : null)),
+      note:
+        `Taken out in turn: ${candidates}${n1.options?.excludeTags?.length ? `, except those tagged ${n1.options.excludeTags.join(', ')}` : ''}; ` +
+        `${n1.summary.evaluated} cases at ${n1.loadLevel.name}, the ${shown.length < n1.cases.length ? `worst ${shown.length} shown` : 'all shown'}. ` +
+        'Ranked by critical load that no tie restores, then by all load left dark. ' +
+        `Ties tried: ${n1.ties.map((t) => t.name).join(', ') || 'none'}${n1.options?.requireClean ? ' (only those bringing no new violation)' : ''}. ` +
+        (standby
+          ? `Standby generators (${n1.standbyUnits?.map((u) => u.name).join(', ') || 'none marked'}) start isochronous in an island the outage leaves without a source, as an automatic transfer would; their loading is judged against their rating, and past it counts as a violation. `
+          : 'No generator was started. ') +
+        `Base load ${n1.base.totalLoadKw} kW.`,
     })
   }
   const tr = studies.transfer as TransferResult | undefined
@@ -752,7 +779,7 @@ export function scenariosSection(circuit: CircuitJSON, batch: BatchResult | null
     return `${type} ${name}`
   }
   const rows: Record<string, Cell>[] = []
-  for (const sc of circuit.scenarios ?? []) {
+  for (const sc of listed(circuit.scenarios ?? [])) {
     const changes: string[] = []
     for (const [id, patch] of Object.entries(sc.overrides)) {
       const before = nodes.get(id)?.params ?? edges.get(id)?.params ?? {}

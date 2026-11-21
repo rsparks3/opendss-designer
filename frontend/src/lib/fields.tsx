@@ -64,6 +64,9 @@ const INVERTER_FIELDS: Field[] = [
 
 /** What every power-delivery element carries for the reliability study:
  *  OpenDSS's own defaults stand where a value is left blank. */
+// Free tags on series elements, as on loads: N-1 can leave out what carries one.
+const SERIES_TAGS: Field = { key: 'tags', label: 'Tags', kind: 'tags' }
+
 const RELIABILITY_FIELDS = (perLength: boolean): Field[] => [
   {
     key: 'faultrate',
@@ -165,6 +168,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(false),
+    SERIES_TAGS,
   ],
   line: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -186,6 +190,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(true),
+    SERIES_TAGS,
   ],
   transformer: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -201,6 +206,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'catalog', label: 'Pick from catalogue', kind: 'catalog' },
     { key: 'pctimag', label: 'Magnetising current', kind: 'number', unit: '%', placeholder: '0' },
     ...RELIABILITY_FIELDS(false),
+    SERIES_TAGS,
   ],
   regulator: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -224,6 +230,7 @@ export const FIELDS: Record<string, Field[]> = {
       showIf: (p) => p.reversible === true, placeholder: '3' },
     { key: 'cogen', label: 'Cogeneration mode', kind: 'checkbox', defaultOff: true },
     ...RELIABILITY_FIELDS(false),
+    SERIES_TAGS,
   ],
   fuse: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -238,6 +245,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(false),
+    SERIES_TAGS,
   ],
   recloser: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -258,6 +266,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(false),
+    SERIES_TAGS,
   ],
   relay: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -273,6 +282,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(false),
+    SERIES_TAGS,
   ],
   capacitor: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -313,6 +323,10 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'islandMode', label: 'Island mode', kind: 'select', options: ['grid', 'isochronous'] },
     { key: 'xdpp', label: "Subtransient reactance Xd''", kind: 'number', unit: 'pu', placeholder: '0.15' },
     { key: 'fuelHours', label: 'Fuel on hand', kind: 'number', unit: 'h' },
+    // A backup unit behind an automatic transfer: off while the utility is
+    // there, started isochronous when its island loses every source (N-1,
+    // Utility outage, backup sizing).
+    { key: 'standby', label: 'Standby (starts on loss of utility)', kind: 'checkbox', defaultOff: true },
   ],
   pvsystem: [
     { key: 'name', label: 'Name', kind: 'text' },

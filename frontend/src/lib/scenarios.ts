@@ -238,3 +238,39 @@ export function overrideRows(base: Params | undefined, now: Params | undefined):
   if (!d) return []
   return Object.keys(d).map((key) => ({ key, base: base[key], now: now[key] }))
 }
+
+// --- preview -------------------------------------------------------------------------
+
+/** The id of the one temporary scenario: a study row (an N-1 outage, say)
+ *  shown on the drawing without becoming part of the project. It is open
+ *  while it exists, is dropped when it is left, and never reaches a file,
+ *  the autosave, a batch run or a scenario list. */
+export const PREVIEW_ID = '__preview'
+
+export const isPreview = (id: string | null | undefined): boolean => id === PREVIEW_ID
+
+/** The scenarios a list or a picker offers: everything but the preview. */
+export function listed<T extends { id: string }>(scenarios: T[]): T[] {
+  return scenarios.some((s) => s.id === PREVIEW_ID) ? scenarios.filter((s) => s.id !== PREVIEW_ID) : scenarios
+}
+
+/** The document as it is saved: the preview gone, and the base case open
+ *  in its place. */
+export function withoutPreview<T extends { scenarios?: { id: string }[] | null; activeScenario?: string | null }>(doc: T): T {
+  if (!doc.scenarios?.some((s) => s.id === PREVIEW_ID) && !isPreview(doc.activeScenario)) return doc
+  return {
+    ...doc,
+    scenarios: (doc.scenarios ?? []).filter((s) => s.id !== PREVIEW_ID),
+    activeScenario: isPreview(doc.activeScenario) ? null : doc.activeScenario,
+  }
+}
+
+/** Merge parameter patches: `extra` wins per key. */
+export function mergeOverrides(
+  a: Record<string, Params> | undefined,
+  extra: Record<string, Params>,
+): Record<string, Params> {
+  const out: Record<string, Params> = { ...(a ?? {}) }
+  for (const [id, p] of Object.entries(extra)) out[id] = { ...(out[id] ?? {}), ...p }
+  return out
+}

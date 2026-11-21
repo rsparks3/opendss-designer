@@ -3,6 +3,7 @@ import fixture from '../../../tests/fixtures/full-circuit.oneline.json'
 import type { CircuitJSON } from '../types/circuit'
 import { toCircuitJSON, useCircuitStore } from './circuitStore'
 import { useResultsStore } from './resultsStore'
+import { isPreview, listed, withoutPreview } from '../lib/scenarios'
 
 const FIXTURE = fixture as unknown as CircuitJSON
 
@@ -156,4 +157,66 @@ describe('utility outage', () => {
     expect(useCircuitStore.getState().scenarios.map((x) => x.name).filter((n) => /^Utility outage( \d)?$/.test(n)))
       .toEqual(['Utility outage', 'Utility outage 2'])
   })
+
+  it('with standby units marked, a stopped generator that is not on standby stays off', async () => {
+    const campus = JSON.parse(JSON.stringify((await import('../../../src/opendss_designer/samples/installation-campus.oneline.json')).default))
+    const g2 = campus.nodes.find((n: { id: string }) => n.id === 'gen2')
+    g2.params.standby = false
+    useCircuitStore.getState().loadCircuit(campus as CircuitJSON)
+    const id = useCircuitStore.getState().addUtilityOutageScenario()!
+    const sc = useCircuitStore.getState().scenarios.find((x) => x.id === id)!
+    expect(sc.overrides).toEqual({
+      util: { enabled: false },
+      gen1: { enabled: true, islandMode: 'isochronous' },
+    })
+  })
 })
+
+describe('the preview scenario', () => {
+  beforeEach(() => {
+    useCircuitStore.getState().loadCircuit(JSON.parse(JSON.stringify(FIXTURE)))
+    useCircuitStore.getState().activateScenario(null)
+    useCircuitStore.setState({ scenarios: [], activeScenario: null, scenarioBase: null, dirty: false })
+  })
+
+  it('shows patches on the drawing, is never saved or listed, and goes when left', () => {
+    const brk = useCircuitStore.getState().nodes.find((n) => n.type === 'breaker')!
+    useCircuitStore.getState().previewScenario('N-1: BRK out', '', { [brk.id]: { closed: false } })
+    const s = useCircuitStore.getState()
+    expect(isPreview(s.activeScenario)).toBe(true)
+    expect(s.nodes.find((n) => n.id === brk.id)!.data.params.closed).toBe(false)
+    expect(s.dirty).toBe(false)
+    expect(listed(s.scenarios)).toEqual([])
+    // What a solve sees carries it; what a file holds does not.
+    const json = toCircuitJSON(s)
+    expect(isPreview(json.activeScenario)).toBe(true)
+    const saved = withoutPreview(json)
+    expect(saved.activeScenario).toBeNull()
+    expect(saved.scenarios).toEqual([])
+    useCircuitStore.getState().activateScenario(null)
+    const after = useCircuitStore.getState()
+    expect(after.scenarios).toEqual([])
+    expect(after.nodes.find((n) => n.id === brk.id)!.data.params.closed).not.toBe(false)
+  })
+
+  it('builds on the open scenario and can be kept as a scenario of its own', () => {
+    const [b1, b2] = useCircuitStore.getState().nodes.filter((n) => n.type === 'breaker' || n.type === 'fuse')
+    const base = useCircuitStore.getState().addScenario('Alt')
+    useCircuitStore.getState().updateNodeParams(b1.id, { normamps: 999 })
+    useCircuitStore.getState().previewScenario('N-1: out', '', { [b2.id]: { closed: false } })
+    const s = useCircuitStore.getState()
+    const pv = s.scenarios.find((x) => isPreview(x.id))!
+    expect(pv.overrides).toEqual({ [b1.id]: { normamps: 999 }, [b2.id]: { closed: false } })
+    // The scenario it started from kept its edit.
+    expect(s.scenarios.find((x) => x.id === base)!.overrides).toEqual({ [b1.id]: { normamps: 999 } })
+    const kept = useCircuitStore.getState().keepPreview()!
+    const k = useCircuitStore.getState()
+    expect(k.activeScenario).toBe(kept)
+    expect(listed(k.scenarios).map((x) => x.name)).toEqual(['Alt', 'N-1: out'])
+    expect(k.dirty).toBe(true)
+    // Leaving a kept preview keeps it.
+    useCircuitStore.getState().activateScenario(null)
+    expect(useCircuitStore.getState().scenarios.map((x) => x.id)).toContain(kept)
+  })
+})
+

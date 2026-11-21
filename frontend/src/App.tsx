@@ -8,6 +8,7 @@ import { runSolve } from './lib/solve'
 import { toCircuitJSON, useCircuitStore } from './store/circuitStore'
 import { loadDoc, saveDoc } from './lib/localStore'
 import { migrateCircuit } from './lib/schema'
+import { withoutPreview } from './lib/scenarios'
 import { useResultsStore } from './store/resultsStore'
 import { BottomPanel } from './components/BottomPanel'
 import { DemoBanner } from './components/DemoBanner'
@@ -155,7 +156,7 @@ function useUnsavedWorkProtection() {
         // copy — destroying exactly the work this hook exists to protect.
         if (s.nodes.length === 0) return
         last = slices
-        void saveDoc(AUTOSAVE_KEY, toCircuitJSON(s))
+        void saveDoc(AUTOSAVE_KEY, withoutPreview(toCircuitJSON(s)))
       }, 800)
     })
     return () => {

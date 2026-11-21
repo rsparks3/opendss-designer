@@ -2,12 +2,18 @@ import { useState } from 'react'
 import { fmtKw, fmtPct, fmtPu, LABELS, runStudy } from '../lib/studies'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore, type StudyKey } from '../store/resultsStore'
+import { estimateN1Solves, n1CaseName, n1CaseOverrides } from '../lib/contingency'
 import type {
   BalanceResult,
+  ByPriority,
   CapacityResult,
   CvrResult,
   LossResult,
+  N1Case,
+  N1Generator,
+  N1Options,
   N1Result,
+  N1Summary,
   PlacementResult,
   SweepResult,
   TransferResult,
@@ -99,66 +105,123 @@ function useLocate() {
 
 // --- contingency ------------------------------------------------------------------------
 
+const PRIORITY_SHORT: Record<keyof ByPriority, string> = { critical: 'crit', essential: 'ess', nonessential: 'non', unassigned: 'n/a' }
+
+/** "crit 900 · ess 250" — the priorities with load in them, critical first. */
+function byPriority(p: ByPriority | null | undefined): string {
+  if (!p) return '—'
+  const parts = (Object.keys(PRIORITY_SHORT) as (keyof ByPriority)[])
+    .filter((k) => (p[k] ?? 0) > 0.5)
+    .map((k) => `${PRIORITY_SHORT[k]} ${Math.round(p[k])}`)
+  return parts.length ? parts.join(' · ') : '0'
+}
+
+function worstGen(s: N1Summary | undefined | null): string {
+  const g = (s?.generators ?? []).reduce<N1Generator | null>((w, x) => (!w || (x.loadingPct ?? 0) > (w.loadingPct ?? 0) ? x : w), null)
+  return g ? `${g.name} ${fmtPct(g.loadingPct, 0)}` : '—'
+}
+
 function ContingencyPanel() {
   const n1 = useResultsStore((s) => s.studies.n1 as N1Result | undefined)
   const transfer = useResultsStore((s) => s.studies.transfer as TransferResult | undefined)
   const nodes = useCircuitStore((s) => s.nodes)
+  const edges = useCircuitStore((s) => s.edges)
+  const previewScenario = useCircuitStore((s) => s.previewScenario)
+  const keepPreview = useCircuitStore((s) => s.keepPreview)
   const { locate, nameOf } = useLocate()
-  const [all, setAll] = useState(false)
+  const [candidates, setCandidates] = useState<N1Options['candidates']>('switches')
+  const [standby, setStandby] = useState(false)
+  const [excludeText, setExcludeText] = useState('')
+  const excludeTags = excludeText.split(/[,;]+/).map((t) => t.trim()).filter(Boolean)
+  const options: N1Options = { candidates, standby, excludeTags }
+  const solves = estimateN1Solves(nodes, edges, options)
+  const hasStandby = nodes.some((n) => n.type === 'generator' && n.data.params.standby === true)
   const ties = nodes.filter((n) => n.type === 'breaker' && (n.data.params.tie === true || n.data.params.closed === false))
   const [tie, setTie] = useState<string>('')
   const chosenTie = tie || ties[0]?.id || ''
   const hasElements = nodes.some((n) => n.type !== 'note' && n.type !== 'zone')
+  const kindOf = (id: string) => nodes.find((n) => n.id === id)?.type ?? (edges.some((e) => e.id === id) ? 'line' : undefined)
+  const show = (c: N1Case) => {
+    if (!n1) return
+    previewScenario(n1CaseName(c), 'An N-1 row shown on the drawing.', n1CaseOverrides(c, n1, kindOf))
+  }
+  const keep = (c: N1Case) => {
+    show(c)
+    keepPreview(n1CaseName(c))
+  }
   return (
     <div className="study">
       <div className="scenarios-head">
         <b>N-1 contingency</b>
-        <label className="prefs-radio">
-          <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> also take out every line and transformer
+        <select aria-label="Elements to take out" value={candidates} onChange={(e) => setCandidates(e.target.value as N1Options['candidates'])}>
+          <option value="switches">switches and protective devices</option>
+          <option value="all">… and every line and transformer</option>
+          <option value="transformers">transformers only</option>
+        </select>
+        <label className="prefs-radio" title={hasStandby ? 'A generator marked Standby starts, isochronous, in an island the outage leaves without a source' : 'No generator is marked Standby (Properties → Standby)'}>
+          <input type="checkbox" checked={standby} onChange={(e) => setStandby(e.target.checked)} /> start standby generators
         </label>
-        <RunButton k="n1" disabled={!hasElements} onRun={() => void runStudy('n1', '/api/jobs/n-minus-1', { options: { candidates: all ? 'all' : 'switches' } }, true)} />
+        <input className="hosting-num wide" aria-label="Exclude elements tagged" placeholder="exclude tags…" value={excludeText} onChange={(e) => setExcludeText(e.target.value)} />
+        <span className="scenarios-count" title="The base solve, then each outage alone and with each tie">≈ {solves} solves</span>
+        <RunButton k="n1" disabled={!hasElements} onRun={() => void runStudy('n1', '/api/jobs/n-minus-1', { options }, true)} />
       </div>
       {!n1 ? (
         <div className="bp-empty">
-          Each closed switch or protective device is taken out in turn: the load left dark, the normally-open tie
-          (a breaker marked <i>Tie switch</i>, or any open breaker) that restores the most of it, and the worst voltage
-          and loading while it does. Ranked by what cannot be restored.
+          Each closed switch or protective device is taken out in turn: the load left dark by priority, the normally-open
+          tie (a breaker marked <i>Tie switch</i>, or any open breaker) that restores the most of it, and the worst voltage
+          and loading while it does. With standby generators on, an island the outage cuts off is carried by its standby
+          units, judged against their rating. Ranked by critical load that cannot be restored, then by all of it.
         </div>
       ) : (
         <>
           <div className="reliability-indices">
-            <span className="reliability-index"><b>{n1.summary.evaluated}</b> devices · {n1.summary.withLostLoad} drop load · {n1.summary.restorable} restorable by a tie</span>
+            <span className="reliability-index"><b>{n1.summary.evaluated}</b> elements · {n1.summary.withLostLoad} drop load · {n1.summary.withCriticalLoss ?? 0} leave critical load dark · {n1.summary.restorable} restorable by a tie</span>
             <span className="reliability-index"><b>Ties</b> {n1.ties.map((t) => t.name).join(', ') || 'none'}</span>
-            <span className="reliability-index"><b>Base</b> {fmtKw(n1.base.totalLoadKw)} load · min V {fmtPu(n1.base.minVpu)} · max loading {fmtPct(n1.base.maxLoadingPct, 0)} · {n1.loadLevel.name}</span>
+            {n1.options?.standby && <span className="reliability-index"><b>Standby</b> {n1.standbyUnits?.map((u) => u.name).join(', ') || 'none marked'}</span>}
+            <span className="reliability-index"><b>Base</b> {fmtKw(n1.base.totalLoadKw)} load · min V {fmtPu(n1.base.minVpu)} · max loading {fmtPct(n1.base.maxLoadingPct, 0)} · losses {fmtKw(n1.base.lossesKw)} · {n1.loadLevel.name}</span>
           </div>
           <table className="bp-table">
             <thead>
               <tr>
                 <th />
-                <th>Lost device</th>
+                <th>Lost element</th>
                 <th>Load dark</th>
+                <th title="Separate parts with load cut off from every source">Islands</th>
                 <th>Best tie</th>
-                <th>Restored</th>
                 <th>Still dark</th>
+                <th>Still dark by priority (kW)</th>
                 <th>Min V</th>
                 <th>Max loading</th>
+                {n1.options?.standby && <th>Standby loading</th>}
+                <th>Losses</th>
                 <th>New violations</th>
+                <th />
               </tr>
             </thead>
             <tbody>
-              {n1.cases.map((c) => (
-                <tr key={c.id} className={(c.remainingUnservedKw ?? 0) > 0.5 ? 'warning' : ''}>
-                  <td><button className="bp-locate" title="Select on diagram" onClick={() => locate(c.id)}>⌖</button></td>
-                  <td className="bp-ro">{c.element} <span className="scenarios-count">{c.kind}</span></td>
-                  <td className="bp-ro">{c.converged ? fmtKw(c.unservedKw) : 'did not converge'}</td>
-                  <td className="bp-ro">{c.bestTie ? c.bestTie.tieName : (c.unservedKw ?? 0) > 0.5 ? 'none restores it' : '—'}</td>
-                  <td className="bp-ro">{c.bestTie ? fmtKw(c.bestTie.restoredKw) : '—'}</td>
-                  <td className="bp-ro">{fmtKw(c.remainingUnservedKw)}</td>
-                  <td className="bp-ro">{fmtPu(c.bestTie?.minVpu ?? c.noAction?.minVpu)}</td>
-                  <td className="bp-ro">{fmtPct(c.bestTie?.maxLoadingPct ?? c.noAction?.maxLoadingPct, 0)}</td>
-                  <td className="bp-ro">{c.bestTie ? c.bestTie.newViolations : c.noAction ? Math.max(0, c.noAction.violations - n1.base.violations) : '—'}</td>
-                </tr>
-              ))}
+              {n1.cases.map((c) => {
+                const shown = c.bestTie ?? c.noAction
+                return (
+                  <tr key={c.id} className={(c.remainingByPriority?.critical ?? 0) > 0.5 ? 'error' : (c.remainingUnservedKw ?? 0) > 0.5 || (shown?.genOverloads ?? 0) > 0 ? 'warning' : ''}>
+                    <td><button className="bp-locate" title="Select on diagram" onClick={() => locate(c.id)}>⌖</button></td>
+                    <td className="bp-ro">{c.element} <span className="scenarios-count">{c.kind}</span></td>
+                    <td className="bp-ro">{c.converged ? fmtKw(c.unservedKw) : 'did not converge'}</td>
+                    <td className="bp-ro">{c.islandsFormed ?? '—'}</td>
+                    <td className="bp-ro">{c.bestTie ? `${c.bestTie.tieName} (+${fmtKw(c.bestTie.restoredKw)})` : (c.unservedKw ?? 0) > 0.5 ? 'none restores it' : '—'}</td>
+                    <td className="bp-ro">{fmtKw(c.remainingUnservedKw)}</td>
+                    <td className="bp-ro">{byPriority(c.remainingByPriority)}</td>
+                    <td className="bp-ro">{fmtPu(shown?.minVpu)}</td>
+                    <td className="bp-ro">{fmtPct(shown?.maxLoadingPct, 0)}</td>
+                    {n1.options?.standby && <td className="bp-ro">{worstGen(shown)}</td>}
+                    <td className="bp-ro">{fmtKw(shown?.lossesKw)}</td>
+                    <td className="bp-ro">{c.bestTie ? c.bestTie.newViolations : c.noAction ? Math.max(0, c.noAction.violations - n1.base.violations) : '—'}</td>
+                    <td className="bp-ro">
+                      <button type="button" className="scenarios-mini" disabled={!c.converged} title="Show this outage on the drawing, unsaved (solve to see the overlays)" onClick={() => show(c)}>Show</button>
+                      <button type="button" className="scenarios-mini" disabled={!c.converged} title="Keep this outage (and its tie and standby units) as a scenario" onClick={() => keep(c)}>Save as scenario</button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </>

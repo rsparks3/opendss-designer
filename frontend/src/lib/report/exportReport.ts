@@ -19,6 +19,8 @@ export type ReportFormat = 'pdf' | 'xlsx' | 'both'
 export interface ReportOptions {
   format: ReportFormat
   sections: SectionKey[]
+  /** How many N-1 rows the planning-studies section prints. */
+  n1TopN?: number
   /** Told what is happening, for the dialog's status line. */
   onProgress?: (what: string) => void
 }
@@ -133,6 +135,7 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
     hosting: rs.hosting,
     screening: rs.screening,
     studies: rs.studies,
+    n1TopN: opts.n1TopN,
     figures,
     sections,
     date: new Date(),

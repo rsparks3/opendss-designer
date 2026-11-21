@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { runBatch } from '../lib/batch'
-import { levelNamed, scenarioSize } from '../lib/scenarios'
+import { levelNamed, listed, scenarioSize } from '../lib/scenarios'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
 import { useUiStore } from '../store/uiStore'
@@ -44,7 +44,7 @@ function CompareView({ table, metric, onLocate }: { table: CompareTable; metric:
  * worst voltage, worst loading, losses and violations of each cell.
  */
 export function ScenariosPanel() {
-  const scenarios = useCircuitStore((s) => s.scenarios)
+  const scenarios = listed(useCircuitStore((s) => s.scenarios))
   const active = useCircuitStore((s) => s.activeScenario)
   const levels = useCircuitStore((s) => s.loadLevels)
   const activeLevel = useCircuitStore((s) => s.activeLevel)

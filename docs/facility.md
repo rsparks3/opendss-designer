@@ -93,9 +93,15 @@ OpenDSS has no isochronous machine. One in this mode is compiled as a
     is not a dynamic or stability study. Two machines holding one island are
     flagged as indicative only.
 
+A generator ticked **Standby (starts on loss of utility)** is a backup unit
+behind an automatic transfer switch: off while a source reaches its bus,
+started isochronous when none does.
+
 **Analysis → Utility outage** (or ⚡ in the Scenarios tab) builds the
-scenario in one step. Every source of *Kind* utility goes out of service,
-and every generator goes in service and isochronous. The scenario opens with
+scenario in one step. Every source of *Kind* utility goes out of service.
+If any generator is marked *Standby*, the standby units and the generators
+already running go in service and isochronous, and a stopped generator not
+on standby stays off; if none is marked, every generator starts, as before. The scenario opens with
 the **Islands** overlay on, also under *Analysis → Overlay*:
 
 - each island a source holds is drawn in its own colour, and whatever no source reaches is grey;
