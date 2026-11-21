@@ -7,6 +7,7 @@ import { useCircuitStore } from '../store/circuitStore'
 import { useUiStore } from '../store/uiStore'
 import type { NodeType } from '../types/circuit'
 import { typeLabel } from './BulkEditor'
+import { findMaxLoad } from '../lib/headroom'
 
 export interface MenuTarget {
   /** 'pane' is empty canvas; its id is unused. */
@@ -68,6 +69,12 @@ export function ContextMenu({ target, onClose }: { target: MenuTarget; onClose: 
       items.push({
         label: closed ? labels[0] : labels[1],
         action: () => store.updateNodeParams(node.id, { closed: !closed }),
+      })
+    }
+    if (node.type === 'busbar' || node.type === 'load') {
+      items.push({
+        label: 'Find maximum load here',
+        action: () => void findMaxLoad(node.id),
       })
     }
     if (node.type !== 'busbar' && !isAnnotation(node)) {

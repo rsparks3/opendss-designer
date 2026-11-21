@@ -284,7 +284,10 @@ Names follow the code, not the original draft: ratings are lower-case element pa
 - Save as scenario, then solve: the result matches the row.
 - 123-bus, every element: under 10 s (kept as a regression test).
 
-### 2.2 Capacity headroom report and probe load
+### 2.2 Capacity headroom report and probe load — ✅ DONE 2026-11-21
+
+**As built:** `studies/headroom.py` (`POST /api/jobs/headroom`), Studies tab → *Headroom* (a study in the Studies tab, beside the others, rather than its own bottom-panel tab). The probe is `lib/headroom.ts` `findMaxLoad` on the hosting-capacity job; the hosting result gained `where` (the bus or element that bound). Vsource gained `kva` (*Service capacity*). The probe result shows as a message and in the session's probe list, not as a callout drawn on the canvas. **Found while building:** OpenDSS rates a transformer at 110 % of nameplate unless told otherwise, and the compiler never told it; it now writes `normhkva` = nameplate (or the element's own). Tests: `tests/test_headroom.py`, `lib/headroom.test.ts`.
+
 
 **Exists:**
 - **Feeder capacity** (`studies/capacity.py` `capacity_search`): bisection on the load multiplier until undervoltage or overload, giving capacity kW, headroom and what binds.

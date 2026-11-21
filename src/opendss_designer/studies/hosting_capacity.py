@@ -132,6 +132,8 @@ class _Session:
         self.vmin = float(opts["vminPu"] or self.limits.vminPu)
         self.emergency = self.level.rating == "emergency"
         self.unit_name = "hc_unit"
+        # Where the last evaluation failed, by criterion: the bus or element.
+        self.where: dict[str, Any] = {}
         self.unit_class = "generator" if opts["kind"] == "der" else "load"
         self.solves = 0
         # Node names and the bus slices of AllBusMagPu, computed once.
@@ -574,21 +576,32 @@ def _violations(
     None when the solve did not converge, which counts as infeasible."""
     crit = s.opts["criteria"]
     s.set_unit(bus, kw)
+    s.where = {}
     if not s.solve(hour):
         return None
     out: list[str] = []
     v = s.voltages()
     if crit.get("voltage"):
         if s.opts["kind"] == "der":
-            if any(hi > s.vmax for b, (lo, hi) in v.items() if b not in base.over_v):
+            over = [(hi, b) for b, (lo, hi) in v.items() if b not in base.over_v and hi > s.vmax]
+            if over:
                 out.append("voltage")
+                s.where["voltage"] = {"bus": max(over)[1], "value": round(max(over)[0], 4)}
         else:
-            if any(0.05 < lo < s.vmin for b, (lo, hi) in v.items() if b not in base.under_v):
+            under = [(lo, b) for b, (lo, hi) in v.items()
+                     if b not in base.under_v and 0.05 < lo < s.vmin]
+            if under:
                 out.append("voltage")
+                s.where["voltage"] = {"bus": min(under)[1], "value": round(min(under)[0], 4)}
     if crit.get("thermal"):
         limit = float(s.opts["thermalPct"])
-        if any(pct >= limit for n, pct in s.loading().items() if n not in base.over_loaded):
+        hot = [(pct, n) for n, pct in s.loading().items()
+               if n not in base.over_loaded and pct >= limit]
+        if hot:
             out.append("thermal")
+            pct, name = max(hot)
+            s.where["thermal"] = {"element": name, "id": s.compiled.element_map.get(name),
+                                  "value": round(pct, 1)}
     if crit.get("regulatorReverse") and s.opts["kind"] == "der" and s.regulators:
         thr = -float(s.opts["regulatorReverseKw"])
         if any(kw_ < thr for n, kw_ in s.regulator_flows().items() if n not in base.reversed):
@@ -670,14 +683,18 @@ def _bisect(s: _Session, base: _Base, bus: str, hour: int | None) -> dict[str, A
     # Does the base case already fail? Then there is no room.
     first = _violations(s, base, bus, tol, hour)
     if first is None or first:
-        return _result(s, bus, 0.0, first or ["notConverged"], {}, base)
+        out = _result(s, bus, 0.0, first or ["notConverged"], {}, base)
+        out["where"] = s.where.get(first[0]) if first else None
+        return out
     lo, hi = tol, min(2 * tol * 16, cap)
     binding: list[str] = []
+    where: dict[str, Any] = {}
     # Grow until something binds (or the cap is reached).
     while True:
         viol = _violations(s, base, bus, hi, hour)
         if viol is None or viol:
             binding = viol or ["notConverged"]
+            where = dict(s.where)
             break
         lo = hi
         if hi >= cap:
@@ -690,9 +707,12 @@ def _bisect(s: _Session, base: _Base, bus: str, hour: int | None) -> dict[str, A
         if viol is None or viol:
             hi = mid
             binding = viol or ["notConverged"]
+            where = dict(s.where)
         else:
             lo = mid
-    return _result(s, bus, lo, binding, {}, base)
+    out = _result(s, bus, lo, binding, {}, base)
+    out["where"] = where.get(binding[0]) if binding else None
+    return out
 
 
 def _sensitivity(s: _Session, base: _Base, bus: str, hour: int | None) -> dict[str, Any]:

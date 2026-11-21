@@ -21,7 +21,24 @@ milestone A below.
   prints the worst rows (top N, set in the report dialog) as *Contingency
   ranking* with the criteria used.
 
+- **Capacity headroom** (Studies → Headroom): every rated element's
+  rating, loading and spare kVA/kW at each load level (growth years are
+  levels), with whether a thermal or a voltage limit binds first, and the
+  spare at the peak of the last time-series run. Utility sources gained a
+  *Service capacity*. **Find maximum load here** on a busbar or load
+  right-click searches the largest new load the bus can take and names the
+  element or bus that bound. Both print in the report. `POST
+  /api/jobs/headroom`; the hosting-capacity result now says where each bus's
+  binding criterion bound (`where`).
+
 ### Changed (milestone B)
+
+- **Transformers are rated on nameplate kVA.** The compiler now writes
+  `normhkva` (the element's own, or its kVA). It used to leave OpenDSS's
+  default, 110 % of nameplate, so every transformer loading percentage,
+  overload flag and hosting-capacity thermal limit was read against a
+  rating 10 % above the unit's. Loading figures for transformers rise by
+  that factor; exported `.dss` files carry the rating.
 
 - **Utility outage** starts the generators marked *Standby* and those
   already running, and leaves a stopped non-standby unit off. A file with no

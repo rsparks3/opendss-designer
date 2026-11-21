@@ -46,6 +46,7 @@ from ..studies import capacity as capacity_study
 from ..studies import contingency as contingency_study
 from ..studies import faults as fault_study_mod
 from ..studies import harmonics as harmonics_study
+from ..studies import headroom as headroom_study
 from ..studies import hosting_capacity as hc_study
 from ..studies import islanding as islanding_study
 from ..studies import protection_depth as protection_depth_study
@@ -656,6 +657,24 @@ def start_hosting_capacity(req: HostingCapacityRequest) -> dict:
     return _submit_study(
         "hosting-capacity",
         lambda progress, cancel: hc_study.hosting_capacity(
+            req.circuit, req.options, progress, cancel
+        ),
+    )
+
+
+class HeadroomRequest(BaseModel):
+    circuit: Circuit
+    # {"levels": [names] | None (every level), "voltage": bool}
+    options: dict | None = None
+
+
+@router.post("/jobs/headroom")
+def start_headroom(req: HeadroomRequest) -> dict:
+    """Spare capacity of every rated element at each load level, as a job."""
+    _study_cap(headroom_study.estimate_solves(req.circuit, req.options))
+    return _submit_study(
+        "headroom",
+        lambda progress, cancel: headroom_study.headroom(
             req.circuit, req.options, progress, cancel
         ),
     )

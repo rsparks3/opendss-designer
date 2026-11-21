@@ -47,6 +47,7 @@ import { zoneLoads } from '../allocation'
 import {
   buildTopology, firstProtectiveUpstream, PRIORITIES, PRIORITY_LABELS, PROTECTIVE_TYPES, priorityOf, upstreamPaths,
 } from '../trace'
+import type { HeadroomResult, ProbeResult } from '../headroom'
 
 export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'loadbasis' | 'scenarios' | 'outage' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
 
@@ -466,6 +467,54 @@ function studiesSection(studies: Partial<Record<string, unknown>>, names: Names,
           ? `Standby generators (${n1.standbyUnits?.map((u) => u.name).join(', ') || 'none marked'}) start isochronous in an island the outage leaves without a source, as an automatic transfer would; their loading is judged against their rating, and past it counts as a violation. `
           : 'No generator was started. ') +
         `Base load ${n1.base.totalLoadKw} kW.`,
+    })
+  }
+  const hr = studies.headroom as HeadroomResult | undefined
+  if (hr?.converged && hr.rows.length) {
+    tables.push({
+      id: 'headroom',
+      title: 'Capacity headroom',
+      columns: [
+        { key: 'name', label: 'Element' },
+        { key: 'kind', label: 'Type' },
+        { key: 'rating', label: 'Rating', unit: 'kVA', digits: 0 },
+        ...hr.levels.flatMap((lv) => [
+          { key: `l:${lv.name}`, label: `${lv.name}: loading`, unit: '%', digits: 0 },
+          { key: `h:${lv.name}`, label: `${lv.name}: headroom`, unit: 'kVA', digits: 0 },
+          { key: `b:${lv.name}`, label: `${lv.name}: limit` },
+        ]),
+      ],
+      rows: hr.rows.map((r) => ({
+        name: r.name, kind: r.kind, rating: r.levels[hr.levels[0].name]?.ratingKva ?? null,
+        ...Object.fromEntries(hr.levels.flatMap((lv) => {
+          const c = r.levels[lv.name]
+          return [[`l:${lv.name}`, c?.loadingPct ?? null], [`h:${lv.name}`, c?.headroomKva ?? null], [`b:${lv.name}`, c?.limit ?? null]]
+        })),
+      })),
+      flags: hr.rows.map((r) => ((r.levels[hr.levels[0].name]?.headroomKva ?? 1) <= 0 ? 'violation' : null)),
+      note:
+        'Headroom is the smaller of the element\u2019s spare kVA at the level\u2019s rating (normal or emergency; transformers on nameplate kVA) ' +
+        (hr.voltage
+          ? 'and the new load at its load-side bus that would take a bus to the lower voltage limit, estimated linearly from one trial load. '
+          : 'alone; voltage was not checked. ') +
+        'Growth years are load levels, one column each.',
+    })
+  }
+  const probes = studies.probes as ProbeResult[] | undefined
+  if (probes?.length) {
+    tables.push({
+      id: 'probes',
+      title: 'Maximum new load at a bus',
+      columns: [
+        { key: 'at', label: 'At' }, { key: 'case', label: 'Scenario' }, { key: 'level', label: 'Level' },
+        { key: 'kw', label: 'Max new load', unit: 'kW', digits: 0 }, { key: 'kva', label: 'Max new load', unit: 'kVA', digits: 0 },
+        { key: 'binding', label: 'Limit' }, { key: 'where', label: 'Where' },
+      ],
+      rows: probes.map((p) => ({
+        at: p.name, case: p.scenario ?? 'base case', level: p.level, kw: p.kw, kva: p.kva, binding: p.binding,
+        where: p.where?.id ? names.element(p.where.id, p.where.element ?? p.where.id).name : p.where?.bus ? names.bus(p.where.bus) : null,
+      })),
+      note: 'A constant-power load at 0.95 power factor grown at the bus until the first voltage or thermal limit, searched to within 2 kW of the answer by bisection.',
     })
   }
   const tr = studies.transfer as TransferResult | undefined

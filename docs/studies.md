@@ -1,5 +1,5 @@
 ---
-description: The planning studies in OpenDSS Designer's Studies tab — N-1 contingency and tie restoration, transfer capability, Volt/VAR setting sweeps, CVR, capacitor placement, phase balancing, loss evaluation and feeder capacity.
+description: The planning studies in OpenDSS Designer's Studies tab — N-1 contingency and tie restoration, transfer capability, Volt/VAR setting sweeps, CVR, capacitor placement, phase balancing, loss evaluation, feeder capacity and capacity headroom.
 ---
 
 # Planning studies
@@ -97,6 +97,40 @@ criterion, undervoltage or an overload at the active level's rating, by
 bisection: the capacity in kW, the headroom above the present case, what
 binds and where. OpenDSS's own `Capacity` command answers the same
 question from EnergyMeter registers; this needs no meter and says why.
+
+## Headroom and the maximum load at a bus
+
+**Capacity headroom** (Studies → Headroom) lists every rated element:
+transformers, regulators, lines and switches with an ampere rating, a
+utility source given a *Service capacity* (kVA; contract demand or the
+utility's transformer), and an isochronous generator. For each, at every
+load level:
+
+- its rating as kVA (phases × kV line-to-neutral × amps, on the level's
+  normal or emergency rating), its loading, and the spare kVA, with the spare
+  kW at the element's own power factor;
+- the new load at its load-side bus that would take any bus to the lower
+  voltage limit, a linear estimate from one 100 kW trial load (a bus already
+  below the limit does not count);
+- the **headroom**, the smaller of the two, and which one limits it
+  (*thermal* or *voltage*).
+
+Growth years are load levels (Project → Load levels → *Add growth levels*),
+so each year is a column. After a time-series run a further column gives the
+spare kVA at each element's worst loading of the run.
+
+Transformers are rated on their nameplate kVA. (OpenDSS's own default is
+110 % of nameplate; it applies only when the element carries no rating, and
+the compiler now always gives one.)
+
+**Find maximum load here** (right-click a busbar or a load) grows a
+constant-power load at 0.95 power factor at that bus until a voltage or
+thermal limit binds, to within 2 kW, on the open scenario at the active
+level: the hosting-capacity load search for one bus. The answer appears as a
+message and in the *Find maximum load* list under the headroom table with
+the element or bus that bound; the list lasts for the session and prints in
+the report. For a MILCON load, open a scenario, find the maximum, and then
+add the load you choose as an ordinary load in that scenario.
 
 ## What has been checked
 

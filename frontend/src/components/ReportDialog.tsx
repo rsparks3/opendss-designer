@@ -22,7 +22,7 @@ const WHAT: Record<SectionKey, string> = {
   batch: 'The batch matrix: every scenario at every load level, with the worst voltage, loading and violations of each',
   hosting: 'The last hosting-capacity run: method, criteria and limits, and the capacity and binding criterion at every bus',
   screening: 'The last DER interconnection screening: the unit, the line section and every screen with its value, limit and result',
-  studies: 'Every planning study run in the Studies tab: N-1 contingency, transfer capability, setting sweeps, CVR, capacitor placement, phase balance, losses, capacity',
+  studies: 'Every planning study run in the Studies tab: capacity headroom and maximum-load probes, N-1 contingency, transfer capability, setting sweeps, CVR, capacitor placement, phase balance, losses, capacity',
   history: 'The change log: every parameter change, when, by whom, from what to what',
 }
 

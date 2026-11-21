@@ -163,6 +163,17 @@ def _emergency(p: dict, kind: str) -> str:
     return f" {key}={v:g}" if v is not None and v > 0 else ""
 
 
+def _normal_rating(p: dict, kva: float | None) -> str:
+    """` normhkva=..`: a transformer's normal rating is its nameplate kVA
+    (or the `normhkva` the element carries). The engine's own default is
+    110 % of nameplate, which would have every loading figure, overload
+    flag and headroom read against a rating the unit does not have."""
+    v = _num(p, "normhkva")
+    if v is None or v <= 0:
+        v = kva
+    return f" normhkva={v:g}" if v is not None and v > 0 else ""
+
+
 def _capacitance(p: dict) -> list[str]:
     """['c1=..', 'c0=..'] when the params carry them. Left out, the engine
     assumes a few nF per unit length, which is not nothing: a jumper the file
@@ -261,7 +272,7 @@ def _split_phase_transformer(
         f"kvas=({kva:g}, {kva:g}, {kva:g}) "
         f"xhl={1.2 * x:.6g} xht={1.2 * x:.6g} xlt={0.8 * x:.6g} "
         f"%rs=({0.5 * r_total:.6g}, {r_total:.6g}, {r_total:.6g})"
-        f"{_core_losses(p)}{_reliability(p)}{_emergency(p, 'transformer')}"
+        f"{_core_losses(p)}{_reliability(p)}{_normal_rating(p, kva)}{_emergency(p, 'transformer')}"
     )
 
 
@@ -905,7 +916,9 @@ def compile_circuit(
             f"new transformer.{name} phases={phases} windings={len(windings)} "
             f"buses=({bus_list}) conns=({conns}) kvs=({kvs}) kvas=({kvas}) "
             f"xhl={xhl:g} {_winding_resistance(windings, loadloss)}{tertiary}"
-            f"{_core_losses(p)}{_taps(windings)}{_reliability(p)}{_emergency(p, 'transformer')}"
+            f"{_core_losses(p)}{_taps(windings)}{_reliability(p)}"
+            f"{_normal_rating(p, float(windings[0].get('kva', 10000)) if windings else None)}"
+            f"{_emergency(p, 'transformer')}"
         )
 
     # Regulators: an equal-ratio 2-winding transformer plus the RegControl that

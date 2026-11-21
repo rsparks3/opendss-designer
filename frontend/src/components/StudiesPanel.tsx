@@ -3,6 +3,7 @@ import { fmtKw, fmtPct, fmtPu, LABELS, runStudy } from '../lib/studies'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore, type StudyKey } from '../store/resultsStore'
 import { estimateN1Solves, n1CaseName, n1CaseOverrides } from '../lib/contingency'
+import { spareAtPeak, timeSeriesPeaks, type HeadroomResult, type ProbeResult } from '../lib/headroom'
 import type {
   BalanceResult,
   ByPriority,
@@ -24,11 +25,12 @@ import { ProtectionPanel } from './ProtectionPanel'
 import { PowerQualityPanel } from './PowerQualityPanel'
 import { LockedNote } from './LockedNote'
 
-type Study = 'qa' | 'hosting' | 'contingency' | 'voltvar' | 'balance' | 'capacity' | 'tlm' | 'protection' | 'pq'
+type Study = 'qa' | 'hosting' | 'headroom' | 'contingency' | 'voltvar' | 'balance' | 'capacity' | 'tlm' | 'protection' | 'pq'
 
 const STUDIES: { key: Study; label: string; help: string }[] = [
   { key: 'qa', label: 'Model QA', help: 'Completeness and the things to fix before a study' },
   { key: 'hosting', label: 'Hosting capacity', help: 'DER or load each bus can take before a criterion binds' },
+  { key: 'headroom', label: 'Headroom', help: 'Spare capacity of every rated element at each load level, and the maximum new load at a bus' },
   { key: 'contingency', label: 'Contingency', help: 'N-1: what a lost device leaves dark, which tie restores it, what a tie can carry' },
   { key: 'voltvar', label: 'Volt/VAR & CVR', help: 'Setting sweeps over a day, CVR savings, capacitor placement' },
   { key: 'balance', label: 'Phase balance', help: 'Unbalance at the head and which laterals to move' },
@@ -57,6 +59,7 @@ export function StudiesPanel() {
         {study === 'tlm' && <TlmPanel />}
         {study === 'protection' && <ProtectionPanel />}
         {study === 'pq' && <PowerQualityPanel />}
+        {study === 'headroom' && <HeadroomPanel />}
         {study === 'contingency' && <ContingencyPanel />}
         {study === 'voltvar' && <VoltVarPanel />}
         {study === 'balance' && <BalancePanel />}
@@ -101,6 +104,115 @@ function useLocate() {
       return typeof name === 'string' && name ? name : fallback
     },
   }
+}
+
+// --- headroom ---------------------------------------------------------------------------
+
+const NO_PROBES: ProbeResult[] = []
+
+function HeadroomPanel() {
+  const hr = useResultsStore((s) => s.studies.headroom as HeadroomResult | undefined)
+  const probes = (useResultsStore((s) => s.studies.probes) as ProbeResult[] | undefined) ?? NO_PROBES
+  const ts = useResultsStore((s) => s.timeseries)
+  const nodes = useCircuitStore((s) => s.nodes)
+  const { locate, nameOf } = useLocate()
+  const [voltage, setVoltage] = useState(true)
+  const peaks = timeSeriesPeaks(ts)
+  const hasPeaks = Object.keys(peaks).length > 0
+  const hasElements = nodes.some((n) => n.type !== 'note' && n.type !== 'zone')
+  const first = hr?.levels[0]?.name
+  return (
+    <div className="study">
+      <div className="scenarios-head">
+        <b>Capacity headroom</b>
+        <label className="prefs-radio" title="One trial load per element's load-side bus: the kW that takes the first bus to the lower voltage limit">
+          <input type="checkbox" checked={voltage} onChange={(e) => setVoltage(e.target.checked)} /> check voltage too
+        </label>
+        <RunButton k="headroom" disabled={!hasElements} onRun={() => void runStudy('headroom', '/api/jobs/headroom', { options: { voltage } }, true)} />
+      </div>
+      {!hr ? (
+        <div className="bp-empty">
+          Every transformer, regulator, rated line and switch, utility service with a <i>Service capacity</i>, and
+          isochronous generator: its rating, its loading, the kVA left, and whether the element (thermal) or a bus
+          voltage limits new load first — at every load level, so growth years each get a column. For one bus exactly,
+          right-click it → <i>Find maximum load here</i>.
+        </div>
+      ) : (
+        <table className="bp-table">
+          <thead>
+            <tr>
+              <th />
+              <th>Element</th>
+              <th>Rating</th>
+              {hr.levels.map((lv) => <th key={lv.name} colSpan={3}>{lv.name}{lv.rating === 'emergency' ? ' (emergency)' : ''}</th>)}
+              {hasPeaks && <th title="Spare kVA at the worst loading of the last time-series run">Time-series peak</th>}
+            </tr>
+            <tr>
+              <th /><th /><th />
+              {hr.levels.map((lv) => [
+                <th key={`${lv.name}l`}>Loading</th>, <th key={`${lv.name}s`}>Headroom</th>, <th key={`${lv.name}b`}>Limit</th>,
+              ])}
+              {hasPeaks && <th>Spare</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {hr.rows.map((r) => {
+              const c0 = first ? r.levels[first] : undefined
+              return (
+                <tr key={r.id} className={c0 && c0.headroomKva <= 0 ? 'error' : c0 && c0.loadingPct >= 80 ? 'warning' : ''}>
+                  <td><button className="bp-locate" title="Select on diagram" onClick={() => locate(r.id)}>⌖</button></td>
+                  <td className="bp-ro">{r.name} <span className="scenarios-count">{r.kind}</span></td>
+                  <td className="bp-ro">{c0 ? `${Math.round(c0.ratingKva)} kVA` : '—'}</td>
+                  {hr.levels.map((lv) => {
+                    const c = r.levels[lv.name]
+                    return c ? [
+                      <td key={`${lv.name}l`} className="bp-ro">{fmtPct(c.loadingPct, 0)}</td>,
+                      <td key={`${lv.name}s`} className="bp-ro" title={`${Math.round(c.spareKva)} kVA thermal spare; ${c.voltageKw == null ? 'no voltage limit found' : `${Math.round(c.voltageKw)} kW before a voltage limit`}`}>
+                        {Math.round(c.headroomKva)} kVA / {Math.round(c.headroomKw)} kW
+                      </td>,
+                      <td key={`${lv.name}b`} className="bp-ro">{c.limit}</td>,
+                    ] : [<td key={`${lv.name}l`} className="bp-ro">—</td>, <td key={`${lv.name}s`} className="bp-ro">—</td>, <td key={`${lv.name}b`} className="bp-ro">—</td>]
+                  })}
+                  {hasPeaks && <td className="bp-ro">{spareAtPeak(c0, peaks[r.id]) == null ? '—' : `${Math.round(spareAtPeak(c0, peaks[r.id])!)} kVA`}</td>}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
+      <div className="scenarios-head" style={{ marginTop: 10 }}>
+        <b>Find maximum load</b>
+        <span className="scenarios-count">right-click a busbar or load → Find maximum load here (open scenario, active level; kept for this session)</span>
+      </div>
+      {probes.length > 0 && (
+        <table className="bp-table">
+          <thead>
+            <tr><th /><th>At</th><th>Case</th><th>Max new load</th><th>Limit</th><th>Where</th></tr>
+          </thead>
+          <tbody>
+            {probes.map((p) => (
+              <tr key={`${p.nodeId}-${p.scenario}-${p.level}`}>
+                <td><button className="bp-locate" title="Select on diagram" onClick={() => locate(p.nodeId)}>⌖</button></td>
+                <td className="bp-ro">{p.name}</td>
+                <td className="bp-ro">{p.scenario ?? 'base case'} · {p.level}</td>
+                <td className="bp-ro">{Math.round(p.kw)} kW ({Math.round(p.kva)} kVA)</td>
+                <td className="bp-ro">{p.binding ?? '—'}</td>
+                <td className="bp-ro">
+                  {p.where?.id ? <button className="link-button" onClick={() => locate(p.where?.id)}>{nameOf(p.where.id, p.where.element ?? '')}</button> : p.where?.bus ?? '—'}
+                  {p.where ? ` (${p.binding === 'voltage' ? `${p.where.value.toFixed(3)} pu` : `${Math.round(p.where.value)} %`})` : ''}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <div className="library-note">
+        Headroom is the smaller of the element's spare kVA at the level's rating and the load that would take a bus to the
+        lower voltage limit (a linear estimate from one trial load; Find maximum load searches exactly). Transformers are
+        rated on nameplate kVA.
+      </div>
+    </div>
+  )
 }
 
 // --- contingency ------------------------------------------------------------------------

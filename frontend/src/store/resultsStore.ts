@@ -24,7 +24,7 @@ export function setLimitsSource(fn: () => LimitsJSON): void {
 export type AnalysisMode = 'snapshot' | 'timeseries'
 
 /** The M14 studies the Studies tab holds results for. */
-export type StudyKey = 'n1' | 'transfer' | 'switching' | 'sweep' | 'cvr' | 'placement' | 'balance' | 'losses' | 'capacity' | 'qa' | 'tlm' | 'reach' | 'fusesaving' | 'recplacement' | 'harmonics' | 'rvc'
+export type StudyKey = 'n1' | 'transfer' | 'switching' | 'sweep' | 'cvr' | 'placement' | 'balance' | 'losses' | 'capacity' | 'qa' | 'tlm' | 'reach' | 'fusesaving' | 'recplacement' | 'harmonics' | 'rvc' | 'headroom' | 'probes'
 
 export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'reliability' | 'phases' | 'priority' | 'islands' | 'compare' | 'hosting' | 'off'
 

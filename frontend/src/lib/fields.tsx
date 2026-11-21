@@ -123,6 +123,9 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'x0r0', label: 'X/R (zero seq.)', kind: 'number', placeholder: '3' },
     // A utility source is what "Utility outage" takes away.
     { key: 'kind', label: 'Kind', kind: 'select', options: ['utility', 'other'] },
+    // What the service can deliver (contract demand, the utility transformer): the
+    // headroom study judges the source against it. Not written to OpenDSS.
+    { key: 'kva', label: 'Service capacity', kind: 'number', unit: 'kVA' },
   ],
   busbar: [
     { key: 'name', label: 'Bus name', kind: 'text' },
