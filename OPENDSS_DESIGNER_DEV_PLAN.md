@@ -2,14 +2,14 @@
 
 **Scope:** Tiers 1–3 of the facility-planning roadmap. Turns OpenDSS Designer from a power-flow viewer into a resilience and capacity planning tool for installation-scale distribution systems (military bases, campuses, large industrial sites).
 
-**Baseline:** first drafted against v0.8.0. Tier 1 was reconciled with **v0.9.0** (2026-11-15) on 2026-11-20. 0.9.0 adds the following:
+**Baseline:** first drafted against v0.8.0. Tier 1 was reconciled with **v0.9.0** (2026-11-15) on 2026-11-20, and Tier 2 on 2026-11-21. 0.9.0 adds the following:
 - load levels, scenarios and Compare;
 - N-1 contingency, hosting capacity and the Studies tab;
 - allocation from meter data;
 - GIS coordinates and the map view;
 - the TCC graph.
 
-**Tiers 2 and 3 have not yet been reconciled.** Several of their items partly exist (2.1 N-1, 2.2 feeder capacity / hosting-capacity load mode, 2.5 TCC graph, 3.2 map view, 3.3 shapes). Reconcile each one, as Tier 1 was, before starting it.
+**Tier 3 has not yet been reconciled.** Several of its items partly exist (3.2 map view, 3.3 shapes). Reconcile each one, as Tiers 1 and 2 were, before starting it.
 
 **Relation to the roadmap:** this plan is a second track (facility / installation planning) *alongside* the utility distribution-planning direction in `FUTURE_IMPROVEMENTS.md`. It does not replace that direction.
 
@@ -47,7 +47,7 @@ Export to `.dss` must continue to work with every field below ignored. Import of
 
 ---
 
-## 1. Milestone A — Resilience core (Tier 1) — ✅ DONE 2026-11-20 (branch `facility-tier1`)
+## 1. Milestone A — Resilience core (Tier 1) — ✅ DONE 2026-11-20 (merged to `main`)
 
 Everything below was built as described, except where a *Done differently* or *As built* note says otherwise. The user's guide is `docs/facility.md`, and `frontend/e2e/facility.spec.ts` runs the milestone's exit demo end to end.
 
@@ -247,77 +247,149 @@ The trace (1.2) is a dependency for islanding (1.3) and allocation zones (1.4).
 
 **Goal:** the capacity and contingency deliverables a planner needs for a MILCON review or a resilience assessment.
 
-Suggested order: 2.1 → 2.2 → 2.4 → 2.5 → 2.3.
+**Reconciled with the code on 2026-11-21**, as Tier 1 was. Each item says what already exists (the design of record) and lists only the remaining work. Two decisions were made with the user:
+- **The probe (2.2) is a right-click action, not an element.** *Find maximum load here* on a bus reuses the hosting-capacity load search for that bus. Nothing is saved in the drawing, so the `probe` flag and its exclusions are dropped. To keep a sized MILCON load, add it as an ordinary load in a scenario.
+- **Backup generators are marked `standby`** (2.1, 2.3, and the 1.3 *Utility outage* action). A standby generator starts on loss of utility (an ideal ATS). It runs isochronous only in an island cut off from every utility source, and is off otherwise.
 
-### 2.1 N-1 contingency sweep
+Names follow the code, not the original draft: ratings are lower-case element params (`interruptingka`, as today, so `withstandka` and `bracingka`), and project-wide settings go in `Limits` (`core/model.py`).
 
-**Approach.** For each series element (line, transformer, breaker, fuse, recloser, regulator) not already open: set `enabled=no`, solve the snapshot (or the peak hour of a chosen load shape), collect metrics, restore. Metrics per outage: unserved kW by priority, worst bus voltage, worst element loading, losses, islands formed.
+**Order:** 2.1 → 2.2 → 2.4 → 2.5 → 2.3. Standby (in 2.1) comes before 2.3, which uses it.
 
-**Cost control.** Elements × one solve. Show an estimate before running; in demo mode cap at the demo circuit-size limit. Run in the existing solver queue; stream progress events like the time-series run does.
+**Schema.** Bump `SCHEMA_VERSION` to 3 with a no-op migration (2→3), once, at the first item that adds a field. New element params need no migration. The new project-level keys (`Limits.dutyMargin`, `Limits.asymmetryFactor`, `tccSets`) touch the backend `Circuit` model.
 
-**Options.** Include generators in isochronous mode (so a contingency with backup is evaluated) or not; exclude elements by tag; N-1 on transformers only.
+### 2.1 N-1 contingency sweep — mostly shipped in 0.9.0 (M14)
 
-**Frontend.** Contingency tab: ranked table (worst first), click a row to apply that outage as a temporary view on the canvas with the standard overlays. "Save as scenario" promotes a row to 1.1.
+**Exists:**
+- `studies/contingency.py` `n_minus_1`. It takes out every closed switch and protective device in turn (with `candidates: 'all'`, also every line, transformer and regulator). For each one it reports unserved kW, dark buses, worst voltage and loading, and violations, and finds the tie that restores the most load. Results are ranked by load that can't be restored.
+- It runs on the scenario-resolved circuit at the active load level, on one build with `enabled`/`open` edits between solves. It goes through the job queue with progress and cancel (`/api/jobs/n-minus-1`), and `estimate_n1_solves` + `_study_cap` enforce the demo limits.
+- Studies tab → Contingency: a ranked table with *locate*. The report's *Planning studies* section prints it.
+- **Timing (measured 2026-11-21):** IEEE 123-bus, every element (134 candidates, no ties): **0.21 s**. The 10 s budget is not a concern.
 
-**Report.** *Contingency ranking* table, top N configurable, with the criteria.
+**Remaining:**
+- **Unserved kW by priority** for each case and the best tie (critical / essential / nonessential / unassigned). Reuse `islanding.unserved_by_priority`. Rank by remaining unserved *critical*, then by total. *Fix along the way:* `_Net.load_kw` applies `loadmult` but not `classMult`; use `islanding.demand_kw` so N-1 and islanding agree.
+- **Losses** for each case, and **islands formed** (count, plus per-island served kW when backup is on).
+- **Standby generators (new field).** Generator param `standby` (bool, default false), field "Standby (starts on loss of utility)". Option *Start standby generators*: in each case, a standby unit in an island with no utility source runs isochronous; elsewhere it is off. *Engine approach:* the compiler can't turn a `Generator` into a `Vsource` with an `edit`, so for this run it compiles each standby unit as an isochronous `Vsource`, disabled. Each case enables the ones whose island lost the utility (found with `core/trace.py` topology before the solve), so it stays one build. Per-case output adds generator loading against `kva`; over 100 % is a violation.
+- **Same flag in 1.3's *Utility outage* action:** it starts standby generators and in-service generators. If no generator in the file is marked standby, it keeps today's rule (every generator) so older files behave as before. Mark G1 and G2 standby in `installation-campus`.
+- **Options:** *transformers only* (a new `candidates: 'transformers'`), and *exclude elements with tag…* (tags on series elements: give series elements the same `tags` field loads have, with the tag-chip field kind from 1.2).
+- **Estimate before running:** show `estimate_n1_solves` (and a time from it) next to *Run*. The estimate counts standby cases.
+- **Row → canvas:** clicking a row shows that outage as a temporary, unsaved view. Use a transient scenario that isn't stored in `scenarios` and is dropped on the next edit or *Return*. The standard overlays and the Islands overlay apply. *Save as scenario* turns the row into a 1.1 scenario: the element `enabled:false`, plus the best tie closed and standby units started if the row used them.
+- **Report:** *Contingency ranking*, top N (default 10, set in the report dialog), with the criteria and options used, unserved by priority, and the best tie.
 
-**Acceptance.** IEEE 13-bus: sweep completes, every row's unserved load equals the downstream set of that element from 1.2 (when no alternate path exists). Timing under 10 s on the 123-bus.
+**Acceptance:**
+- IEEE 13-bus, every element: the sweep completes, and each row's unserved kW equals the load in `downstream_set` (1.2) for that element (there are no ties).
+- `installation-campus`: opening 52-F1 with standby on: G1 carries its island, critical unserved is 0, and the row reports G1's loading. With standby off, the feeder's critical loads show as unserved.
+- Save as scenario, then solve: the result matches the row.
+- 123-bus, every element: under 10 s (kept as a regression test).
 
 ### 2.2 Capacity headroom report and probe load
 
-**Approach.**
-- Headroom table: for every transformer, line, regulator and source — rating, peak loading (snapshot or time-series max), spare kVA, spare kW at the circuit's PF, and the limiting constraint (thermal or voltage).
-- Probe load: a palette item *Probe* (a Load with a `probe: true` flag) that is excluded from the base case and reports, and exists to be dropped on a bus and sized. Right-click → *Find maximum*: binary search on probe kW between 0 and source rating until the first violation; report the limiting element.
-- Growth: optional `growthPct` per year and `years` applied to all non-fixed loads for a time-series run, with headroom computed per year.
+**Exists:**
+- **Feeder capacity** (`studies/capacity.py` `capacity_search`): bisection on the load multiplier until undervoltage or overload, giving capacity kW, headroom and what binds.
+- **Load hosting capacity** (`studies/hosting_capacity.py`, `kind: 'load'`): a constant-power trial load grown at each bus until voltage or thermal limits bind (iterative or sensitivity method). It has a Hosting overlay and a report section. *This is the probe's search.*
+- **Growth:** *Add growth levels* (Project → Load levels) turns a rate and years into load levels. Batch runs solve every scenario at every level.
+- Element loading against the active level's rating (normal or emergency) is in every solve result.
 
-**Data model (schema bump).** Load gains `probe` (bool). Project gains `growth: { pct, years }`.
+**Dropped from the original plan:**
+- **The `probe` load flag and *Probe* palette item** (decided 2026-11-21, see above).
+- **Project `growth: {pct, years}`.** Growth levels already do this, and headroom per year is headroom per level.
 
-**Frontend.** Headroom tab in the bottom panel; probe load with a distinct symbol; *Find maximum* result shown on the bus.
+**Remaining:**
+- **Headroom table** (new `studies/headroom.py`, `POST /api/headroom` or a job if it uses a time series). For every transformer, regulator, line, switch with a rating, and source:
+  - rating (kVA, or amps → kVA at the element's kV);
+  - peak loading (the snapshot, or the max over the last time-series run when there is one, chosen in the tab);
+  - spare kVA, and spare kW at the element's own PF;
+  - the limiting constraint: *thermal* (the element) or *voltage* (the lowest bus downstream reaches `vminPu` first). For voltage, take the smaller of the thermal spare and a voltage estimate. Use the hosting-capacity sensitivity (one perturbation at the element's load-side bus) rather than a new search.
+  - *Across levels:* one column per load level, so growth years show up directly.
+- **Frontend:** a Headroom tab in the bottom panel, sortable, with *locate*, and worst first (least spare).
+- **Find maximum load here:** right-click a bus → runs the iterative load hosting search for that one bus (`/api/hosting` with `candidates: [bus]`, `kind: 'load'`, the criteria voltage + thermal). It shows kW/kVA and the limiting element in a result callout on the bus, and in a *Probe results* list in the Headroom tab that is kept for the session, not saved. It runs on the open scenario at the active level, so a MILCON study is: make a scenario, then probe in it.
+- **Report:** a *Capacity headroom* table. Session probe results print if there are any, labelled with their scenario and level.
 
-**Report.** *Capacity headroom* table; *Probe* result if any probe loads exist.
-
-**Acceptance.** Probe on a bus behind a 500 kVA transformer at 60 % loading returns ≈ 200 kVA less existing downstream loading, limiting element = that transformer.
+**Acceptance:**
+- A probe at a bus behind a 500 kVA transformer loaded to 300 kVA (60 %), with the transformer as the binding constraint, returns ≈ 200 kVA (within the search tolerance), limiting element = that transformer. *(The draft said "200 kVA less existing downstream loading", which counted the existing load twice.)*
+- The headroom table's spare kVA for that transformer is also ≈ 200 kVA, *thermal*.
+- On a long feeder where voltage binds first, the headroom row says *voltage* and its spare is below the thermal spare. Hold it to a probe at the same bus within 10 %.
+- Two growth levels give two columns, and spare shrinks with the level.
 
 ### 2.3 Generator and BESS sizing against an island
 
-**Approach.**
-- Input: an island (from 1.3, or any downstream set from 1.2), a load shape (daily or yearly), reserve margin %, and whether PV in the island counts.
-- Generator sizing: required kW = max of island net load over the shape × (1 + margin); report hours above 80 % and the peak hour.
-- Storage sizing: for a chosen generator kW (or none), kWh = max cumulative deficit of (island load − PV − generator) over the shape; kW = max instantaneous deficit. Use the time-series run with `Storage` in *follow* dispatch to verify the chosen size rides through.
-- No optimization beyond this; it is a sizing calculator with a verification run.
+**Exists:**
+- 1.3 islands, `downstream_set` (1.2), and the per-island summary.
+- Generator `kva`, `xdpp` and `fuelHours`.
+- Time-series runs (daily and yearly) with load, PV and storage shapes, and Storage `dispatch: 'follow'` with a dispatch shape.
 
-**Frontend.** Sizing dialog; result inserts a generator and/or storage element sized accordingly (user confirms).
+**Approach:**
+- **Input:**
+  - an island, from 1.3 or from any device's downstream set (1.2);
+  - a shape: the loads' own shapes over a day or year, or one shape chosen for the whole island;
+  - reserve margin %;
+  - whether PV in the island counts.
+- **Generator sizing:** required kW = max over the shape of island net load (load − PV if counted) × (1 + margin). Report the peak hour, the hours above 80 % of the chosen size, and fuel hours against `fuelHours` if set.
+- **Storage sizing,** for a chosen generator kW (or none). The generator runs up to its kW, and storage covers what's left and charges from any surplus:
+  - **kWh** = the largest drawdown of the running sum of (generator + PV − load) over the shape (largest peak-to-trough), divided by round-trip efficiency;
+  - **kW** = the largest instantaneous deficit, or the largest surplus if that's bigger.
+  - **The cycle must close.** If the shape's total energy is negative, the island can't be sustained, and the result says so ("storage empties after N days"). It doesn't report a size that only works once.
+- **PV surplus with no load to absorb it:** in the engine, an isochronous generator is a `Vsource` and would absorb it silently. A real generator can't, so the sizing flags those hours as *reverse power at the generator: PV curtailment or storage needed*.
+- **Verification run:** insert the sizes into a temporary scenario of the island (utility out, standby started), set storage to `follow` with the computed dispatch shape, and run the time series. Pass when SOC stays above the reserve and generator loading stays ≤ 100 % of `kva` with no reverse power at any step.
+- No optimization; it is a sizing calculator with a verification run.
 
-**Report.** *Backup sizing* section with the profile chart and the sizes.
+**Frontend:** a sizing dialog (right-click a device → *Size backup for downstream…*, or from an island card). The result inserts the generator (`standby: true`) and/or storage in a new scenario after the user confirms.
 
-**Acceptance.** Island with a flat 100 kW load, 20 % margin → 120 kW generator; same island with 50 kW PV midday and 8-hour night → storage kWh equals the night deficit.
+**Report:** a *Backup sizing* section with the profile chart (net load, generator, storage SOC), the sizes, the verification result and the modelling notes.
+
+**Acceptance:**
+- Flat 100 kW island, 20 % margin → 120 kW generator.
+- Flat 100 kW load, 60 kW generator, PV 50 kW from hours 8–16 and 0 otherwise:
+  - the running deficit is 40 kW for 16 hours, with a 10 kW surplus for 8 hours;
+  - kWh ≈ 640 / η, kW = 40;
+  - the day's energy is −560 kWh, so the result says the cycle doesn't close.
+- Same case with a 100 kW generator: the cycle closes and the verification run passes.
+- PV larger than the island load with no storage: the reverse-power hours are flagged.
 
 ### 2.4 Equipment duty screening
 
-**Approach.**
-- Devices (breaker/switch, fuse, recloser, relay-controlled breaker) gain `interruptingKA` and optional `withstandKA`; busbars gain optional `bracingKA`.
-- Using the existing Fault overlay results (3φ and 1φ bolted fault at each bus), compare the fault current at the device's bus to its rating. Pass if rating ≥ fault × `dutyMargin` (default 1.0; user can set 1.1).
-- Optional asymmetry factor: user enters a global multiplier (e.g. 1.25) with a note; no X/R-based correction is computed. State in the UI and report that this is a screening check, not an ANSI C37 or IEC 60909 duty study.
+**Exists:**
+- `interruptingka` on breaker, fuse, recloser and relay.
+- The *interrupting-duty* warning in `core/protection.py` (`_read_switches` / `_coordination_issues`), checked against the **3φ** fault at the device's load-side bus.
+- The Protection panel's "Switches with no curve" table, the report's interrupting-duty lines, and Model QA flagging a missing `interruptingka`.
+- Hosting capacity's analytic *interrupting* criterion.
 
-**Data model (schema bump).** Rating fields above.
+**Remaining:**
+- **Fields:** `withstandka` (optional) on the same devices; `bracingka` (optional) on busbars, columns in the spreadsheet.
+- **Fault current used:** the larger of the 3φ and 1φ bolted fault (1φ can be higher near a grounded-wye transformer). Today only 3φ is used; fix the existing warning to match.
+- **Margin and asymmetry:** `Limits.dutyMargin` (default 1.0) and `Limits.asymmetryFactor` (default 1.0, with a note field), in Project → Limits. Pass when rating ≥ fault × asymmetry × margin. No X/R correction.
+- **A study, not just a warning:** `studies/duty.py` (or an extension of `tcc_study`) returns a row per rated or unrated device and busbar: fault, rating, ratio and pass / fail / unrated. It reuses the same `mode=faultstudy` solve as the Fault overlay.
+- **Duty overlay:** devices and busbars coloured pass / fail / unrated (grey); the tooltip shows fault, rating and margin.
+- **Honest labeling:** the overlay legend, the table and the report say: *screening check, not an ANSI C37 or IEC 60909 duty study; no motor contribution, no AC/DC decay.*
 
-**Frontend.** Duty overlay: devices coloured pass/fail/unrated; tooltip shows fault, rating, margin. Spreadsheet view: ratings columns.
+**Report:** an *Equipment duty screening* table with the disclaimer. It replaces the interrupting-duty lines in *Protection* (keep one line there pointing to it).
 
-**Report.** *Equipment duty screening* table with the disclaimer paragraph.
-
-**Acceptance.** Device with 10 kA rating at a bus with 12 kA fault → fail; 8 kA fault → pass; unrated → grey and listed.
+**Acceptance:**
+- A 10 kA device at a 12 kA bus fails; at 8 kA it passes; an unrated device is grey and listed.
+- A device where 1φ > 3φ is judged on the 1φ value.
+- `dutyMargin` 1.1 turns a 9.5 kA fault on a 10 kA device into a fail.
+- The existing protection tests still pass.
 
 ### 2.5 Interactive TCC plot
 
-**Approach.**
-- Fuses, reclosers and relays already carry `TCC_Curve` references. Render a log-log time-current plot (SVG, in-house component; no new charting dependency) for a selected set of devices, with the 3φ and 1φ fault current tick marks from the Fault study and the existing coordination check results annotated (margin at the fault current, pass/fail).
-- Device selection: click a device → *Plot TCC* adds it and every protective device upstream to the plot.
-- Editing: changing a device's curve or pickup in the properties panel re-renders. No drag-to-adjust in this milestone.
-- Curves library: ship OpenDSS's built-in curves plus the generic ANSI/IEC relay curve families as `TCC_Curve` definitions. No manufacturer curves.
+**Exists:**
+- `POST /api/tcc` (`tcc_study`) and Graph tab → Protection (`TccGraphPanel`): an in-house log-log SVG with every protective device. It draws a 3φ fault line per device, recloser fast/delayed curves, dashed ground curves and dotted extrapolation, and toggles devices from the legend.
+- Coordination checks: a 0.25 s margin, the fuse-pair melt ratio, phase against 3φ and ground against 1φ.
+- Curves: the ten engine built-ins (`a`, `d`, `tlink`, `klink`, `mod_inv`, `very_inv`, `ext_inv`, `definite`, …) plus user curves from the Curves tab. The report has one TCC plot of every device.
+- Re-plotting is a button, because it costs a fault-study solve.
 
-**Report.** TCC plot image for each device set the user saved.
+**Remaining:**
+- **Device sets:** right-click a device → *Plot TCC* plots it and every protective device upstream of it (`_upstream_chain`). It replaces the all-devices view; *All devices* stays as an option. A set can be saved by name in the project's `tccSets: [{ id, name, deviceIds }]` (a project-level key).
+- **Annotations:** a 1φ fault line (dashed) next to the 3φ one. At each fault line, show each pair's time margin and pass/fail from the coordination check, marked on the plot.
+- **Re-render without a solve:** a change to curve, pickup, time dial or fuse rating re-plots straight away. The curves are scaled on the client (`lib/tcc.ts` already computes operating times), and the fault lines don't change. Only a change to topology or impedance marks the fault lines stale.
+- **Generic curve families:** add IEC 60255 standard, very, extremely and long-time inverse, and IEEE C37.112 short-time inverse (the three IEEE moderately/very/extremely inverse curves are built in). Ship them as `TCC_Curve` points from the published formulas, in a read-only *Generic* group in the Curves tab. These are formula curves, not manufacturer data, so the roadmap's "no curve library" decision still holds.
+- **Fault tick ↔ Fault overlay:** they already come from the same solve; add a test that keeps it that way.
 
-**Acceptance.** Plot of the feeder-head relay and a lateral fuse on the demo feeder shows the 0.25 s margin at the 3φ fault tick; plot updates when the fuse is swapped for a larger size.
+**Report:** one TCC plot per saved set, titled with the set name. If there are no saved sets, the all-devices plot is printed as today.
+
+**Acceptance:**
+- `installation-campus`, after it gains a feeder-head **relay** on 52-F1 (none of the samples has a relay or recloser yet): *Plot TCC* on F-CLINIC shows the fuse and the relay. The 3φ fault line is annotated with their margin, and it is at least 0.25 s.
+- Raising F-CLINIC from 65 A to a larger link re-plots without a solve, and the annotated margin changes.
+- A saved set survives save → load and prints in the report.
 
 ---
 
@@ -402,16 +474,17 @@ Suggested order: 3.1 → 3.4 → 3.2 → 3.3 → 3.5.
 | Milestone | Contents | Exit criterion |
 |---|---|---|
 | **A — Resilience core** | 1.2 trace, 1.1 scenarios, 1.3 islanding, 1.4 allocation | Demo: open utility source on a base-like sample, see islands, unserved critical loads, and a scenario comparison in the PDF. |
-| **B — Planning studies** | 2.1 contingency, 2.2 headroom/probe, 2.4 duty, 2.5 TCC, 2.3 sizing | Demo: rank contingencies, size a MILCON load with the probe, show a TCC with the fault tick. |
+| **B — Planning studies** | 2.1 contingency, 2.2 headroom/probe, 2.4 duty, 2.5 TCC, 2.3 sizing | Demo on `installation-campus`: rank contingencies with standby generators, probe a MILCON load in a scenario, show the duty overlay and a saved TCC set with its fault tick and margin, size backup for a critical feeder, and all of it in the PDF. Run it end to end as `frontend/e2e/planning.spec.ts`. |
 | **C — Data in, results out** | 3.1 SKM/EasyPower import, 3.4 reports, 3.2 map, 3.3 measured data, 3.5 diff | Demo: import a real (anonymized) SKM model, lay it out on a map, produce the full report. |
 
 Within each milestone, cut a release per feature; keep the roadmap in `FUTURE_IMPROVEMENTS.md` pointing here.
 
-**Schema changes, consolidated.** Milestone A bumps `version` to 2 (see 1.0). `scenarios`, `activeScenario` and `loadShapes` already exist. `map` and `loadShapeId` overlap the existing `geo`/`crs` and `loadshape` param; reconcile them with Tier 3.
-- Project: `tagVocabulary`, `allocations` (A); `growth`, `measurements`, report section selection (B/C).
-- Load: `priority`, `tags`, `building`, `fixed` (A); `probe` (B).
-- Generator: `islandMode`, `xdpp`, `fuelHours` (A). Vsource: `kind` (A).
-- Devices: `interruptingKA`, `withstandKA`; busbar: `bracingKA`, `lat`, `lon`.
+**Schema changes, consolidated.** Milestone A bumps `version` to 2 (see 1.0); Milestone B bumps it to 3 (see §2). `scenarios`, `activeScenario` and `loadShapes` already exist. `map` and `loadShapeId` overlap the existing `geo`/`crs` and `loadshape` param; reconcile them with Tier 3.
+- Project: `tagVocabulary`, `allocations` (A); `Limits.dutyMargin`, `Limits.asymmetryFactor`, `tccSets` (B); `measurements`, report section selection (C). *(`growth` dropped: growth load levels exist.)*
+- Load: `priority`, `tags`, `building`, `fixed` (A). *(`probe` dropped: the probe is a right-click action.)*
+- Series elements (lines, transformers, regulators, switches, protective devices): `tags` (B, for N-1 exclusion).
+- Generator: `islandMode`, `xdpp`, `fuelHours` (A); `standby` (B). Vsource: `kind` (A).
+- Devices: `interruptingka` (exists), `withstandka` (B); busbar: `bracingka` (B); `lat`, `lon` (C).
 
 ---
 
@@ -420,7 +493,7 @@ Within each milestone, cut a release per feature; keep the roadmap in `FUTURE_IM
 - Backend: every feature adds `pytest` cases against the existing samples (demo substation, radial feeder with PV/storage, IEEE 13-bus, IEEE 123-bus). Reference values for power flow stay pinned to EPRI's published solutions.
 - Topology features (1.2, 1.3, 2.1) are tested without the engine where possible.
 - Import (3.1) gets anonymized fixture files checked into `tests/fixtures/`.
-- Frontend: component tests for the scenario store (override application, undo across switches) and the trace functions; one end-to-end smoke test per milestone using the hosted demo build.
+- Frontend: component tests for the scenario store (override application; undo within a scenario) and the trace functions; one end-to-end smoke test per milestone using the hosted demo build.
 - Performance budget: snapshot solve on the 123-bus stays under 1 s; contingency sweep on the 123-bus under 10 s; report generation under 10 s.
 
 ---
@@ -438,7 +511,7 @@ Not in this plan, and not planned:
 
 ---
 
-## 7. Open questions to settle before Milestone A
+## 7. Open questions
 
 1. **Isochronous model default.** *Still open.* Settle it with the 1.0 spike. `Xd'' = 0.15 pu` default and `Vsource` compilation — confirm against a measured island case if one is available from the sensor work.
 2. **Priority enum vs. free tags.** *Decided 2026-11-20:* a separate `priority` enum (critical / essential / nonessential / unassigned) plus free tags, independent of `class`.
@@ -446,3 +519,5 @@ Not in this plan, and not planned:
 4. **SKM export format.** Confirm which SKM export (XML via Data Exchange, or CSV reports) the target bases can actually produce without an extra module license; build the importer for that one first.
 5. **Shape size caps** for 3.3 against the 16 MB-class project files the browser save path can handle.
 6. **Runtime network features.** `core/nrel.py` and the irradiance module download data at runtime, which conflicts with the no-network constraint. *Deferred 2026-11-20* to Iron Bank hardening, after Milestone A.
+7. **Standby generators in N-1 and outages.** *Decided 2026-11-21:* a generator `standby` flag (an ideal ATS), used by N-1, *Utility outage* and sizing. Files with no standby unit keep the old outage rule.
+8. **Probe load.** *Decided 2026-11-21:* a right-click *Find maximum load here* on a bus, reusing the hosting-capacity load search. It is not a saved element.
