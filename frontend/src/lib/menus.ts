@@ -104,6 +104,7 @@ export const OVERLAY_CHOICES: { mode: OverlayMode; label: string; title?: string
   },
   { mode: 'compare', label: 'Compare', title: 'Change from the pinned baseline: bus voltage in pu, element loading in points' },
   { mode: 'hosting', label: 'Hosting', title: 'Hosting capacity at every bus from the last run (Hosting tab)' },
+  { mode: 'duty', label: 'Duty', title: 'Equipment duty screening: every device and busbar against the fault current at its terminals (a screening check, not an ANSI C37 / IEC 60909 duty study)' },
   { mode: 'off', label: 'Off' },
 ]
 

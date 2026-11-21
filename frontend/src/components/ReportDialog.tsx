@@ -5,7 +5,7 @@ import { N1_TOP_DEFAULT, SECTION_LABELS, type SectionKey } from '../lib/report/m
 import { useResultsStore } from '../store/resultsStore'
 import { readFlag, readPref, useUiStore, writePref } from '../store/uiStore'
 
-const ORDER: SectionKey[] = ['loadflow', 'diagram', 'critical', 'loadbasis', 'outage', 'scenarios', 'shortcircuit', 'protection', 'reliability', 'timeseries', 'comparison', 'batch', 'hosting', 'screening', 'studies', 'history']
+const ORDER: SectionKey[] = ['loadflow', 'diagram', 'critical', 'loadbasis', 'outage', 'scenarios', 'shortcircuit', 'protection', 'duty', 'reliability', 'timeseries', 'comparison', 'batch', 'hosting', 'screening', 'studies', 'history']
 
 const WHAT: Record<SectionKey, string> = {
   loadflow: 'Summary, abnormal conditions, bus voltages, branch flows, loads and generation, losses, voltage profile',
@@ -16,6 +16,7 @@ const WHAT: Record<SectionKey, string> = {
   critical: 'Every critical and essential load with its source, feeder, transformer and first protective device upstream',
   shortcircuit: 'Three-phase and line-to-ground fault currents and impedances at every bus',
   protection: 'Device settings, operating times, interrupting duty, coordination findings, TCC plot',
+  duty: 'Every breaker, fuse, recloser, relay and busbar against the fault current at its terminals: pass, fail or unrated (a screening check, not an ANSI C37 / IEC 60909 study)',
   reliability: 'SAIFI, SAIDI and CAIDI, the protection sections behind them, and every element\u2019s fault rate',
   timeseries: 'Energy, losses, peak demand and the voltage extremes of the last run',
   comparison: 'This solve against the pinned baseline: every bus voltage and element loading that changed',

@@ -31,7 +31,19 @@ milestone A below.
   /api/jobs/headroom`; the hosting-capacity result now says where each bus's
   binding criterion bound (`where`).
 
+- **Equipment duty screening** (Studies → Equipment duty, the **Duty**
+  overlay, and a report section): every breaker, fuse, recloser and relay
+  against its interrupting (and optional withstand) rating, and every
+  busbar against its new *Bracing*, using the larger of the three-phase and
+  line-to-ground fault at its terminals, times an asymmetry factor and a duty
+  margin set in Project properties → Limits. Pass, fail or unrated, labelled
+  a screening check, not an ANSI C37 / IEC 60909 study. `POST /api/duty`.
+
 ### Changed (milestone B)
+
+- The protection study's interrupting-duty warning uses the larger of the
+  three-phase and line-to-ground fault current, and the project's asymmetry
+  factor and duty margin.
 
 - **Transformers are rated on nameplate kVA.** The compiler now writes
   `normhkva` (the element's own, or its kVA). It used to leave OpenDSS's

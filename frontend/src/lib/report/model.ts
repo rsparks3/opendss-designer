@@ -13,6 +13,7 @@ import { compareResults } from '../compare'
 import { HC_LABELS } from '../hostingCapacity'
 import { applyScenario, levelNamed, listed } from '../scenarios'
 import type {
+  DutyResult,
   BalanceResult,
   BatchCell,
   IslandSummary,
@@ -49,7 +50,7 @@ import {
 } from '../trace'
 import type { HeadroomResult, ProbeResult } from '../headroom'
 
-export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'loadbasis' | 'scenarios' | 'outage' | 'shortcircuit' | 'protection' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
+export type SectionKey = 'loadflow' | 'diagram' | 'critical' | 'loadbasis' | 'scenarios' | 'outage' | 'shortcircuit' | 'protection' | 'duty' | 'reliability' | 'timeseries' | 'comparison' | 'batch' | 'hosting' | 'screening' | 'studies' | 'history'
 
 export type Cell = string | number | null
 
@@ -114,6 +115,8 @@ export interface ReportInput {
   solve: SolveResult | null
   fault?: FaultResult | null
   tcc?: TccResult | null
+  /** The equipment duty screening (studies/duty.py). */
+  duty?: DutyResult | null
   reliability?: ReliabilityResult | null
   timeseries?: TimeSeriesResult | null
   /** The pinned baseline solve, for the Comparison section. */
@@ -146,6 +149,7 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   outage: 'Loss of utility',
   shortcircuit: 'Short circuit',
   protection: 'Protection',
+  duty: 'Equipment duty screening',
   reliability: 'Reliability',
   timeseries: 'Time series',
   comparison: 'Comparison',
@@ -343,8 +347,16 @@ export function buildReport(input: ReportInput): Report {
   }
   if (sections.has('protection') && input.tcc) {
     const prot = protectionSection(input.tcc, names, input.figures?.tcc)
+    // With the duty section in the report, interrupting duty is read there.
+    if (sections.has('duty') && input.duty?.converged) {
+      const i = prot.tables.findIndex((t) => t.id === 'interrupting-duty')
+      if (i >= 0) prot.tables.splice(i, 1)
+    }
     prot.tables.push(settingsSheet(circuit, names))
     out.push(prot)
+  }
+  if (sections.has('duty') && input.duty?.converged) {
+    out.push(dutySection(input.duty, names))
   }
   if (sections.has('reliability') && input.reliability?.converged) {
     const rel = reliabilitySection(input.reliability, names)
@@ -1853,6 +1865,54 @@ function protectionSection(tcc: TccResult, names: Names, plot?: string): ReportS
       },
     ],
     figures: plot ? [{ id: 'tcc', title: 'Time-current curves', svg: plot }] : [],
+  }
+}
+
+function dutySection(d: DutyResult, names: Names): ReportSection {
+  const ka = (a: number | null | undefined) => (a == null ? null : a / 1000)
+  const statusWord: Record<string, string> = { pass: 'Pass', fail: 'FAIL', unrated: 'Unrated', unknown: 'No fault current' }
+  const rows = d.rows.map((r) => {
+    const main = r.checks.interrupting ?? r.checks.bracing
+    return {
+      element: names.element(r.id, r.name).name,
+      type: TYPE_NAMES[r.kind] ?? r.kind,
+      bus: names.bus(r.bus),
+      f3: ka(r.faultA3ph),
+      f1: ka(r.faultA1ph),
+      duty: ka(r.dutyA),
+      rating: main?.ratingKa ?? null,
+      ratio: main?.ratio == null ? null : main.ratio * 100,
+      withstand: r.checks.withstand?.ratingKa ?? null,
+      result: statusWord[r.status] ?? r.status,
+    }
+  })
+  const factors = [
+    d.asymmetryFactor !== 1 ? `an asymmetry factor of ${d.asymmetryFactor} (entered, not computed from X/R)` : 'no asymmetry factor',
+    d.dutyMargin !== 1 ? `a duty margin of ${d.dutyMargin}` : 'no margin',
+  ].join(' and ')
+  return {
+    id: 'duty',
+    title: 'Equipment duty screening',
+    tables: [{
+      id: 'duty',
+      title: 'Devices and busbars against the available fault current',
+      columns: [
+        { key: 'element', label: 'Element', width: 1.5 },
+        { key: 'type', label: 'Type', width: 1.1 },
+        { key: 'bus', label: 'Bus', width: 1.4 },
+        { key: 'f3', label: '3φ fault', unit: 'kA', digits: 2 },
+        { key: 'f1', label: 'LG fault', unit: 'kA', digits: 2 },
+        { key: 'duty', label: 'Duty', unit: 'kA', digits: 2 },
+        { key: 'rating', label: 'Interrupting / bracing', unit: 'kA', digits: 2 },
+        { key: 'ratio', label: 'Of rating', unit: '%', digits: 0 },
+        { key: 'withstand', label: 'Withstand', unit: 'kA', digits: 2 },
+        { key: 'result', label: 'Result', width: 1 },
+      ],
+      rows,
+      flags: d.rows.map((r) => (r.status === 'fail' ? 'violation' : r.status === 'unrated' ? 'warning' : null)),
+      note: `${d.counts.fail ?? 0} fail, ${d.counts.pass ?? 0} pass, ${d.counts.unrated ?? 0} unrated. Duty is the larger of the two fault currents with ${factors}. ${d.disclaimer}`,
+    }],
+    figures: [],
   }
 }
 

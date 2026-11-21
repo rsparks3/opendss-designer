@@ -44,6 +44,7 @@ from ..studies import balancing as balancing_study
 from ..studies import batch as batch_study
 from ..studies import capacity as capacity_study
 from ..studies import contingency as contingency_study
+from ..studies import duty as duty_study
 from ..studies import faults as fault_study_mod
 from ..studies import harmonics as harmonics_study
 from ..studies import headroom as headroom_study
@@ -660,6 +661,21 @@ def start_hosting_capacity(req: HostingCapacityRequest) -> dict:
             req.circuit, req.options, progress, cancel
         ),
     )
+
+
+class DutyRequest(BaseModel):
+    circuit: Circuit
+
+
+@router.post("/duty")
+def duty(req: DutyRequest) -> dict:
+    """Equipment duty screening: every device and busbar against the fault
+    current at its terminals (one fault-study solve)."""
+    _refuse_locked_study()
+    try:
+        return duty_study.duty_screening(req.circuit)
+    except engine.EngineBusy as exc:
+        raise _busy(exc) from exc
 
 
 class HeadroomRequest(BaseModel):

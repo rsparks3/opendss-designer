@@ -16,6 +16,7 @@ import { allocationOf } from '../../lib/allocation'
 import { busPriorityOf, islandColorOf, PRIORITY_COLORS, priorityOf } from '../../lib/trace'
 import type { Params } from '../../types/circuit'
 import { LoadingPie } from '../LoadingPie'
+import { DUTY_COLORS, dutyBadgeText, dutyRow, dutyTooltip } from '../../lib/duty'
 
 // ---------------------------------------------------------------------------
 // Terminals
@@ -394,6 +395,21 @@ export function FaultBadge({ nodeId }: { nodeId: string }) {
   return <Badge color="#5e35b1">{(data.if3phA / 1000).toFixed(1)} kA</Badge>
 }
 
+/** Equipment duty ('duty' overlay): duty against rating, coloured
+ *  pass / fail / unrated. Devices and busbars only. */
+export function DutyBadge({ nodeId }: { nodeId: string }) {
+  const overlay = useResultsStore((s) => s.overlay)
+  const duty = useResultsStore((s) => s.duty)
+  if (overlay !== 'duty') return null
+  const r = dutyRow(duty, nodeId)
+  if (!r || !duty) return null
+  return (
+    <div className="result-badge" style={{ background: DUTY_COLORS[r.status] }} title={dutyTooltip(r, duty)}>
+      {dutyBadgeText(r)}
+    </div>
+  )
+}
+
 /** Loading pie in a light pill, dark text — shared by node badges. */
 export function PieBadge({ pct }: { pct: number }) {
   const stale = useResultsStore(activeStale)
@@ -410,6 +426,7 @@ export function PieBadge({ pct }: { pct: number }) {
 export function ElementBadge({ nodeId }: { nodeId: string }) {
   const overlay = useResultsStore((s) => s.overlay)
   const result = useResultsStore(activeResult)
+  if (overlay === 'duty') return <DutyBadge nodeId={nodeId} />
   if (overlay === 'reliability') return <ReliabilityBadge nodeId={nodeId} />
   if (overlay === 'compare') return <CompareBadge nodeId={nodeId} kind="element" />
   if ((overlay !== 'loading' && overlay !== 'power') || !result?.converged) return null

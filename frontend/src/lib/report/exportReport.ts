@@ -41,6 +41,7 @@ export function sectionAvailability(): Record<SectionKey, string | null> {
       ? null : 'The circuit has no generator, and no batch has been run.',
     scenarios: useCircuitStore.getState().scenarios.length ? null : 'The project has no scenarios (Scenarios tab).',
     shortcircuit: null,
+    duty: nodes.some((n) => PROTECTIVE.has(n.type ?? '') || n.type === 'busbar') ? null : 'The circuit has no switching devices or busbars.',
     protection: nodes.some((n) => PROTECTIVE.has(n.type ?? '')) ? null : 'The circuit has no breakers, fuses, reclosers or relays.',
     reliability: null,
     timeseries: rs.timeseries ? null : 'Run a daily or yearly time series first.',
@@ -89,6 +90,14 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
     tcc = await api.tcc(circuit)
   }
 
+  let duty = rs.duty
+  if (sections.has('duty') && !duty) {
+    say('Screening equipment duty…')
+    duty = await api.duty(circuit)
+    if (!duty.converged) throw new Error('The duty screening could not run: the fault study did not converge.')
+    useResultsStore.getState().setDuty(duty)
+  }
+
   let reliability = rs.reliability
   if (sections.has('reliability') && !reliability) {
     say('Running the reliability study…')
@@ -128,6 +137,7 @@ export async function exportReport(opts: ReportOptions): Promise<void> {
     solve,
     fault,
     tcc,
+    duty,
     reliability,
     timeseries: rs.timeseries,
     baseline: rs.baseline ? { label: rs.baseline.label, result: rs.baseline.result } : null,

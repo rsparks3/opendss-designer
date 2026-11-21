@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { tsIndexNearHour, tsSlice } from '../lib/tsSlice'
 import { DEFAULT_LIMITS } from '../lib/limits'
-import type {
+import type { DutyResult,
   BatchResult,
   FaultResult,
   HostingCapacityResult,
@@ -26,7 +26,7 @@ export type AnalysisMode = 'snapshot' | 'timeseries'
 /** The M14 studies the Studies tab holds results for. */
 export type StudyKey = 'n1' | 'transfer' | 'switching' | 'sweep' | 'cvr' | 'placement' | 'balance' | 'losses' | 'capacity' | 'qa' | 'tlm' | 'reach' | 'fusesaving' | 'recplacement' | 'harmonics' | 'rvc' | 'headroom' | 'probes'
 
-export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'reliability' | 'phases' | 'priority' | 'islands' | 'compare' | 'hosting' | 'off'
+export type OverlayMode = 'voltage' | 'loading' | 'power' | 'fault' | 'reliability' | 'phases' | 'priority' | 'islands' | 'compare' | 'hosting' | 'duty' | 'off'
 
 /** A solve kept for comparison: the base case, or an earlier alternative,
  *  pinned so the next solve can be shown as a difference from it. */
@@ -42,6 +42,9 @@ interface ResultsState {
    *  it's either for the current circuit or gone). */
   fault: FaultResult | null
   setFault: (f: FaultResult | null) => void
+  /** Equipment duty screening; cleared on any circuit change, like the fault study. */
+  duty: DutyResult | null
+  setDuty: (d: DutyResult | null) => void
   /** Reliability study; cleared on any circuit change like `fault`. */
   reliability: ReliabilityResult | null
   setReliability: (r: ReliabilityResult | null) => void
@@ -144,6 +147,8 @@ export const useResultsStore = create<ResultsState>((set) => ({
   result: null,
   fault: null,
   setFault: (fault) => set({ fault }),
+  duty: null,
+  setDuty: (duty) => set({ duty }),
   reliability: null,
   setReliability: (reliability) => set({ reliability }),
   baseline: null,
@@ -231,7 +236,7 @@ export const useResultsStore = create<ResultsState>((set) => ({
 
   setResult: (result) => set({ result, stale: false }),
   markStale: () =>
-    set({ stale: true, fault: null, reliability: null, timeseries: null, tsIndex: null,
+    set({ stale: true, fault: null, duty: null, reliability: null, timeseries: null, tsIndex: null,
           scrubResult: null, tsError: null, protectionIssues: [], hosting: null }),
   setSolving: (solving) => set({ solving }),
   setOverlay: (overlay) => set({ overlay }),

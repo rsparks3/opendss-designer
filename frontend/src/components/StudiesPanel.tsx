@@ -4,6 +4,8 @@ import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore, type StudyKey } from '../store/resultsStore'
 import { estimateN1Solves, n1CaseName, n1CaseOverrides } from '../lib/contingency'
 import { spareAtPeak, timeSeriesPeaks, type HeadroomResult, type ProbeResult } from '../lib/headroom'
+import { dutyTooltip } from '../lib/duty'
+import { runDuty } from '../lib/fileActions'
 import type {
   BalanceResult,
   ByPriority,
@@ -25,12 +27,13 @@ import { ProtectionPanel } from './ProtectionPanel'
 import { PowerQualityPanel } from './PowerQualityPanel'
 import { LockedNote } from './LockedNote'
 
-type Study = 'qa' | 'hosting' | 'headroom' | 'contingency' | 'voltvar' | 'balance' | 'capacity' | 'tlm' | 'protection' | 'pq'
+type Study = 'qa' | 'hosting' | 'headroom' | 'duty' | 'contingency' | 'voltvar' | 'balance' | 'capacity' | 'tlm' | 'protection' | 'pq'
 
 const STUDIES: { key: Study; label: string; help: string }[] = [
   { key: 'qa', label: 'Model QA', help: 'Completeness and the things to fix before a study' },
   { key: 'hosting', label: 'Hosting capacity', help: 'DER or load each bus can take before a criterion binds' },
   { key: 'headroom', label: 'Headroom', help: 'Spare capacity of every rated element at each load level, and the maximum new load at a bus' },
+  { key: 'duty', label: 'Equipment duty', help: 'Every device and busbar against the fault current at its terminals (screening, not ANSI C37 / IEC 60909)' },
   { key: 'contingency', label: 'Contingency', help: 'N-1: what a lost device leaves dark, which tie restores it, what a tie can carry' },
   { key: 'voltvar', label: 'Volt/VAR & CVR', help: 'Setting sweeps over a day, CVR savings, capacitor placement' },
   { key: 'balance', label: 'Phase balance', help: 'Unbalance at the head and which laterals to move' },
@@ -60,6 +63,7 @@ export function StudiesPanel() {
         {study === 'protection' && <ProtectionPanel />}
         {study === 'pq' && <PowerQualityPanel />}
         {study === 'headroom' && <HeadroomPanel />}
+        {study === 'duty' && <DutyPanel />}
         {study === 'contingency' && <ContingencyPanel />}
         {study === 'voltvar' && <VoltVarPanel />}
         {study === 'balance' && <BalancePanel />}
@@ -211,6 +215,65 @@ function HeadroomPanel() {
         lower voltage limit (a linear estimate from one trial load; Find maximum load searches exactly). Transformers are
         rated on nameplate kVA.
       </div>
+    </div>
+  )
+}
+
+// --- equipment duty ------------------------------------------------------------------------
+
+function DutyPanel() {
+  const duty = useResultsStore((s) => s.duty)
+  const setOverlay = useResultsStore((s) => s.setOverlay)
+  const { locate } = useLocate()
+  const [busy, setBusy] = useState(false)
+  const kA = (a: number | null | undefined) => (a == null ? '—' : (a / 1000).toFixed(2))
+  const run = async () => {
+    setBusy(true)
+    try {
+      if (await runDuty()) setOverlay('duty')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="study">
+      <div className="scenarios-head">
+        <b>Equipment duty screening</b>
+        <button type="button" className="solve-btn" disabled={busy} onClick={() => void run()}>▶ {busy ? 'Running…' : 'Run duty screening'}</button>
+        {duty?.converged && <span className="scenarios-count">{duty.counts.fail} fail · {duty.counts.pass} pass · {duty.counts.unrated} unrated</span>}
+      </div>
+      {!duty?.converged ? (
+        <div className="bp-empty">
+          Every breaker, fuse, recloser and relay against the larger of the three-phase and line-to-ground fault current
+          at its terminals (its <i>Interrupting</i> and <i>Withstand</i> ratings), and every busbar against its
+          <i> Bracing</i>. The duty margin and asymmetry factor are in Project properties → Limits.
+        </div>
+      ) : (
+        <table className="bp-table">
+          <thead>
+            <tr><th /><th>Element</th><th>3φ fault</th><th>LG fault</th><th>Duty (kA)</th><th>Rating (kA)</th><th>Of rating</th><th>Withstand</th><th>Result</th></tr>
+          </thead>
+          <tbody>
+            {duty.rows.map((r) => {
+              const main = r.checks.interrupting ?? r.checks.bracing
+              return (
+                <tr key={r.id} className={r.status === 'fail' ? 'error' : r.status === 'unrated' ? 'warning' : ''} title={dutyTooltip(r, duty)}>
+                  <td><button className="bp-locate" title="Select on diagram" onClick={() => locate(r.id)}>⌖</button></td>
+                  <td className="bp-ro">{r.name} <span className="scenarios-count">{r.kind}</span></td>
+                  <td className="bp-ro">{kA(r.faultA3ph)}</td>
+                  <td className="bp-ro">{kA(r.faultA1ph)}</td>
+                  <td className="bp-ro">{kA(r.dutyA)}</td>
+                  <td className="bp-ro">{main?.ratingKa ?? '—'}</td>
+                  <td className="bp-ro">{main?.ratio == null ? '—' : `${Math.round(main.ratio * 100)} %`}</td>
+                  <td className="bp-ro">{r.checks.withstand?.ratingKa == null ? '—' : `${r.checks.withstand.ratingKa} (${r.checks.withstand.status})`}</td>
+                  <td className="bp-ro">{r.status}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
+      <div className="library-note">{duty?.disclaimer ?? 'A screening check, not an ANSI C37 or IEC 60909 duty study.'}</div>
     </div>
   )
 }

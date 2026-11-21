@@ -134,6 +134,8 @@ export const FIELDS: Record<string, Field[]> = {
     // bus on an imported feeder): drawn short and without its name, so a
     // long feeder is not a column of full-width bars. Hover still names it.
     { key: 'compact', label: 'Compact (pass-through)', kind: 'checkbox' },
+    // Short-circuit bracing, for the duty screening (Duty overlay).
+    { key: 'bracingka', label: 'Bracing', kind: 'number', unit: 'kA' },
   ],
   load: [
     { key: 'name', label: 'Name', kind: 'text' },
@@ -166,6 +168,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'normamps', label: 'Rating', kind: 'number', unit: 'A' },
     EMERGENCY_AMPS,
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
+    { key: 'withstandka', label: 'Withstand rating', kind: 'number', unit: 'kA' },
     { key: 'tie', label: 'Tie switch (normally open)', kind: 'checkbox', defaultOff: true },
     { key: 'sectionalizer', label: 'Sectionalizer', kind: 'checkbox', defaultOff: true },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
@@ -245,6 +248,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
     EMERGENCY_AMPS,
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
+    { key: 'withstandka', label: 'Withstand rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(false),
@@ -266,6 +270,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
     EMERGENCY_AMPS,
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
+    { key: 'withstandka', label: 'Withstand rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(false),
@@ -282,6 +287,7 @@ export const FIELDS: Record<string, Field[]> = {
     { key: 'normamps', label: 'Continuous rating', kind: 'number', unit: 'A' },
     EMERGENCY_AMPS,
     { key: 'interruptingka', label: 'Interrupting rating', kind: 'number', unit: 'kA' },
+    { key: 'withstandka', label: 'Withstand rating', kind: 'number', unit: 'kA' },
     { key: 'phases', label: 'Phases', kind: 'select', options: [1, 2, 3] },
     { key: 'phasing', label: 'Phase(s)', kind: 'phasing' },
     ...RELIABILITY_FIELDS(false),

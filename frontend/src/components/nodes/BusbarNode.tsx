@@ -18,7 +18,7 @@ import { useUiStore } from '../../store/uiStore'
 import { SYMBOL_PITCH } from '../../lib/defaults'
 import { phaseColor } from '../../lib/phasing'
 import { useResultsStore } from '../../store/resultsStore'
-import { FaultBadge, NodeLabel, PhaseBadge, Terminal, useBusPriorityColor, useIslandColor, useNodeIssueClass, VoltageBadge } from './common'
+import { DutyBadge, FaultBadge, NodeLabel, PhaseBadge, Terminal, useBusPriorityColor, useIslandColor, useNodeIssueClass, VoltageBadge } from './common'
 
 const BAR_H = 14
 
@@ -117,6 +117,7 @@ export function BusbarNode({ id, data, width, selected }: NodeProps<AppNode>) {
       {data.params.compact !== true && <NodeLabel>{String(data.params.name ?? '')}</NodeLabel>}
       <VoltageBadge nodeId={id} />
       <FaultBadge nodeId={id} />
+      <DutyBadge nodeId={id} />
       <PhaseBadge nodeId={id} />
     </div>
   )

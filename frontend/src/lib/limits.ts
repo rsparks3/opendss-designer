@@ -7,6 +7,13 @@ export const DEFAULT_LIMITS: LimitsJSON = {
   vmaxPu: 1.05,
   overloadPct: 100,
   warnPct: 80,
+  dutyMargin: 1,
+  asymmetryFactor: 1,
+}
+
+/** The duty-screening multipliers, 1 when a project predates them. */
+export function dutyFactors(l: LimitsJSON | null | undefined): { margin: number; asymmetry: number } {
+  return { margin: l?.dutyMargin ?? 1, asymmetry: l?.asymmetryFactor ?? 1 }
 }
 
 export const EMPTY_STUDY: StudyInfoJSON = {
@@ -33,7 +40,9 @@ export function sameLimits(a: LimitsJSON, b: LimitsJSON): boolean {
     a.vminPu === b.vminPu &&
     a.vmaxPu === b.vmaxPu &&
     a.overloadPct === b.overloadPct &&
-    a.warnPct === b.warnPct
+    a.warnPct === b.warnPct &&
+    (a.dutyMargin ?? 1) === (b.dutyMargin ?? 1) &&
+    (a.asymmetryFactor ?? 1) === (b.asymmetryFactor ?? 1)
   )
 }
 
@@ -45,6 +54,9 @@ export function limitsProblem(l: LimitsJSON): string | null {
   if (l.vmaxPu >= 2) return 'Voltage limits are in per unit, below 2.'
   if (l.warnPct > l.overloadPct) return 'The warning level cannot be above the overload level.'
   if (l.overloadPct > 1000) return 'Loading limits are percentages, at most 1000.'
+  const { margin, asymmetry } = dutyFactors(l)
+  if (!Number.isFinite(margin) || margin < 0.5 || margin > 3) return 'The duty margin must be between 0.5 and 3.'
+  if (!Number.isFinite(asymmetry) || asymmetry < 1 || asymmetry > 3) return 'The asymmetry factor must be between 1 and 3.'
   return null
 }
 

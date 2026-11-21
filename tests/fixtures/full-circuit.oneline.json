@@ -445,7 +445,9 @@
     "vminPu": 0.95,
     "vmaxPu": 1.05,
     "overloadPct": 100.0,
-    "warnPct": 75.0
+    "warnPct": 75.0,
+    "dutyMargin": 1.1,
+    "asymmetryFactor": 1.25
   },
   "study": {
     "title": "Schema fixture study",

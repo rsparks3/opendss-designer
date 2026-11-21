@@ -401,7 +401,9 @@ def _graded(downstream: dict[str, Any], mine: tuple[str, float, bool],
 
 def _coordination_issues(devices: list[dict[str, Any]],
                          switches: list[dict[str, Any]],
-                         chains: dict[str, list[str]]) -> list[Issue]:
+                         chains: dict[str, list[str]],
+                         margin: float = 1.0,
+                         asymmetry: float = 1.0) -> list[Issue]:
     """What the curves say about the fault currents actually available.
 
     Everything is checked twice: phase units against the 3-phase fault, ground
@@ -460,17 +462,24 @@ def _coordination_issues(devices: list[dict[str, Any]],
     # Every switch, protective or not, has to be able to break the fault it
     # could be asked to break. This is the check a breaker takes part in: it
     # has no curve, but it does have a rating.
+    # The larger of the 3-phase and line-to-ground currents (the latter can
+    # be the higher near a grounded-wye transformer), times the project's
+    # asymmetry factor and duty margin, as the duty screening study does.
     for sw in switches:
-        fault = sw.get("faultA3ph")
+        fault = max(sw.get("faultA3ph") or 0.0, sw.get("faultA1ph") or 0.0)
         rating_ka = sw.get("interruptingKa")
         if not fault or not rating_ka:
             continue
-        if fault > rating_ka * 1000.0:
+        duty = fault * asymmetry
+        if duty * margin > rating_ka * 1000.0:
+            factors = (f" ({fault / 1000.0:.1f} kA x {asymmetry:g} asymmetry)"
+                       if asymmetry != 1.0 else "")
+            needs = f" with the {margin:g} duty margin" if margin != 1.0 else ""
             issues.append(Issue(
                 severity="warning", code="interrupting-duty",
                 message=(f"{sw['kind'].title()} '{sw['name']}' is rated to interrupt "
                          f"{rating_ka:g} kA, but a fault at {sw['bus']} draws "
-                         f"{fault / 1000.0:.1f} kA."),
+                         f"{duty / 1000.0:.1f} kA{factors}{needs}."),
                 nodeId=sw["nodeId"]))
     return issues
 
@@ -517,8 +526,10 @@ def tcc_study(circuit: Circuit) -> dict[str, Any]:
                         dev["faultA3ph"] = if3
                         dev["faultA1ph"] = if1
                 switches = _read_switches(circuit, compiled)
+                lim = circuit.criteria
                 issues.extend(_coordination_issues(
-                    devices, switches, _upstream_chain(circuit, devices)))
+                    devices, switches, _upstream_chain(circuit, devices),
+                    float(lim.dutyMargin), float(lim.asymmetryFactor)))
 
     return {
         "converged": converged,

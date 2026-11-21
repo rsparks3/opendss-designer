@@ -22,6 +22,7 @@ import { PHASE_LEGEND } from './phasing'
 import { resolveColor } from './theme'
 import type { OverlayMode } from '../store/resultsStore'
 import type { LimitsJSON } from '../types/circuit'
+import { DUTY_COLORS } from './duty'
 
 export interface LegendEntry {
   label: string
@@ -78,6 +79,12 @@ export function legendFor(overlay: OverlayMode, limits: LimitsJSON = DEFAULT_LIM
       return [{ label: 'de-energised', color: DARK_ISLAND }]
     case 'priority':
       return PRIORITIES.map((p) => ({ label: PRIORITY_LABELS[p], color: PRIORITY_COLORS[p] }))
+    case 'duty':
+      return [
+        { label: 'rating covers the fault', color: DUTY_COLORS.pass },
+        { label: 'fault exceeds the rating', color: DUTY_COLORS.fail },
+        { label: 'no rating entered', color: DUTY_COLORS.unrated },
+      ]
     default:
       return []
   }
@@ -94,6 +101,7 @@ export const OVERLAY_LABELS: Record<OverlayMode, string> = {
   islands: 'Islands',
   compare: 'Change from baseline',
   hosting: 'Hosting capacity',
+  duty: 'Equipment duty (screening)',
   off: '',
 }
 

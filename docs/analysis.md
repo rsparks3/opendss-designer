@@ -98,6 +98,38 @@ impedances Z₁ / Z₀ at that bus. Source short-circuit strength (`mvasc3` /
 the study (engine limitation; their inverter fault contribution is
 negligible).
 
+## Equipment duty screening
+
+**Studies → Equipment duty** (or the **Duty** overlay) holds every breaker,
+fuse, recloser and relay, and every busbar, to the fault current it may have
+to interrupt or withstand, from the same fault study the **Fault** overlay
+uses:
+
+- the fault current is the larger of the bolted three-phase and
+  line-to-ground currents at either terminal (line-to-ground can be the
+  higher near a grounded-wye transformer);
+- times the **asymmetry factor** in Project properties → Limits (1 unless
+  you enter one; it is a flat multiplier, nothing is computed from X/R);
+- and the element passes when its rating is at least that times the **duty
+  margin** (1 unless you set, say, 1.1).
+
+Devices are checked against their *Interrupting rating* and, if entered,
+their *Withstand rating*; busbars against their *Bracing*. Anything with no
+rating is grey, *unrated*, and listed so it can be filled in (the Elements
+tab has the ratings as columns). The overlay badges each element with its
+duty against its rating, coloured pass, fail or unrated; the tooltip gives
+both fault currents and every check. The report's **Equipment duty
+screening** section prints the table; with it in the report, the
+Protection section leaves out its own interrupting-duty table.
+
+!!! warning "Screening only"
+    This is not an ANSI C37 or IEC 60909 duty study: motor contribution, AC
+    and DC decay and the first-cycle / breaking-current distinction are not
+    modelled. The overlay legend, the table and the report all say so.
+
+The interrupting-duty warning of the protection study uses the same fault
+current (the larger of the two) and the same factors.
+
 ## Reliability
 
 Selecting the **Reliability** overlay (or the **Reliability** tab's *Run*

@@ -351,7 +351,10 @@ Names follow the code, not the original draft: ratings are lower-case element pa
 - Same case with a 100 kW generator: the cycle closes and the verification run passes.
 - PV larger than the island load with no storage: the reverse-power hours are flagged.
 
-### 2.4 Equipment duty screening
+### 2.4 Equipment duty screening — ✅ DONE 2026-11-21
+
+**As built:** `studies/duty.py` (`POST /api/duty`, one `engine.fault_study` solve, the Fault overlay's). A device is judged on the larger fault at *either* terminal. The status is per element (fail if any check fails; unrated when the interrupting/bracing rating is missing). `Limits.asymmetryFactor` has no free-text note: the report states the factor and that it was entered, not computed. UI: the Duty overlay (badges, legend with counts and disclaimer), Studies → Equipment duty, the report section *Equipment duty screening* (which replaces Protection's interrupting-duty table when both are chosen). Tests: `tests/test_duty.py`, `lib/duty.test.ts`.
+
 
 **Exists:**
 - `interruptingka` on breaker, fuse, recloser and relay.

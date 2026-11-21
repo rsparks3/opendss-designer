@@ -494,11 +494,25 @@ export async function elkCleanUp() {
 /** The fault and reliability studies run lazily when their overlay is
  *  first selected (results are cleared on any circuit change, so
  *  re-selecting re-runs them). */
+/** Run the equipment duty screening (one fault-study solve) and keep it. */
+export async function runDuty(): Promise<boolean> {
+  try {
+    const d = await api.duty(circuit())
+    useResultsStore.getState().setDuty(d)
+    if (!d.converged) flash('Duty screening: the fault study did not converge — check the problems list')
+    return d.converged
+  } catch (err) {
+    flash(`Duty screening failed: ${errText(err)}`)
+    return false
+  }
+}
+
 export function chooseOverlay(mode: OverlayMode) {
   useResultsStore.getState().setOverlay(mode)
   if (mode === 'reliability' && !useResultsStore.getState().reliability) {
     void runReliability()
   }
+  if (mode === 'duty' && !useResultsStore.getState().duty) void runDuty()
   if (mode === 'fault' && !useResultsStore.getState().fault) {
     void (async () => {
       try {

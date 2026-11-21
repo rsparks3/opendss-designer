@@ -17,6 +17,9 @@ const LIMIT_FIELDS: [keyof LimitsJSON, string, string][] = [
   ['vmaxPu', 'Overvoltage above', 'pu'],
   ['warnPct', 'Loading warning at', '%'],
   ['overloadPct', 'Overload at', '%'],
+  // Equipment duty screening (a screening check, not an ANSI C37 / IEC 60909 study).
+  ['dutyMargin', 'Duty margin', '×'],
+  ['asymmetryFactor', 'Asymmetry factor', '×'],
 ]
 
 /** File → Project properties: the study report's title block, and the
@@ -106,6 +109,8 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
     vmaxPu: Number(draft.vmaxPu),
     warnPct: Number(draft.warnPct),
     overloadPct: Number(draft.overloadPct),
+    dutyMargin: Number(draft.dutyMargin),
+    asymmetryFactor: Number(draft.asymmetryFactor),
   }
   const problem = limitsProblem(parsed)
   const changed = !problem && !sameLimits(parsed, limitsOf(stored))
@@ -176,7 +181,7 @@ export function ProjectDialog({ onClose }: { onClose: () => void }) {
                 {label} ({unit})
                 <input
                   type="number"
-                  step={unit === 'pu' ? 0.005 : 5}
+                  step={unit === 'pu' ? 0.005 : unit === '×' ? 0.05 : 5}
                   aria-label={label}
                   value={draft[key]}
                   onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
@@ -393,5 +398,7 @@ function asText(l: LimitsJSON): Record<keyof LimitsJSON, string> {
     vmaxPu: String(l.vmaxPu),
     warnPct: String(l.warnPct),
     overloadPct: String(l.overloadPct),
+    dutyMargin: String(l.dutyMargin ?? 1),
+    asymmetryFactor: String(l.asymmetryFactor ?? 1),
   }
 }

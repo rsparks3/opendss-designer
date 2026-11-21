@@ -311,6 +311,9 @@ export interface LimitsJSON {
   overloadPct: number
   /** ...and at or above this, a warning. */
   warnPct: number
+  /** Duty screening: pass when rating >= fault x asymmetryFactor x dutyMargin (both default 1). */
+  dutyMargin?: number
+  asymmetryFactor?: number
 }
 
 export interface StudyInfoJSON {
@@ -1026,6 +1029,37 @@ export interface FaultBusResult {
   scMva3: number | null
   zsc1: { r: number; x: number }
   zsc0: { r: number; x: number }
+}
+
+export type DutyStatus = 'pass' | 'fail' | 'unrated' | 'unknown'
+
+export interface DutyCheck {
+  ratingKa: number | null
+  status: DutyStatus
+  ratio: number | null
+}
+
+export interface DutyRow {
+  id: string
+  name: string
+  kind: string
+  bus: string
+  faultA3ph: number | null
+  faultA1ph: number | null
+  governing: '3ph' | '1ph' | null
+  dutyA: number | null
+  checks: Partial<Record<'interrupting' | 'withstand' | 'bracing', DutyCheck>>
+  status: DutyStatus
+}
+
+export interface DutyResult {
+  converged: boolean
+  rows: DutyRow[]
+  counts: Record<DutyStatus, number>
+  dutyMargin: number
+  asymmetryFactor: number
+  disclaimer: string
+  issues: Issue[]
 }
 
 export interface FaultResult {

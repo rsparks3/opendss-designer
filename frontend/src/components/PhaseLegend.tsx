@@ -1,5 +1,6 @@
 import { PRIORITIES, PRIORITY_COLORS, PRIORITY_LABELS } from '../lib/trace'
 import { PHASE_LEGEND } from '../lib/phasing'
+import { DUTY_COLORS } from '../lib/duty'
 import { indicesLine, reliabilityLegend } from '../lib/reliability'
 import { useCircuitStore } from '../store/circuitStore'
 import { useResultsStore } from '../store/resultsStore'
@@ -15,6 +16,24 @@ export function PhaseLegend() {
   const nodes = useCircuitStore((s) => s.nodes)
   const edges = useCircuitStore((s) => s.edges)
   const hosting = useResultsStore((s) => s.hosting)
+  const duty = useResultsStore((s) => s.duty)
+  if (overlay === 'duty') {
+    if (!duty?.converged) return null
+    const items: [keyof typeof DUTY_COLORS, string][] = [['fail', 'fault exceeds rating'], ['pass', 'rating covers fault'], ['unrated', 'no rating']]
+    return (
+      <div className="phase-legend" role="list" aria-label="Equipment duty">
+        {items.map(([k, label]) => (
+          <span key={k} role="listitem" className="phase-legend-item">
+            <span className="phase-legend-swatch" style={{ background: DUTY_COLORS[k] }} />
+            {label} ({duty.counts[k] ?? 0})
+          </span>
+        ))}
+        <span role="listitem" className="phase-legend-item" title={duty.disclaimer}>
+          screening only, not ANSI C37 / IEC 60909{duty.asymmetryFactor !== 1 ? ` · ×${duty.asymmetryFactor} asymmetry` : ''}{duty.dutyMargin !== 1 ? ` · ${duty.dutyMargin} margin` : ''}
+        </span>
+      </div>
+    )
+  }
   if (overlay === 'priority') {
     return (
       <div className="phase-legend" role="list" aria-label="Load priority">

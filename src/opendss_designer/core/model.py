@@ -348,6 +348,11 @@ class Limits(BaseModel):
     overloadPct: Annotated[float, Field(gt=0, le=1000)] = 100.0
     # ...and at or above this, a warning.
     warnPct: Annotated[float, Field(gt=0, le=1000)] = 80.0
+    # Equipment duty screening: a device passes when its rating is at least
+    # the fault current x asymmetryFactor x dutyMargin. The asymmetry factor
+    # is a flat multiplier the user enters; no X/R correction is computed.
+    dutyMargin: Annotated[float, Field(ge=0.5, le=3)] = 1.0
+    asymmetryFactor: Annotated[float, Field(ge=1, le=3)] = 1.0
 
 
 class StudyInfo(BaseModel):
