@@ -15,7 +15,7 @@ describe('migrateCircuit', () => {
     const { circuit, warning } = migrateCircuit(minimal)
     expect(warning).toBeUndefined()
     expect({ ...circuit, version: 1 }).toEqual(minimal)
-    expect(circuit.version).toBe(2)
+    expect(circuit.version).toBe(SCHEMA_VERSION)
   })
 
   it('treats a missing version as the original format', () => {

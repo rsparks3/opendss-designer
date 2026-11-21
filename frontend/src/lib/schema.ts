@@ -13,7 +13,7 @@
 import type { CircuitJSON } from '../types/circuit'
 
 /** Bump when the document shape changes, and add a migration below. */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export interface MigrationResult {
   circuit: CircuitJSON
@@ -29,9 +29,15 @@ export class DocumentError extends Error {}
  *  island mode, source kind, tag vocabulary, allocations). Every one of
  *  them is optional with a default that means "as before", so a version-1
  *  document needs no change; the bump marks files that may carry them, so
- *  an older build warns before saving over one. */
+ *  an older build warns before saving over one.
+ *
+ *  3 -- planning studies (generator standby, tags on series elements,
+ *  service capacity on a source, withstand and bracing ratings, the duty
+ *  margin and asymmetry factor in the limits, saved TCC device sets). All
+ *  optional, defaulting to "as before": no change to a version-2 document. */
 const MIGRATIONS: Record<number, (c: CircuitJSON) => CircuitJSON> = {
   1: (c) => c,
+  2: (c) => c,
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {

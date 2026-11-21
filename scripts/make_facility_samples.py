@@ -77,7 +77,7 @@ class Builder:
         self._edge("line", eid, a, ah, b, bh, at, params)
 
     def write(self, extra: dict[str, Any] | None = None) -> None:
-        doc = {"version": 2, "name": self.name, "busNames": {}, "nodes": self.nodes,
+        doc = {"version": 3, "name": self.name, "busNames": {}, "nodes": self.nodes,
                "edges": self.edges, "loadShapes": {}, **(extra or {})}
         path = SAMPLES / f"{self.name}.oneline.json"
         path.write_text(json.dumps(doc, indent=1) + "\n")
